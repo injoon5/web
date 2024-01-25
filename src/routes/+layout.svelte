@@ -7,10 +7,9 @@
 
 <nav >
 	<NavBar />
-	
 </nav>
 
-<div class="mx-auto">
+<div class="mx-auto pt-4">
 	<slot />
 </div>
 
