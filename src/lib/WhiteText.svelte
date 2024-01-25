@@ -1,2 +1,3 @@
 <script></script>
-<span class="text-white"><slot class="text-white"></slot></span>
+
+<span class="text-white"><slot class="text-white" /></span>

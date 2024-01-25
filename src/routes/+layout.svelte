@@ -5,7 +5,7 @@
 	import NavBar from '$lib/NavBar.svelte';
 </script>
 
-<nav >
+<nav>
 	<NavBar />
 </nav>
 
@@ -13,5 +13,4 @@
 	<slot />
 </div>
 
-<footer>
-</footer>
+<footer></footer>
