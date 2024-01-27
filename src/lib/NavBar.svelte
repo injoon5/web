@@ -10,7 +10,7 @@
 	}
 </script>
 
-<div class="mx-auto flex flex-wrap items-center justify-between border-gray-200 bg-gray-900 pb-4">
+<div class="mx-auto flex flex-wrap items-center justify-between border-gray-200 pb-4">
 	<button
 		on:click={toggleNavbar}
 		type="button"
@@ -37,7 +37,7 @@
 	</button>
 	<div class="w-full md:block md:w-auto {showMenu ? '' : 'hidden'}" id="navbar-default">
 		<ul
-			class="mt-4 flex flex-col rounded-lg border border-gray-700 bg-gray-800 p-4 text-lg font-medium md:mt-0 md:flex-row md:space-x-8 md:border-0 md:bg-gray-900 md:p-0 md:text-xl rtl:space-x-reverse"
+			class="mt-4 flex flex-col rounded-lg border border-gray-700 p-4 text-lg font-medium md:mt-0 md:flex-row md:space-x-8 md:border-0 md:p-0 md:text-xl rtl:space-x-reverse"
 		>
 			<NavBarButton linkto="/" on:click={closeNavbar}>Home</NavBarButton>
 			<NavBarButton linkto="/projects" on:click={closeNavbar}>Projects</NavBarButton>
