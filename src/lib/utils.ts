@@ -9,8 +9,8 @@ export function formatDate(date: string, dateStyle: DateStyle = 'medium', locale
 	return dateFormatter.format(dateToFormat);
 }
 
-export function sliceDescription(description: string) {
-	if (description.split(' ').length <= 25) {
+export function sliceText(description: string, limit: number) {
+	if (description.split(' ').length <= limit) {
 		return description;
 	} else {
 		return description.split(' ').slice(0, 25).join(' ').concat('...');

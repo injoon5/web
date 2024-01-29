@@ -16,12 +16,12 @@ const config = {
 	smartypants: {
 		dashes: 'oldschool'
 	},
-	remarkPlugins: [remarkMath, remarkAbbr, remarkGfm],
+	remarkPlugins: [remarkMath, remarkGfm],
 	rehypePlugins: [
 		rehypeKatexSvelte,
 		rehypeSlug,
-		[rehypePrettyCode, { theme: 'one-dark-pro' }],
-		[rehypeAutolinkHeadings, { behavior: 'wrap' }]
+		[rehypePrettyCode, { theme: 'material-theme' }],
+		[rehypeAutolinkHeadings, { behavior: 'after' }]
 	]
 };
 

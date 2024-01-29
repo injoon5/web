@@ -1,19 +1,15 @@
 ---
-title: How to Hack the NSA
-description: A simple but complex approach on hacking the NSA and stealing USA's SECRETS.
-date: '2024-1-27'
+title: Quantum Toasters and Teleporting Toast
+description: Join me on a mind-bending journey as I delve into the world of quantum physics and attempt to revolutionize breakfast with toasters that defy the laws of space and time. Get ready for a crispy adventure through parallel universes and teleporting bread slices!
+date: '2023-04-16'
 categories:
   - sveltekit
   - svelte
 published: true
 ---
-# H1 plz
-## Markdown
 
-Hey friends! 👋
+## Quantum Toasters
 
-```ts
-function greet(name: string) {
-	console.log(`Hey ${name}! 👋`)
-}
-```
+Media inside the **static** folder is served from `/`.
+
+![Quantum Toasters](favicon.png)

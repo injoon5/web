@@ -1,7 +1,9 @@
 <script lang="ts">
 	import WhiteText from '$lib/WhiteText.svelte';
+	import HoverLink from '$lib/HoverLink.svelte';
+	import Balancer from '$lib/Balancer.svelte';
 	import { onMount } from 'svelte';
-	import { formatDate, sliceDescription } from '$lib/utils';
+	import { formatDate, sliceText } from '$lib/utils';
 
 	export let data;
 </script>
@@ -22,29 +24,35 @@
 
 <div class="grid grid-cols-1 gap-4 py-10 md:grid-cols-2">
 	<div>
-		<h2 class="text-2xl font-semibold md:text-3xl">Blog</h2>
+		<h2 class="text-xl font-bold md:text-2xl">Blog</h2>
 		{#each data.posts.slice(0, 4) as post}
-			<div class="my-2 rounded-lg p-2 transition hover:bg-[#424242]">
-				<span class="flex flex-wrap">
-					<a href="/blog/{post.slug}" class="text-xl font-semibold md:text-2xl">{post.title}</a>
-					<p class="px-2 text-xl font-medium text-gray-400 md:text-2xl">—</p>
-					<p class="text-xl font-medium text-gray-400 md:text-2xl">{formatDate(post.date)}</p>
+			<div class="my-2">
+				<HoverLink>
+					<Balancer>
+						<a href="/blog/{post.slug}" class="text-lg font-semibold md:text-xl">{post.title}</a>
+					</Balancer>
+				</HoverLink>
+
+				<span class="text-md font-normal md:text-lg">
+					<p>{sliceText(post.description, 10)}</p>
+					<time datetime class="text-gray-400">{formatDate(post.date)}</time>
 				</span>
-				<p class="text-md font-normal md:text-lg">
-					{sliceDescription(post.description)}
-				</p>
 			</div>
 		{/each}
 	</div>
 	<div>
-		<h2 class="text-2xl font-semibold md:text-3xl">Projects</h2>
-		<div class="my-2 rounded-lg p-2 transition hover:bg-gray-700">
-			<span class="flex flex-wrap">
-				<h3 class="text-xl font-semibold md:text-2xl">Hydrogen Bomb</h3>
-				<p class="px-2 text-xl font-medium text-gray-400 md:text-2xl">—</p>
-				<p class="text-xl font-medium text-gray-400 md:text-2xl">Jan 26</p>
+		<h2 class="text-xl font-bold md:text-2xl">Blog</h2>
+		<div class="my-2">
+			<HoverLink>
+				<Balancer>
+					<a href="/projects}" class="text-lg font-semibold md:text-xl">Something...</a>
+				</Balancer>
+			</HoverLink>
+
+			<span class="text-md font-normal md:text-lg">
+				<p>Example Text</p>
+				<time datetime class="text-gray-400">Example</time>
 			</span>
-			<p class="text-md font-normal md:text-lg">Lorem Ipsum Dolor Si Amet.</p>
 		</div>
 	</div>
 </div>

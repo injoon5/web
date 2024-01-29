@@ -27,7 +27,9 @@
 	<div class="border-t-1 flex-1 border-zinc-600 md:border-t-2"></div>
 
 	<!-- Post -->
-	<div class="prose md:prose-lg prose-invert prose-headings:no-underline mt-10">
+	<div
+		class="prose md:prose-lg prose-invert prose-a:no-underline hover:prose-a:underline mt-10 max-w-none"
+	>
 		<svelte:component this={data.content} class="prose" />
 	</div>
 </article>
