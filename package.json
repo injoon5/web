@@ -43,6 +43,8 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@fontsource/inter": "^5.0.16",
+		"@fontsource/newsreader": "^5.0.16",
 		"@formkit/auto-animate": "^0.8.1",
 		"install": "^0.13.0",
 		"npm": "^10.4.0",

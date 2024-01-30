@@ -24,13 +24,11 @@
 
 <div class="grid grid-cols-1 gap-4 py-10 md:grid-cols-2">
 	<div>
-		<h2 class="text-xl font-bold md:text-2xl">Blog</h2>
+		<h2 class=" text-xl font-bold md:text-2xl">Blog</h2>
 		{#each data.posts.slice(0, 4) as post}
 			<div class="my-2">
 				<HoverLink>
-					<Balancer>
-						<a href="/blog/{post.slug}" class="text-lg font-semibold md:text-xl">{post.title}</a>
-					</Balancer>
+					<a href="/blog/{post.slug}" class="text-lg font-semibold md:text-xl">{post.title}</a>
 				</HoverLink>
 
 				<span class="text-md font-normal md:text-lg">
@@ -44,9 +42,7 @@
 		<h2 class="text-xl font-bold md:text-2xl">Blog</h2>
 		<div class="my-2">
 			<HoverLink>
-				<Balancer>
-					<a href="/projects}" class="text-lg font-semibold md:text-xl">Something...</a>
-				</Balancer>
+				<a href="/projects}" class="text-lg font-semibold md:text-xl">Something...</a>
 			</HoverLink>
 
 			<span class="text-md font-normal md:text-lg">

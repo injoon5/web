@@ -11,10 +11,12 @@
 	<meta property="og:title" content={data.meta.title} />
 </svelte:head>
 
-<article>
+<article class="pt-10">
 	<!-- Title -->
 	<div>
-		<h1 class="text-4xl font-semibold md:text-5xl md:font-semibold">{data.meta.title}</h1>
+		<h1 class="text-4xl font-semibold md:text-5xl md:font-semibold">
+			{data.meta.title}
+		</h1>
 		<p class="text-xl font-medium md:text-2xl">Published at {formatDate(data.meta.date)}</p>
 	</div>
 
