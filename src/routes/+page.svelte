@@ -24,7 +24,9 @@
 
 <div class="grid grid-cols-1 gap-4 py-10 md:grid-cols-2">
 	<div>
-		<h2 class="text-primary-50 text-xl font-bold md:text-2xl">Blog</h2>
+		<HoverLink>
+			<h2 class="text-primary-50 text-xl font-bold md:text-2xl"><a href="/blog">Blog</a></h2>
+		</HoverLink>
 		{#each data.posts.slice(0, 4) as post}
 			<div class="my-2">
 				<HoverLink>
@@ -34,12 +36,18 @@
 				</HoverLink>
 
 				<span class="text-md text-primary-50 font-normal md:text-lg">
-					<p>{sliceText(post.description, 10)}</p>
+					<p>{sliceText(post.description, 25)}</p>
 					<time class="text-primary-400">{formatDate(post.date)}</time>
 				</span>
 			</div>
 		{/each}
-		<h2 class="text-primary-400 text-xl font-medium">Read More →</h2>
+		<HoverLink>
+			<a
+				href="/blog"
+				class="text-primary-400 hover:text-primary-50 text-xl font-medium transition-colors"
+				>Read More →</a
+			>
+		</HoverLink>
 	</div>
 	<div>
 		<h2 class="text-primary-50 text-xl font-bold md:text-2xl">Blog</h2>

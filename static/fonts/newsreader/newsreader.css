@@ -4,7 +4,7 @@
 	font-family: 'Newsreader';
 	font-style: normal;
 	font-weight: 200;
-	src: url('/newsreader-v20-latin-200.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+	src: url('newsreader-v20-latin-200.woff2') format('woff2'); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
 }
 /* newsreader-200italic - latin */
 @font-face {

@@ -1,5 +1,6 @@
 @import url('/fonts/pretendard/pretendard-subset.css');
 @import url('/fonts/newsreader/newsreader.css');
+@import url('/fonts/rubik/rubik.css');
 
 @tailwind base;
 @tailwind components;

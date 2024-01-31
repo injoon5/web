@@ -7,9 +7,9 @@
 
 <!-- SEO -->
 <svelte:head>
-	<title>{data.meta.title}</title>
+	<title>{data.meta.title} - Projects</title>
 	<meta property="og:type" content="article" />
-	<meta property="og:title" content={data.meta.title} />
+	<meta property="og:title" content="{data.meta.title} - Projects" />
 </svelte:head>
 
 <article class="pt-10">
@@ -18,9 +18,9 @@
 		<h1 class="text-primary-50 text-4xl font-semibold tracking-tight md:text-5xl md:font-semibold">
 			{data.meta.title}
 		</h1>
-		<div class="flex flex-row">
+		<div class="flex flex-row tracking-tighter">
 			<p class="text-primary-300 text-xl font-medium md:text-2xl">
-				Published at {formatDate(data.meta.date)}
+				{data.meta.year}
 			</p>
 			<p class="text-primary-300 mx-2 text-xl font-medium md:text-2xl">·</p>
 			<Readotron
@@ -29,12 +29,18 @@
 				lang="ko"
 			/>
 		</div>
+		<p class="text-primary-100 text-lg font-medium md:text-xl">
+			{data.meta.description}
+		</p>
 		<div class="tags space-x-2">
-			{#each data.meta.categories as category}
-				<span class="text-primary-100 font-medium md:text-xl">{category}</span>
+			<span class="text-primary-100 rounded font-medium md:text-xl">Made with:</span>
+			{#each data.meta.language as language}
+				<span class="text-primary-100 font-medium md:text-xl">{language}</span>
 			{/each}
 		</div>
 	</div>
+
+	<!-- Tags -->
 
 	<!-- Post -->
 	<div
