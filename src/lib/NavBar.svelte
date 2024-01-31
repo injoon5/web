@@ -11,7 +11,7 @@
 </script>
 
 <div
-	class="mx-auto flex max-w-4xl flex-wrap items-center justify-between border-gray-200 px-4 pb-2 md:px-5"
+	class="mx-auto flex max-w-4xl flex-wrap items-center justify-between border-gray-200 px-4 py-3 md:px-5"
 >
 	<div class="block w-auto" id="navbar-default">
 		<ul

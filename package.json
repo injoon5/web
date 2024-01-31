@@ -48,6 +48,7 @@
 		"@fontsource/newsreader": "^5.0.16",
 		"@formkit/auto-animate": "^0.8.1",
 		"@svelte-dev/pretty-code": "^1.0.0",
+		"@untemps/svelte-readotron": "^2.0.0",
 		"highlight.js": "^11.9.0",
 		"install": "^0.13.0",
 		"npm": "^10.4.0",
