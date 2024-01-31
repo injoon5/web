@@ -12,7 +12,7 @@
 	<title>Injoon Oh</title>
 </svelte:head>
 
-<h1 class="text-3xl font-semibold tracking-tighter text-[#C6C6C6] md:text-4xl">
+<h1 class="text-primary-200 text-3xl font-semibold tracking-tighter md:text-4xl">
 	<WhiteText>Injoon Oh</WhiteText> is a <WhiteText>student</WhiteText> in <WhiteText
 		>Korea.
 	</WhiteText>He is interested in
@@ -24,30 +24,35 @@
 
 <div class="grid grid-cols-1 gap-4 py-10 md:grid-cols-2">
 	<div>
-		<h2 class=" text-xl font-bold md:text-2xl">Blog</h2>
+		<h2 class="text-primary-50 text-xl font-bold md:text-2xl">Blog</h2>
 		{#each data.posts.slice(0, 4) as post}
 			<div class="my-2">
 				<HoverLink>
-					<a href="/blog/{post.slug}" class="text-lg font-semibold md:text-xl">{post.title}</a>
+					<a href="/blog/{post.slug}" class="text-primary-50 text-lg font-semibold md:text-xl"
+						>{post.title}</a
+					>
 				</HoverLink>
 
-				<span class="text-md font-normal md:text-lg">
+				<span class="text-md text-primary-50 font-normal md:text-lg">
 					<p>{sliceText(post.description, 10)}</p>
-					<time datetime class="text-gray-400">{formatDate(post.date)}</time>
+					<time class="text-primary-400">{formatDate(post.date)}</time>
 				</span>
 			</div>
 		{/each}
+		<h2 class="text-primary-400 text-xl font-medium">Read More...</h2>
 	</div>
 	<div>
-		<h2 class="text-xl font-bold md:text-2xl">Blog</h2>
+		<h2 class="text-primary-50 text-xl font-bold md:text-2xl">Blog</h2>
 		<div class="my-2">
 			<HoverLink>
-				<a href="/projects}" class="text-lg font-semibold md:text-xl">Something...</a>
+				<a href="/projects}" class="text-primary-50 text-lg font-semibold md:text-xl"
+					>Something...</a
+				>
 			</HoverLink>
 
-			<span class="text-md font-normal md:text-lg">
+			<span class="text-primary-50 text-md font-normal md:text-lg">
 				<p>Example Text</p>
-				<time datetime class="text-gray-400">Example</time>
+				<time datetime class="text-primary-400">Example</time>
 			</span>
 		</div>
 	</div>

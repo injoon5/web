@@ -20,6 +20,7 @@
 		"@typescript-eslint/eslint-plugin": "^6.0.0",
 		"@typescript-eslint/parser": "^6.0.0",
 		"autoprefixer": "^10.4.16",
+		"dotenv": "^16.4.1",
 		"eslint": "^8.56.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.35.1",
@@ -46,11 +47,14 @@
 		"@fontsource/inter": "^5.0.16",
 		"@fontsource/newsreader": "^5.0.16",
 		"@formkit/auto-animate": "^0.8.1",
+		"@svelte-dev/pretty-code": "^1.0.0",
+		"highlight.js": "^11.9.0",
 		"install": "^0.13.0",
 		"npm": "^10.4.0",
 		"rehype-pretty-code": "^0.12.6",
 		"remark-gfm": "^4.0.0",
 		"shikiji": "^0.9.19",
+		"svhighlight": "^0.7.1",
 		"title": "^3.5.3"
 	}
 }

@@ -1,3 +1,3 @@
 <script></script>
 
-<span class="text-white"><slot class="text-white" /></span>
+<span class="text-primary-50"><slot class="text-primary-50" /></span>

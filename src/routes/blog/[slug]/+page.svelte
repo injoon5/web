@@ -30,7 +30,7 @@
 
 	<!-- Post -->
 	<div
-		class="prose md:prose-lg prose-invert prose-a:no-underline hover:prose-a:underline mt-10 max-w-none"
+		class="prose md:prose-lg prose-invert prose-a:no-underline prose-img:rounded prose-img: hover:prose-a:underline mt-10 max-w-none"
 	>
 		<svelte:component this={data.content} class="prose" />
 	</div>

@@ -10,7 +10,9 @@
 	}
 </script>
 
-<div class="mx-auto flex flex-wrap items-center justify-between border-gray-200 pb-4">
+<div
+	class="mx-auto flex max-w-4xl flex-wrap items-center justify-between border-gray-200 px-2 pb-4 md:px-6"
+>
 	<button
 		on:click={toggleNavbar}
 		type="button"
