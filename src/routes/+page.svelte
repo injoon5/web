@@ -39,7 +39,7 @@
 				</span>
 			</div>
 		{/each}
-		<h2 class="text-primary-400 text-xl font-medium">Read More...</h2>
+		<h2 class="text-primary-400 text-xl font-medium">Read More →</h2>
 	</div>
 	<div>
 		<h2 class="text-primary-50 text-xl font-bold md:text-2xl">Blog</h2>

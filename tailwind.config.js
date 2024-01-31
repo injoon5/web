@@ -31,14 +31,28 @@ export default {
 			serif: ['Newsreader']
 		},
 		extend: {
-			typography: {
+			typography: ({ theme }) => ({
 				DEFAULT: {
 					css: {
-						color: '#fff'
-					}
+						color: '#fff',
+						'--tw-prose-invert-body': theme('colors.primary[200]'),
+            			'--tw-prose-invert-headings': theme('colors.white'),
+            			'--tw-prose-invert-lead': theme('colors.primary[300]'),
+            			'--tw-prose-invert-links': theme('colors.white'),
+            			'--tw-prose-invert-bold': theme('colors.white'),
+            			'--tw-prose-invert-counters': theme('colors.primary[200]'),
+            			'--tw-prose-invert-bullets': theme('colors.primary[200]'),
+            			'--tw-prose-invert-hr': theme('colors.primary[500]'),
+            			'--tw-prose-invert-quotes': theme('colors.primary[100]'),
+            			'--tw-prose-invert-quote-borders': theme('colors.primary[700]'),
+            			'--tw-prose-invert-captions': theme('colors.primary[400]'),
+        				'--tw-prose-invert-th-borders': theme('colors.primary[500]'),
+            			'--tw-prose-invert-td-borders': theme('colors.primary[600]'),
+					},
+					
 				}
-			}
-		}
+			}),
+		},
 	},
 	plugins: [require('@tailwindcss/typography')]
 };
