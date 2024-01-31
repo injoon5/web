@@ -12,7 +12,7 @@
 	<title>Injoon Oh</title>
 </svelte:head>
 
-<h1 class="text-primary-200 text-3xl font-semibold tracking-tighter md:text-4xl">
+<h1 class="text-primary-200 mt-5 text-3xl font-semibold tracking-tighter md:text-4xl">
 	<WhiteText>Injoon Oh</WhiteText> is a <WhiteText>student</WhiteText> in <WhiteText
 		>Korea.
 	</WhiteText>He is interested in
@@ -44,7 +44,7 @@
 		<HoverLink>
 			<a
 				href="/blog"
-				class="text-primary-400 hover:text-primary-50 text-xl font-medium transition-colors"
+				class="text-primary-400 hover:text-primary-50 font-medium transition-colors md:text-lg"
 				>Read More →</a
 			>
 		</HoverLink>
