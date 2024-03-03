@@ -20,7 +20,7 @@
 			<NavBarButton linkto="/" on:click={closeNavbar}>Home</NavBarButton>
 			<NavBarButton linkto="/projects" on:click={closeNavbar}>Projects</NavBarButton>
 			<NavBarButton linkto="/blog" on:click={closeNavbar}>Blog</NavBarButton>
-			<NavBarButton linkto="https://daily.injoon5.com" on:click={closeNavbar}>PKM ↗</NavBarButton>
+			<NavBarButton linkto="https://pkm.injoon5.com" on:click={closeNavbar}>PKM ↗</NavBarButton>
 		</ul>
 	</div>
 </div>
