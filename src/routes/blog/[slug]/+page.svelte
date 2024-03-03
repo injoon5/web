@@ -30,8 +30,8 @@
 			/>
 		</div>
 		<div class="tags space-x-2">
-			{#each data.meta.categories as category}
-				<span class="text-primary-100 font-medium md:text-xl">{category}</span>
+			{#each data.meta.tags as tag}
+				<span class="text-primary-100 font-medium md:text-xl">{tag}</span>
 			{/each}
 		</div>
 	</div>

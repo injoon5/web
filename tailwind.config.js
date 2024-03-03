@@ -6,6 +6,7 @@ const colors = {
 	...defaultColors,
 	...{
 		primary: {
+			0: '#ffffff',
 			50: '#f6f6f6',
 			100: '#e7e7e7',
 			200: '#d1d1d1',

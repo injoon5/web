@@ -22,6 +22,10 @@
 	and <WhiteText>play with friends.</WhiteText>
 </h1>
 
+<div class="bg-primary-800 border-primary-700 my-4 rounded-md border p-4">
+	<p class="text-primary-50 font-bold">Lorem Ipsum</p>
+</div>
+
 <div class="grid grid-cols-1 gap-4 py-10 md:grid-cols-2">
 	<div>
 		<HoverLink>
@@ -60,7 +64,7 @@
 
 			<span class="text-primary-50 text-md font-normal md:text-lg">
 				<p>Example Text</p>
-				<time datetime class="text-primary-400">Example</time>
+				<time class="text-primary-400">Example</time>
 			</span>
 		</div>
 	</div>

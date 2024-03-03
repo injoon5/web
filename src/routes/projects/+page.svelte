@@ -28,11 +28,11 @@
 					>
 				</HoverLink>
 				<div class="hidden md:mx-2 md:flex md:flex-row">
-					{#each project.language as language}
+					{#each project.tags as tags}
 						<p
 							class="font-rubik bg-primary-950 text-primary-50 mx-1 rounded px-2 pt-0.5 text-base font-light"
 						>
-							{language}
+							{tags}
 						</p>
 					{/each}
 				</div>

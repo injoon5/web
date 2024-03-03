@@ -34,8 +34,8 @@
 		</p>
 		<div class="tags space-x-2">
 			<span class="text-primary-100 rounded font-medium md:text-xl">Made with:</span>
-			{#each data.meta.language as language}
-				<span class="text-primary-100 font-medium md:text-xl">{language}</span>
+			{#each data.meta.tags as tags}
+				<span class="text-primary-100 font-medium md:text-xl">{tags}</span>
 			{/each}
 		</div>
 	</div>

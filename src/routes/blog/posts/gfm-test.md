@@ -1,8 +1,9 @@
 ---
+type: note
 title: GFM TEST
 description: GFM TEST
 date: '2024-1-27'
-categories:
+tags:
   - sveltekit
   - svelte
 published: true

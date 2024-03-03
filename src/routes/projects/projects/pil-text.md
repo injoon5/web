@@ -2,8 +2,8 @@
 title: 'Pil Text Generator'
 description: A simple tool that generates images of text in various fonts. Used Pillow.
 year: '2021'
-language:
-  - Python
+tags:
+  - python
   - JavaScript
 published: true
 ---

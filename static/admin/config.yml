@@ -1,0 +1,57 @@
+backend:
+  name: github
+  repo: injoon5/web
+  branch: main
+media_folder: 'static/images/uploads'
+public_folder: '/images/uploads'
+
+slug:
+  encoding: 'ascii'
+  clean_accents: true
+  sanitize_replacement: '-'
+
+collections:
+  - name: 'blog' # Used in routes, e.g., /admin/collections/blog
+    label: 'Blog' # Used in the UI
+    folder: 'src/routes/blog/posts/' # The path to the folder where the documents are stored
+    create: true # Allow users to create new documents in this collection
+    slug: '{{slug}}' # Filename template, e.g., YYYY-MM-DD-title.md
+    fields: # The fields for each document, usually in front matter
+      - { label: 'Type', name: 'type', widget: 'select', options: ['blog', 'book', 'note'] }
+      - { label: 'Title', name: 'title', widget: 'string' }
+      - { label: 'Slug', name: 'slug', widget: 'string', default: '{{slug}}', required: false }
+      - { label: 'Description', name: 'description', widget: 'string', required: false }
+      - { label: 'Publish Date', name: 'date', widget: 'datetime', date_format: 'YYYY-MM-DD' }
+      - { label: 'Cover Image', name: 'coverimage', widget: 'image', required: false }
+      - {
+          label: 'Tags',
+          name: 'tags',
+          widget: 'list',
+          allow_add: true,
+          allow_delete: true,
+          default: ['post'],
+          required: false
+        }
+      - { label: 'Published', name: 'published', widget: 'boolean' }
+      - { label: 'Body', name: 'body', widget: 'markdown' }
+  - name: 'projects' # Used in routes, e.g., /admin/collections/blog
+    label: 'Projects' # Used in the UI
+    folder: 'src/routes/projects/projects/' # The path to the folder where the documents are stored
+    create: true # Allow users to create new documents in this collection
+    slug: '{{slug}}' # Filename template, e.g., YYYY-MM-DD-title.md
+    fields: # The fields for each document, usually in front matter
+      - { label: 'Title', name: 'title', widget: 'string' }
+      - { label: 'Slug', name: 'slug', widget: 'string', default: '{{slug}}' }
+      - { label: 'Description', name: 'description', widget: 'string', required: false }
+      - { label: 'Year', name: 'year', widget: 'string' }
+      - { label: 'Cover Image', name: 'coverimage', widget: 'image', required: false }
+      - {
+          label: 'Language',
+          name: 'language',
+          widget: 'list',
+          allow_add: true,
+          allow_delete: true,
+          default: ['post']
+        }
+      - { label: 'Published', name: 'published', widget: 'boolean' }
+      - { label: 'Body', name: 'body', widget: 'markdown' }

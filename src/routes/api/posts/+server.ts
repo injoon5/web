@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { page } from '$app/stores';
 import type { Post } from '$lib/types';
 
 async function getPosts() {
