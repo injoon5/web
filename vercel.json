@@ -1,0 +1,20 @@
+{
+	"redirects": [
+		{
+			"source": "/.well-known/webfinger",
+			"destination": "https://mastodon.injoon5.com/.well-known/webfinger",
+			"permanent": true
+		}
+	],
+	"headers": [
+		{
+			"source": "/.well-known/webfinger",
+			"headers": [
+				{
+					"key": "Access-Control-Allow-Origin",
+					"value": "*"
+				}
+			]
+		}
+	]
+}
