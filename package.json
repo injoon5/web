@@ -59,6 +59,7 @@
 		"rehype-pretty-code": "^0.12.6",
 		"remark-gfm": "^4.0.0",
 		"shikiji": "^0.9.19",
+		"svelte-heatmap": "^1.0.2",
 		"svhighlight": "^0.7.1",
 		"title": "^3.5.3"
 	}

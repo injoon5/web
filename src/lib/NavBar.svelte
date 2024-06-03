@@ -10,17 +10,22 @@
 	}
 </script>
 
-<div
-	class="mx-auto flex max-w-4xl flex-wrap items-center justify-between border-gray-200 px-4 py-3 md:px-5"
->
-	<div class="block w-auto" id="navbar-default">
-		<ul
-			class="mt-0 flex flex-row space-x-6 rounded-lg border-0 p-0 text-lg font-medium md:space-x-8 md:text-xl rtl:space-x-reverse"
-		>
-			<NavBarButton linkto="/" on:click={closeNavbar}>Home</NavBarButton>
-			<NavBarButton linkto="/projects" on:click={closeNavbar}>Projects</NavBarButton>
-			<NavBarButton linkto="/blog" on:click={closeNavbar}>Blog</NavBarButton>
-			<NavBarButton linkto="https://pkm.injoon5.com" on:click={closeNavbar}>PKM ↗</NavBarButton>
-		</ul>
+<div class="flex items-center justify-between">
+	<div class="flex items-center gap-2">
+		<a href="/" class="text-black dark:text-white text-md p-0 font-serif text-lg font-normal">
+			<div
+				class="from-blue-300 to-blue-50 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-t"
+			>
+				<p class="text-blue-600 font-sans text-xl font-medium">IO</p>
+			</div>
+		</a>
 	</div>
+	<ul class="flex items-center gap-4">
+		<NavBarButton linkto="/about" on:click={closeNavbar}>about</NavBarButton>
+		<NavBarButton linkto="/projects" on:click={closeNavbar}>projects</NavBarButton>
+		<NavBarButton linkto="/blog" on:click={closeNavbar}>blog</NavBarButton>
+		<NavBarButton linkto="http://github.com/injoon5" on:click={closeNavbar}>github</NavBarButton>
+		<NavBarButton linkto="http://mastodon.injoon5.com" on:click={closeNavbar}>mastodon</NavBarButton
+		>
+	</ul>
 </div>

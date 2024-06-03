@@ -1,7 +1,5 @@
 <script lang="ts">
-	import WhiteText from '$lib/WhiteText.svelte';
 	import HoverLink from '$lib/HoverLink.svelte';
-	import Balancer from '$lib/Balancer.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, sliceText } from '$lib/utils';
 
@@ -12,60 +10,103 @@
 	<title>Injoon Oh</title>
 </svelte:head>
 
-<h1 class="text-primary-200 mt-5 text-3xl font-semibold tracking-tighter md:text-4xl">
-	<WhiteText>Injoon Oh</WhiteText> is a <WhiteText>student</WhiteText> in <WhiteText
-		>Korea.
-	</WhiteText>He is interested in
-	<WhiteText>computers, math and science.</WhiteText> When he takes a rest, he likes to <WhiteText
-		>read books</WhiteText
-	>
-	and <WhiteText>play with friends.</WhiteText>
-</h1>
-
-<div class="bg-primary-800 border-primary-700 my-4 rounded-md border p-4">
-	<p class="text-primary-50 font-bold">Lorem Ipsum</p>
+<div id="introduction" class="mb-12 mt-20 text-sm">
+	<h1 class="text-black dark:text-white mb-4 font-serif text-2xl font-normal">Injoon Oh</h1>
+	<p class="text-black dark:text-white mb-2">
+		I am a student who is interested in math, science, and computers.
+	</p>
+	<p class="text-black dark:text-white mb-2">
+		I love exploring new concepts and getting to know cool new things. Whether it’s tackling complex
+		equations, researching about scientific stuff, or trying the latest tech, I’m always eager to
+		learn.
+	</p>
+	<p class="text-black dark:text-white mb-2">
+		In my free time, I enjoy reading non-fiction books of my interests. I also love playing <s
+			>fairly</s
+		>
+		simple games like ADOFAI, Minecraft, and classic console games. I live in Seoul, South Korea, and
+		love walking along the city, enjoying it's beautifulness.
+	</p>
+	<p class="text-black dark:text-white mb-2">
+		Although I haven't decided the specific domain due to the industry evolving so rapidly, I want
+		to be a computer programmer when I grow up. <s
+			>(Nowadays I'm thinking about AI, but who knows?)</s
+		>
+	</p>
 </div>
 
-<div class="grid grid-cols-1 gap-4 py-10 md:grid-cols-2">
-	<div>
-		<HoverLink>
-			<h2 class="text-primary-50 text-xl font-bold md:text-2xl"><a href="/blog">Blog</a></h2>
-		</HoverLink>
-		{#each data.posts.slice(0, 4) as post}
-			<div class="my-2">
-				<HoverLink>
-					<a href="/blog/{post.slug}" class="text-primary-50 text-lg font-semibold md:text-xl"
-						>{post.title}</a
-					>
-				</HoverLink>
-
-				<span class="text-md text-primary-50 font-normal md:text-lg">
-					<p>{sliceText(post.description, 25)}</p>
-					<time class="text-primary-400">{formatDate(post.date)}</time>
-				</span>
-			</div>
-		{/each}
-		<HoverLink>
-			<a
-				href="/blog"
-				class="text-primary-400 hover:text-primary-50 font-medium transition-colors md:text-lg"
-				>Read More →</a
+<div id="blog-posts" class="mb-8">
+	<h2 class="text-black dark:text-white flex justify-between font-serif text-xl">
+		Blog
+		<div>
+			<a class="text-black dark:text-white font-sans text-sm hover:underline" href="/blog"
+				>Read all posts</a
 			>
-		</HoverLink>
-	</div>
-	<div>
-		<h2 class="text-primary-50 text-xl font-bold md:text-2xl">Blog</h2>
-		<div class="my-2">
-			<HoverLink>
-				<a href="/projects}" class="text-primary-50 text-lg font-semibold md:text-xl"
-					>Something...</a
-				>
-			</HoverLink>
-
-			<span class="text-primary-50 text-md font-normal md:text-lg">
-				<p>Example Text</p>
-				<time class="text-primary-400">Example</time>
-			</span>
 		</div>
+	</h2>
+	{#each data.posts.slice(0, 4) as post}
+		<a
+			class="hover:text-gray-600 dark:hover:text-gray-200 text-black dark:text-white flex items-center gap-1 pt-4 underline"
+			href="/blog/{post.slug}"
+		>
+			<div class="line-clamp-1">{post.title}</div>
+			<div class="bg-gray-200 dark:bg-gray-700 line-clamp-1 h-px w-full flex-1"></div>
+			<div>{formatDate(post.date)}</div></a
+		>
+	{/each}
+</div>
+
+<div id="projects" class="mb-12">
+	<h2 class="text-black dark:text-white flex justify-between font-serif text-xl">
+		Projects
+		<div>
+			<a class="text-black dark:text-white font-sans text-sm hover:underline" href="/projects"
+				>View all Projects</a
+			>
+		</div>
+	</h2>
+	{#each data.projects.slice(0, 4) as projects}
+		<a
+			class="hover:text-gray-600 dark:hover:text-gray-200 text-black dark:text-white flex items-center gap-1 pt-4 underline"
+			href="/blog/{projects.slug}"
+		>
+			<div class="line-clamp-1">{projects.title}</div>
+			<div class="bg-gray-200 dark:bg-gray-700 line-clamp-1 h-px w-full flex-1"></div>
+			<div>{formatDate(projects.date)}</div></a
+		>
+	{/each}
+</div>
+
+<div id="now-listening">
+	<h2 class="text-black dark:text-white font-serif text-xl">Now Listening</h2>
+	<div class="grid grid-cols-4 gap-4 pb-4 sm:grid-cols-4">
+		{#each data.nowlistening.recenttracks.track.slice(0, 4) as nowlistening}
+			<a
+				class="hover:text-gray-600 dark:hover:text-gray-200 text-black dark:text-white flex items-center gap-1 pt-4"
+				href={nowlistening.url}
+			>
+				<div class="album-item">
+					<img
+						src={nowlistening.image[2]['#text']}
+						alt={sliceText(nowlistening.name, 10)}
+						class="h-auto w-full rounded shadow-md"
+					/>
+					<div class="mt-2 justify-start text-left text-sm">
+						<p class="line-clamp-1">{nowlistening.name}</p>
+						<p class="line-clamp-1 font-light">{nowlistening.album['#text']}</p>
+						<p class="line-clamp-1 font-light">{nowlistening.artist['#text']}</p>
+					</div>
+				</div>
+			</a>
+		{/each}
 	</div>
 </div>
+
+<style>
+	.album-item {
+		transition: transform 0.3s;
+	}
+	.album-item:hover {
+		transform: scale(1.05);
+	}
+</style>

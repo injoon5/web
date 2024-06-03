@@ -1,8 +1,18 @@
 export const load = async ({ fetch }) => {
-	const response = await fetch(`/api/posts`);
-	const posts = await response.json();
+	const postResponse = await fetch(`/api/posts`);
+	const posts = await postResponse.json();
+
+	const projectsResponse = await fetch(`/api/posts`);
+	const projects = await projectsResponse.json();
+
+	const nowlisteningResponse = await fetch(
+		`https://raw.githubusercontent.com/injoon5/now-playing/main/now-playing.json`
+	);
+	const nowlistening = await nowlisteningResponse.json();
 
 	return {
-		posts
+		posts,
+		projects,
+		nowlistening
 	};
 };
