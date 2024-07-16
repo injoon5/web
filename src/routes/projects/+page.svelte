@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HoverLink from '$lib/HoverLink.svelte';
+	import PostLink from '$lib/PostLink.svelte';
 
 	import { onMount } from 'svelte';
 	import { formatDate, sliceText } from '$lib/utils';
@@ -11,34 +12,11 @@
 	<title>Projects - Injoon Oh</title>
 </svelte:head>
 
-<h1 class="mt-16 text-3xl font-semibold tracking-tighter text-primary-50 md:text-4xl">Projects</h1>
+<h1 class="text-black dark:text-white font-serif text-2xl font-normal mt-20">Projects</h1>
+<h2 class="text-black dark:text-white font-serif text-md font-normal">Some of the stuff I did to escape from a boring day. </h2>
 
-<div class="mt-10 grid w-full grid-cols-1 text-xl text-primary-50">
-	{#each data.projects.slice(0, 4) as project}
-		<div
-			class="flex items-center justify-between justify-items-stretch border-t border-t-primary-600 py-3 md:border-t-2"
-		>
-			<div class="flex flex-row justify-self-start">
-				<HoverLink>
-					<a
-						href="/projects/{project.slug}"
-						class="flex flex-auto text-base font-medium text-primary-50 md:text-lg"
-						>{sliceText(project.title, 10)}</a
-					>
-				</HoverLink>
-				<div class="hidden md:mx-2 md:flex md:flex-row">
-					{#each project.tags as tags}
-						<p
-							class="mx-1 rounded bg-primary-950 px-2 pt-0.5 font-rubik text-base font-light text-primary-50"
-						>
-							{tags}
-						</p>
-					{/each}
-				</div>
-			</div>
-			<time class="justify-self-end text-base font-normal text-primary-400 md:text-lg"
-				>{project.year}</time
-			>
-		</div>
+<div class="my-6 text-sm">
+	{#each data.projects as post}
+		<PostLink data={post} slug="projects"/>
 	{/each}
 </div>

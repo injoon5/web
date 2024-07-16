@@ -1,5 +1,6 @@
 <script lang="ts">
 	import HoverLink from '$lib/HoverLink.svelte';
+	import PostLink from '$lib/PostLink.svelte';
 	import { onMount } from 'svelte';
 	import { formatDate, sliceText } from '$lib/utils';
 
@@ -45,14 +46,7 @@
 		</div>
 	</h2>
 	{#each data.posts.slice(0, 4) as post}
-		<a
-			class="hover:text-gray-600 dark:hover:text-gray-200 text-black dark:text-white flex items-center gap-1 pt-4 underline"
-			href="/blog/{post.slug}"
-		>
-			<div class="line-clamp-1">{post.title}</div>
-			<div class="bg-gray-200 dark:bg-gray-700 line-clamp-1 h-px w-full flex-1"></div>
-			<div>{formatDate(post.date)}</div></a
-		>
+		<PostLink data={post} slug="blog" />
 	{/each}
 </div>
 
@@ -65,15 +59,8 @@
 			>
 		</div>
 	</h2>
-	{#each data.projects.slice(0, 4) as projects}
-		<a
-			class="hover:text-gray-600 dark:hover:text-gray-200 text-black dark:text-white flex items-center gap-1 pt-4 underline"
-			href="/blog/{projects.slug}"
-		>
-			<div class="line-clamp-1">{projects.title}</div>
-			<div class="bg-gray-200 dark:bg-gray-700 line-clamp-1 h-px w-full flex-1"></div>
-			<div>{formatDate(projects.date)}</div></a
-		>
+	{#each data.projects.slice(0, 4) as project}
+		<PostLink data={project} slug="projects" />
 	{/each}
 </div>
 
@@ -93,7 +80,6 @@
 					/>
 					<div class="mt-2 justify-start text-left text-sm">
 						<p class="line-clamp-1">{nowlistening.name}</p>
-						<p class="line-clamp-1 font-light">{nowlistening.album['#text']}</p>
 						<p class="line-clamp-1 font-light">{nowlistening.artist['#text']}</p>
 					</div>
 				</div>
