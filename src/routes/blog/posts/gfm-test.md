@@ -117,4 +117,4 @@ export default function RootLayout({
 
 ## 이미지
 
-![Example Photo](https://picsum.photos/200/300)_\!\[이미지 설명\](링크)_
+![Example Photo](https://picsum.photos/200/300)*wow*

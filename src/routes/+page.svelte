@@ -12,7 +12,7 @@
 </svelte:head>
 
 <div id="introduction" class="mb-12 mt-20 text-sm">
-	<h1 class="text-black dark:text-white mb-4 font-serif text-2xl font-normal">Injoon Oh</h1>
+	<h1 class="text-black dark:text-white mb-4 font-serif text-2xl md:text-3xl font-normal">Injoon Oh</h1>
 	<p class="text-black dark:text-white mb-2">
 		I am a student who is interested in math, science, and computers.
 	</p>
@@ -20,13 +20,6 @@
 		I love exploring new concepts and getting to know cool new things. Whether it’s tackling complex
 		equations, researching about scientific stuff, or trying the latest tech, I’m always eager to
 		learn.
-	</p>
-	<p class="text-black dark:text-white mb-2">
-		In my free time, I enjoy reading non-fiction books of my interests. I also love playing <s
-			>fairly</s
-		>
-		simple games like ADOFAI, Minecraft, and classic console games. I live in Seoul, South Korea, and
-		love walking along the city, enjoying it's beautifulness.
 	</p>
 	<p class="text-black dark:text-white mb-2">
 		Although I haven't decided the specific domain due to the industry evolving so rapidly, I want

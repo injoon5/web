@@ -11,9 +11,7 @@
 </nav>
 
 <div class="mx-auto max-w-xl px-4 pt-4 text-sm pb-4">
-	<div class="mx-auto max-w-xl">
-		<slot />
-	</div>
+	<slot />
 </div>
 
 <footer>

@@ -35,26 +35,6 @@ export default {
 			array: ['Array']
 		},
 		extend: {
-			typography: ({ theme }) => ({
-				DEFAULT: {
-					css: {
-						color: '#fff',
-						'--tw-prose-invert-body': theme('colors.black[200]'),
-						'--tw-prose-invert-headings': theme('colors.white'),
-						'--tw-prose-invert-lead': theme('colors.black[300]'),
-						'--tw-prose-invert-links': theme('colors.white'),
-						'--tw-prose-invert-bold': theme('colors.white'),
-						'--tw-prose-invert-counters': theme('colors.black[200]'),
-						'--tw-prose-invert-bullets': theme('colors.black[200]'),
-						'--tw-prose-invert-hr': theme('colors.black[500]'),
-						'--tw-prose-invert-quotes': theme('colors.black[100]'),
-						'--tw-prose-invert-quote-borders': theme('colors.black[700]'),
-						'--tw-prose-invert-captions': theme('colors.black[400]'),
-						'--tw-prose-invert-th-borders': theme('colors.black[500]'),
-						'--tw-prose-invert-td-borders': theme('colors.black[600]')
-					}
-				}
-			})
 		}
 	},
 	plugins: [require('@tailwindcss/typography')]
