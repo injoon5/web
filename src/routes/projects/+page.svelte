@@ -1,5 +1,4 @@
 <script lang="ts">
-	import HoverLink from '$lib/HoverLink.svelte';
 	import PostLink from '$lib/PostLink.svelte';
 
 	import { onMount } from 'svelte';

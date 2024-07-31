@@ -1,5 +1,4 @@
 <script>
-	import HoverLink from '$lib/HoverLink.svelte';
 	export let linkto = '/';
 </script>
 

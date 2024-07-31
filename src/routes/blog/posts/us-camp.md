@@ -3,7 +3,8 @@ type: blog
 title: 미국 캠프 후기
 slug: "{{slug}}"
 description: ""
-date: '2024-07-30'
+date: '2024-07-16'
+series: 'LG AI 청소년 캠프'
 coverimage: ""
 published: true
 ---
