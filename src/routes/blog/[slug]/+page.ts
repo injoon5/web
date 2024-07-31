@@ -1,18 +1,25 @@
 import { error } from '@sveltejs/kit';
 
-export async function load({ params }) {
+export async function load({ params, fetch }) {
 	try {
+		// Dynamically import the markdown file based on the slug
 		const post = await import(`../posts/${params.slug}.md`);
-		const posts = await (await fetch(`/api/posts`)).json();
+		
+		// Use event.fetch instead of global fetch for relative URLs
+		const response = await fetch('/api/posts');
+		const posts = await response.json();
 
+		// Filter the posts that belong to the same series
+		const series = posts.filter(tempPost => tempPost.series === post.metadata.series);
 
-		console.log(posts);
 		return {
 			content: post.default,
 			meta: post.metadata,
-			posts: posts
+			series: series,
 		};
 	} catch (e) {
+		console.log(e);
+		// Throw a 404 error if the post is not found
 		throw error(404, `Could not find ${params.slug}`);
 	}
 }

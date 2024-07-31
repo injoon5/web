@@ -5,6 +5,7 @@
 	import { formatDate, sliceText } from '$lib/utils';
 
 	export let data;
+	
 	let renderedPosts = [];
 </script>
 

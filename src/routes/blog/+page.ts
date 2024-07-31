@@ -1,3 +1,4 @@
+export const prerender = true;
 export const load = async ({ fetch }) => {
 	const response = await fetch(`/api/posts`);
 	const posts = await response.json();
@@ -6,3 +7,4 @@ export const load = async ({ fetch }) => {
 		posts
 	};
 };
+

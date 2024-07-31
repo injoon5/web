@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { formatDate } from '$lib/utils';
 	import SeriesList from '$lib/SeriesList.svelte';
-	import Readotron from '@untemps/svelte-readotron';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	export let data;
-
-	let series = data.posts.filter(post => post.series === data.meta.series);
 </script>
 
 <!-- SEO -->
@@ -25,16 +22,10 @@
 			<p>
 				Published at {formatDate(data.meta.date)}
 			</p>
-			<p class="mx-2 select-none">·</p>
-			<Readotron
-				selector=".readtime"
-				lang="ko"
-			/>
 		</div>
-		{#if series.length > 0}
-			<SeriesList {series} />
+		{#if data.series.length > 1}
+			<SeriesList series = {data.series} />
 		{/if}
-
 	</div>
 
 	<!-- Post -->
@@ -46,7 +37,5 @@
 
 	<div class="mt-10">
 		<CommentsSection />
-		{console.log(data.meta)}
 	</div>
-
 </article>
