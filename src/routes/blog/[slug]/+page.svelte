@@ -2,6 +2,7 @@
 	import { formatDate } from '$lib/utils';
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
+	import LikeButton from '$lib/LikeButton.svelte';
 	export let data;
 </script>
 
@@ -18,14 +19,21 @@
 		<h1 class="text-primary-50 text-3xl md:text-3xl font-semibold tracking-tight md:font-semibold">
 			{data.meta.title}
 		</h1>
-		<div class="flex flex-row text-primary-300 text-xl mb-4">
+		<div class="flex flex-row text-primary-300 text-xl">
 			<p>
 				Published at {formatDate(data.meta.date)}
 			</p>
 		</div>
-		{#if data.series.length > 1 && data.meta.series != undefined}
-			<SeriesList series={data.series} />
-		{/if}
+		<div class="my-2">
+			<LikeButton  />
+		</div>
+		<div class="my-2">
+			{#if data.series.length > 1 && data.meta.series != undefined}
+				<SeriesList series={data.series} />
+			{/if}
+		</div>
+		
+		
 	</div>
 
 	<!-- Post -->
@@ -34,7 +42,7 @@
 	>
 		<svelte:component this={data.content} class="prose" />
 	</div>
-
+	
 	<div class="my-10">
 		<CommentsSection />
 	</div>

@@ -2,7 +2,7 @@
     export let series;
 </script>
 
-<div class="rounded-lg bg-neutral-100 dark:bg-neutral-900">
+<div class="rounded-lg bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
     <h2 class="text-xl font-semibold px-3 pt-3 pb-1 select-none">Series: {series[0].series}</h2>
     {#each series.reverse() as post, index}
     <a href="{post.slug}" class="flex flex-row hover:bg-neutral-200 px-3 py-2 dark:hover:bg-neutral-800 {index === series.length - 1 ? 'rounded-b-lg' : ''}">
