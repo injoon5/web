@@ -1,5 +1,6 @@
 <script>
     import { page } from '$app/stores';
+    import { redirect } from '@sveltejs/kit';
     import { onMount } from 'svelte';
     import PocketBase from 'pocketbase';
 
@@ -76,19 +77,20 @@
                 filter: `url = "${$page.url.pathname}"`
             });
             comments = records.items.map(item => ({
-                ...item,
-                upvoteCount: item.expand?.upvotes?.length || 0,
-                downvoteCount: item.expand?.downvotes?.length || 0,
-                score: (item.expand?.upvotes?.length || 0) - (item.expand?.downvotes?.length || 0)
-            }));
-            
-            // Sort comments by score (descending) and then by creation date (descending)
-            comments.sort((a, b) => {
-                if (b.score !== a.score) {
-                    return b.score - a.score;
-                }
-                return new Date(b.created) - new Date(a.created);
-            });
+            ...item,
+            upvoteCount: Array.isArray(item.upvotes) ? item.upvotes.length : 0,
+            downvoteCount: Array.isArray(item.downvotes) ? item.downvotes.length : 0,
+            score: (Array.isArray(item.upvotes) ? item.upvotes.length : 0) - 
+                   (Array.isArray(item.downvotes) ? item.downvotes.length : 0)
+        }));
+        
+        // Sort comments by score (descending) and then by creation date (descending)
+        comments.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+            return new Date(b.created) - new Date(a.created);
+        });
         } catch (error) {
             console.error('Error loading comments:', error);
         }
@@ -128,6 +130,7 @@
     async function voteComment(commentId, voteType) {
         if (!pb.authStore.isValid) {
             alert('Please log in to vote.');
+            window.location.href = "/auth?goto="+$page.url.pathname;
             return;
         }
 
@@ -236,9 +239,11 @@
         </button>
     </div>
     {:else}
-        <p class="mt-2">Please login to leave a comment.</p>
-        <a href="/auth?goto={$page.url.pathname}">Log in</a>
-    {/if}
+        <div class="flex flex-col justify-center items-center h-full">
+            <p class="mt-2 grow-0 text-lg font-medium">Please login to leave a comment.</p>
+            <a class="grow-0 font-medium px-4 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-100 rounded-lg p-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed" href="/auth?goto={$page.url.pathname}#comments">Log in</a>
+        </div>
+{/if}
 </div>
 
 <div class="mt-8">

@@ -36,7 +36,7 @@
 {:else}
     <h2 class="text-xl font-semibold mt-20">Your Account</h2>
     <p class="text-lg font-medium">{pb.authStore.model?.username || "Unknown User"}</p>
-    <div class="grid grid-rows-1 gap-1 px-24 md:px-32 mt-10">
+    <div class="grid grid-rows-1 gap-1 px-18 md:px-32 mt-10">
         <LogoutButton />
     </div>
 {/if}
