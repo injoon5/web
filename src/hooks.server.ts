@@ -46,8 +46,14 @@ export const handle: Handle = async ({ event, resolve }) => {
         secure: !building, // Use secure cookies in production
     });
 
-    // Append the set-cookie header to the response
-    response.headers.append('set-cookie', cookie);
+    // Clone the response before modifying headers
+    const newResponse = new Response(response.body, {
+        ...response,
+        headers: new Headers(response.headers), // Clone existing headers
+    });
 
-    return response;
+    // Append the set-cookie header to the new response
+    newResponse.headers.append('set-cookie', cookie);
+
+    return newResponse;
 };
