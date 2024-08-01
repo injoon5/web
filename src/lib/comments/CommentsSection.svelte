@@ -9,6 +9,17 @@
     let comment = '';
     let comments = [];
     let currentPath = '';
+    let usernameError = '';
+    let commentError = '';
+    let formSubmitted = false;
+
+    const MAX_USERNAME_LENGTH = 20;
+    const MAX_COMMENT_LENGTH = 140;
+    const CHAR_THRESHOLD = 10;
+
+    let usernameCharsLeft = MAX_USERNAME_LENGTH - username.length;
+    let commentCharsLeft = MAX_COMMENT_LENGTH;
+    
 
     onMount(async () => {
         currentPath = $page.url.pathname;
@@ -20,8 +31,42 @@
         currentPath = $page.url.pathname;
         username = '';
         comment = '';
+        comments = [];
+        usernameError = '';
+        commentError = '';
+        formSubmitted = false;
         loadComments();
     }
+
+    $: usernameCharsLeft = MAX_USERNAME_LENGTH - username.length;
+    $: commentCharsLeft = MAX_COMMENT_LENGTH - comment.length;
+
+    $: showUsernameCharsLeft = username.length > (MAX_USERNAME_LENGTH - CHAR_THRESHOLD);
+    $: showCommentCharsLeft = comment.length > (MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
+
+    $: {
+        if (formSubmitted) {
+            usernameError = username.trim() ? '' : 'Username is required';
+        } else {
+            usernameError = '';
+        }
+        if (username.length > MAX_USERNAME_LENGTH) {
+            usernameError = `Username must be ${MAX_USERNAME_LENGTH} characters or less`;
+        }
+    }
+
+    $: {
+        if (formSubmitted) {
+            commentError = comment.trim() ? '' : 'Comment is required';
+        } else {
+            commentError = '';
+        }
+        if (comment.length > MAX_COMMENT_LENGTH) {
+            commentError = `Comment must be ${MAX_COMMENT_LENGTH} characters or less`;
+        }
+    }
+
+    $: isSubmitDisabled = !username.trim() || !comment.trim() || usernameError || commentError;
 
     async function loadComments() {
         try {
@@ -50,37 +95,36 @@
     }
 
     async function submitComment() {
+        formSubmitted = true;
+
         if (!pb.authStore.isValid) {
             alert('Please log in to submit a comment.');
             return;
         }
 
         if (!username.trim() || !comment.trim()) {
-            alert('Please fill in both username and comment fields.');
-            return;
+            return; // Don't proceed if fields are empty
         }
 
         try {
-            console.log('Submitting comment with data:', {
-                url: $page.url.pathname,
-                text: comment,
-                username: username,
-                authorId: pb.authStore.model?.id
-            });
             await pb.collection('comments').create({
                 url: $page.url.pathname,
                 author: pb.authStore.model.id,
                 text: comment,
                 username: username
             });
-            username = '';
+            username = 'user';
             comment = '';
+            formSubmitted = false; // Reset the form submitted state
+            usernameCharsLeft = MAX_USERNAME_LENGTH - username.length;
+            commentCharsLeft = MAX_COMMENT_LENGTH;
             await loadComments();
         } catch (error) {
             console.error('Error submitting comment:', error, pb.authStore.model.id);
             alert('Failed to submit comment. Please try again.');
         }
     }
+
     async function voteComment(commentId, voteType) {
         if (!pb.authStore.isValid) {
             alert('Please log in to vote.');
@@ -123,26 +167,70 @@
             alert('Failed to vote. Please try again.');
         }
     }
+    async function deleteComment(commentId) {
+        if (confirm('Are you sure you want to delete this comment?')) {
+            try {
+                await pb.collection('comments').delete(commentId);
+                await loadComments();
+            } catch (error) {
+                console.error('Error deleting comment:', error);
+                alert('Failed to delete comment. Please try again.');
+            }
+        }
+    }
+
+    function getUserVoteStatus(comment) {
+    const userId = pb.authStore.model?.id;
+    if (!userId) return { upvoted: false, downvoted: false };
+    
+    return {
+        upvoted: comment.expand?.upvotes?.some(vote => vote.id === userId) || false,
+        downvoted: comment.expand?.downvotes?.some(vote => vote.id === userId) || false
+    };
+}
 </script>
 
 <div>
     <h3 class="text-2xl font-bold" id="comments">Comments</h3>
     {#if pb.authStore.isValid}
     <div class="mt-2">
-        <input
-            type="text"
-            placeholder="Username"
-            bind:value={username}
-            class="w-1/2 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:dark:ring-neutral-800 border bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 w-full p-2 rounded-lg text-black mb-2"
-        />
-        <textarea
-            placeholder="Show me what you got.."
-            bind:value={comment}
-            class="dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:dark:ring-neutral-800 resize-none border bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 w-full h-32 p-2 rounded-lg text-black"
-        />
+        <div class="mb-2">
+            <input
+                type="text"
+                placeholder="Username (max 20 characters)"
+                bind:value={username}
+                maxlength={MAX_USERNAME_LENGTH}
+                class="w-1/2 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:dark:ring-neutral-800 border bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 w-full p-2 rounded-lg text-black"
+            />
+            {#if showUsernameCharsLeft}
+                <p class="text-sm text-neutral-500 mt-1">
+                    Characters left: {usernameCharsLeft}
+                </p>
+            {/if}
+            {#if usernameError}
+                <p class="text-sm text-red-500 mt-1">{usernameError}</p>
+            {/if}
+        </div>
+        <div class="mb-2">
+            <textarea
+                placeholder="Show me what you got.. (max 140 characters)"
+                bind:value={comment}
+                maxlength={MAX_COMMENT_LENGTH}
+                class="dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:dark:ring-neutral-800 resize-none border bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 w-full h-32 p-2 rounded-lg text-black"
+            ></textarea>
+            {#if showCommentCharsLeft}
+                <p class="text-sm text-neutral-500 mt-1">
+                    Characters left: {commentCharsLeft}
+                </p>
+            {/if}
+            {#if commentError}
+                <p class="text-sm text-red-500 mt-1">{commentError}</p>
+            {/if}
+        </div>
         <button
             on:click={submitComment}
-            class="font-medium px-4 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-100 rounded-lg p-2 mt-2"
+            disabled={isSubmitDisabled}
+            class="font-medium px-4 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-100 rounded-lg p-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
             Submit
         </button>
@@ -157,6 +245,7 @@
     <h4 class="text-xl font-semibold mb-4">Recent Comments</h4>
     {#if comments.length > 0}
         {#each comments as comment}
+            {@const voteStatus = getUserVoteStatus(comment)}
             <div class="border-neutral-200 dark:border-neutral-800 border bg-neutral-100 dark:bg-neutral-900 p-4 rounded-lg mb-4">
                 <div class="flex flex-row justify-between items-start">
                     <div class="flex flex-row ">
@@ -165,19 +254,34 @@
                             <p class="ml-2 text-sm text-neutral-500">Blog Owner</p>
                         {/if}
                     </div>
-                    <div class="flex items-center">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-medium">{comment.score}</span>
                         <button 
                             on:click={() => voteComment(comment.id, 'upvote')}
-                            class="px-2 py-1 bg-green-500 text-white rounded mr-2"
+                            class="p-1 rounded-full transition-colors duration-200 {voteStatus.upvoted ? 'bg-green-500 text-white' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-green-200 dark:hover:bg-green-800'}"
                         >
-                            ▲ {comment.upvoteCount}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            </svg>
                         </button>
                         <button 
                             on:click={() => voteComment(comment.id, 'downvote')}
-                            class="px-2 py-1 bg-red-500 text-white rounded"
+                            class="p-1 rounded-full transition-colors duration-200 {voteStatus.downvoted ? 'bg-red-500 text-white' : 'bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-red-200 dark:hover:bg-red-800'}"
                         >
-                            ▼ {comment.downvoteCount}
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
                         </button>
+                        {#if pb.authStore.model?.id === "214phugj014d7zb"}
+                            <button 
+                                on:click={() => deleteComment(comment.id)}
+                                class="p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors duration-200"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        {/if}
                     </div>
                 </div>
                 <p class="mt-2">{comment.text}</p>
