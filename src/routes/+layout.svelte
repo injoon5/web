@@ -4,6 +4,12 @@
 	import { page, navigating } from '$app/stores';
 	// import NavBar from '$lib/NavBar.svelte';
 	import NavBar from '$lib/NavBar.svelte';
+
+	
+	import { inject } from '@vercel/analytics'
+	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
+
+	injectSpeedInsights();
 </script>
 
 <nav class="mx-auto max-w-xl px-3 pt-4 text-sm">
