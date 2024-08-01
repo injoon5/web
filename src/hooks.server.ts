@@ -16,7 +16,6 @@ export const handle: Handle = async ({ event, resolve }) => {
     const pb_auth = event.request.headers.get('cookie') ?? '';
     event.locals.pb.authStore.loadFromCookie(pb_auth);
 
-
     try {
         const auth = await event.locals.pb
             .collection('users')
@@ -27,10 +26,19 @@ export const handle: Handle = async ({ event, resolve }) => {
         event.locals.pb.authStore.clear();
     }
 
+    // Resolve the event and get the response
+    const originalResponse = await resolve(event);
 
+    // Clone the response to make it mutable
+    const response = new Response(originalResponse.body, {
+        status: originalResponse.status,
+        statusText: originalResponse.statusText,
+        headers: new Headers(originalResponse.headers),
+    });
 
-    const response = await resolve(event);
+    // Export the auth cookie and append it to the response headers
     const cookie = event.locals.pb.authStore.exportToCookie({ sameSite: 'lax' });
     response.headers.append('set-cookie', cookie);
+
     return response;
 };
