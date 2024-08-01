@@ -3,57 +3,34 @@ import PocketBase from 'pocketbase';
 import { building } from '$app/environment';
 
 export const handle: Handle = async ({ event, resolve }) => {
-    // Initialize PocketBase and local variables
-    event.locals.pb = new PocketBase('http://localhost:8080');
     event.locals.id = '';
     event.locals.email = '';
+    event.locals.pb = new PocketBase('https://pb.injoon5.com');
 
-    // Load authentication state from cookies
+    const isAuth: boolean = event.url.pathname === '/auth';
+    if (isAuth || building) {
+        event.cookies.set('pb_auth', '', { path: '/' });
+        return await resolve(event);
+    }
+
     const pb_auth = event.request.headers.get('cookie') ?? '';
     event.locals.pb.authStore.loadFromCookie(pb_auth);
 
-    // Determine if the current route requires authentication
-    const authRequiredRoutes = ['/dashboard', '/profile']; // Add any routes that need authentication
-    const isAuthRoute = authRequiredRoutes.some(route => event.url.pathname.startsWith(route));
 
-    if (isAuthRoute && !building) {
-        try {
-            // Attempt to refresh the authentication token
-            const auth = await event.locals.pb
-                .collection('users')
-                .authRefresh<{ id: string; email: string }>();
-
-            // Set local variables
-            event.locals.id = auth.record.id;
-            event.locals.email = auth.record.email;
-        } catch (_) {
-            // Redirect to the login page if authentication fails
-            throw redirect(303, '/auth');
-        }
-
-        if (!event.locals.id) {
-            // Ensure the user is redirected to auth if ID is still not set
-            throw redirect(303, '/auth');
-        }
+    try {
+        const auth = await event.locals.pb
+            .collection('users')
+            .authRefresh<{ id: string; email: string }>();
+        event.locals.id = auth.record.id;
+        event.locals.email = auth.record.email;
+    } catch (_) {
+        event.locals.pb.authStore.clear();
     }
 
-    // Continue to resolve the request
+
+
     const response = await resolve(event);
-
-    // Export the authentication state to cookies
-    const cookie = event.locals.pb.authStore.exportToCookie({
-        sameSite: 'lax',
-        secure: !building, // Use secure cookies in production
-    });
-
-    // Clone the response before modifying headers
-    const newResponse = new Response(response.body, {
-        ...response,
-        headers: new Headers(response.headers), // Clone existing headers
-    });
-
-    // Append the set-cookie header to the new response
-    newResponse.headers.append('set-cookie', cookie);
-
-    return newResponse;
+    const cookie = event.locals.pb.authStore.exportToCookie({ sameSite: 'lax' });
+    response.headers.append('set-cookie', cookie);
+    return response;
 };
