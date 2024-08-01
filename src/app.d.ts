@@ -14,16 +14,18 @@ import '@fontsource/newsreader/700.css';
 import '@fontsource/newsreader/800.css';
 import '@fontsource/inter';
 
-// See https://kit.svelte.dev/docs/types#app
-// for information about these interfaces
+import PocketBase from 'pocketbase';
 declare global {
-	namespace App {
-		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
-		// interface PageState {}
-		// interface Platform {}
-	}
+    namespace App {
+        // interface Error {}
+        interface Locals {
+            pb: PocketBase;
+            id: string;
+            email: string;
+        }
+        // interface PageData {}
+        // interface Platform {}
+    }
 }
 
 export {};
