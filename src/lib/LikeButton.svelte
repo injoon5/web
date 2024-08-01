@@ -83,7 +83,7 @@
 </script>
 
 <div class="flex items-center justify-between">
-    <span class="mr-2 text-lg">{likeCount} like{likeCount !== 1 ? 's' : ''}</span>
+    <span class="mr-2 text-lg">{likeCount} like{likeCount > 1 ? 's' : ''}</span>
     {#if pb.authStore.isValid}
         <button
             on:click={toggleLike}
