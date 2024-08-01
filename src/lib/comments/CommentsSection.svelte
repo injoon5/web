@@ -50,9 +50,37 @@
     }
 
     async function submitComment() {
-        // ... (existing submitComment function remains unchanged)
-    }
+        if (!pb.authStore.isValid) {
+            alert('Please log in to submit a comment.');
+            return;
+        }
 
+        if (!username.trim() || !comment.trim()) {
+            alert('Please fill in both username and comment fields.');
+            return;
+        }
+
+        try {
+            console.log('Submitting comment with data:', {
+                url: $page.url.pathname,
+                text: comment,
+                username: username,
+                authorId: pb.authStore.model?.id
+            });
+            await pb.collection('comments').create({
+                url: $page.url.pathname,
+                author: pb.authStore.model.id,
+                text: comment,
+                username: username
+            });
+            username = '';
+            comment = '';
+            await loadComments();
+        } catch (error) {
+            console.error('Error submitting comment:', error, pb.authStore.model.id);
+            alert('Failed to submit comment. Please try again.');
+        }
+    }
     async function voteComment(commentId, voteType) {
         if (!pb.authStore.isValid) {
             alert('Please log in to vote.');
