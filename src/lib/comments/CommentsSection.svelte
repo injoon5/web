@@ -194,7 +194,7 @@
 </script>
 
 <div>
-    <h3 class="text-2xl font-bold" id="comments">Comments</h3>
+    <h3 class="text-2xl font-bold mb-4" id="comments">Comments</h3>
     {#if pb.authStore.isValid}
     <div class="mt-2">
         <div class="mb-2">
@@ -214,7 +214,7 @@
                 <p class="text-sm text-red-500 mt-1">{usernameError}</p>
             {/if}
         </div>
-        <div class="mb-2">
+        <div>
             <textarea
                 placeholder="Show me what you got.. (max 140 characters)"
                 bind:value={comment}
@@ -289,7 +289,7 @@
                         {/if}
                     </div>
                 </div>
-                <p class="mt-2">{comment.text}</p>
+                <p class="mt-2 break-words">{comment.text}</p>
                 <p class="text-sm text-neutral-500 mt-2">{new Date(comment.created).toLocaleString()}</p>
             </div>
         {/each}
