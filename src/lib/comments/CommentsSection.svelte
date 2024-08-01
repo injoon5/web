@@ -6,7 +6,6 @@
 
     const pb = new PocketBase('https://pb.injoon5.com');
 
-    let username = '';
     let comment = '';
     let comments = [];
     let currentPath = '';
@@ -14,11 +13,9 @@
     let commentError = '';
     let formSubmitted = false;
 
-    const MAX_USERNAME_LENGTH = 20;
-    const MAX_COMMENT_LENGTH = 140;
+    const MAX_COMMENT_LENGTH = 200;
     const CHAR_THRESHOLD = 10;
 
-    let usernameCharsLeft = MAX_USERNAME_LENGTH - username.length;
     let commentCharsLeft = MAX_COMMENT_LENGTH;
     
 
@@ -30,7 +27,6 @@
     // Watch for route changes
     $: if ($page.url.pathname !== currentPath) {
         currentPath = $page.url.pathname;
-        username = '';
         comment = '';
         comments = [];
         usernameError = '';
@@ -39,22 +35,9 @@
         loadComments();
     }
 
-    $: usernameCharsLeft = MAX_USERNAME_LENGTH - username.length;
     $: commentCharsLeft = MAX_COMMENT_LENGTH - comment.length;
 
-    $: showUsernameCharsLeft = username.length > (MAX_USERNAME_LENGTH - CHAR_THRESHOLD);
     $: showCommentCharsLeft = comment.length > (MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
-
-    $: {
-        if (formSubmitted) {
-            usernameError = username.trim() ? '' : 'Username is required';
-        } else {
-            usernameError = '';
-        }
-        if (username.length > MAX_USERNAME_LENGTH) {
-            usernameError = `Username must be ${MAX_USERNAME_LENGTH} characters or less`;
-        }
-    }
 
     $: {
         if (formSubmitted) {
@@ -67,7 +50,7 @@
         }
     }
 
-    $: isSubmitDisabled = !username.trim() || !comment.trim() || usernameError || commentError;
+    $: isSubmitDisabled = !comment.trim() || commentError;
 
     async function loadComments() {
         try {
@@ -104,21 +87,19 @@
             return;
         }
 
-        if (!username.trim() || !comment.trim()) {
+        if (!comment.trim()) {
             return; // Don't proceed if fields are empty
         }
 
         try {
             await pb.collection('comments').create({
                 url: $page.url.pathname,
-                author: pb.authStore.model.id,
+                author: pb.authStore.model?.id,
                 text: comment,
-                username: username
+                username: pb.authStore.model?.username
             });
-            username = 'user';
             comment = '';
             formSubmitted = false; // Reset the form submitted state
-            usernameCharsLeft = MAX_USERNAME_LENGTH - username.length;
             commentCharsLeft = MAX_COMMENT_LENGTH;
             await loadComments();
         } catch (error) {
@@ -197,26 +178,9 @@
     <h3 class="text-2xl font-bold mb-4" id="comments">Comments</h3>
     {#if pb.authStore.isValid}
     <div class="mt-2">
-        <div class="mb-2">
-            <input
-                type="text"
-                placeholder="Username (max 20 characters)"
-                bind:value={username}
-                maxlength={MAX_USERNAME_LENGTH}
-                class="w-1/2 dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:dark:ring-neutral-800 border bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 w-full p-2 rounded-lg text-black"
-            />
-            {#if showUsernameCharsLeft}
-                <p class="text-sm text-neutral-500 mt-1">
-                    Characters left: {usernameCharsLeft}
-                </p>
-            {/if}
-            {#if usernameError}
-                <p class="text-sm text-red-500 mt-1">{usernameError}</p>
-            {/if}
-        </div>
         <div>
             <textarea
-                placeholder="Show me what you got.. (max 140 characters)"
+                placeholder="Show me what you got.. (max {MAX_COMMENT_LENGTH} characters)"
                 bind:value={comment}
                 maxlength={MAX_COMMENT_LENGTH}
                 class="dark:text-white focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:dark:ring-neutral-800 resize-none border bg-neutral-100 dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700 w-full h-32 p-2 rounded-lg text-black"
