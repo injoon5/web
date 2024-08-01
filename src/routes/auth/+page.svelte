@@ -26,11 +26,11 @@
 </script>
 
 {#if !pb.authStore.isValid}
+    <h2 class="text-xl font-semibold mt-20">Log in to interact. </h2>
     <form method="post" on:submit|preventDefault={(e) => login(e.currentTarget)}>
         <input name="token" type="hidden" />
-        <div class="grid grid-rows-1 gap-1 px-24 md:px-32">
+        <div class="mt-5 grid grid-rows-1 gap-1 px-24 md:px-32">
             <KakaoButton />
-            <GithubButton />
         </div>
     </form>
 {:else}

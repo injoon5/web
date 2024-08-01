@@ -23,8 +23,8 @@
 				Published at {formatDate(data.meta.date)}
 			</p>
 		</div>
-		{#if data.series.length > 1}
-			<SeriesList series = {data.series} />
+		{#if data.series.length > 1 && data.meta.series != undefined}
+			<SeriesList series={data.series} />
 		{/if}
 	</div>
 
@@ -35,7 +35,7 @@
 		<svelte:component this={data.content} class="prose" />
 	</div>
 
-	<div class="mt-10">
+	<div class="my-10">
 		<CommentsSection />
 	</div>
 </article>
