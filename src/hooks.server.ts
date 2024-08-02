@@ -7,7 +7,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.email = '';
     event.locals.pb = new PocketBase('https://pb.injoon5.com');
 
-    if (building || event.url.pathname === '/') {
+    const isBlogPost = event.url.pathname.startsWith('/blog/') && event.url.pathname !== '/blog/';
+    const isAuth = event.url.pathname === '/auth';
+
+    if (building || !isBlogPost || isAuth) {
         return await resolve(event);
     }
 
