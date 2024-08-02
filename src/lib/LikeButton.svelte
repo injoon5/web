@@ -38,7 +38,7 @@
                 }
             }
         } catch (error) {
-            console.error('Error loading like data:', error);
+            // console.error('Error loading like data:', error);
         }
     }
 

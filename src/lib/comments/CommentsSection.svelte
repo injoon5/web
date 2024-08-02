@@ -8,10 +8,12 @@
 
     let comment = '';
     let comments = [];
+    let replies = {};
     let currentPath = '';
     let usernameError = '';
     let commentError = '';
     let formSubmitted = false;
+    
 
     const MAX_COMMENT_LENGTH = 200;
     const CHAR_THRESHOLD = 10;
@@ -56,26 +58,27 @@
         try {
             const records = await pb.collection('comments').getList(1, 50, {
                 sort: '-created',
-                expand: 'author,upvotes,downvotes',
+                expand: 'author,upvotes,downvotes,reply',
                 filter: `url = "${$page.url.pathname}"`
             });
-            comments = records.items.map(item => ({
-            ...item,
-            upvoteCount: Array.isArray(item.upvotes) ? item.upvotes.length : 0,
-            downvoteCount: Array.isArray(item.downvotes) ? item.downvotes.length : 0,
-            score: (Array.isArray(item.upvotes) ? item.upvotes.length : 0) - 
-                   (Array.isArray(item.downvotes) ? item.downvotes.length : 0)
-        }));
-        
-        // Sort comments by score (descending) and then by creation date (descending)
-        comments.sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score;
-            }
-            return new Date(b.created) - new Date(a.created);
-        });
+                comments = records.items.map(item => ({
+                ...item,
+                upvoteCount: Array.isArray(item.upvotes) ? item.upvotes.length : 0,
+                downvoteCount: Array.isArray(item.downvotes) ? item.downvotes.length : 0,
+                score: (Array.isArray(item.upvotes) ? item.upvotes.length : 0) - 
+                    (Array.isArray(item.downvotes) ? item.downvotes.length : 0),
+                username: item.expand?.author?.username || 'Unknown User'
+            }));
+            
+            // Sort comments by score (descending) and then by creation date (descending)
+            comments.sort((a, b) => {
+                if (b.score !== a.score) {
+                    return b.score - a.score;
+                }
+                return new Date(b.created) - new Date(a.created);
+            });
         } catch (error) {
-            console.error('Error loading comments:', error);
+            // console.error('Error loading comments:', error);
         }
     }
 
@@ -96,7 +99,6 @@
                 url: $page.url.pathname,
                 author: pb.authStore.model?.id,
                 text: comment,
-                username: pb.authStore.model?.username
             });
             comment = '';
             formSubmitted = false; // Reset the form submitted state
@@ -164,14 +166,43 @@
     }
 
     function getUserVoteStatus(comment) {
-    const userId = pb.authStore.model?.id;
-    if (!userId) return { upvoted: false, downvoted: false };
+        const userId = pb.authStore.model?.id;
+        if (!userId) return { upvoted: false, downvoted: false };
+        
+        return {
+            upvoted: comment.expand?.upvotes?.some(vote => vote.id === userId) || false,
+            downvoted: comment.expand?.downvotes?.some(vote => vote.id === userId) || false
+        };
+    }
     
-    return {
-        upvoted: comment.expand?.upvotes?.some(vote => vote.id === userId) || false,
-        downvoted: comment.expand?.downvotes?.some(vote => vote.id === userId) || false
-    };
-}
+    function handleReply(commentId) {
+        if (!replies[commentId]) {
+            replies[commentId] = { text: '', show: true };
+        } else {
+            replies[commentId].show = !replies[commentId].show;
+        }
+        replies = { ...replies };
+    }
+
+
+    async function saveReply(commentId) {
+        try {
+            await pb.collection('comments').update(commentId, {
+                reply: replies[commentId].text
+            });
+            
+            // Clear the reply text and hide the reply box
+            replies[commentId] = { text: '', show: false };
+            replies = { ...replies };
+            
+            await loadComments();
+        } catch (error) {
+            console.error('Error saving reply:', error);
+            alert('Failed to save reply. Please try again.');
+        }
+    }
+
+
 </script>
 
 <div>
@@ -243,6 +274,14 @@
                         </button>
                         {#if pb.authStore.model?.id === "214phugj014d7zb"}
                             <button 
+                                on:click={() => handleReply(comment.id)}
+                                class="p-1 rounded-full transition-colors duration-200 bg-neutral-200 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-300 dark:hover:bg-neutral-600"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            <button 
                                 on:click={() => deleteComment(comment.id)}
                                 class="p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors duration-200"
                             >
@@ -250,11 +289,40 @@
                                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                                 </svg>
                             </button>
+                            
                         {/if}
                     </div>
                 </div>
-                <p class="mt-2 break-words">{comment.text}</p>
+                <p class="break-words mt-1">{comment.text}</p>
                 <p class="text-sm text-neutral-500 mt-2">{new Date(comment.created).toLocaleString()}</p>
+                {#if pb.authStore.model?.id === "214phugj014d7zb"}
+                    {#if replies[comment.id] && replies[comment.id].show}
+                        <div class="mt-4 bg-neutral-200 dark:bg-neutral-800 p-4 rounded-lg">
+                            <textarea
+                                bind:value={replies[comment.id].text}
+                                class="w-full p-2 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-200 focus:dark:ring-neutral-800 resize-none text-black dark:text-white"
+                                placeholder="Enter your reply..."
+                                rows="3"
+                            ></textarea>
+                            <div class="flex justify-end mt-2">
+                                <button 
+                                    on:click={() => saveReply(comment.id)}
+                                    class="font-medium px-4 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-100 rounded-lg p-2 transition-colors duration-200"
+                                >
+                                    Save Reply
+                                </button>
+                            </div>
+                        </div>
+                    {/if}
+                {/if}
+
+
+                {#if comment.reply}
+                    <div class="mt-4 bg-neutral-200 dark:bg-neutral-800 p-4 rounded-lg">
+                        <p class="font-semibold text-sm text-neutral-600 dark:text-neutral-400">Admin Reply:</p>
+                        <p class="mt-1 text-black dark:text-white">{comment.reply}</p>
+                    </div>
+                {/if}
             </div>
         {/each}
     {:else}
