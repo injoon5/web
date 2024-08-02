@@ -2,7 +2,7 @@ export const load = async ({ fetch }) => {
 	const postResponse = await fetch(`/api/posts`);
 	const posts = await postResponse.json();
 
-	const projectsResponse = await fetch(`/api/posts`);
+	const projectsResponse = await fetch(`/api/projects`);
 	const projects = await projectsResponse.json();
 
 	const nowlisteningResponse = await fetch(
