@@ -87,6 +87,7 @@
 
         if (!pb.authStore.isValid) {
             alert('Please log in to submit a comment.');
+            window.location.href = '/auth?goto=' + $page.url.pathname+"#comments";
             return;
         }
 

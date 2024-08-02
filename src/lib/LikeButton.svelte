@@ -45,6 +45,7 @@
     async function toggleLike() {
         if (!pb.authStore.isValid) {
             alert('Please log in to like posts.');
+            window.location.href = '/auth?goto=' + $page.url.pathname;
             return;
         }
 

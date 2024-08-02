@@ -7,7 +7,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.email = '';
     event.locals.pb = new PocketBase('https://pb.injoon5.com');
 
-    if (building) {
+    if (building || event.url.pathname === '/') {
         return await resolve(event);
     }
 
@@ -28,9 +28,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     const response = await resolve(event);
 
-    // Export the auth cookie and append it to the response headers
-    const cookie = event.locals.pb.authStore.exportToCookie({ sameSite: 'lax' });
-    response.headers.append('set-cookie', cookie);
+    // Create a new response with the updated headers
+    const newResponse = new Response(response.body, response);
 
-    return response;
+    // Export the auth cookie and append it to the new response headers
+    const cookie = event.locals.pb.authStore.exportToCookie({ sameSite: 'lax' });
+    newResponse.headers.append('set-cookie', cookie);
+
+    return newResponse;
 };
