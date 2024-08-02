@@ -10,7 +10,7 @@
 	<title>Injoon Oh</title>
 </svelte:head>
 
-<div id="introduction" class="mb-12 mt-20 text-sm">
+<div id="introduction" class="mb-12 mt-20">
 	<h1 class="text-black dark:text-white mb-4 font-serif text-2xl md:text-3xl font-normal">Injoon Oh</h1>
 	<p class="text-black dark:text-white mb-2">
 		I am a student who is interested in math, science, and computers.
