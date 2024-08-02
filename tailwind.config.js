@@ -32,7 +32,6 @@ export default {
 				'Courier New',
 				'monospace'
 			],
-			array: ['Array']
 		},
 		extend: {
 		}

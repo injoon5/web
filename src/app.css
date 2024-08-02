@@ -1,32 +1,118 @@
 @import url('/fonts/pretendard/pretendard-subset.css');
-@import url('/fonts/newsreader/newsreader.css');
-@import url('/fonts/rubik/rubik.css');
-@import url('/fonts/array/array.css');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-code {
+.prose code[data-line-numbers] {
 	counter-reset: line;
-}
-
-code > [data-line]::before {
+  }
+  
+  .prose code[data-line-numbers] > span[data-line]::before {
 	counter-increment: line;
 	content: counter(line);
-
-	/* Other styling */
+  
 	display: inline-block;
-	width: 1rem;
-	margin-right: 2rem;
+	width: 0.5rem;
+	margin-right: 1.25rem;
 	text-align: right;
-	color: gray;
-}
+	color: neutral;
+  }
+  
+  .prose code[data-line-numbers-max-digits='2'] > span[data-line]::before {
+	width: 1rem;
+  }
+  .prose code[data-line-numbers-max-digits='3'] > span[data-line]::before {
+	width: 1.5rem;
+  }
+  
+  /* Fenced Code block - display change on theme switching*/
+  .light .prose pre[data-theme='dark'],
+  .light .prose code[data-theme='dark'],
+  .dark .prose pre[data-theme='light'],
+  .dark .prose code[data-theme='light'],
+  .light .prose div[data-rehype-pretty-code-title][data-theme='dark'],
+  .dark .prose div[data-rehype-pretty-code-title][data-theme='light'] {
+	display: none;
+  }
+  
+  /* Fenced Code block - line hightlight */
+  .prose code span[data-highlighted-line] {
+	@apply border-l-2 border-y-0 border-transparent bg-opacity-10 
+		border-blue-400 bg-indigo-400 dark:border-blue-500 dark:bg-slate-700
+		  pl-[calc(0.5rem-2px)] md:pl-[calc(1rem-2px)]
+  }
+  
+  /* Fenced Code block - word highlight */
+  .prose span[data-highlighted-chars] {
+	@apply bg-teal-400  bg-opacity-25;
+  }
+  .prose span[data-highlighted-chars][data-chars-id='y'] {
+	@apply bg-yellow-400  bg-opacity-25;
+  }
+  .prose span[data-highlighted-chars][data-chars-id='b'] {
+	@apply bg-sky-400 bg-opacity-25;
+  }
+  
+  /* Fenced Code block - with title style*/
+  .prose div[data-rehype-pretty-code-title] {
+	@apply px-5 py-3 font-mono text-sm font-bold text-neutral-800 bg-neutral-200 border border-b-0 border-neutral-200 rounded-t-lg dark:text-neutral-200 dark:border-neutral-700 dark:bg-neutral-800;
+  }
+  .prose div[data-rehype-pretty-code-title] + pre {
+	@apply mt-0 rounded-t-none;
+  }
+  
+  /* Inline code block backtick display: none */
+  .prose :not(pre) > code::before,
+  .prose :not(pre) > code::after {
+	display: none;
+  }
+  
+  /* inline code block style */
+  .prose :not(pre) > code {
+	@apply dark:bg-neutral-900 bg-white border border-neutral-200 dark:border-neutral-600 font-mono text-sm font-normal align-middle py-0.5 px-1 rounded;
+  }
 
-code[data-line-numbers-max-digits='2'] > [data-line]::before {
-	width: 2rem;
-}
+  /* Hide the anchor by default */
+  h1 > a {
+	@apply -ml-8;
+	@apply pr-2;
+	@apply opacity-20;
+  }
 
-code[data-line-numbers-max-digits='3'] > [data-line]::before {
-	width: 3rem;
-}
+  h2 > a,
+  h3 > a,
+  h4 > a,
+  h5 > a,
+  h6 > a {
+    @apply opacity-20; /* Initially hide the anchor */
+    @apply absolute; /* Position the anchor absolutely */
+    @apply -ml-6; /* Position anchor to the left of the text */
+  }
+
+
+  /* Ensure the span has the necessary initial styles */
+  h1 > span {
+	@apply opacity-0
+  }
+  h2 > span,
+  h3 > span,
+  h4 > span,
+  h5 > span,
+  h6 > span {
+    @apply pl-4; /* Add padding to create space for the anchor */
+  }
+
+  /* Hover effect: make anchor visible and slide the text */
+  h1 > a:hover,
+  h2 > a:hover,
+  h3 > a:hover,
+  h4 > a:hover,
+  h5 > a:hover,
+  h6 > a:hover {
+    @apply opacity-100; /* Show the anchor on hover */
+  }
+
+  figure > figcaption {
+	@apply text-center;
+  }

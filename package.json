@@ -61,6 +61,7 @@
 		"install": "^0.13.0",
 		"npm": "^10.4.0",
 		"pocketbase": "^0.21.4",
+		"rehype-figure": "^1.0.1",
 		"rehype-pretty-code": "^0.12.6",
 		"remark-gfm": "^4.0.0",
 		"shikiji": "^0.9.19",
