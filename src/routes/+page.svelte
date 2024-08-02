@@ -66,6 +66,7 @@
 			>
 				<div class="album-item">
 					<img
+						loading="lazy"
 						src={nowlistening.image[2]['#text']}
 						alt={sliceText(nowlistening.name, 10)}
 						class="h-auto w-full rounded shadow-md"
