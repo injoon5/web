@@ -1,3 +1,4 @@
+export const prerender = true;
 export const load = async ({ fetch }) => {
 	const postResponse = await fetch(`/api/posts`);
 	const posts = await postResponse.json();
