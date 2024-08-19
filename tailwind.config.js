@@ -5,11 +5,11 @@ export default {
 	theme: {
 		fontFamily: {
 			sans: [
-				'ui-sans-serif',
-				'system-ui',
 				'-apple-system',
 				'BlinkMacSystemFont',
 				'Pretendard',
+				'ui-sans-serif',
+				'system-ui',
 				'Segoe UI',
 				'Roboto',
 				'Helvetica Neue',
