@@ -59,6 +59,7 @@
 		"@vercel/speed-insights": "^1.0.12",
 		"highlight.js": "^11.9.0",
 		"install": "^0.13.0",
+		"little-date": "^1.0.0",
 		"npm": "^10.4.0",
 		"pocketbase": "^0.21.4",
 		"rehype-figure": "^1.0.1",

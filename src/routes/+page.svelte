@@ -11,16 +11,16 @@
 </svelte:head>
 
 <div id="introduction" class="mb-12 mt-20 text-base">
-	<h1 class="text-black dark:text-white mb-4 font-serif text-2xl md:text-3xl">Injoon Oh</h1>
-	<p class="text-black dark:text-white mb-2">
+	<h1 class="mb-4 font-serif text-2xl text-black md:text-3xl dark:text-white">Injoon Oh</h1>
+	<p class="mb-2 text-black dark:text-white">
 		I am a student who is interested in math, science, and computers.
 	</p>
-	<p class="text-black dark:text-white mb-2">
+	<p class="mb-2 text-black dark:text-white">
 		I love exploring new concepts and getting to know cool new things. Whether it’s tackling complex
 		equations, researching about scientific stuff, or trying the latest tech, I’m always eager to
 		learn.
 	</p>
-	<p class="text-black dark:text-white mb-2">
+	<p class="mb-2 text-black dark:text-white">
 		Although I haven't decided the specific domain due to the industry evolving so rapidly, I want
 		to be a computer programmer when I grow up. <s
 			>(Nowadays I'm thinking about AI, but who knows?)</s
@@ -28,11 +28,11 @@
 	</p>
 </div>
 
-<div id="blog-posts" class="mb-8">
-	<h2 class="text-black dark:text-white flex justify-between font-serif text-xl">
+<div id="blog-posts" class="mb-12">
+	<h2 class="flex justify-between font-serif text-xl text-black dark:text-white">
 		Blog
 		<div>
-			<a class="text-black dark:text-white font-sans text-sm hover:underline" href="/blog"
+			<a class="font-sans text-sm text-black hover:underline dark:text-white" href="/blog"
 				>Read all posts</a
 			>
 		</div>
@@ -43,10 +43,10 @@
 </div>
 
 <div id="projects" class="mb-12">
-	<h2 class="text-black dark:text-white flex justify-between font-serif text-xl">
+	<h2 class="flex justify-between font-serif text-xl text-black dark:text-white">
 		Projects
 		<div>
-			<a class="text-black dark:text-white font-sans text-sm hover:underline" href="/projects"
+			<a class="font-sans text-sm text-black hover:underline dark:text-white" href="/projects"
 				>View all Projects</a
 			>
 		</div>
@@ -57,11 +57,11 @@
 </div>
 
 <div id="now-listening">
-	<h2 class="text-black dark:text-white font-serif text-xl">Now Listening</h2>
+	<h2 class="font-serif text-xl text-black dark:text-white">Now Listening</h2>
 	<div class="grid grid-cols-4 gap-4 pb-4 sm:grid-cols-4">
 		{#each data.nowlistening.recenttracks.track.slice(0, 4) as nowlistening}
 			<a
-				class="hover:text-gray-600 dark:hover:text-gray-200 text-black dark:text-white flex items-center gap-1 pt-4"
+				class="flex items-center gap-1 pt-4 text-black hover:text-gray-600 dark:text-white dark:hover:text-gray-200"
 				href={nowlistening.url}
 			>
 				<div class="album-item">
