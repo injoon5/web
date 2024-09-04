@@ -8,6 +8,10 @@
 
 <svelte:head>
 	<title>Injoon Oh</title>
+	<meta
+		property="og:image"
+		content="https://og.ij5.dev/api/og/?title=injoon5.com&subheading=injoon5%27s+website"
+	/>
 </svelte:head>
 
 <div id="introduction" class="mb-12 mt-20 text-base">

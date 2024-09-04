@@ -7,6 +7,8 @@
 	import Readotron from '@untemps/svelte-readotron';
 
 	export let data;
+
+	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.date))}`;
 </script>
 
 <!-- SEO -->
@@ -14,6 +16,7 @@
 	<title>{data.meta.title} - Projects</title>
 	<meta property="og:type" content="article" />
 	<meta property="og:title" content="{data.meta.title} - Projects" />
+	<meta property="og:image" content={ogImageUrl} />
 </svelte:head>
 
 <article class="pt-10">
