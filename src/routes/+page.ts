@@ -1,5 +1,8 @@
 export const prerender = true;
-export const load = async ({ fetch }) => {
+
+import type { LoadEvent } from '@sveltejs/kit';
+
+export const load = async ({ fetch }: LoadEvent) => {
 	const postResponse = await fetch(`/api/posts`);
 	const posts = await postResponse.json();
 

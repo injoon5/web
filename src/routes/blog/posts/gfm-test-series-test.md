@@ -60,7 +60,7 @@ import clsx, { type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+	return twMerge(clsx(inputs));
 }
 ```
 
@@ -72,28 +72,24 @@ import type { Metadata } from 'next';
 import { fontMono, fontSans, fontSerif } from '~/libs/fonts';
 import { cn } from '~/libs/utils';
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="ko" suppressHydrationWarning>
-      <body
-        className={cn(
-          'bg-background min-h-screen font-sans antialiased',
-          fontSans.variable,
-          fontSerif.variable,
-          fontMono.variable,
-        )}
-      >
-        <div className="blur" aria-hidden="true"></div>
-        <div className="max-w-page container mx-auto pt-32">
-          <div className="main-grid">{children}</div>
-        </div>
-      </body>
-    </html>
-  );
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+	return (
+		<html lang="ko" suppressHydrationWarning>
+			<body
+				className={cn(
+					'bg-background min-h-screen font-sans antialiased',
+					fontSans.variable,
+					fontSerif.variable,
+					fontMono.variable
+				)}
+			>
+				<div className="blur" aria-hidden="true"></div>
+				<div className="max-w-page container mx-auto pt-32">
+					<div className="main-grid">{children}</div>
+				</div>
+			</body>
+		</html>
+	);
 }
 ```
 
@@ -117,4 +113,4 @@ export default function RootLayout({
 
 ## 이미지
 
-![Example Photo](https://picsum.photos/200/300)*wow*
+![Example Photo](https://picsum.photos/200/300)_wow_

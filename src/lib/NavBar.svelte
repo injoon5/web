@@ -4,11 +4,11 @@
 
 <div class="flex items-center justify-between">
 	<div class="flex items-center gap-2">
-		<a href="/" class="text-black dark:text-white text-md p-0 font-serif text-lg font-normal">
+		<a href="/" class="text-md p-0 font-serif text-lg font-normal text-black dark:text-white">
 			<div
-				class="from-blue-300 to-blue-50 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-t transition hover:scale-110 ease-in-out duration-600"
+				class="duration-600 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-t from-blue-300 to-blue-50 transition ease-in-out hover:scale-110"
 			>
-				<p class="text-blue-600 font-sans text-xl font-medium">IO</p>
+				<p class="font-sans text-xl font-medium text-blue-600">IO</p>
 			</div>
 		</a>
 	</div>
@@ -16,7 +16,6 @@
 		<NavBarButton linkto="/projects">projects</NavBarButton>
 		<NavBarButton linkto="/blog">blog</NavBarButton>
 		<NavBarButton linkto="http://github.com/injoon5">github</NavBarButton>
-		<NavBarButton linkto="http://mastodon.injoon5.com">mastodon</NavBarButton
-		>
+		<NavBarButton linkto="http://mastodon.injoon5.com">mastodon</NavBarButton>
 	</ul>
 </div>

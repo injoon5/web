@@ -11,11 +11,13 @@
 	<title>Projects - Injoon Oh</title>
 </svelte:head>
 
-<h1 class="text-black dark:text-white font-serif text-2xl font-normal mt-20">Projects</h1>
-<h2 class="text-black dark:text-white font-serif text-md font-normal">Some of the stuff I did to escape from a boring day. </h2>
+<h1 class="mt-20 font-serif text-2xl font-normal text-black dark:text-white">Projects</h1>
+<h2 class="text-md font-serif font-normal text-black dark:text-white">
+	Some of the stuff I did to escape from a boring day.
+</h2>
 
 <div class="my-6 text-sm">
 	{#each data.projects as post}
-		<PostLink data={post} slug="projects"/>
+		<PostLink data={post} slug="projects" />
 	{/each}
 </div>

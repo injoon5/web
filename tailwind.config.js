@@ -31,10 +31,9 @@ export default {
 				'Liberation Mono',
 				'Courier New',
 				'monospace'
-			],
+			]
 		},
-		extend: {
-		}
+		extend: {}
 	},
 	plugins: [require('@tailwindcss/typography')]
 };
