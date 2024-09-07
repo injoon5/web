@@ -9,6 +9,10 @@
 	injectSpeedInsights();
 </script>
 
+<svelte:head>
+	<link rel="canonical" href="https://www.injoon5.com" />
+</svelte:head>
+
 <nav class="mx-auto max-w-xl px-3 pt-4 text-sm">
 	<NavBar />
 </nav>

@@ -8,10 +8,17 @@
 
 <svelte:head>
 	<title>Injoon Oh</title>
+	<meta charset="UTF-8" />
+	<meta property="og:title" content="Injoon Oh" />
+	<meta
+		name="description"
+		content="Welcome to Injoon Oh's digital playground: Aspiring coder, Interested in Math and Science. Probably plotting world domination via AI. Or homework."
+	/>
 	<meta
 		property="og:image"
 		content="https://og.ij5.dev/api/og/?title=injoon5.com&subheading=injoon5%27s+website"
 	/>
+	<meta property="og:url" content="https://www.injoon5.com/" />
 </svelte:head>
 
 <div id="introduction" class="mb-12 mt-20 text-base">
