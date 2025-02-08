@@ -12,13 +12,16 @@
 	<meta property="og:title" content="Injoon Oh" />
 	<meta
 		name="description"
-		content="Welcome to Injoon Oh's digital playground: Aspiring coder, Interested in Math and Science. Probably plotting world domination via AI. Or homework."
+		content="A student who is interested in math, science, and computers."
 	/>
 	<meta
 		property="og:image"
 		content="https://og.ij5.dev/api/og/?title=injoon5.com&subheading=injoon5%27s+website"
 	/>
+	
 	<meta property="og:url" content="https://www.injoon5.com/" />
+
+	<link rel="icon" type="svg" href="/favicon.ico" />
 </svelte:head>
 
 <div id="introduction" class="mb-12 mt-20 text-base">
