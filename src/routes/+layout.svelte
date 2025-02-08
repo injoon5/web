@@ -11,7 +11,11 @@
 
 <svelte:head>
 	<link rel="canonical" href="https://www.injoon5.com" />
-	<script defer src="https://analytics.injoon5.com/script.js" data-website-id="59821eb1-0b3c-40eb-b21f-4fd98040b47b"></script>
+	<script
+		defer
+		src="https://analytics.injoon5.com/script.js"
+		data-website-id="59821eb1-0b3c-40eb-b21f-4fd98040b47b"
+	></script>
 </svelte:head>
 
 <nav class="mx-auto max-w-xl px-3 pt-4 text-sm">

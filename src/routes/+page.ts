@@ -14,13 +14,15 @@ export const load = async ({ fetch }: LoadEvent) => {
 	);
 	const nowlistening = await nowlisteningResponse.json();
 
-	const photosResponse = await fetch(`https://raw.githubusercontent.com/injoon5/data/main/photos.json`);
+	const photosResponse = await fetch(
+		`https://raw.githubusercontent.com/injoon5/data/main/photos.json`
+	);
 	const photos = await photosResponse.json();
 
 	return {
 		posts,
 		projects,
-		nowlistening, 
+		nowlistening,
 		photos
 	};
 };
