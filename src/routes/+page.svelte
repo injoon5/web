@@ -104,7 +104,7 @@
 	<h2 class="flex font-medium justify-between tracking-tight text-xl text-black dark:text-white">
 		Photos
 		<div>
-			<a class="font-sans -tracking-normal font-normal text-sm text-black dark:text-white relative group inline-flex items-center" href="/photos">
+			<a class="font-sans -tracking-normal font-normal text-sm text-black dark:text-white relative group inline-flex items-center" href="https://photos.injoon5.com">
 				<span class="transition-transform duration-200 group-hover:-translate-x-3.5">View all Photos</span>
 				<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute right-0 translate-x-1">→</span>
 			</a>
