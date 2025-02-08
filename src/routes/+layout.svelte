@@ -22,8 +22,8 @@
 	<slot />
 </div>
 
-<footer>
-	<div class="border-t bg-gray-100 p-4 text-xs dark:border-t-gray-800 dark:bg-[#0C0B09]">
+<footer class="mt-auto w-full bg-gray-100 dark:bg-[#0C0B09]">
+	<div class="border-t p-4 text-xs dark:border-t-gray-800">
 		<div
 			class="mx-auto flex w-full max-w-xl flex-wrap items-center justify-between gap-2 text-gray-500 dark:text-gray-400"
 		>

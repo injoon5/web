@@ -20,12 +20,12 @@
 	/>
 	
 	<meta property="og:url" content="https://www.injoon5.com/" />
-
-	<link rel="icon" type="svg" href="/favicon.ico" />
 </svelte:head>
 
 <div id="introduction" class="mb-12 mt-20 text-base">
-	<h1 class="mb-4 font-serif text-2xl text-black md:text-3xl dark:text-white">Injoon Oh</h1>
+	<h1 class="mb-4 font-semibold tracking-tight text-3xl text-black dark:text-white">
+		Injoon Oh
+	</h1>
 	<p class="mb-2 text-black dark:text-white">
 		I am a student who is interested in math, science, and computers.
 	</p>
@@ -43,12 +43,13 @@
 </div>
 
 <div id="blog-posts" class="mb-12">
-	<h2 class="flex justify-between font-serif text-xl text-black dark:text-white">
+	<h2 class="flex font-medium justify-between tracking-tight text-xl text-black dark:text-white">
 		Blog
 		<div>
-			<a class="font-sans text-sm text-black hover:underline dark:text-white" href="/blog"
-				>Read all posts</a
-			>
+			<a class="font-sans -tracking-normal font-normal text-sm text-black dark:text-white relative group inline-flex items-center" href="/blog">
+				<span class="transition-transform duration-200 group-hover:-translate-x-3.5">Read all Posts</span>
+				<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute right-0 translate-x-1">→</span>
+			</a>
 		</div>
 	</h2>
 	{#each data.posts.slice(0, 4) as post}
@@ -57,12 +58,13 @@
 </div>
 
 <div id="projects" class="mb-12">
-	<h2 class="flex justify-between font-serif text-xl text-black dark:text-white">
+	<h2 class="flex font-medium justify-between tracking-tight text-xl text-black dark:text-white">
 		Projects
 		<div>
-			<a class="font-sans text-sm text-black hover:underline dark:text-white" href="/projects"
-				>View all Projects</a
-			>
+			<a class="font-sans -tracking-normal font-normal text-sm text-black dark:text-white relative group inline-flex items-center" href="/projects">
+				<span class="transition-transform duration-200 group-hover:-translate-x-3.5">View all Projects</span>
+				<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute right-0 translate-x-1">→</span>
+			</a>
 		</div>
 	</h2>
 	{#each data.projects.slice(0, 4) as project}
@@ -70,21 +72,24 @@
 	{/each}
 </div>
 
-<div id="now-listening">
-	<h2 class="font-serif text-xl text-black dark:text-white">Now Listening</h2>
+<div id="now-listening" class="mb-12">
+	<h2 class="font-medium tracking-tight text-xl text-black dark:text-white">Now Listening</h2>
 	<div class="grid grid-cols-4 gap-4 pb-4 sm:grid-cols-4">
 		{#each data.nowlistening.recenttracks.track.slice(0, 4) as nowlistening}
 			<a
-				class="flex items-center gap-1 pt-4 text-black hover:text-gray-600 dark:text-white dark:hover:text-gray-200"
+				class="flex h-full w-full items-center gap-1 pt-4 text-black hover:text-gray-600 dark:text-white dark:hover:text-gray-200"
 				href={nowlistening.url}
 			>
-				<div class="album-item">
-					<img
-						loading="lazy"
-						src={nowlistening.image[2]['#text']}
-						alt={sliceText(nowlistening.name, 10)}
-						class="h-auto w-full rounded shadow-md"
-					/>
+				<div class="album-item h-full w-full">
+					<div class="relative aspect-square w-full">
+						<div class="absolute inset-0 rounded bg-gray-200 dark:bg-gray-800" />
+						<img
+							loading="lazy"
+							src={nowlistening.image[2]['#text']}
+							alt={sliceText(nowlistening.name, 10)}
+							class="absolute inset-0 h-full w-full rounded object-cover shadow-md"
+						/>
+					</div>
 					<div class="mt-2 justify-start text-left text-sm">
 						<p class="line-clamp-1">{nowlistening.name}</p>
 						<p class="line-clamp-1 font-light">{nowlistening.artist['#text']}</p>
@@ -94,6 +99,37 @@
 		{/each}
 	</div>
 </div>
+
+<div id="photos" class="mb-12">
+	<h2 class="flex font-medium justify-between tracking-tight text-xl text-black dark:text-white">
+		Photos
+		<div>
+			<a class="font-sans -tracking-normal font-normal text-sm text-black dark:text-white relative group inline-flex items-center" href="/photos">
+				<span class="transition-transform duration-200 group-hover:-translate-x-3.5">View all Photos</span>
+				<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute right-0 translate-x-1">→</span>
+			</a>
+		</div>
+	</h2>
+	<div class="grid grid-cols-4 gap-1 pt-4">
+		{#each data.photos.photos as photo}
+		<div class="relative aspect-square w-full">
+			<div class="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
+			<a
+				href={photo.url}
+				class="photo-item relative aspect-square w-full overflow-hidden"
+			>
+				<img
+					loading="lazy"
+					src={photo.src.medium}
+					alt={photo.title || 'Photo'}
+					class="h-full w-full object-cover transition-transform duration-300 hover:scale-110"
+				/>
+			</a>
+		</div>
+		{/each}
+	</div>
+</div>
+
 
 <style>
 	.album-item {
