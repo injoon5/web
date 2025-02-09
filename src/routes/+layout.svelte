@@ -18,11 +18,11 @@
 	></script>
 </svelte:head>
 
-<nav class="mx-auto max-w-xl px-3 pt-4 text-sm">
+<nav class="mx-auto max-w-2xl px-3 pt-4 text-sm">
 	<NavBar />
 </nav>
 
-<div class="mx-auto max-w-xl px-4 pb-4 pt-4 text-sm">
+<div class="mx-auto max-w-2xl px-4 pb-4 pt-4 text-sm">
 	<slot />
 </div>
 

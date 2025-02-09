@@ -19,7 +19,7 @@
 	<meta property="og:image" content={ogImageUrl} />
 </svelte:head>
 
-<article class="pt-10">
+<article class="pt-10 ">
 	<!-- Title -->
 	<div class="tracking-tight">
 		<h1 class="text-3xl font-semibold tracking-tight md:text-3xl md:font-semibold">
