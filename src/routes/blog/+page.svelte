@@ -13,9 +13,9 @@
 	<title>Blog - Injoon Oh</title>
 </svelte:head>
 
-<h1 class="mt-20 font-serif text-2xl font-normal text-black dark:text-white">Blog</h1>
-<h2 class="text-md font-normal text-black dark:text-white">
-	Stuff that just made it online. Take a look at my terrible writing skills.
+<h1 class="mt-20 tracking-tight text-2xl font-normal text-black dark:text-white">Blog</h1>
+<h2 class="text-md tracking-tight font-normal text-black dark:text-white">
+	Stuff that just made it online. Take a look at what I've done, experienced, and wrote about.
 </h2>
 
 <div class="my-6 text-sm">

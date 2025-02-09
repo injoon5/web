@@ -45,17 +45,17 @@
 				class="group relative inline-flex items-center font-sans text-sm font-normal -tracking-normal text-black dark:text-white"
 				href="/blog"
 			>
-				<span class="transition-transform duration-200 group-hover:-translate-x-3.5"
-					>Read all Posts</span
-				>
-				<span
-					class="absolute right-0 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-					>→</span
-				>
+			<span class="transition-transform duration-200 group-hover:-translate-x-5"
+				>Read all Posts</span
+			>
+			<span
+				class="mr-1 absolute right-0 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+				>→</span
+			>
 			</a>
 		</div>
 	</h2>
-	{#each data.posts.slice(0, 4) as post}
+	{#each data.posts.slice(0, 5) as post}
 		<PostLink data={post} slug="blog" />
 	{/each}
 </div>
@@ -68,17 +68,17 @@
 				class="group relative inline-flex items-center font-sans text-sm font-normal -tracking-normal text-black dark:text-white"
 				href="/projects"
 			>
-				<span class="transition-transform duration-200 group-hover:-translate-x-3.5"
+				<span class="transition-transform duration-200 group-hover:-translate-x-5"
 					>View all Projects</span
 				>
 				<span
-					class="absolute right-0 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+					class="mr-1 absolute right-0 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
 					>→</span
 				>
 			</a>
 		</div>
 	</h2>
-	{#each data.projects.slice(0, 4) as project}
+	{#each data.projects.slice(0, 5) as project}
 		<PostLink data={project} slug="projects" />
 	{/each}
 </div>
@@ -90,11 +90,11 @@
 	<div class="mt-4 space-y-3">
 		{#each data.techstack as stacks}
 		<div>
-			<h3 class="mb-2 text-lg text-black dark:text-white">{stacks.name}</h3>
+			<h3 class="tracking-tight mb-2 text-lg text-black dark:text-white">{stacks.name}</h3>
 			<div class="flex flex-wrap gap-2">
 				{#each stacks.technologies as technology}
-				<a href={technology.link} target="_blank" rel="noopener noreferrer" class="rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-950 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors duration-200">
-					<p class="text-sm">{technology.name}</p>
+				<a href={technology.link} target="_blank" rel="noopener noreferrer" class="rounded-xl bg-gradient-to-b from-neutral-50 to-neutral-100 px-3 py-2 dark:from-neutral-900 dark:to-neutral-950 hover:from-neutral-100 hover:to-neutral-200 dark:hover:from-neutral-800 dark:hover:to-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors duration-200">
+					<p class="text-sm text-neutral-900 dark:text-neutral-100">{technology.name}</p>
 				</a>
 				{/each}
 			</div>
@@ -134,17 +134,17 @@
 				class="group relative inline-flex items-center font-sans text-sm font-normal -tracking-normal text-black dark:text-white"
 				href="/blog/now-listening"
 			>
-				<span class="transition-transform duration-200 group-hover:-translate-x-3.5"
-					>How is this made?</span
-				>
-				<span
-					class="absolute right-0 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-					>→</span
-				>
-			</a>
+			<span class="transition-transform duration-200 group-hover:-translate-x-5"
+				>How is this made?</span
+			>
+			<span
+				class="mr-1 absolute right-0 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+				>→</span
+			>
+		</a>
 		</div>
 	</h2>
-	<div class="grid grid-cols-4 gap-4 pb-4 sm:grid-cols-4">
+	<div class="grid grid-cols-4 gap-2 sm:gap-4 pb-4 sm:grid-cols-4">
 		{#each data.nowlistening.recenttracks.track.slice(0, 4) as nowlistening}
 			<a
 				class="flex h-full w-full items-center gap-1 pt-4 text-black hover:text-gray-600 dark:text-white dark:hover:text-gray-200"
@@ -204,6 +204,21 @@
 		{/each}
 	</div>
 </div>
+
+<div id="contact" class="mb-12">
+	<h2 class="text-xl font-medium tracking-tight text-black dark:text-white">Contact</h2>
+	<div class="pt-4">
+		<span class="relative inline-block text-lg">
+			<span class="select-all font-mono email text-black dark:text-white">
+				me@injoon5<span class="hidden">.example</span>.com
+			</span>
+		</span>
+	</div>
+	<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+		Trying to respond (to <span class="font-mono">real</span> people) in less than a few days. 
+	</p>
+</div>
+
 
 <style>
 	.album-item {

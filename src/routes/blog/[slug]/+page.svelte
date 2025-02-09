@@ -22,6 +22,7 @@
 <article class="pt-10 ">
 	<!-- Title -->
 	<div class="tracking-tight">
+		<h2 class="text-lg text-neutral-600 dark:text-neutral-300">{data.series[0].series}</h2>
 		<h1 class="text-3xl font-semibold tracking-tight md:text-3xl md:font-semibold">
 			{data.meta.title}
 		</h1>

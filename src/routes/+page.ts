@@ -40,7 +40,7 @@ export const load = async ({ fetch }: LoadEvent) => {
 					link: "https://swr.vercel.app/"
 				}, 
 				{
-					name: "Shadcn UI",
+					name: "shadcn/ui",
 					link: "https://ui.shadcn.com"
 				},
 				{

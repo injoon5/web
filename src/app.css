@@ -85,26 +85,14 @@ h1 > a {
 	@apply opacity-20;
 }
 
+h1 > a,
 h2 > a,
 h3 > a,
 h4 > a,
 h5 > a,
 h6 > a {
 	@apply opacity-20;
-	@apply absolute; /* Position the anchor absolutely */
-	@apply -ml-6; /* Position anchor to the left of the text */
-}
-
-/* Ensure the span has the necessary initial styles */
-h1 > span {
-	@apply opacity-0;
-}
-h2 > span,
-h3 > span,
-h4 > span,
-h5 > span,
-h6 > span {
-	@apply pl-4; /* Add padding to create space for the anchor */
+	@apply ml-3;
 }
 
 h1 > a:hover,

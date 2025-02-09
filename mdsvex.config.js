@@ -38,7 +38,7 @@ const config = {
 		rehypeSlug,
 		rehypeFigure,
 		[rehypeExternalLinks, { target: ['_blank'], rel: ['noopener noreferrer'] }],
-		[rehypeAutolinkHeadings, { behavior: 'prepend', content: { type: 'text', value: '#' } }]
+		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }]
 	]
 };
 
