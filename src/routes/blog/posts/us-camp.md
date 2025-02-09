@@ -76,7 +76,7 @@ published: true
 
 ![자전거](/images/uploads/us-camp/IMG_8753.jpeg)
 
-유명한 구글 자전거도 똑같이 있어서 반가웠다. [탈 수 있는지 몰라서 안탔다.](/blog/us-camp#tbd-2025-02-088) 
+유명한 구글 자전거도 똑같이 있어서 반가웠다. [탈 수 있는지 몰라서 안탔다.](/blog/us-camp#tbd-2025-02-08) 
 
 잠깐 구글 스토어에 들러서 [chrome://dino](chrome://dino)에 나오는 공룡과 선인장 피규어(?)와 티셔츠를 사고 구글 직원 분을 만났다. 이분은 AAOS (Android Automotive OS) 쪽에서 근무하시는 분이었는데, 아쉽게도 Gradient Canopy 건물은 AI 팀이 대부분 사용하고 있어서 들어가보지는 못했다. 대신 기존 사옥 쪽을 투어했다. 
 
