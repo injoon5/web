@@ -31,8 +31,17 @@
 		<div
 			class="mx-auto flex w-full max-w-xl flex-wrap items-center justify-between gap-2 text-gray-500 dark:text-gray-400"
 		>
-			<div>© 2024 Injoon Oh</div>
-			<div>Made w/ ♥️ in Seoul, South Korea</div>
+			<div>© 2025 Injoon Oh</div>
+			<div class="flex items-center gap-4">
+				<div>Made with ♥️ in Seoul, South Korea</div>
+				<button
+					on:click={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+					class="text-lg"
+					aria-label="Scroll to top"
+				>
+				↑
+				</button>
+			</div>
 		</div>
 	</div>
 </footer>
