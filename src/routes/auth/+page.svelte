@@ -23,7 +23,7 @@
 	<h2 class="mt-20 text-xl font-semibold">Log in to interact.</h2>
 	<form method="post" on:submit|preventDefault={(e) => login(e.currentTarget)}>
 		<input name="token" type="hidden" />
-		<div class="mt-5 grid grid-rows-1 gap-1 px-24 md:px-32">
+		<div class="mt-5 grid grid-rows-1 gap-1 px-6 sm:px-32">
 			<KakaoButton />
 		</div>
 	</form>
