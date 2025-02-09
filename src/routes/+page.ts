@@ -87,7 +87,7 @@ export const load = async ({ fetch }: LoadEvent) => {
 				},
 				{
 					name: "PyQt",
-					link: "https://www.riverbankcomputing.com/software/pyqt/download5"
+					link: "https://www.riverbankcomputing.com/software/pyqt/"
 				}, 
 				{
 					name: "Pandas",
