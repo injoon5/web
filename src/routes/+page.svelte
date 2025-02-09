@@ -152,7 +152,7 @@
 			>
 				<div class="album-item h-full w-full">
 					<div class="relative aspect-square w-full">
-						<div class="absolute inset-0 rounded bg-gray-200 dark:bg-gray-800" />
+						<div class="absolute inset-0 rounded bg-gray-200 dark:bg-gray-800"></div>
 						<img
 							loading="lazy"
 							src={nowlistening.image[2]['#text']}
@@ -191,7 +191,7 @@
 	<div class="grid grid-cols-4 gap-1 pt-4">
 		{#each data.photos.photos as photo}
 			<div class="relative aspect-square w-full overflow-hidden">
-				<div class="absolute inset-0 bg-gray-200 dark:bg-gray-800" />
+				<div class="absolute inset-0 bg-gray-200 dark:bg-gray-800"></div>
 				<a href={photo.url} class="photo-item relative aspect-square w-full">
 					<img
 						loading="lazy"

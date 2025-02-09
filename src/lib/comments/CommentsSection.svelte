@@ -260,6 +260,7 @@
 						<span class="font-medium">{comment.score}</span>
 						<button
 							on:click={() => voteComment(comment.id, 'upvote')}
+							aria-label="Upvote comment"
 							class="rounded-full p-1 transition-colors duration-200 {voteStatus.upvoted
 								? 'bg-green-500 text-white'
 								: 'bg-neutral-200 text-neutral-600 hover:bg-green-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-green-800'}"
@@ -279,6 +280,7 @@
 						</button>
 						<button
 							on:click={() => voteComment(comment.id, 'downvote')}
+							aria-label="Downvote comment"
 							class="rounded-full p-1 transition-colors duration-200 {voteStatus.downvoted
 								? 'bg-red-500 text-white'
 								: 'bg-neutral-200 text-neutral-600 hover:bg-red-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-red-800'}"
@@ -299,6 +301,7 @@
 						{#if pb.authStore.model?.id === '214phugj014d7zb'}
 							<button
 								on:click={() => handleReply(comment.id)}
+								aria-label="Reply to comment"
 								class="rounded-full bg-neutral-200 p-1 text-neutral-600 transition-colors duration-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
 							>
 								<svg
@@ -316,6 +319,7 @@
 							</button>
 							<button
 								on:click={() => deleteComment(comment.id)}
+								aria-label="Delete comment"
 								class="rounded-full bg-red-500 p-1 text-white transition-colors duration-200 hover:bg-red-600"
 							>
 								<svg
