@@ -162,7 +162,7 @@
 					</div>
 					<div class="mt-2 justify-start text-left text-sm">
 						<p class="line-clamp-1">{nowlistening.name}</p>
-						<p class="line-clamp-1 font-light">{nowlistening.artist['#text']}</p>
+						<p class="line-clamp-1 font-light">{nowlistening.artist['#text'] === 'Lany' ? 'LANY' : nowlistening.artist['#text']}</p>
 					</div>
 				</div>
 			</a>
