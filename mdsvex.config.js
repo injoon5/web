@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import remarkGemoji from 'remark-gemoji';
 import remarkEmbedder from '@remark-embedder/core';
 import oembedTransformer from '@remark-embedder/transformer-oembed';
+import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypePrettyCode from 'rehype-pretty-code';
@@ -31,7 +32,8 @@ const config = {
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,
-		[remarkEmbedder.default, { transformers: [oembedTransformer.default] }]
+		[remarkEmbedder.default, { transformers: [oembedTransformer.default] }],
+		[enhancedImage, { attributes: { loading: 'lazy', fetchpriority: 'low' } }]
 	],
 	rehypePlugins: [
 		rehypeKatexSvelte,
