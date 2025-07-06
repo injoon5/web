@@ -11,9 +11,9 @@
 	<title>Projects - Injoon Oh</title>
 </svelte:head>
 
-<h1 class="mt-20 tracking-tight text-2xl font-normal text-black dark:text-white">Projects</h1>
-<h2 class="text-md tracking-tight font-normal text-black dark:text-white">
-	Some of the stuff I did to escape from a boring day.
+<h1 class="mt-20 text-2xl font-normal tracking-tight text-black dark:text-white">Projects</h1>
+<h2 class="text-md font-normal tracking-tight text-black dark:text-white">
+	Some of the stuff I did to escape from a boring day. (Not fully written yet)
 </h2>
 
 <div class="my-6 text-sm">

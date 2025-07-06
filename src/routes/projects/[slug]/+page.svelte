@@ -30,15 +30,15 @@
 			<p class="mx-1">·</p>
 			<Readotron selector=".readtime" lang="ar" />
 		</div>
-		<p class="text-lg">
+		<p class="text-lg font-light">
 			{data.meta.description}
 		</p>
-		<div class="tags space-x-2 text-lg mb-2">
+		<div class="tags -mt-1 mb-2 space-x-2 text-lg font-light">
+			<span class="-mr-1">Stack:</span>
 			{#each data.meta.tags as tags}
 				<span>{tags}</span>
 			{/each}
 		</div>
-		
 
 		<div class="my-2">
 			<LikeButton />

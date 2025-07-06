@@ -3,8 +3,8 @@ title: 'Sirius App'
 description: An app that makes your school life easier.
 year: '2022'
 tags:
-  - swift
-  - python
+  - Swift
+  - Python
 published: true
 ---
 
