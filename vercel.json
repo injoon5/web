@@ -16,5 +16,15 @@
 				}
 			]
 		}
+	],
+	"rewrites": [
+		{
+			"source": "/relay-oij225/static/(.*)",
+			"destination": "https://us-assets.i.posthog.com/static/$1"
+		},
+		{
+			"source": "/relay-oij225/(.*)",
+			"destination": "https://us.i.posthog.com/$1"
+		}
 	]
 }
