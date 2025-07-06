@@ -6,7 +6,7 @@ date: '2024-1-27'
 tags:
   - sveltekit
   - svelte
-published: true
+published: false
 ---
 
 가난한 **별** 이제 까닭이요, ~~벌레~~는 그 때 까닭이요, _버리었습니다_.
