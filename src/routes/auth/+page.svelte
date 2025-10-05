@@ -19,18 +19,24 @@
 	}
 </script>
 
-{#if !pb.authStore.isValid}
-	<h2 class="mt-20 text-xl font-semibold">Log in to interact.</h2>
-	<form method="post" on:submit|preventDefault={(e) => login(e.currentTarget)}>
-		<input name="token" type="hidden" />
-		<div class="mt-5 grid grid-rows-1 gap-1 px-6 sm:px-32">
-			<KakaoButton />
-		</div>
-	</form>
-{:else}
-	<h2 class="mt-20 text-xl font-semibold">Your Account</h2>
-	<p class="text-lg font-medium">{pb.authStore.model?.username || 'Unknown User'}</p>
-	<div class="px-18 mt-10 grid grid-rows-1 gap-1 md:px-32">
-		<LogoutButton />
+
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+	<div class="col-span-1 lg:col-span-8 lg:col-start-3 pt-10 justify-center">
+
+		{#if !pb.authStore.isValid}
+			<h2 class="mt-20 text-xl font-semibold">Log in to interact.</h2>
+			<form method="post" on:submit|preventDefault={(e) => login(e.currentTarget)}>
+				<input name="token" type="hidden" />
+				<div class="mt-5 grid grid-rows-1 gap-1 px-6 sm:px-32">
+					<KakaoButton />
+				</div>
+			</form>
+		{:else}
+			<h2 class="mt-20 text-xl font-semibold">Your Account</h2>
+			<p class="text-lg font-medium">{pb.authStore.model?.username || 'Unknown User'}</p>
+			<div class="px-18 mt-10 grid grid-rows-1 gap-1 md:px-32">
+				<LogoutButton />
+			</div>
+		{/if}
 	</div>
-{/if}
+</div>
