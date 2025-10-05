@@ -203,7 +203,7 @@
 </script>
 
 <div>
-	<h3 class="mb-4 text-2xl font-bold" id="comments">Comments</h3>
+	<h3 class="mb-4 text-2xl font-semibold tracking-tight" id="comments">Comments</h3>
 	{#if pb.authStore.isValid}
 		<div class="mt-2">
 			<div>
@@ -211,7 +211,7 @@
 					placeholder="Show me what you got.. (max {MAX_COMMENT_LENGTH} characters)"
 					bind:value={comment}
 					maxlength={MAX_COMMENT_LENGTH}
-					class="h-32 w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-black focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white focus:dark:ring-neutral-800"
+					class="h-32 w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white focus:dark:ring-neutral-800"
 				></textarea>
 				{#if showCommentCharsLeft}
 					<p class="mt-1 text-sm text-neutral-500">
@@ -225,7 +225,7 @@
 			<button
 				on:click={submitComment}
 				disabled={isSubmitDisabled}
-				class="mt-2 rounded-lg bg-black p-2 px-4 font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-neutral-100"
+				class="mt-2 rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
 			>
 				Submit
 			</button>
@@ -234,7 +234,7 @@
 		<div class="flex h-full flex-col items-center justify-center">
 			<p class="mt-2 grow-0 text-lg font-medium">Please login to leave a comment.</p>
 			<a
-				class="mt-2 grow-0 rounded-lg bg-black p-2 px-4 font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-neutral-100"
+				class="mt-2 grow-0 rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
 				href="/auth?goto={$page.url.pathname}#comments">Log in</a
 			>
 		</div>
@@ -242,7 +242,6 @@
 </div>
 
 <div class="mt-8">
-	<h4 class="mb-4 text-xl font-semibold">Recent Comments</h4>
 	{#if comments.length > 0}
 		{#each comments as comment}
 			{@const voteStatus = getUserVoteStatus(comment)}
@@ -251,7 +250,7 @@
 			>
 				<div class="flex flex-row items-start justify-between">
 					<div class="flex flex-row">
-						<p class="font-bold">{comment.username}</p>
+						<p class="font-semibold">{comment.username}</p>
 						{#if comment.author == '214phugj014d7zb'}
 							<p class="ml-2 text-sm text-neutral-500">Blog Owner</p>
 						{/if}
@@ -338,21 +337,21 @@
 						{/if}
 					</div>
 				</div>
-				<p class="mt-1 break-words">{comment.text}</p>
-				<p class="mt-2 text-sm text-neutral-500">{new Date(comment.created).toLocaleString()}</p>
+				<p class="break-words font-medium">{comment.text}</p>
+				<p class="mt-1 font-medium text-sm text-neutral-500">{new Date(comment.created).toLocaleString()}</p>
 				{#if pb.authStore.model?.id === '214phugj014d7zb'}
 					{#if replies[comment.id] && replies[comment.id].show}
 						<div class="mt-4 rounded-lg bg-neutral-200 p-4 dark:bg-neutral-800">
 							<textarea
 								bind:value={replies[comment.id].text}
-								class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-black focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white focus:dark:ring-neutral-800"
+								class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white focus:dark:ring-neutral-800"
 								placeholder="Enter your reply..."
 								rows="3"
 							></textarea>
 							<div class="mt-2 flex justify-end">
 								<button
 									on:click={() => saveReply(comment.id)}
-									class="rounded-lg bg-black p-2 px-4 font-medium text-white transition-colors duration-200 hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-100"
+									class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-colors duration-200 hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
 								>
 									Save Reply
 								</button>
@@ -364,12 +363,12 @@
 				{#if comment.reply}
 					<div class="mt-4 rounded-lg bg-neutral-200 p-4 dark:bg-neutral-800">
 						<p class="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Admin Reply:</p>
-						<p class="mt-1 text-black dark:text-white">{comment.reply}</p>
+						<p class="mt-1 text-neutral-900 dark:text-white">{comment.reply}</p>
 					</div>
 				{/if}
 			</div>
 		{/each}
 	{:else}
-		<p>No comments yet. Be the first to comment!</p>
+		<p class="font-medium text-neutral-500 dark:text-neutral-500 text-lg text-center pt-10">No comments yet. Be the first to comment!</p>
 	{/if}
 </div>

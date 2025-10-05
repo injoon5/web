@@ -24,31 +24,31 @@
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if data.series?.[0]?.series}
-				<h2 class="text-lg font-medium text-neutral-600 dark:text-neutral-300">
+				<h2 class="text-2xl font-medium text-neutral-500 dark:text-neutral-500">
 					{data.series[0].series}
 				</h2>
 			{/if}
-			<h1 class="text-3xl font-semibold tracking-tight md:text-3xl md:font-semibold">
+			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
 				{data.meta.title}
 			</h1>
-			<div class="flex flex-row text-xl text-neutral-600 dark:text-neutral-300">
+			<div class="mt-2 flex flex-row text-2xl font-medium text-neutral-600 dark:text-neutral-400">
 				<p>{formatDate(data.meta.date)}</p>
 				<p class="mx-1">·</p>
 				<Readotron selector=".readtime" lang="ar" />
 			</div>
-			<div class="my-2">
+			<div class="my-4">
 				<LikeButton />
 			</div>
-			<div class="my-2">
-				{#if data.series.length > 1 && data.meta.series != undefined}
+			{#if data.series.length > 1 && data.meta.series != undefined}
+				<div class="my-4">
 					<SeriesList series={data.series} />
-				{/if}
-			</div>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Post -->
 		<div
-			class="readtime prose-neutral prose-em:text-neutral-100 prose-img:-pt-10 prose-em:-pt-20 prose dark:prose-invert mt-10 max-w-none md:prose-lg prose-a:no-underline hover:prose-a:underline prose-img:mx-auto prose-img:rounded"
+			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral mt-10 max-w-none dark:prose-invert prose-a:no-underline hover:prose-a:underline prose-img:mx-auto prose-img:w-4/5"
 		>
 			<svelte:component this={data.content} class="prose" />
 		</div>

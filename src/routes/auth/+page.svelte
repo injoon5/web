@@ -22,7 +22,9 @@
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
 	<div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
 		{#if !pb.authStore.isValid}
-			<h2 class="mt-20 text-xl font-semibold">Log in to interact.</h2>
+			<h1 class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100">
+				Log in to interact.
+			</h1>
 			<form method="post" on:submit|preventDefault={(e) => login(e.currentTarget)}>
 				<input name="token" type="hidden" />
 				<div class="mt-5 grid grid-rows-1 gap-1 px-6 sm:px-32">
