@@ -85,7 +85,7 @@
 					href="/blog/{post.slug}"
 				>
 					<h2 class="line-clamp-1 text-base font-semibold group-hover:underline font-neutral-900 dark:font-neutral-100">{post.title}</h2>
-					<p class="min-h-[2lh] max-h-[2lh] text-pretty break-keep line-clamp-2 text-neutral-600 dark:text-neutral-400 text-base font-semibold mb-1">{post.description || "Some amazing post that I forgot or failed to write a description for. "}</p>
+					<p class="min-h-[2lh] max-h-[2lh] break-keep line-clamp-2 text-neutral-600 dark:text-neutral-400 text-base font-semibold mb-1">{post.description || "Some amazing post that I forgot or failed to write a description for. "}</p>
 					<div class="whitespace-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500">{post.date || post.year}</div>
 				</a>
 			{/each}
@@ -129,7 +129,7 @@
 					href="/projects/{post.slug}"
 				>
 					<h2 class="line-clamp-1 text-base font-semibold group-hover:underline ">{post.title}</h2>
-					<p class="min-h-[2lh] max-h-[2lh] text-pretty break-keep line-clamp-2 text-neutral-600 dark:text-neutral-400 text-base font-semibold mb-1">{post.description || "Some amazing project that I forgot or failed to write a description for. "}</p>
+					<p class="min-h-[2lh] max-h-[2lh] break-keep line-clamp-2 text-neutral-600 dark:text-neutral-400 text-base font-semibold mb-1">{post.description || "Some amazing project that I forgot or failed to write a description for. "}</p>
 					<div class="whitespace-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500">{post.date || post.year}</div>
 				</a>
 			{/each}
