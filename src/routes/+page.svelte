@@ -95,7 +95,7 @@
 						{post.title}
 					</h2>
 					<p
-						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-semibold text-neutral-600 dark:text-neutral-400"
+						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-medium text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||
 							'Some amazing post that I forgot or failed to write a description for. '}
@@ -149,7 +149,7 @@
 				>
 					<h2 class="line-clamp-1 text-base font-semibold group-hover:underline">{post.title}</h2>
 					<p
-						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-semibold text-neutral-600 dark:text-neutral-400"
+						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-medium text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||
 							'Some amazing project that I forgot or failed to write a description for. '}
@@ -205,7 +205,7 @@
 										{technology.name}
 									</p>
 									<p
-										class="tracking-tigh text-base font-semibold leading-normal text-neutral-600 dark:text-neutral-400"
+										class="tracking-tigh text-base font-medium leading-normal text-neutral-600 dark:text-neutral-400"
 									>
 										{technology.description}
 									</p>

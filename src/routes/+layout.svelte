@@ -26,7 +26,7 @@
 	<slot />
 </div>
 
-<footer class="mb-20 mt-10 w-full">
+<footer class="mb-20 mt-10 w-full tracking-tight">
 	<div class="text-xs">
 		<div
 			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-600 sm:px-12 dark:text-neutral-400"
