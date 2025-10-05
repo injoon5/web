@@ -2,7 +2,7 @@
 type: blog
 title: LG AI 청소년 캠프 참가 후기
 slug: '{{slug}}'
-description: ''
+description: 'LG 디스커버리랩과 서울대학교가 함께 운영하는 LG AI 청소년 캠프에 1기로 약 6개월 간 참여했습니다. '
 date: '2024-05-14'
 series: 'LG AI 청소년 캠프'
 coverimage: ''

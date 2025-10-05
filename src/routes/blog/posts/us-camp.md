@@ -2,7 +2,7 @@
 type: blog
 title: 미국 캠프 후기
 slug: '{{slug}}'
-description: ''
+description: 'LG AI 청소년 캠프에서 우승 후 미국 실리콘밸리에서 진행된 캠프에 참가했습니다. '
 date: '2024-07-16'
 series: 'LG AI 청소년 캠프'
 coverimage: ''

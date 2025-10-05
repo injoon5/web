@@ -2,7 +2,7 @@
 type: blog
 title: How I made the "Now Listening" section on my website
 slug: '{{slug}}'
-description: ''
+description: 'Not using the Apple Music API and finding a cool trick involving Last.fm and GitHub Actions. '
 date: '2025-02-09'
 coverimage: ''
 published: true
