@@ -154,7 +154,7 @@ export const load = async ({ fetch }: LoadEvent) => {
 				},
 				{
 					name: "MacBook Pro",
-					description: "I'm currently using a MacBook Pro with a M2 Pro chip. It's easily the best notebook I've ever had. Never worried about performance on this beast.",
+					description: "I'm currently using a MacBook Pro with an M2 Pro chip. It's easily the best notebook I've ever had. Never worried about performance on this beast.",
 					link: "https://apple.com/mac/macbook-pro"
 				}
 			]
