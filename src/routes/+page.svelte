@@ -38,7 +38,7 @@
 
 <div
 	id="introduction"
-	class=" mb-12 mt-10 font-medium tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
+	class=" mb-12 mt-20 font-medium tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class=" col-span-3 md:col-span-10 lg:col-span-2 flex flex-col justify-start">
 		<div class="sticky md:top-28" style="height: max-content;">
