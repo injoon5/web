@@ -290,9 +290,13 @@
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
-			<h1 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
-				Photos
-			</h1>
+			<a href="https://photos.injoon5.com" class="group">
+				<h2
+					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
+				>
+					Photos
+				</h2>
+			</a>
 		</div>
 	</div>
 	<div class="col-span-10 mt-4 justify-center lg:mt-0">
