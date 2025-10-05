@@ -4,11 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
-
 @theme {
 	--breakpoint-xs: 20rem;
-
-  }
+}
 
 .prose code[data-line-numbers] {
 	counter-reset: line;

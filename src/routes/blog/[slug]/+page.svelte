@@ -20,11 +20,13 @@
 </svelte:head>
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-	<article class="col-span-1 lg:col-span-8 lg:col-start-3 pt-10 justify-center">
+	<article class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if data.series?.[0]?.series}
-				<h2 class="text-lg text-neutral-600 font-medium dark:text-neutral-300">{data.series[0].series}</h2>
+				<h2 class="text-lg font-medium text-neutral-600 dark:text-neutral-300">
+					{data.series[0].series}
+				</h2>
 			{/if}
 			<h1 class="text-3xl font-semibold tracking-tight md:text-3xl md:font-semibold">
 				{data.meta.title}
@@ -46,7 +48,7 @@
 
 		<!-- Post -->
 		<div
-			class="readtime prose-primary prose-em:text-primary-100 prose-img:-pt-10 prose-em:-pt-20 prose prose-invert mt-10 max-w-none md:prose-lg prose-a:no-underline hover:prose-a:underline prose-img:mx-auto prose-img:rounded"
+			class="readtime prose-neutral prose-em:text-neutral-100 prose-img:-pt-10 prose-em:-pt-20 prose dark:prose-invert mt-10 max-w-none md:prose-lg prose-a:no-underline hover:prose-a:underline prose-img:mx-auto prose-img:rounded"
 		>
 			<svelte:component this={data.content} class="prose" />
 		</div>

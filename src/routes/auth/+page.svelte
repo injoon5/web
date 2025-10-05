@@ -19,10 +19,8 @@
 	}
 </script>
 
-
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-	<div class="col-span-1 lg:col-span-8 lg:col-start-3 pt-10 justify-center">
-
+	<div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
 		{#if !pb.authStore.isValid}
 			<h2 class="mt-20 text-xl font-semibold">Log in to interact.</h2>
 			<form method="post" on:submit|preventDefault={(e) => login(e.currentTarget)}>
