@@ -38,10 +38,10 @@
 
 <div
 	id="introduction"
-	class=" mb-12 mt-20 font-medium tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
+	class="mb-12 mt-20 font-medium tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class=" col-span-3 md:col-span-10 lg:col-span-2 flex flex-col justify-start">
-		<div class="sticky md:top-28" style="height: max-content;">
+		<div class="md:sticky md:top-28" style="height: max-content;">
 			<h1 class="italic text-xl font-medium tracking-tight text-black dark:text-white">
 				Hello! -
 			</h1>
@@ -69,7 +69,7 @@
 	class="mb-12 mt-20 tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 md:col-span-10 lg:col-span-2 flex flex-col justify-start">
-		<div class="sticky top-20 md:top-24" style="height: max-content;">
+		<div class="md:sticky top-20 md:top-24" style="height: max-content;">
 			<a href="/blog" class="group">
 				<h2 class="text-xl font-medium tracking-tight text-black dark:text-white mb-4  group-hover:text-neutral-600 dark:group-hover:text-neutral-400">
 					Blog
@@ -113,7 +113,7 @@
 	class="mb-12 mt-20 tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 md:col-span-10 lg:col-span-2 flex flex-col justify-start">
-		<div class="sticky top-20 md:top-24" style="height: max-content;">
+		<div class="md:sticky top-20 md:top-24" style="height: max-content;">
 			<a href="/blog" class="group">
 				<h2 class="text-xl font-medium tracking-tight text-black dark:text-white mb-4  group-hover:text-neutral-600 dark:group-hover:text-neutral-400">
 					Projects
@@ -158,7 +158,7 @@
 	class="mb-12 mt-20 font-medium tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 md:col-span-10 lg:col-span-2 flex flex-col justify-start">
-		<div class="sticky md:top-24" style="height: max-content;">
+		<div class="md:sticky md:top-24" style="height: max-content;">
 			<h1 class="text-xl font-medium tracking-tight text-black dark:text-white">
 				Tech Stack
 			</h1>
@@ -217,7 +217,7 @@
 	class=" mb-12 mt-20 font-medium tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class=" col-span-3 md:col-span-10 lg:col-span-2 flex flex-col justify-start">
-		<div class="sticky md:top-24" style="height: max-content;">
+		<div class="md:sticky md:top-24" style="height: max-content;">
 			<h1 class="text-xl font-medium tracking-tight text-black dark:text-white">
 				Now Listening
 			</h1>
@@ -258,7 +258,7 @@
 	class="mb-24 mt-20 font-medium tracking-tight text-lg sm:text-xl grid grid-cols-3 sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 md:col-span-10 lg:col-span-2 flex flex-col justify-start">
-		<div class="sticky md:top-24" style="height: max-content;">
+		<div class="md:sticky md:top-24" style="height: max-content;">
 			<h1 class="text-xl font-medium tracking-tight text-black dark:text-white">
 				Photos
 			</h1>
