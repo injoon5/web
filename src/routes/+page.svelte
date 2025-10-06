@@ -2,7 +2,7 @@
 	import { formatDate, sliceText } from '$lib/utils';
 
 	export let data;
-	console.log(data.posts);
+	// console.log(data.posts);
 
 	// Tech stack state management
 	let selectedTech = '';
@@ -271,8 +271,7 @@
 					</div>
 					<div class="flex w-full items-center justify-between text-lg font-medium">
 						<span class="line-clamp-1">{nowlistening.name}</span>
-						<span
-							class="ml-2 line-clamp-1 "
+						<span class="ml-2 line-clamp-1"
 							>{nowlistening.artist['#text'] === 'Lany'
 								? 'LANY'
 								: nowlistening.artist['#text']}</span
@@ -318,6 +317,21 @@
 							alt={photo.title || 'Photo'}
 							class="z-10 max-h-[80%] max-w-[80%] object-contain shadow-lg"
 						/>
+						{#if photo.src.medium.width >= photo.src.medium.height}
+
+							<span
+								class="absolute bottom-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
+							>
+								{photo.takenAtNaive}
+							</span>
+						{:else}
+							<span
+								class="absolute right-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
+								style="writing-mode: vertical-rl; transform: rotate(180deg);"
+							>
+								{photo.takenAtNaive}
+							</span>
+						{/if}
 					</a>
 				</div>
 			{/each}
