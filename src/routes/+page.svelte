@@ -2,7 +2,7 @@
 	import { formatDate, sliceText } from '$lib/utils';
 
 	export let data;
-	// console.log(data.posts);
+	console.log(data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11));
 
 	// Tech stack state management
 	let selectedTech = '';
@@ -241,13 +241,17 @@
 
 <div
 	id="now-listening"
-	class=" mb-12 mt-20 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mb-56 mt-20 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class=" col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
 			<h1 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
 				Now Listening
 			</h1>
+			<p class="text-sm font-medium text-neutral-500 dark:text-neutral-400 leading-tight">
+				Last updated at 
+				<span class="lg:block inline">{data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11)}</span>
+			</p>
 		</div>
 	</div>
 
@@ -291,7 +295,7 @@
 		<div class="md:sticky md:top-24" style="height: max-content;">
 			<a href="https://photos.injoon5.com" class="group">
 				<h2
-					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
+					class="text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
 				>
 					Photos
 				</h2>
