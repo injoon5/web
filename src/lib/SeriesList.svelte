@@ -22,7 +22,7 @@
 			</div>
 			<div class="block">
 				<h2 class="line-clamp-1 font-semibold text-lg -mb-1">{post.title}</h2>
-				<p class="text-base font-semibold text-neutral-500 dark:text-neutral-400">{post.date}</p>
+				<p class="text-base font-medium text-neutral-500 dark:text-neutral-400">{post.date}</p>
 			</div>
 		</a>
 	{/each}
