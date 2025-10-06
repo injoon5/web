@@ -48,7 +48,7 @@
 
 		<!-- Post -->
 		<div
-			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral mt-10 max-w-none dark:prose-invert prose-a:no-underline hover:prose-a:underline prose-img:mx-auto prose-img:w-4/5"
+			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral mt-10 max-w-none dark:prose-invert prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline hover:prose-a:underline prose-img:mx-auto prose-img:w-4/5"
 		>
 			<svelte:component this={data.content} class="prose" />
 		</div>
