@@ -248,7 +248,7 @@
 			<h1 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
 				Now Listening
 			</h1>
-			<p class="text-sm font-medium text-neutral-500 dark:text-neutral-400 leading-tight">
+			<p class="text-sm font-medium text-neutral-500 dark:text-neutral-500 leading-tight">
 				Last updated at 
 				<span class="lg:block inline">{data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11)}</span>
 			</p>
