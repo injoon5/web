@@ -84,7 +84,9 @@
 </script>
 
 <div class="flex items-center justify-between">
-	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100">{likeCount} like{likeCount != 1 ? 's' : ''}</span>
+	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100"
+		>{likeCount} like{likeCount != 1 ? 's' : ''}</span
+	>
 	{#if pb.authStore.isValid}
 		<button
 			on:click={toggleLike}
@@ -93,7 +95,10 @@
 			{isLiked ? 'Unlike' : 'Like'}
 		</button>
 	{:else}
-		<a href="/auth?goto={$page.url.pathname}" class="font-medium text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+		<a
+			href="/auth?goto={$page.url.pathname}"
+			class="font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+		>
 			Log in to like
 		</a>
 	{/if}

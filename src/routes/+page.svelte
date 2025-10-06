@@ -2,7 +2,7 @@
 	import { formatDate, sliceText } from '$lib/utils';
 
 	export let data;
-	console.log(data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11));
+	// console.log(data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11));
 
 	// Tech stack state management
 	let selectedTech = '';
@@ -200,7 +200,7 @@
 						</h3>
 						<div class="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-12">
 							{#each stacks.technologies as technology}
-								<div on:click={() => handleTechClick(technology.name)} class="col-span-4 mt-2">
+								<div onclick={() => handleTechClick(technology.name)} class="col-span-4 mt-2">
 									<p class="text-base font-semibold text-neutral-900 dark:text-neutral-200">
 										{technology.name}
 									</p>
@@ -248,9 +248,11 @@
 			<h1 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
 				Now Listening
 			</h1>
-			<p class="text-sm font-medium text-neutral-500 dark:text-neutral-500 leading-tight">
-				Last updated at 
-				<span class="lg:block inline">{data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11)}</span>
+			<p class="text-sm font-medium leading-tight text-neutral-500 dark:text-neutral-500">
+				Last updated at
+				<span class="inline lg:block"
+					>{data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11)}</span
+				>
 			</p>
 		</div>
 	</div>
@@ -322,7 +324,6 @@
 							class="z-10 max-h-[80%] max-w-[80%] object-contain shadow-lg"
 						/>
 						{#if photo.src.medium.width >= photo.src.medium.height}
-
 							<span
 								class="absolute bottom-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
 							>

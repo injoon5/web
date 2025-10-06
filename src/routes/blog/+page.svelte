@@ -14,13 +14,16 @@
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
-	<h1 class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100">
+	<h1
+		class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100"
+	>
 		Blog
 	</h1>
 	<h2
 		class="text-md text-xl font-semibold tracking-tight text-neutral-500 sm:text-2xl dark:text-neutral-500"
 	>
-		Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about.
+		Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote
+		about.
 	</h2>
 	<!--
 		<div class="my-6 text-base">
@@ -45,7 +48,9 @@
 		{#each data.posts as post}
 			{#if post.series && !renderedSeries.includes(post.series) && renderedSeries.push(post.series)}
 				<!-- Series group header -->
-				<div class="py-2 text-base font-semibold text-neutral-600 sm:text-base dark:text-neutral-400">
+				<div
+					class="py-2 text-base font-semibold text-neutral-600 sm:text-base dark:text-neutral-400"
+				>
 					Series: {post.series}
 				</div>
 				{#each data.posts.filter((p: any) => p.series === post.series) as seriesPost}

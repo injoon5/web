@@ -56,9 +56,8 @@
 				<p>Tokyo, Japan</p>
 			</div>
 			<div
-				class="col-span-12 flex hover:text-neutral-900 md:col-span-6 lg:col-span-5 lg:justify-end dark:hover:text-neutral-100 mt-10 lg:mt-0"
+				class="col-span-12 mt-10 flex hover:text-neutral-900 md:col-span-6 lg:col-span-5 lg:mt-0 lg:justify-end dark:hover:text-neutral-100"
 			>
-				
 				<button
 					on:click={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
 					aria-label="Scroll to top"

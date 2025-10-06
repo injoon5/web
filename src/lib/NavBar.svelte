@@ -34,11 +34,14 @@
 			<li>
 				<a
 					href={item.href}
-					class="p-0 text-base font-medium {page.url.pathname.startsWith(item.href) ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500 dark:text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'} md:p-1"
+					class="p-0 text-base font-medium {page.url.pathname.startsWith(item.href)
+						? 'text-neutral-900 dark:text-neutral-100'
+						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100'} md:p-1"
 					aria-current={page.url.pathname === item.href ? 'page' : 'false'}
 				>
 					{item.label}
 				</a>
 			</li>
 		{/each}
+	</ul>
 </div>

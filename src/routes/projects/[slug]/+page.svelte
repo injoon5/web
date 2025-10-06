@@ -26,8 +26,8 @@
 				<p class="mx-1">·</p>
 				<Readotron selector=".readtime" lang="ar" />
 			</div>
-			<p class="text-2xl font-medium text-neutral-500 dark:text-neutral-500 leading-tight">
-				{data.meta.description} 
+			<p class="text-2xl font-medium leading-tight text-neutral-500 dark:text-neutral-500">
+				{data.meta.description}
 			</p>
 			<div
 				class="tags mb-2 space-x-1.5 text-2xl font-medium text-neutral-400 dark:text-neutral-600"

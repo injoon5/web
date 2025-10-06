@@ -7,13 +7,16 @@
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
-	<h1 class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100">
+	<h1
+		class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100"
+	>
 		Projects
 	</h1>
 	<h2
 		class="text-md text-xl font-semibold tracking-tight text-neutral-500 sm:text-2xl dark:text-neutral-500"
 	>
-		Some of the stuff I did to escape from a boring day. Includes everything from school projects to personal projects.
+		Some of the stuff I did to escape from a boring day. Includes everything from school projects to
+		personal projects.
 	</h2>
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">

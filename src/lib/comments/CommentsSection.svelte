@@ -338,7 +338,9 @@
 					</div>
 				</div>
 				<p class="break-words font-medium">{comment.text}</p>
-				<p class="mt-1 font-medium text-sm text-neutral-500">{new Date(comment.created).toLocaleString()}</p>
+				<p class="mt-1 text-sm font-medium text-neutral-500">
+					{new Date(comment.created).toLocaleString()}
+				</p>
 				{#if pb.authStore.model?.id === '214phugj014d7zb'}
 					{#if replies[comment.id] && replies[comment.id].show}
 						<div class="mt-4 rounded-lg bg-neutral-200 p-4 dark:bg-neutral-800">
@@ -369,6 +371,8 @@
 			</div>
 		{/each}
 	{:else}
-		<p class="font-medium text-neutral-500 dark:text-neutral-500 text-lg text-center pt-10">No comments yet. Be the first to comment!</p>
+		<p class="pt-10 text-center text-lg font-medium text-neutral-500 dark:text-neutral-500">
+			No comments yet. Be the first to comment!
+		</p>
 	{/if}
 </div>
