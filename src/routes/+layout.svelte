@@ -2,11 +2,6 @@
 	import '../app.css';
 	// import NavBar from '$lib/NavBar.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-
-	import { inject } from '@vercel/analytics';
-	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
-	inject();
-	injectSpeedInsights();
 </script>
 
 <svelte:head>

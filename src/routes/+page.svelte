@@ -101,7 +101,7 @@
 							'Some amazing post that I forgot or failed to write a description for. '}
 					</p>
 					<div
-						class="neutral-100space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
+						class="neutral-100 space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
 					>
 						{post.date || post.year}
 					</div>
@@ -155,7 +155,7 @@
 							'Some amazing project that I forgot or failed to write a description for. '}
 					</p>
 					<div
-						class="neutral-100space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
+						class="neutral-100 space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
 					>
 						{post.date || post.year}
 					</div>
