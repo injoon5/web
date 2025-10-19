@@ -6,11 +6,7 @@ import NavBar from "$lib/NavBar.svelte";
 
 <svelte:head>
 	<link rel="canonical" href="https://www.injoon5.com" />
-	<script
-		defer
-		src="https://analytics.injoon5.com/script.js"
-		data-website-id="59821eb1-0b3c-40eb-b21f-4fd98040b47b"
-	></script>
+
 </svelte:head>
 
 <nav class="sticky top-0 z-30 mx-auto max-w-6xl bg-white px-4 py-3 text-sm sm:px-12 dark:bg-black">
