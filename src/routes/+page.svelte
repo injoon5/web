@@ -1,27 +1,7 @@
 <script lang="ts">
-import { formatDate, sliceText } from "$lib/utils";
+	import { sliceText } from "$lib/utils";
 
-export let data;
-// console.log(data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11));
-
-// Tech stack state management
-let selectedTech = "";
-let selectedDescription = "";
-
-function handleTechClick(techName: string) {
-	console.log(techName);
-	if (selectedTech === techName) {
-		// If clicking the same tech, hide description
-		selectedTech = "";
-		selectedDescription = "";
-	} else {
-		// Show new description
-		selectedTech = techName;
-		selectedDescription =
-			(data.techstackDescriptions as Record<string, string>)[techName] ||
-			"No description available.";
-	}
-}
+	export let data;
 </script>
 
 <svelte:head>
@@ -43,9 +23,9 @@ function handleTechClick(techName: string) {
 >
 	<div class=" col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-28" style="height: max-content;">
-			<h1 class="text-xl font-medium italic tracking-tight text-neutral-900 dark:text-neutral-100">
+			<h2 class="text-xl font-medium italic tracking-tight text-neutral-900 dark:text-neutral-100">
 				Hello! -
-			</h1>
+			</h2>
 		</div>
 	</div>
 	<div class="col-span-5 mt-4 justify-center md:mr-2 lg:mt-0">
@@ -89,11 +69,11 @@ function handleTechClick(techName: string) {
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/blog/{post.slug}"
 				>
-					<h2
+					<h3
 						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-semibold group-hover:underline"
 					>
 						{post.title}
-					</h2>
+					</h3>
 					<p
 						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-medium text-neutral-600 dark:text-neutral-400"
 					>
@@ -147,7 +127,11 @@ function handleTechClick(techName: string) {
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/projects/{post.slug}"
 				>
-					<h2 class="line-clamp-1 text-base font-semibold group-hover:underline">{post.title}</h2>
+					<h3
+						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-semibold group-hover:underline"
+					>
+						{post.title}
+					</h3>
 					<p
 						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-medium text-neutral-600 dark:text-neutral-400"
 					>
@@ -185,9 +169,9 @@ function handleTechClick(techName: string) {
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
-			<h1 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
+			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
 				Tech Stack
-			</h1>
+			</h2>
 		</div>
 	</div>
 	<div class="col-span-10 mt-4 justify-center lg:mt-0">
@@ -200,7 +184,7 @@ function handleTechClick(techName: string) {
 						</h3>
 						<div class="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-12">
 							{#each stacks.technologies as technology}
-								<div onclick={() => handleTechClick(technology.name)} class="col-span-4 mt-2">
+								<div class="col-span-4 mt-2">
 									<p class="text-base font-semibold text-neutral-900 dark:text-neutral-200">
 										{technology.name}
 									</p>
@@ -245,9 +229,9 @@ function handleTechClick(techName: string) {
 >
 	<div class=" col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
-			<h1 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
+			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
 				Now Listening
-			</h1>
+			</h2>
 			<p class="text-sm font-medium leading-tight text-neutral-500 dark:text-neutral-500">
 				Last updated at
 				<span class="inline lg:block"
@@ -359,6 +343,3 @@ function handleTechClick(techName: string) {
 		</div>
 	</div>
 </div>
-
-<style>
-</style>
