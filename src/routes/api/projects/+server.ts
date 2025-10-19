@@ -1,3 +1,5 @@
+export const prerender = true;
+
 import { json } from '@sveltejs/kit';
 import type { Project } from '$lib/types';
 

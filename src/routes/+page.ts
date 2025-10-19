@@ -1,4 +1,4 @@
-export const prerender = true;
+// export const prerender = true;
 
 import type { LoadEvent } from '@sveltejs/kit';
 
@@ -10,12 +10,14 @@ export const load = async ({ fetch }: LoadEvent) => {
 	const projects = await projectsResponse.json();
 
 	const nowlisteningResponse = await fetch(
-		`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`
+		`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`,
+		{ cache: 'no-store' }
 	);
 	const nowlistening = await nowlisteningResponse.json();
 
 	const photosResponse = await fetch(
-		`https://raw.githubusercontent.com/injoon5/data/main/photos.json`
+		`https://raw.githubusercontent.com/injoon5/data/main/photos.json`,
+		{ cache: 'no-store' }
 	);
 	const photos = await photosResponse.json();
 
