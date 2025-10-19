@@ -4,16 +4,9 @@ import type { LoadEvent } from "@sveltejs/kit";
 
 export const load = async ({ fetch }: LoadEvent) => {
 	const postResponse = await fetch(`/api/posts`);
-	if (!postResponse.ok) {
-		const text = await postResponse.text();
-		console.error('Fetch failed:', postResponse.status, text);
-	}
+	const posts = await postResponse.json();
 
 	const projectsResponse = await fetch(`/api/projects`);
-	if (!projectsResponse.ok) {
-		const text = await projectsResponse.text();
-		console.error('Fetch failed:', projectsResponse.status, text);
-	}
 	const projects = await projectsResponse.json();
 
 	const nowlisteningResponse = await fetch(
