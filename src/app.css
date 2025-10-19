@@ -1,5 +1,10 @@
 @import url("/fonts/pretendard/pretendard-subset.css");
 
+:root {
+  font-display: swap;
+}
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
