@@ -1,11 +1,11 @@
 <script>
-	import { page } from '$app/state';
+import { page } from "$app/state";
 
-	const navItems = [
-		{ label: 'projects', href: '/projects' },
-		{ label: 'blog', href: '/blog' },
-		{ label: 'github', href: 'http://github.com/injoon5' }
-	];
+const navItems = [
+	{ label: "projects", href: "/projects" },
+	{ label: "blog", href: "/blog" },
+	{ label: "github", href: "http://github.com/injoon5" },
+];
 </script>
 
 <div class="flex items-center justify-between">

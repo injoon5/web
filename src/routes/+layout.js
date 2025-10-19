@@ -1,5 +1,6 @@
 // import posthog from 'posthog-js';
-import { browser } from '$app/environment';
+import { browser } from "$app/environment";
+import { configure } from "onedollarstats";
 
 export const load = async () => {
 	// if (browser) {
@@ -10,6 +11,9 @@ export const load = async () => {
 	// 		person_profiles: 'always' // or 'always' to create profiles for anonymous users as well
 	// 	});
 	// }
-
+	configure({
+		collectorUrl: "https://collector.onedollarstats.com/events",
+		autocollect: true, // automatically tracks pageviews & clicks
+	  });
 	return;
 };

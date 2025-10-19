@@ -1,10 +1,10 @@
 <script>
-	import PocketBase from 'pocketbase';
-	const pb = new PocketBase('https://pb.injoon5.com');
-	function logout() {
-		pb.authStore.clear(); // Clear authentication token
-		window.location.href = '/';
-	}
+import PocketBase from "pocketbase";
+const pb = new PocketBase("https://pb.injoon5.com");
+function logout() {
+	pb.authStore.clear(); // Clear authentication token
+	window.location.href = "/";
+}
 </script>
 
 <button

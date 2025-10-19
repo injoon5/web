@@ -1,6 +1,6 @@
 <script>
-	import { page } from '$app/stores';
-	export let series;
+import { page } from "$app/stores";
+export let series;
 </script>
 
 <div

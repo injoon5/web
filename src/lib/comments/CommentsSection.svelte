@@ -1,205 +1,207 @@
 <script>
-	import { page } from '$app/stores';
-	import { redirect } from '@sveltejs/kit';
-	import { onMount } from 'svelte';
-	import PocketBase from 'pocketbase';
+import { page } from "$app/stores";
+import { redirect } from "@sveltejs/kit";
+import { onMount } from "svelte";
+import PocketBase from "pocketbase";
 
-	const pb = new PocketBase('https://pb.injoon5.com');
+const pb = new PocketBase("https://pb.injoon5.com");
 
-	let comment = '';
-	let comments = [];
-	let replies = {};
-	let currentPath = '';
-	let usernameError = '';
-	let commentError = '';
-	let formSubmitted = false;
+let comment = "";
+let comments = [];
+let replies = {};
+let currentPath = "";
+let usernameError = "";
+let commentError = "";
+let formSubmitted = false;
 
-	const MAX_COMMENT_LENGTH = 200;
-	const CHAR_THRESHOLD = 10;
+const MAX_COMMENT_LENGTH = 200;
+const CHAR_THRESHOLD = 10;
 
-	let commentCharsLeft = MAX_COMMENT_LENGTH;
+let commentCharsLeft = MAX_COMMENT_LENGTH;
 
-	onMount(async () => {
-		currentPath = $page.url.pathname;
+onMount(async () => {
+	currentPath = $page.url.pathname;
+	await loadComments();
+});
+
+// Watch for route changes
+$: if ($page.url.pathname !== currentPath) {
+	currentPath = $page.url.pathname;
+	comment = "";
+	comments = [];
+	usernameError = "";
+	commentError = "";
+	formSubmitted = false;
+	loadComments();
+}
+
+$: commentCharsLeft = MAX_COMMENT_LENGTH - comment.length;
+
+$: showCommentCharsLeft = comment.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD;
+
+$: {
+	if (formSubmitted) {
+		commentError = comment.trim() ? "" : "Comment is required";
+	} else {
+		commentError = "";
+	}
+	if (comment.length > MAX_COMMENT_LENGTH) {
+		commentError = `Comment must be ${MAX_COMMENT_LENGTH} characters or less`;
+	}
+}
+
+$: isSubmitDisabled = !comment.trim() || commentError;
+
+async function loadComments() {
+	try {
+		const records = await pb.collection("comments").getList(1, 50, {
+			sort: "-created",
+			expand: "author,upvotes,downvotes,reply",
+			filter: `url = "${$page.url.pathname}"`,
+		});
+		comments = records.items.map((item) => ({
+			...item,
+			upvoteCount: Array.isArray(item.upvotes) ? item.upvotes.length : 0,
+			downvoteCount: Array.isArray(item.downvotes) ? item.downvotes.length : 0,
+			score:
+				(Array.isArray(item.upvotes) ? item.upvotes.length : 0) -
+				(Array.isArray(item.downvotes) ? item.downvotes.length : 0),
+			username: item.expand?.author?.username || "Unknown User",
+		}));
+
+		// Sort comments by score (descending) and then by creation date (descending)
+		comments.sort((a, b) => {
+			if (b.score !== a.score) {
+				return b.score - a.score;
+			}
+			return new Date(b.created) - new Date(a.created);
+		});
+	} catch (error) {
+		// console.error('Error loading comments:', error);
+	}
+}
+
+async function submitComment() {
+	formSubmitted = true;
+
+	if (!pb.authStore.isValid) {
+		alert("Please log in to submit a comment.");
+		window.location.href = "/auth?goto=" + $page.url.pathname + "#comments";
+		return;
+	}
+
+	if (!comment.trim()) {
+		return; // Don't proceed if fields are empty
+	}
+
+	try {
+		await pb.collection("comments").create({
+			url: $page.url.pathname,
+			author: pb.authStore.model?.id,
+			text: comment,
+		});
+		comment = "";
+		formSubmitted = false; // Reset the form submitted state
+		commentCharsLeft = MAX_COMMENT_LENGTH;
 		await loadComments();
-	});
+	} catch (error) {
+		console.error("Error submitting comment:", error, pb.authStore.model.id);
+		alert("Failed to submit comment. Please try again.");
+	}
+}
 
-	// Watch for route changes
-	$: if ($page.url.pathname !== currentPath) {
-		currentPath = $page.url.pathname;
-		comment = '';
-		comments = [];
-		usernameError = '';
-		commentError = '';
-		formSubmitted = false;
-		loadComments();
+async function voteComment(commentId, voteType) {
+	if (!pb.authStore.isValid) {
+		alert("Please log in to vote.");
+		window.location.href = "/auth?goto=" + $page.url.pathname;
+		return;
 	}
 
-	$: commentCharsLeft = MAX_COMMENT_LENGTH - comment.length;
+	try {
+		const comment = await pb.collection("comments").getOne(commentId, {
+			expand: "upvotes,downvotes",
+		});
 
-	$: showCommentCharsLeft = comment.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD;
+		let upvotes = comment.upvotes || [];
+		let downvotes = comment.downvotes || [];
+		const userId = pb.authStore.model.id;
 
-	$: {
-		if (formSubmitted) {
-			commentError = comment.trim() ? '' : 'Comment is required';
-		} else {
-			commentError = '';
-		}
-		if (comment.length > MAX_COMMENT_LENGTH) {
-			commentError = `Comment must be ${MAX_COMMENT_LENGTH} characters or less`;
-		}
-	}
-
-	$: isSubmitDisabled = !comment.trim() || commentError;
-
-	async function loadComments() {
-		try {
-			const records = await pb.collection('comments').getList(1, 50, {
-				sort: '-created',
-				expand: 'author,upvotes,downvotes,reply',
-				filter: `url = "${$page.url.pathname}"`
-			});
-			comments = records.items.map((item) => ({
-				...item,
-				upvoteCount: Array.isArray(item.upvotes) ? item.upvotes.length : 0,
-				downvoteCount: Array.isArray(item.downvotes) ? item.downvotes.length : 0,
-				score:
-					(Array.isArray(item.upvotes) ? item.upvotes.length : 0) -
-					(Array.isArray(item.downvotes) ? item.downvotes.length : 0),
-				username: item.expand?.author?.username || 'Unknown User'
-			}));
-
-			// Sort comments by score (descending) and then by creation date (descending)
-			comments.sort((a, b) => {
-				if (b.score !== a.score) {
-					return b.score - a.score;
-				}
-				return new Date(b.created) - new Date(a.created);
-			});
-		} catch (error) {
-			// console.error('Error loading comments:', error);
-		}
-	}
-
-	async function submitComment() {
-		formSubmitted = true;
-
-		if (!pb.authStore.isValid) {
-			alert('Please log in to submit a comment.');
-			window.location.href = '/auth?goto=' + $page.url.pathname + '#comments';
-			return;
-		}
-
-		if (!comment.trim()) {
-			return; // Don't proceed if fields are empty
-		}
-
-		try {
-			await pb.collection('comments').create({
-				url: $page.url.pathname,
-				author: pb.authStore.model?.id,
-				text: comment
-			});
-			comment = '';
-			formSubmitted = false; // Reset the form submitted state
-			commentCharsLeft = MAX_COMMENT_LENGTH;
-			await loadComments();
-		} catch (error) {
-			console.error('Error submitting comment:', error, pb.authStore.model.id);
-			alert('Failed to submit comment. Please try again.');
-		}
-	}
-
-	async function voteComment(commentId, voteType) {
-		if (!pb.authStore.isValid) {
-			alert('Please log in to vote.');
-			window.location.href = '/auth?goto=' + $page.url.pathname;
-			return;
-		}
-
-		try {
-			const comment = await pb.collection('comments').getOne(commentId, {
-				expand: 'upvotes,downvotes'
-			});
-
-			let upvotes = comment.upvotes || [];
-			let downvotes = comment.downvotes || [];
-			const userId = pb.authStore.model.id;
-
-			if (voteType === 'upvote') {
-				if (upvotes.includes(userId)) {
-					upvotes = upvotes.filter((id) => id !== userId);
-				} else {
-					upvotes.push(userId);
-					downvotes = downvotes.filter((id) => id !== userId);
-				}
+		if (voteType === "upvote") {
+			if (upvotes.includes(userId)) {
+				upvotes = upvotes.filter((id) => id !== userId);
 			} else {
-				if (downvotes.includes(userId)) {
-					downvotes = downvotes.filter((id) => id !== userId);
-				} else {
-					downvotes.push(userId);
-					upvotes = upvotes.filter((id) => id !== userId);
-				}
+				upvotes.push(userId);
+				downvotes = downvotes.filter((id) => id !== userId);
 			}
-
-			await pb.collection('comments').update(commentId, {
-				upvotes: upvotes,
-				downvotes: downvotes
-			});
-
-			await loadComments();
-		} catch (error) {
-			console.error('Error voting on comment:', error);
-			alert('Failed to vote. Please try again.');
-		}
-	}
-	async function deleteComment(commentId) {
-		if (confirm('Are you sure you want to delete this comment?')) {
-			try {
-				await pb.collection('comments').delete(commentId);
-				await loadComments();
-			} catch (error) {
-				console.error('Error deleting comment:', error);
-				alert('Failed to delete comment. Please try again.');
-			}
-		}
-	}
-
-	function getUserVoteStatus(comment) {
-		const userId = pb.authStore.model?.id;
-		if (!userId) return { upvoted: false, downvoted: false };
-
-		return {
-			upvoted: comment.expand?.upvotes?.some((vote) => vote.id === userId) || false,
-			downvoted: comment.expand?.downvotes?.some((vote) => vote.id === userId) || false
-		};
-	}
-
-	function handleReply(commentId) {
-		if (!replies[commentId]) {
-			replies[commentId] = { text: '', show: true };
 		} else {
-			replies[commentId].show = !replies[commentId].show;
+			if (downvotes.includes(userId)) {
+				downvotes = downvotes.filter((id) => id !== userId);
+			} else {
+				downvotes.push(userId);
+				upvotes = upvotes.filter((id) => id !== userId);
+			}
 		}
-		replies = { ...replies };
+
+		await pb.collection("comments").update(commentId, {
+			upvotes: upvotes,
+			downvotes: downvotes,
+		});
+
+		await loadComments();
+	} catch (error) {
+		console.error("Error voting on comment:", error);
+		alert("Failed to vote. Please try again.");
 	}
-
-	async function saveReply(commentId) {
+}
+async function deleteComment(commentId) {
+	if (confirm("Are you sure you want to delete this comment?")) {
 		try {
-			await pb.collection('comments').update(commentId, {
-				reply: replies[commentId].text
-			});
-
-			// Clear the reply text and hide the reply box
-			replies[commentId] = { text: '', show: false };
-			replies = { ...replies };
-
+			await pb.collection("comments").delete(commentId);
 			await loadComments();
 		} catch (error) {
-			console.error('Error saving reply:', error);
-			alert('Failed to save reply. Please try again.');
+			console.error("Error deleting comment:", error);
+			alert("Failed to delete comment. Please try again.");
 		}
 	}
+}
+
+function getUserVoteStatus(comment) {
+	const userId = pb.authStore.model?.id;
+	if (!userId) return { upvoted: false, downvoted: false };
+
+	return {
+		upvoted:
+			comment.expand?.upvotes?.some((vote) => vote.id === userId) || false,
+		downvoted:
+			comment.expand?.downvotes?.some((vote) => vote.id === userId) || false,
+	};
+}
+
+function handleReply(commentId) {
+	if (!replies[commentId]) {
+		replies[commentId] = { text: "", show: true };
+	} else {
+		replies[commentId].show = !replies[commentId].show;
+	}
+	replies = { ...replies };
+}
+
+async function saveReply(commentId) {
+	try {
+		await pb.collection("comments").update(commentId, {
+			reply: replies[commentId].text,
+		});
+
+		// Clear the reply text and hide the reply box
+		replies[commentId] = { text: "", show: false };
+		replies = { ...replies };
+
+		await loadComments();
+	} catch (error) {
+		console.error("Error saving reply:", error);
+		alert("Failed to save reply. Please try again.");
+	}
+}
 </script>
 
 <div>

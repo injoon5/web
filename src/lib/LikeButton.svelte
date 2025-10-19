@@ -1,86 +1,86 @@
 <script>
-	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
-	import PocketBase from 'pocketbase';
+import { page } from "$app/stores";
+import { onMount } from "svelte";
+import PocketBase from "pocketbase";
 
-	const pb = new PocketBase('https://pb.injoon5.com');
+const pb = new PocketBase("https://pb.injoon5.com");
 
-	let likeCount = 0;
-	let isLiked = false;
-	let likeRecord = null;
-	let currentPath = '';
+let likeCount = 0;
+let isLiked = false;
+let likeRecord = null;
+let currentPath = "";
 
-	onMount(async () => {
-		currentPath = $page.url.pathname;
-		await loadLikeData();
-	});
+onMount(async () => {
+	currentPath = $page.url.pathname;
+	await loadLikeData();
+});
 
-	// Watch for route changes
-	$: if ($page.url.pathname !== currentPath) {
-		likeCount = 0;
-		isLiked = false;
-		likeRecord = null;
-		currentPath = $page.url.pathname;
-		loadLikeData();
+// Watch for route changes
+$: if ($page.url.pathname !== currentPath) {
+	likeCount = 0;
+	isLiked = false;
+	likeRecord = null;
+	currentPath = $page.url.pathname;
+	loadLikeData();
+}
+
+async function loadLikeData() {
+	try {
+		const records = await pb.collection("likes").getList(1, 1, {
+			filter: `url = "${$page.url.pathname}"`,
+		});
+
+		if (records.items.length > 0) {
+			likeRecord = records.items[0];
+			likeCount = likeRecord.user?.length || 0;
+			if (pb.authStore.isValid) {
+				isLiked = likeRecord.user?.includes(pb.authStore.model.id) || false;
+			}
+		}
+	} catch (error) {
+		// console.error('Error loading like data:', error);
+	}
+}
+
+async function toggleLike() {
+	if (!pb.authStore.isValid) {
+		alert("Please log in to like posts.");
+		window.location.href = "/auth?goto=" + $page.url.pathname;
+		return;
 	}
 
-	async function loadLikeData() {
-		try {
-			const records = await pb.collection('likes').getList(1, 1, {
-				filter: `url = "${$page.url.pathname}"`
+	try {
+		if (!likeRecord) {
+			// Create a new record if it doesn't exist
+			likeRecord = await pb.collection("likes").create({
+				url: $page.url.pathname,
+				user: [pb.authStore.model.id],
 			});
-
-			if (records.items.length > 0) {
-				likeRecord = records.items[0];
-				likeCount = likeRecord.user?.length || 0;
-				if (pb.authStore.isValid) {
-					isLiked = likeRecord.user?.includes(pb.authStore.model.id) || false;
-				}
-			}
-		} catch (error) {
-			// console.error('Error loading like data:', error);
-		}
-	}
-
-	async function toggleLike() {
-		if (!pb.authStore.isValid) {
-			alert('Please log in to like posts.');
-			window.location.href = '/auth?goto=' + $page.url.pathname;
-			return;
-		}
-
-		try {
-			if (!likeRecord) {
-				// Create a new record if it doesn't exist
-				likeRecord = await pb.collection('likes').create({
-					url: $page.url.pathname,
-					user: [pb.authStore.model.id]
-				});
-				isLiked = true;
-				likeCount = 1;
+			isLiked = true;
+			likeCount = 1;
+		} else {
+			let users = likeRecord.user || [];
+			if (isLiked) {
+				// Unlike: remove user from the array
+				users = users.filter((id) => id !== pb.authStore.model.id);
 			} else {
-				let users = likeRecord.user || [];
-				if (isLiked) {
-					// Unlike: remove user from the array
-					users = users.filter((id) => id !== pb.authStore.model.id);
-				} else {
-					// Like: add user to the array
-					if (!users.includes(pb.authStore.model.id)) {
-						users.push(pb.authStore.model.id);
-					}
+				// Like: add user to the array
+				if (!users.includes(pb.authStore.model.id)) {
+					users.push(pb.authStore.model.id);
 				}
-				// Update the existing record
-				await pb.collection('likes').update(likeRecord.id, {
-					user: users
-				});
-				isLiked = !isLiked;
-				likeCount = users.length;
 			}
-		} catch (error) {
-			console.error('Error toggling like:', error);
-			alert('Failed to update like status. Please try again.');
+			// Update the existing record
+			await pb.collection("likes").update(likeRecord.id, {
+				user: users,
+			});
+			isLiked = !isLiked;
+			likeCount = users.length;
 		}
+	} catch (error) {
+		console.error("Error toggling like:", error);
+		alert("Failed to update like status. Please try again.");
 	}
+}
 </script>
 
 <div class="flex items-center justify-between">

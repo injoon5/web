@@ -1,5 +1,5 @@
 <script>
-	export let data, slug;
+export let data, slug;
 </script>
 
 <a

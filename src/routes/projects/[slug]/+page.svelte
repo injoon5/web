@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { formatDate } from '$lib/utils';
-	import LikeButton from '$lib/LikeButton.svelte';
-	import Readotron from '@untemps/svelte-readotron';
+import { formatDate } from "$lib/utils";
+import LikeButton from "$lib/LikeButton.svelte";
+import Readotron from "@untemps/svelte-readotron";
 
-	export let data;
+export let data;
 
-	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.year))}`;
+$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.year))}`;
 </script>
 
 <svelte:head>

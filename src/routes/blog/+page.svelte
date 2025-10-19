@@ -1,12 +1,12 @@
 <script lang="ts">
-	import PostLink from '$lib/PostLink.svelte';
+import PostLink from "$lib/PostLink.svelte";
 
-	import { onMount } from 'svelte';
-	import { formatDate, sliceText } from '$lib/utils';
+import { onMount } from "svelte";
+import { formatDate, sliceText } from "$lib/utils";
 
-	export let data;
+export let data;
 
-	let renderedSeries = [];
+let renderedSeries = [];
 </script>
 
 <svelte:head>

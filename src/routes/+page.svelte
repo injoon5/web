@@ -1,27 +1,27 @@
 <script lang="ts">
-	import { formatDate, sliceText } from '$lib/utils';
+import { formatDate, sliceText } from "$lib/utils";
 
-	export let data;
-	// console.log(data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11));
+export let data;
+// console.log(data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11));
 
-	// Tech stack state management
-	let selectedTech = '';
-	let selectedDescription = '';
+// Tech stack state management
+let selectedTech = "";
+let selectedDescription = "";
 
-	function handleTechClick(techName: string) {
-		console.log(techName);
-		if (selectedTech === techName) {
-			// If clicking the same tech, hide description
-			selectedTech = '';
-			selectedDescription = '';
-		} else {
-			// Show new description
-			selectedTech = techName;
-			selectedDescription =
-				(data.techstackDescriptions as Record<string, string>)[techName] ||
-				'No description available.';
-		}
+function handleTechClick(techName: string) {
+	console.log(techName);
+	if (selectedTech === techName) {
+		// If clicking the same tech, hide description
+		selectedTech = "";
+		selectedDescription = "";
+	} else {
+		// Show new description
+		selectedTech = techName;
+		selectedDescription =
+			(data.techstackDescriptions as Record<string, string>)[techName] ||
+			"No description available.";
 	}
+}
 </script>
 
 <svelte:head>

@@ -1,6 +1,6 @@
 export const prerender = true;
 
-import { error, type LoadEvent } from '@sveltejs/kit';
+import { error, type LoadEvent } from "@sveltejs/kit";
 
 export async function load({ params }: LoadEvent) {
 	try {
@@ -10,7 +10,7 @@ export async function load({ params }: LoadEvent) {
 		// Return the content and metadata from the markdown file
 		return {
 			content: project.default,
-			meta: project.metadata
+			meta: project.metadata,
 		};
 	} catch (e) {
 		// Throw a 404 error if the project is not found

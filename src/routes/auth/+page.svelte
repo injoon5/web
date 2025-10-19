@@ -1,22 +1,22 @@
 <script lang="ts">
-	import PocketBase from 'pocketbase';
-	import KakaoButton from '$lib/auth/KakaoButton.svelte';
-	import GithubButton from '$lib/auth/GithubButton.svelte';
-	import LogoutButton from '$lib/auth/LogoutButton.svelte';
+import PocketBase from "pocketbase";
+import KakaoButton from "$lib/auth/KakaoButton.svelte";
+import GithubButton from "$lib/auth/GithubButton.svelte";
+import LogoutButton from "$lib/auth/LogoutButton.svelte";
 
-	const pb = new PocketBase('https://pb.injoon5.com');
+const pb = new PocketBase("https://pb.injoon5.com");
 
-	async function login(form: HTMLFormElement) {
-		try {
-			await pb.collection('users').authWithOAuth2({ provider: 'kakao' });
+async function login(form: HTMLFormElement) {
+	try {
+		await pb.collection("users").authWithOAuth2({ provider: "kakao" });
 
-			// Set the token in the form and submit
-			form.token.value = pb.authStore.token;
-			form.submit();
-		} catch (err) {
-			console.error(err);
-		}
+		// Set the token in the form and submit
+		form.token.value = pb.authStore.token;
+		form.submit();
+	} catch (err) {
+		console.error(err);
 	}
+}
 </script>
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">

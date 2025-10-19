@@ -1,6 +1,6 @@
-export type TagsList = 'sveltekit' | 'svelte';
-export type Types = 'blog' | 'book' | 'note';
-export type Languages = 'python' | 'JavaScript' | 'Swift' | 'C (C++)';
+export type TagsList = "sveltekit" | "svelte";
+export type Types = "blog" | "book" | "note";
+export type Languages = "python" | "JavaScript" | "Swift" | "C (C++)";
 
 export type Post = {
 	type: Types[];
