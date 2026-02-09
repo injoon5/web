@@ -234,9 +234,12 @@
 			</h2>
 			<p class="text-sm font-medium leading-tight text-neutral-500 dark:text-neutral-500">
 				Last updated at
-				<span class="inline lg:block"
-					>{data.nowlistening.recenttracks.track[0].date['#text'].slice(0, 11)}</span
-				>
+				<span class="inline lg:block">
+					{(data.nowlistening.recenttracks.track[
+	data.nowlistening.recenttracks.track[0]?.['@attr']?.nowplaying === 'true' ? 1 : 0
+]?.date?.['#text']?.slice(0, 11)) ?? '—'}
+				</span>
+
 			</p>
 		</div>
 	</div>
