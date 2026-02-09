@@ -1,4 +1,3 @@
-import path from 'path';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeKatexSvelte from 'rehype-katex-svelte';
 import rehypeSlug from 'rehype-slug';
@@ -10,12 +9,7 @@ import oembedTransformer from '@remark-embedder/transformer-oembed';
 // import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
-import rehypePrettyCode from 'rehype-pretty-code';
 import { createHighlighter } from '@svelte-dev/pretty-code';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const config = {
 	extensions: ['.md'],

@@ -2,7 +2,19 @@
 import "../app.css";
 // import NavBar from '$lib/NavBar.svelte';
 import NavBar from "$lib/NavBar.svelte";
+import { onMount } from "svelte";
+import { configure } from "onedollarstats";
+
+onMount(async () => {
+	configure({
+		collectorUrl: "https://collector.onedollarstats.com/events",
+		autocollect: true,
+	});
+});
+
 </script>
+
+
 
 <svelte:head>
 	<link rel="canonical" href="https://www.injoon5.com" />
