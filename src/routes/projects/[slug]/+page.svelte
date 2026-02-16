@@ -4,7 +4,6 @@
 	import Readotron from '@untemps/svelte-readotron';
 
 	export let data;
-	export const prerender = false;
 
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.year))}`;
 </script>

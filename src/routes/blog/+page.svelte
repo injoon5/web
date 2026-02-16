@@ -7,8 +7,6 @@
 	export let data;
 
 	let renderedSeries = [];
-
-	export const prerender = true;
 </script>
 
 <svelte:head>
