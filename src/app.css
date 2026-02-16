@@ -1,97 +1,132 @@
 @import url("/fonts/pretendard/pretendard-subset.css");
+@import "tailwindcss";
 
-:root {
-  font-display: swap;
-}
+/* Class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
 
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* =========================
+   Neutral Palette (OKLCH)
+   ========================= */
 @theme {
-	--breakpoint-xs: 20rem;
+  /* light mode (neutral-900 = #171717) */
+  --color-neutral-50:  oklch(0.985 0 0);
+  --color-neutral-100: oklch(0.970 0 0);
+  --color-neutral-200: oklch(0.922 0 0);
+  --color-neutral-300: oklch(0.870 0 0);
+  --color-neutral-400: oklch(0.715 0 0);
+  --color-neutral-500: oklch(0.556 0 0);
+  --color-neutral-600: oklch(0.439 0 0);
+  --color-neutral-700: oklch(0.371 0 0);
+  --color-neutral-800: oklch(0.269 0 0);
+  --color-neutral-900: oklch(0.205 0 0); /* #171717 */
+  --color-neutral-950: oklch(0.145 0 0);
+
+  /* your custom breakpoint */
+  --breakpoint-xs: 20rem;
 }
+
+/* Dark mode inversion */
+@layer base {
+  .dark {
+    --color-neutral-50:  oklch(0.145 0 0);
+    --color-neutral-100: oklch(0.205 0 0);
+    --color-neutral-200: oklch(0.269 0 0);
+    --color-neutral-300: oklch(0.371 0 0);
+    --color-neutral-400: oklch(0.439 0 0);
+    --color-neutral-500: oklch(0.556 0 0);
+    --color-neutral-600: oklch(0.715 0 0);
+    --color-neutral-700: oklch(0.870 0 0);
+    --color-neutral-800: oklch(0.922 0 0);
+    --color-neutral-900: oklch(0.970 0 0);
+    --color-neutral-950: oklch(0.985 0 0);
+  }
+}
+
+/* =========================
+   Prose / Code Styling
+   ========================= */
 
 .prose code[data-line-numbers] {
-	counter-reset: line;
+  counter-reset: line;
 }
 
 .prose code[data-line-numbers] > span[data-line]::before {
-	counter-increment: line;
-	content: counter(line);
-
-	display: inline-block;
-	width: 0.5rem;
-	margin-right: 1.25rem;
-	text-align: right;
-	color: neutral;
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 0.5rem;
+  margin-right: 1.25rem;
+  text-align: right;
+  @apply text-neutral-500 dark:text-neutral-400;
 }
 
 .prose code[data-line-numbers-max-digits="2"] > span[data-line]::before {
-	width: 1rem;
+  width: 1rem;
 }
 .prose code[data-line-numbers-max-digits="3"] > span[data-line]::before {
-	width: 1.5rem;
+  width: 1.5rem;
 }
 
-/* Fenced Code block - display change on theme switching*/
+/* Theme switching visibility */
 .light .prose pre[data-theme="dark"],
 .light .prose code[data-theme="dark"],
 .dark .prose pre[data-theme="light"],
 .dark .prose code[data-theme="light"],
 .light .prose div[data-rehype-pretty-code-title][data-theme="dark"],
 .dark .prose div[data-rehype-pretty-code-title][data-theme="light"] {
-	display: none;
+  display: none;
 }
 
-/* Fenced Code block - line hightlight */
+/* Line highlight (v4 alpha syntax) */
 .prose code span[data-highlighted-line] {
-	@apply border-y-0 border-l-2 border-blue-400 border-transparent
-		bg-indigo-400 bg-opacity-10 pl-[calc(0.5rem-2px)] md:pl-[calc(1rem-2px)]
-		  dark:border-blue-500 dark:bg-neutral-700;
+  @apply border-y-0 border-l-2 border-blue-400 border-transparent
+    bg-indigo-400/10
+    pl-[calc(0.5rem-2px)] md:pl-[calc(1rem-2px)]
+    dark:border-blue-500 dark:bg-neutral-700;
 }
 
-/* Fenced Code block - word highlight */
+/* Word highlight */
 .prose span[data-highlighted-chars] {
-	@apply bg-teal-400  bg-opacity-25;
+  @apply bg-teal-400/25;
 }
 .prose span[data-highlighted-chars][data-chars-id="y"] {
-	@apply bg-yellow-400  bg-opacity-25;
+  @apply bg-yellow-400/25;
 }
 .prose span[data-highlighted-chars][data-chars-id="b"] {
-	@apply bg-sky-400 bg-opacity-25;
+  @apply bg-sky-400/25;
 }
 
-/* Fenced Code block - with title style*/
+/* Code block title */
 .prose div[data-rehype-pretty-code-title] {
-	@apply rounded-t-lg border-b border-neutral-700 bg-neutral-800 px-5 py-3 font-mono text-sm font-bold text-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
+  @apply rounded-t-lg border-b border-neutral-700
+    bg-neutral-800 px-5 py-3 font-mono text-sm font-bold text-neutral-200
+    dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
 }
 .prose div[data-rehype-pretty-code-title] + pre {
-	@apply mt-0 rounded-t-none;
+  @apply mt-0 rounded-t-none;
 }
 
-/* Inline code block backtick display: none */
+/* Inline code */
 .prose :not(pre) > code::before,
 .prose :not(pre) > code::after {
-	display: none;
+  display: none;
 }
 
-/* inline code block style */
 .prose :not(pre) > code {
-	@apply rounded border border-neutral-200 bg-white px-1 py-0.5 align-middle font-mono text-sm font-normal dark:border-neutral-600 dark:bg-neutral-900;
+  @apply rounded border border-neutral-200 bg-white
+    px-1 py-0.5 align-middle font-mono text-sm font-normal
+    dark:border-neutral-600 dark:bg-neutral-900;
 }
 
 @layer utilities {
-	.prose :where(iframe):not(:where([class~="not-prose"] *)) {
-		@apply aspect-video h-auto w-full rounded;
-	}
+  .prose :where(iframe):not(:where([class~="not-prose"] *)) {
+    @apply aspect-video h-auto w-full rounded;
+  }
 }
 
+/* Headings anchor links */
 h1 > a {
-	@apply -ml-8;
-	@apply pr-2;
-	@apply opacity-20;
+  @apply -ml-8 pr-2 opacity-20;
 }
 
 h1 > a,
@@ -100,8 +135,7 @@ h3 > a,
 h4 > a,
 h5 > a,
 h6 > a {
-	@apply opacity-20;
-	@apply ml-3;
+  @apply ml-3 opacity-20;
 }
 
 h1 > a:hover,
@@ -110,9 +144,9 @@ h3 > a:hover,
 h4 > a:hover,
 h5 > a:hover,
 h6 > a:hover {
-	@apply opacity-100;
+  @apply opacity-100;
 }
 
 figure > figcaption {
-	@apply text-center;
+  @apply text-center;
 }
