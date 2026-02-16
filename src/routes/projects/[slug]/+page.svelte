@@ -32,7 +32,7 @@
 			<div
 				class="tags mb-2 space-x-1.5 text-2xl font-medium text-neutral-400 dark:text-neutral-600"
 			>
-				<span class="-mr-1">Stack:</span>
+				<span class="mr-1">Stack:</span>
 				{#each data.meta.tags as tag}
 					<span>{tag}</span>
 				{/each}
@@ -42,7 +42,7 @@
 			</div>
 		</div>
 		<div
-			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-h1:text-3xl prose-h1:font-semibold prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:w-4/5 mt-10 max-w-none"
+			class="prose-p:text-neutral-900 dark:prose-p:text-neutral-100 readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-h1:text-3xl prose-h1:font-semibold prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:w-4/5 mt-10 max-w-none"
 		>
 			<svelte:component this={data.content} class="prose" />
 		</div>
