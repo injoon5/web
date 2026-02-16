@@ -213,7 +213,7 @@ async function saveReply(commentId) {
 					placeholder="Show me what you got.. (max {MAX_COMMENT_LENGTH} characters)"
 					bind:value={comment}
 					maxlength={MAX_COMMENT_LENGTH}
-					class="h-32 w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white focus:dark:ring-neutral-800"
+					class="h-32 w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 				></textarea>
 				{#if showCommentCharsLeft}
 					<p class="mt-1 text-sm text-neutral-500">
@@ -339,7 +339,7 @@ async function saveReply(commentId) {
 						{/if}
 					</div>
 				</div>
-				<p class="break-words font-medium">{comment.text}</p>
+				<p class="wrap-break-word font-medium">{comment.text}</p>
 				<p class="mt-1 text-sm font-medium text-neutral-500">
 					{new Date(comment.created).toLocaleString()}
 				</p>
@@ -348,7 +348,7 @@ async function saveReply(commentId) {
 						<div class="mt-4 rounded-lg bg-neutral-200 p-4 dark:bg-neutral-800">
 							<textarea
 								bind:value={replies[comment.id].text}
-								class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white focus:dark:ring-neutral-800"
+								class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 								placeholder="Enter your reply..."
 								rows="3"
 							></textarea>

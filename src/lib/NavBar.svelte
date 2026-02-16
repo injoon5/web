@@ -1,27 +1,33 @@
 <script>
-import { page } from "$app/state";
+	import { page } from '$app/state';
 
-const navItems = [
-	{ label: "projects", href: "/projects" },
-	{ label: "blog", href: "/blog" },
-	{ label: "github", href: "http://github.com/injoon5" },
-];
+	const navItems = [
+		{ label: 'projects', href: '/projects' },
+		{ label: 'blog', href: '/blog' },
+		{ label: 'github', href: 'http://github.com/injoon5' }
+	];
 </script>
 
 <div class="flex items-center justify-between">
 	<div class="flex items-center gap-2">
 		<a
 			href="/"
-			class="text-md group p-0 font-serif text-lg font-normal text-black dark:text-neutral-100"
+			class="text-md group p-0 font-serif text-lg font-normal text-neutral-900 dark:text-neutral-50"
 		>
 			<span class="relative inline-block">
 				<span
-					class="block font-sans text-2xl font-medium tracking-tight transition-all duration-200 ease-in-out group-hover:opacity-0 group-hover:blur-sm"
+					class="block font-sans text-2xl font-medium tracking-tight
+             transition-all duration-200 ease-in-out
+             group-hover:opacity-0 group-hover:blur-sm"
 				>
 					Injoon Oh
 				</span>
+
 				<span
-					class="pointer-events-none absolute left-0 top-0 block font-sans text-2xl font-semibold tracking-tight opacity-0 blur-sm transition-all duration-200 ease-in-out group-hover:opacity-100 group-hover:blur-0"
+					class="pointer-events-none absolute inset-0 block font-sans text-2xl font-semibold tracking-tight
+             opacity-0 blur-sm
+             transition-all duration-200 ease-in-out
+             group-hover:opacity-100 group-hover:blur-none"
 				>
 					오인준
 				</span>

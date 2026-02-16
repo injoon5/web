@@ -1,5 +1,7 @@
 <script lang="ts">
-export let data;
+	export const prerender = true;
+
+	export let data;
 </script>
 
 <svelte:head>
@@ -15,8 +17,8 @@ export let data;
 	<h2
 		class="text-md text-xl font-semibold tracking-tight text-neutral-500 sm:text-2xl dark:text-neutral-500"
 	>
-		Some of the stuff I did to escape from a boring day. Includes everything from school projects to
-		personal projects.
+		Some of the stuff I did to escape from a boring day. Everything from school projects to personal
+		projects. (Not updated yet)
 	</h2>
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
@@ -32,7 +34,7 @@ export let data;
 						{project.title}
 					</span>
 					<span
-						class="ml-4 whitespace-nowrap text-base font-semibold text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
+						class="ml-4 text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
 					>
 						{project.date || project.year}
 					</span>

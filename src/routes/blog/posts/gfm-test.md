@@ -95,7 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 					fontMono.variable
 				)}
 			>
-				<div className="blur" aria-hidden="true"></div>
+				<div className="blur-sm" aria-hidden="true"></div>
 				<div className="max-w-page container mx-auto pt-32">
 					<div className="main-grid">{children}</div>
 				</div>

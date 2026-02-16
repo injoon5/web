@@ -68,6 +68,32 @@
 			type="font/woff2"
 			crossorigin
 		/>
+
+		<script>
+			(() => {
+				const root = document.documentElement;
+				const mql = window.matchMedia('(prefers-color-scheme: dark)');
+
+				const apply = () => {
+					// If you later add a manual toggle, set localStorage.theme = "dark"|"light"
+					const saved = localStorage.getItem('theme');
+					const isDark = saved ? saved === 'dark' : mql.matches;
+					root.classList.toggle('dark', isDark);
+					root.classList.toggle('light', !isDark); // optional (you use .light selectors)
+				};
+
+				apply();
+
+				// Update when OS theme changes (only if no manual override)
+				const onChange = () => {
+					if (!localStorage.getItem('theme')) apply();
+				};
+
+				if (mql.addEventListener) mql.addEventListener('change', onChange);
+				else mql.addListener(onChange); // Safari fallback
+			})();
+		</script>
+
 		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 		<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 
@@ -75,7 +101,7 @@
 	</head>
 
 	<body
-		class="mx-auto bg-white text-black subpixel-antialiased dark:bg-black dark:text-white"
+		class="mx-auto bg-white text-black subpixel-antialiased dark:bg-neutral-950 dark:text-white"
 		data-sveltekit-preload-data="hover"
 	>
 		<div style="display: contents">%sveltekit.body%</div>

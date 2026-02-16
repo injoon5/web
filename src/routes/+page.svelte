@@ -1,5 +1,58 @@
 <script lang="ts">
-	import { sliceText } from "$lib/utils";
+	import { sliceText } from '$lib/utils';
+	import { onMount } from 'svelte';
+
+	type LoadState = 'loading' | 'ready' | 'error';
+
+	let nowlistening: any = null;
+	let photos: any = null;
+
+	let nowState: LoadState = 'loading';
+	let photosState: LoadState = 'loading';
+
+	let nowError: string | null = null;
+	let photosError: string | null = null;
+
+	onMount(async () => {
+		nowState = 'loading';
+		photosState = 'loading';
+		nowError = null;
+		photosError = null;
+
+		const loadPhotos = fetch(`https://raw.githubusercontent.com/injoon5/data/main/photos.json`, {
+			cache: 'no-store'
+		})
+			.then(async (r) => {
+				if (!r.ok) throw new Error(`photos.json HTTP ${r.status}`);
+				return r.json();
+			})
+			.then((j) => {
+				photos = j;
+				photosState = 'ready';
+			})
+			.catch((e) => {
+				photosState = 'error';
+				photosError = e?.message ?? 'Failed to load photos';
+			});
+
+		const loadNow = fetch(`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`, {
+			cache: 'no-store'
+		})
+			.then(async (r) => {
+				if (!r.ok) throw new Error(`now-playing.json HTTP ${r.status}`);
+				return r.json();
+			})
+			.then((j) => {
+				nowlistening = j;
+				nowState = 'ready';
+			})
+			.catch((e) => {
+				nowState = 'error';
+				nowError = e?.message ?? 'Failed to load now playing';
+			});
+
+		await Promise.allSettled([loadPhotos, loadNow]);
+	});
 
 	export let data;
 </script>
@@ -19,11 +72,11 @@
 
 <div
 	id="introduction"
-	class="mb-12 mt-20 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class=" col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-28" style="height: max-content;">
-			<h2 class="text-xl font-medium italic tracking-tight text-neutral-900 dark:text-neutral-100">
+			<h2 class="text-xl font-medium tracking-tight text-neutral-900 italic dark:text-neutral-100">
 				Hello! -
 			</h2>
 		</div>
@@ -49,7 +102,7 @@
 </div>
 <div
 	id="blog"
-	class="mb-12 mt-20 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
@@ -75,7 +128,7 @@
 						{post.title}
 					</h3>
 					<p
-						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-medium text-neutral-600 dark:text-neutral-400"
+						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-base font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||
 							'Some amazing post that I forgot or failed to write a description for. '}
@@ -88,7 +141,7 @@
 				</a>
 			{/each}
 		</div>
-		<div class="mb-4 mt-2 flex justify-end">
+		<div class="mt-2 mb-4 flex justify-end">
 			<a
 				class="group relative inline-flex items-center text-base font-medium -tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="/blog"
@@ -107,7 +160,7 @@
 
 <div
 	id="projects"
-	class="mb-12 mt-20 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
@@ -133,7 +186,7 @@
 						{post.title}
 					</h3>
 					<p
-						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] break-keep text-base font-medium text-neutral-600 dark:text-neutral-400"
+						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-base font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||
 							'Some amazing project that I forgot or failed to write a description for. '}
@@ -146,7 +199,7 @@
 				</a>
 			{/each}
 		</div>
-		<div class="mb-4 mt-2 flex justify-end">
+		<div class="mt-2 mb-4 flex justify-end">
 			<a
 				class="group relative inline-flex items-center text-base font-medium -tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="/projects"
@@ -165,7 +218,7 @@
 
 <div
 	id="tech-stack"
-	class="mb-12 mt-20 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
@@ -189,7 +242,7 @@
 										{technology.name}
 									</p>
 									<p
-										class="tracking-tigh text-base font-medium leading-normal text-neutral-600 dark:text-neutral-400"
+										class="tracking-tigh text-base leading-normal font-medium text-neutral-600 dark:text-neutral-400"
 									>
 										{technology.description}
 									</p>
@@ -225,60 +278,85 @@
 
 <div
 	id="now-listening"
-	class="mb-56 mt-20 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-56 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
-	<div class=" col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
+	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
 			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
 				Now Listening
 			</h2>
-			<p class="text-sm font-medium leading-tight text-neutral-500 dark:text-neutral-500">
+			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500">
 				Last updated at
 				<span class="inline lg:block">
-					{(data.nowlistening.recenttracks.track[
-	data.nowlistening.recenttracks.track[0]?.['@attr']?.nowplaying === 'true' ? 1 : 0
-]?.date?.['#text']?.slice(0, 11)) ?? '—'}
+					{#if nowState === 'loading'}
+						<span class="inline-flex items-center gap-2"> Loading… </span>
+					{:else if nowState === 'error'}
+						<span class="text-neutral-400 dark:text-neutral-600">—</span>
+					{:else}
+						{nowlistening?.recenttracks?.track?.[
+							nowlistening?.recenttracks?.track?.[0]?.['@attr']?.nowplaying === 'true' ? 1 : 0
+						]?.date?.['#text']?.slice(0, 11) ?? '—'}
+					{/if}
 				</span>
-
 			</p>
 		</div>
 	</div>
 
-	<div class="col-span-10 mt-4 justify-center lg:-mb-1.5 lg:-mt-1">
+	<div class="col-span-10 mt-4 justify-center lg:-mt-1 lg:-mb-1.5">
 		<div class="grid grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
-			{#each data.nowlistening.recenttracks.track.slice(0, 4) as nowlistening}
-				<a
-					class="group flex items-center gap-3 py-2 text-neutral-900 hover:text-neutral-600 dark:text-neutral-100 dark:hover:text-neutral-400"
-					href={nowlistening.url}
-				>
-					<div class="flex-shrink-0">
-						<div class="relative h-14 w-14">
-							<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
-							<img
-								loading="lazy"
-								src={nowlistening.image[2]['#text']}
-								alt={sliceText(nowlistening.name, 10)}
-								class="absolute inset-0 h-full w-full object-cover"
-							/>
+			{#if nowState === 'loading'}
+				{#each Array(4) as _}
+					<div class="flex items-center gap-3 py-2">
+						<div class="relative h-14 w-14 shrink-0 overflow-hidden">
+							<div class="absolute inset-0 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
+						</div>
+						<div class="flex w-full items-center justify-between">
+							<div class="h-5 w-2/3 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
+							<div class="ml-2 h-5 w-1/4 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
 						</div>
 					</div>
-					<div class="flex w-full items-center justify-between text-lg font-medium">
-						<span class="line-clamp-1">{nowlistening.name}</span>
-						<span class="ml-2 line-clamp-1"
-							>{nowlistening.artist['#text'] === 'Lany'
-								? 'LANY'
-								: nowlistening.artist['#text']}</span
-						>
+				{/each}
+			{:else if nowState === 'error'}
+				<div class=" text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
+					<p>Couldn’t load Now Listening</p>
+					<div class="mt-1 text-neutral-500 dark:text-neutral-500">
+						{nowError ?? 'Unknown error'}
 					</div>
-				</a>
-			{/each}
+				</div>
+			{:else}
+				{#each (nowlistening?.recenttracks?.track ?? []).slice(0, 4) as track}
+					<a
+						class="group flex items-center gap-3 py-2 text-neutral-900 hover:text-neutral-600 dark:text-neutral-100 dark:hover:text-neutral-400"
+						href={track.url}
+					>
+						<div class="shrink-0">
+							<div class="relative h-14 w-14">
+								<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
+								<img
+									loading="lazy"
+									src={track?.image?.[2]?.['#text'] ?? ''}
+									alt={sliceText(track?.name ?? '', 10)}
+									class="absolute inset-0 h-full w-full object-cover"
+								/>
+							</div>
+						</div>
+						<div class="flex w-full items-center justify-between text-lg font-medium">
+							<span class="line-clamp-1">{track.name}</span>
+							<span class="ml-2 line-clamp-1">
+								{track?.artist?.['#text'] === 'Lany' ? 'LANY' : track?.artist?.['#text']}
+							</span>
+						</div>
+					</a>
+				{/each}
+			{/if}
 		</div>
 	</div>
 </div>
 
+<!-- PHOTOS -->
 <div
 	id="photos"
-	class="mb-24 mt-20 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-24 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
@@ -291,57 +369,82 @@
 			</a>
 		</div>
 	</div>
+
 	<div class="col-span-10 mt-4 justify-center lg:mt-0">
 		<div class="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-3">
-			{#each data.photos.photos.slice(0, 6) as photo}
-				<div
-					class="group relative flex aspect-square w-full items-center justify-center overflow-hidden"
-				>
+			{#if photosState === 'loading'}
+				{#each Array(6) as _}
 					<div
-						class="absolute inset-0 bg-neutral-100 group-hover:bg-neutral-200 dark:bg-neutral-900 group-hover:dark:bg-neutral-800"
-					></div>
-					<a
-						href={photo.url}
-						class="photo-item relative flex h-full w-full items-center justify-center"
+						class="relative flex aspect-square w-full items-center justify-center overflow-hidden"
 					>
-						<img
-							loading="lazy"
-							src={photo.src.medium.url}
-							alt={photo.title || 'Photo'}
-							class="z-10 max-h-[80%] max-w-[80%] object-contain shadow-lg"
-						/>
-						{#if photo.src.medium.width >= photo.src.medium.height}
-							<span
-								class="absolute bottom-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
-							>
-								{photo.takenAtNaive}
-							</span>
-						{:else}
-							<span
-								class="absolute right-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
-								style="writing-mode: vertical-rl; transform: rotate(180deg);"
-							>
-								{photo.takenAtNaive}
-							</span>
-						{/if}
-					</a>
+						<div class="absolute inset-0 animate-pulse bg-neutral-100 dark:bg-neutral-900"></div>
+						<div class="z-10 h-2/3 w-2/3 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
+					</div>
+				{/each}
+			{:else if photosState === 'error'}
+				<div class="col-span-2 sm:col-span-3">
+					<div class=" text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
+						<p>Couldn’t load Photos</p>
+						<div class="mt-1 text-neutral-500 dark:text-neutral-500">
+							{photosError ?? 'Unknown error'}
+						</div>
+					</div>
 				</div>
-			{/each}
+			{:else}
+				{#each (photos?.photos ?? []).slice(0, 6) as photo}
+					<div
+						class="group relative flex aspect-square w-full items-center justify-center overflow-hidden"
+					>
+						<div
+							class="absolute inset-0 bg-neutral-100 group-hover:bg-neutral-200 dark:bg-neutral-900 dark:group-hover:bg-neutral-800"
+						></div>
+
+						<a
+							href={photo.url}
+							class="photo-item relative flex h-full w-full items-center justify-center"
+						>
+							<img
+								loading="lazy"
+								src={photo?.src?.medium?.url ?? ''}
+								alt={photo?.title || 'Photo'}
+								class="z-10 max-h-[80%] max-w-[80%] object-contain shadow-lg"
+							/>
+
+							{#if (photo?.src?.medium?.width ?? 0) >= (photo?.src?.medium?.height ?? 0)}
+								<span
+									class="absolute bottom-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
+								>
+									{photo.takenAtNaive}
+								</span>
+							{:else}
+								<span
+									class="absolute right-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
+									style="writing-mode: vertical-rl; transform: rotate(180deg);"
+								>
+									{photo.takenAtNaive}
+								</span>
+							{/if}
+						</a>
+					</div>
+				{/each}
+			{/if}
 		</div>
-		<div class="mb-4 mt-2 flex justify-end">
+
+		<div class="mt-2 mb-4 flex justify-end">
 			<a
 				class="group relative inline-flex items-center text-base font-medium -tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="https://photos.injoon5.com"
 				target="_blank"
 				rel="noopener noreferrer"
 			>
-				<span class="transition-transform duration-200 group-hover:-translate-x-5"
-					>View all Photos</span
-				>
+				<span class="transition-transform duration-200 group-hover:-translate-x-5">
+					View all Photos
+				</span>
 				<span
 					class="absolute right-0 mr-1 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-					>→</span
 				>
+					→
+				</span>
 			</a>
 		</div>
 	</div>

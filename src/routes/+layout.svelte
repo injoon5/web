@@ -1,38 +1,36 @@
 <script>
-import "../app.css";
-// import NavBar from '$lib/NavBar.svelte';
-import NavBar from "$lib/NavBar.svelte";
-import { onMount } from "svelte";
-import { configure } from "onedollarstats";
+	import '../app.css';
+	// import NavBar from '$lib/NavBar.svelte';
+	import NavBar from '$lib/NavBar.svelte';
+	import { onMount } from 'svelte';
+	import { configure } from 'onedollarstats';
 
-onMount(async () => {
-	configure({
-		collectorUrl: "https://collector.onedollarstats.com/events",
-		autocollect: true,
+	onMount(async () => {
+		configure({
+			collectorUrl: 'https://collector.onedollarstats.com/events',
+			autocollect: true
+		});
 	});
-});
-
 </script>
-
-
 
 <svelte:head>
 	<link rel="canonical" href="https://www.injoon5.com" />
-
 </svelte:head>
 
-<nav class="sticky top-0 z-30 mx-auto max-w-6xl bg-white px-4 py-3 text-sm sm:px-12 dark:bg-black">
+<nav
+	class="sticky top-0 z-30 mx-auto max-w-6xl bg-white px-4 py-3 text-sm sm:px-12 dark:bg-neutral-950"
+>
 	<NavBar />
 </nav>
 
-<div class="mx-auto max-w-6xl px-4 pb-4 pt-4 text-sm sm:px-12">
+<div class="mx-auto max-w-6xl px-4 pt-4 pb-4 text-sm sm:px-12">
 	<slot />
 </div>
 
-<footer class="mb-20 mt-10 w-full tracking-tight">
+<footer class="mt-10 mb-20 w-full tracking-tight">
 	<div class="text-xs">
 		<div
-			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-600 sm:px-12 dark:text-neutral-400"
+			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-600 sm:px-12 dark:text-neutral-500"
 		>
 			<div class="col-span-12 sm:col-span-6 lg:col-span-2">
 				<p class="text-neutral-900 dark:text-neutral-100">Injoon Oh</p>

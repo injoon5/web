@@ -1,14 +1,15 @@
 <script lang="ts">
-import { formatDate } from "$lib/utils";
-import SeriesList from "$lib/SeriesList.svelte";
-import CommentsSection from "$lib/comments/CommentsSection.svelte";
-import LikeButton from "$lib/LikeButton.svelte";
+	import { formatDate } from '$lib/utils';
+	import SeriesList from '$lib/SeriesList.svelte';
+	import CommentsSection from '$lib/comments/CommentsSection.svelte';
+	import LikeButton from '$lib/LikeButton.svelte';
 
-import Readotron from "@untemps/svelte-readotron";
+	import Readotron from '@untemps/svelte-readotron';
 
-export let data;
+	export let data;
+	export const prerender = false;
 
-$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.date))}`;
+	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.date))}`;
 </script>
 
 <!-- SEO -->
@@ -48,7 +49,7 @@ $: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta
 
 		<!-- Post -->
 		<div
-			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral mt-10 max-w-none dark:prose-invert prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline hover:prose-a:underline prose-img:mx-auto prose-img:w-4/5"
+			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:w-4/5 mt-10 max-w-none"
 		>
 			<svelte:component this={data.content} class="prose" />
 		</div>

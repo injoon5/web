@@ -1,12 +1,14 @@
 <script lang="ts">
-import PostLink from "$lib/PostLink.svelte";
+	import PostLink from '$lib/PostLink.svelte';
 
-import { onMount } from "svelte";
-import { formatDate, sliceText } from "$lib/utils";
+	import { onMount } from 'svelte';
+	import { formatDate, sliceText } from '$lib/utils';
 
-export let data;
+	export let data;
 
-let renderedSeries = [];
+	let renderedSeries = [];
+
+	export const prerender = true;
 </script>
 
 <svelte:head>
@@ -65,7 +67,7 @@ let renderedSeries = [];
 								{seriesPost.title}
 							</span>
 							<span
-								class="ml-4 whitespace-nowrap text-base font-semibold text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
+								class="ml-4 text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
 							>
 								{seriesPost.date || seriesPost.year}
 							</span>
@@ -84,7 +86,7 @@ let renderedSeries = [];
 							{post.title}
 						</span>
 						<span
-							class="ml-4 whitespace-nowrap text-base font-semibold text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
+							class="ml-4 text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
 						>
 							{post.date || post.year}
 						</span>
