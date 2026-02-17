@@ -67,7 +67,7 @@
 				</button>
 			</div>
 			<div class="col-span-12 lg:mt-10">
-				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2025 Injoon Oh</p>
+				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
 			</div>
 		</div>
 	</div>
