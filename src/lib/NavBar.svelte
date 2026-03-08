@@ -1,5 +1,10 @@
 <script>
 	import { page } from '$app/state';
+	import { createWebHaptics } from 'web-haptics/svelte';
+	import { onDestroy } from 'svelte';
+
+	const { trigger, destroy } = createWebHaptics();
+	onDestroy(destroy);
 
 	const navItems = [
 		{ label: 'projects', href: '/projects' },
@@ -12,6 +17,7 @@
 	<div class="flex items-center gap-2">
 		<a
 			href="/"
+			onclick={() => trigger([{ duration: 35 }], { intensity: 1 })}
 			class="text-md group p-0 font-serif text-lg font-normal text-neutral-900 dark:text-neutral-50"
 		>
 			<span class="relative inline-block">
@@ -40,6 +46,7 @@
 			<li>
 				<a
 					href={item.href}
+					onclick={() => trigger([{ duration: 25 }], { intensity: 0.7 })}
 					class="p-0 text-base font-medium {page.url.pathname.startsWith(item.href)
 						? 'text-neutral-900 dark:text-neutral-100'
 						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100'} md:p-1"
