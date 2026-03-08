@@ -2,8 +2,12 @@
 	import '../app.css';
 	// import NavBar from '$lib/NavBar.svelte';
 	import NavBar from '$lib/NavBar.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { configure } from 'onedollarstats';
+	import { createWebHaptics } from 'web-haptics/svelte';
+
+	const { trigger, destroy } = createWebHaptics();
+	onDestroy(destroy);
 
 	onMount(async () => {
 		configure({
@@ -60,7 +64,7 @@
 				class="col-span-12 mt-10 flex hover:text-neutral-900 md:col-span-6 lg:col-span-5 lg:mt-0 lg:justify-end dark:hover:text-neutral-100"
 			>
 				<button
-					on:click={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+					on:click={() => { trigger([{ duration: 500 }], { intensity: 1 }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
 					aria-label="Scroll to top"
 				>
 					Scroll to top
