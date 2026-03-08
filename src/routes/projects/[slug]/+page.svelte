@@ -18,19 +18,19 @@
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
 	<article class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
 		<div class="tracking-tight">
-			<h1 class="text-2xl font-semibold tracking-tight">
+			<h1 class="text-3xl font-semibold tracking-tight">
 				{data.meta.title}
 			</h1>
-			<div class="mt-1.5 flex flex-row text-sm font-medium text-neutral-500 dark:text-neutral-400">
+			<div class="mt-2 flex flex-row text-base font-medium text-neutral-500 dark:text-neutral-400">
 				<p>{data.meta.year}</p>
 				<p class="mx-1">·</p>
 				<Readotron selector=".readtime" lang="ar" />
 			</div>
-			<p class="mt-1 text-base font-medium leading-snug text-neutral-500 dark:text-neutral-500">
+			<p class="mt-1 text-lg font-medium leading-snug text-neutral-500 dark:text-neutral-500">
 				{data.meta.description}
 			</p>
 			<div
-				class="tags mb-2 mt-1 space-x-1 text-sm font-medium text-neutral-400 dark:text-neutral-600"
+				class="tags mb-2 mt-1 space-x-1 text-base font-medium text-neutral-400 dark:text-neutral-600"
 			>
 				<span class="mr-0.5">Stack:</span>
 				{#each data.meta.tags as tag}
