@@ -52,6 +52,7 @@
 		"remark-gfm": "^4.0.0",
 		"shikiji": "^0.9.19",
 		"svhighlight": "^0.7.1",
+		"web-haptics": "^0.0.6",
 		"xmlbuilder2": "^3.1.1"
 	}
 }
