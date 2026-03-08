@@ -4,7 +4,7 @@ export let series;
 </script>
 
 <div
-	class="rounded-md border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
+	class="rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
 >
 	<p
 		class="select-none px-3 pb-2 pt-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400"
@@ -18,7 +18,7 @@ export let series;
 				? 'cursor-default opacity-50'
 				: 'hover:bg-neutral-200 dark:hover:bg-neutral-800'} flex flex-row items-center px-3 py-2.5 {index ===
 			series.length - 1
-				? 'rounded-b-md'
+				? 'rounded-b-xl'
 				: ''}"
 		>
 			<div class="mr-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-neutral-200 dark:bg-neutral-800">
