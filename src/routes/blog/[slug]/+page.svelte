@@ -24,14 +24,14 @@
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if data.series?.[0]?.series}
-				<h2 class="text-2xl font-medium text-neutral-500 dark:text-neutral-500">
+				<p class="mb-1 text-sm font-medium text-neutral-400 dark:text-neutral-500">
 					{data.series[0].series}
-				</h2>
+				</p>
 			{/if}
-			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
+			<h1 class="text-2xl font-semibold tracking-tight">
 				{data.meta.title}
 			</h1>
-			<div class="mt-2 flex flex-row text-2xl font-medium text-neutral-600 dark:text-neutral-400">
+			<div class="mt-1.5 flex flex-row text-sm font-medium text-neutral-500 dark:text-neutral-400">
 				<p>{formatDate(data.meta.date)}</p>
 				<p class="mx-1">·</p>
 				<Readotron selector=".readtime" lang="ar" />
