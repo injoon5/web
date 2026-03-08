@@ -10,6 +10,9 @@ let isLiked = false;
 let likeRecord = null;
 let currentPath = "";
 
+let popping = false;
+let showFloatingPlus = false;
+
 onMount(async () => {
 	currentPath = $page.url.pathname;
 	await loadLikeData();
@@ -49,6 +52,8 @@ async function toggleLike() {
 		return;
 	}
 
+	const wasLiked = isLiked;
+
 	try {
 		if (!likeRecord) {
 			// Create a new record if it doesn't exist
@@ -76,6 +81,19 @@ async function toggleLike() {
 			isLiked = !isLiked;
 			likeCount = users.length;
 		}
+
+		// Trigger micro-interactions only when liking (not unliking)
+		if (!wasLiked) {
+			popping = false;
+			showFloatingPlus = false;
+			// Force reflow so re-clicking replays the animation
+			requestAnimationFrame(() => {
+				popping = true;
+				showFloatingPlus = true;
+				setTimeout(() => { popping = false; }, 400);
+				setTimeout(() => { showFloatingPlus = false; }, 700);
+			});
+		}
 	} catch (error) {
 		console.error("Error toggling like:", error);
 		alert("Failed to update like status. Please try again.");
@@ -88,12 +106,20 @@ async function toggleLike() {
 		>{likeCount} like{likeCount != 1 ? 's' : ''}</span
 	>
 	{#if pb.authStore.isValid}
-		<button
-			on:click={toggleLike}
-			class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
-		>
-			{isLiked ? 'Unlike' : 'Like'}
-		</button>
+		<div class="relative">
+			{#if showFloatingPlus}
+				<span class="floating-plus absolute -top-7 left-1/2 text-sm font-bold text-neutral-900 dark:text-neutral-100">
+					+1
+				</span>
+			{/if}
+			<button
+				on:click={toggleLike}
+				class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
+				class:popping
+			>
+				{isLiked ? 'Unlike' : 'Like'}
+			</button>
+		</div>
 	{:else}
 		<a
 			href="/auth?goto={$page.url.pathname}"
@@ -103,3 +129,26 @@ async function toggleLike() {
 		</a>
 	{/if}
 </div>
+
+<style>
+	@keyframes pop {
+		0%   { transform: scale(1); }
+		40%  { transform: scale(1.18); }
+		70%  { transform: scale(0.94); }
+		100% { transform: scale(1); }
+	}
+
+	@keyframes float-up {
+		0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+		100% { opacity: 0; transform: translateX(-50%) translateY(-18px); }
+	}
+
+	.popping {
+		animation: pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+	}
+
+	.floating-plus {
+		animation: float-up 0.65s ease-out forwards;
+		pointer-events: none;
+	}
+</style>
