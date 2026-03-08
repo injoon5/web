@@ -7,7 +7,7 @@ export let series;
 	class="rounded-md border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
 >
 	<p
-		class="select-none px-3 pb-2 pt-2 text-sm font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400"
+		class="select-none px-3 pb-2 pt-2 text-sm font-semibold text-neutral-500 dark:text-neutral-400"
 	>
 		Series: {series[0].series}
 	</p>
