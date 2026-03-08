@@ -1,8 +1,12 @@
 <script>
 import { page } from "$app/stores";
 import { redirect } from "@sveltejs/kit";
-import { onMount } from "svelte";
+import { onMount, onDestroy } from "svelte";
 import PocketBase from "pocketbase";
+import { createWebHaptics } from "web-haptics/svelte";
+
+const { trigger, destroy } = createWebHaptics();
+onDestroy(destroy);
 
 const pb = new PocketBase("https://pb.injoon5.com");
 
@@ -225,7 +229,7 @@ async function saveReply(commentId) {
 				{/if}
 			</div>
 			<button
-				on:click={submitComment}
+				on:click={() => { trigger([{ duration: 15 }], { intensity: 0.4 }); submitComment(); }}
 				disabled={isSubmitDisabled}
 				class="mt-2 rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
 			>
@@ -260,7 +264,7 @@ async function saveReply(commentId) {
 					<div class="flex items-center space-x-2">
 						<span class="font-medium">{comment.score}</span>
 						<button
-							on:click={() => voteComment(comment.id, 'upvote')}
+							on:click={() => { trigger([{ duration: 15 }], { intensity: 0.4 }); voteComment(comment.id, 'upvote'); }}
 							aria-label="Upvote comment"
 							class="rounded-full p-1 transition-colors duration-200 {voteStatus.upvoted
 								? 'bg-green-500 text-white'
@@ -280,7 +284,7 @@ async function saveReply(commentId) {
 							</svg>
 						</button>
 						<button
-							on:click={() => voteComment(comment.id, 'downvote')}
+							on:click={() => { trigger([{ duration: 15 }], { intensity: 0.4 }); voteComment(comment.id, 'downvote'); }}
 							aria-label="Downvote comment"
 							class="rounded-full p-1 transition-colors duration-200 {voteStatus.downvoted
 								? 'bg-red-500 text-white'
@@ -301,7 +305,7 @@ async function saveReply(commentId) {
 						</button>
 						{#if pb.authStore.model?.id === '214phugj014d7zb'}
 							<button
-								on:click={() => handleReply(comment.id)}
+								on:click={() => { trigger([{ duration: 15 }], { intensity: 0.4 }); handleReply(comment.id); }}
 								aria-label="Reply to comment"
 								class="rounded-full bg-neutral-200 p-1 text-neutral-600 transition-colors duration-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
 							>
@@ -319,7 +323,7 @@ async function saveReply(commentId) {
 								</svg>
 							</button>
 							<button
-								on:click={() => deleteComment(comment.id)}
+								on:click={() => { trigger([{ duration: 15 }], { intensity: 0.4 }); deleteComment(comment.id); }}
 								aria-label="Delete comment"
 								class="rounded-full bg-red-500 p-1 text-white transition-colors duration-200 hover:bg-red-600"
 							>
@@ -354,7 +358,7 @@ async function saveReply(commentId) {
 							></textarea>
 							<div class="mt-2 flex justify-end">
 								<button
-									on:click={() => saveReply(comment.id)}
+									on:click={() => { trigger([{ duration: 15 }], { intensity: 0.4 }); saveReply(comment.id); }}
 									class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-colors duration-200 hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
 								>
 									Save Reply
