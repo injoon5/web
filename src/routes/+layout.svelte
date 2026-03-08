@@ -83,7 +83,7 @@
 				class="col-span-12 mt-10 flex hover:text-neutral-900 md:col-span-6 lg:col-span-5 lg:mt-0 lg:justify-end dark:hover:text-neutral-100"
 			>
 				<button
-					on:click={() => { trigger([{ duration: 60 }, { duration: 40 }, { duration: 20 }], { intensity: 0.8 }); scrollToTop(); }}
+					on:click={() => { trigger([{ duration: SCROLL_DURATION }], { intensity: 0.8 }); scrollToTop(); }}
 					aria-label="Scroll to top"
 				>
 					Scroll to top
