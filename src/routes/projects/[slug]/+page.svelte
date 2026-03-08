@@ -21,7 +21,7 @@
 			<h1 class="text-3xl font-semibold tracking-tight">
 				{data.meta.title}
 			</h1>
-			<div class="mt-2 flex flex-row text-base font-medium text-neutral-500 dark:text-neutral-400">
+			<div class="mt-2 flex flex-row text-lg font-medium text-neutral-500 dark:text-neutral-400">
 				<p>{data.meta.year}</p>
 				<p class="mx-1">·</p>
 				<Readotron selector=".readtime" lang="ar" />
