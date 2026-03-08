@@ -15,7 +15,7 @@
 		const start = window.scrollY;
 		const startTime = performance.now();
 
-		function step(currentTime: number) {
+		function step(currentTime) {
 			const elapsed = currentTime - startTime;
 			const progress = Math.min(elapsed / SCROLL_DURATION, 1);
 			const ease = progress < 0.5
