@@ -1,0 +1,56 @@
+import { json, error } from '@sveltejs/kit';
+import type { RequestHandler } from './$types';
+import { db } from '$lib/server/db';
+import { comments } from '$lib/server/db/schema';
+import { eq, isNull, and } from 'drizzle-orm';
+import { verifyAdminSecret } from '$lib/server/admin';
+import { editCommentSchema } from '$lib/server/validation';
+import bcrypt from 'bcryptjs';
+
+// PATCH /api/comments/[id] - Edit a comment (requires password)
+export const PATCH: RequestHandler = async ({ params, request }) => {
+	const { id } = params;
+	const raw = await request.json();
+	const parsed = editCommentSchema.safeParse(raw);
+	if (!parsed.success) {
+		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
+	}
+	const { text, password } = parsed.data;
+
+	const [comment] = await db
+		.select()
+		.from(comments)
+		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
+		.limit(1);
+
+	if (!comment) throw error(404, 'Comment not found');
+
+	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
+	if (!passwordMatch) throw error(401, 'Incorrect password');
+
+	const [updated] = await db
+		.update(comments)
+		.set({ text, updatedAt: new Date() })
+		.where(eq(comments.id, id))
+		.returning({
+			id: comments.id,
+			text: comments.text,
+			updatedAt: comments.updatedAt
+		});
+
+	return json({ comment: updated });
+};
+
+// DELETE /api/comments/[id] - Hard delete (admin only)
+export const DELETE: RequestHandler = async ({ params, request }) => {
+	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
+
+	const { id } = params;
+
+	await db
+		.update(comments)
+		.set({ deletedAt: new Date() })
+		.where(eq(comments.id, id));
+
+	return json({ success: true });
+};

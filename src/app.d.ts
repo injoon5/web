@@ -14,15 +14,10 @@ import "@fontsource/newsreader/700.css";
 import "@fontsource/newsreader/800.css";
 import "@fontsource/inter";
 
-import PocketBase from "pocketbase";
 declare global {
 	namespace App {
 		// interface Error {}
-		interface Locals {
-			pb: PocketBase;
-			id: string;
-			email: string;
-		}
+		interface Locals {}
 		// interface PageData {}
 		// interface Platform {}
 	}

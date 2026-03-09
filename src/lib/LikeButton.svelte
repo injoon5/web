@@ -1,105 +1,67 @@
 <script>
-import { page } from "$app/stores";
-import { onMount } from "svelte";
-import PocketBase from "pocketbase";
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 
-const pb = new PocketBase("https://pb.injoon5.com");
+	let likeCount = 0;
+	let isLiked = false;
+	let loading = true;
+	let currentPath = '';
 
-let likeCount = 0;
-let isLiked = false;
-let likeRecord = null;
-let currentPath = "";
+	onMount(async () => {
+		currentPath = $page.url.pathname;
+		await loadLikeData();
+	});
 
-onMount(async () => {
-	currentPath = $page.url.pathname;
-	await loadLikeData();
-});
+	$: if ($page.url.pathname !== currentPath && currentPath) {
+		likeCount = 0;
+		isLiked = false;
+		loading = true;
+		currentPath = $page.url.pathname;
+		loadLikeData();
+	}
 
-// Watch for route changes
-$: if ($page.url.pathname !== currentPath) {
-	likeCount = 0;
-	isLiked = false;
-	likeRecord = null;
-	currentPath = $page.url.pathname;
-	loadLikeData();
-}
-
-async function loadLikeData() {
-	try {
-		const records = await pb.collection("likes").getList(1, 1, {
-			filter: `url = "${$page.url.pathname}"`,
-		});
-
-		if (records.items.length > 0) {
-			likeRecord = records.items[0];
-			likeCount = likeRecord.user?.length || 0;
-			if (pb.authStore.isValid) {
-				isLiked = likeRecord.user?.includes(pb.authStore.model.id) || false;
+	async function loadLikeData() {
+		try {
+			const res = await fetch(`/api/likes?url=${encodeURIComponent($page.url.pathname)}`);
+			if (res.ok) {
+				const data = await res.json();
+				likeCount = data.count;
+				isLiked = data.liked;
 			}
+		} catch {
+			// silently fail
+		} finally {
+			loading = false;
 		}
-	} catch (error) {
-		// console.error('Error loading like data:', error);
-	}
-}
-
-async function toggleLike() {
-	if (!pb.authStore.isValid) {
-		alert("Please log in to like posts.");
-		window.location.href = "/auth?goto=" + $page.url.pathname;
-		return;
 	}
 
-	try {
-		if (!likeRecord) {
-			// Create a new record if it doesn't exist
-			likeRecord = await pb.collection("likes").create({
-				url: $page.url.pathname,
-				user: [pb.authStore.model.id],
+	async function toggleLike() {
+		try {
+			const res = await fetch('/api/likes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ url: $page.url.pathname })
 			});
-			isLiked = true;
-			likeCount = 1;
-		} else {
-			let users = likeRecord.user || [];
-			if (isLiked) {
-				// Unlike: remove user from the array
-				users = users.filter((id) => id !== pb.authStore.model.id);
-			} else {
-				// Like: add user to the array
-				if (!users.includes(pb.authStore.model.id)) {
-					users.push(pb.authStore.model.id);
-				}
+			if (res.ok) {
+				const data = await res.json();
+				likeCount = data.count;
+				isLiked = data.liked;
 			}
-			// Update the existing record
-			await pb.collection("likes").update(likeRecord.id, {
-				user: users,
-			});
-			isLiked = !isLiked;
-			likeCount = users.length;
+		} catch {
+			// silently fail
 		}
-	} catch (error) {
-		console.error("Error toggling like:", error);
-		alert("Failed to update like status. Please try again.");
 	}
-}
 </script>
 
 <div class="flex items-center justify-between">
-	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100"
-		>{likeCount} like{likeCount != 1 ? 's' : ''}</span
+	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100">
+		{likeCount} like{likeCount !== 1 ? 's' : ''}
+	</span>
+	<button
+		on:click={toggleLike}
+		disabled={loading}
+		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
 	>
-	{#if pb.authStore.isValid}
-		<button
-			on:click={toggleLike}
-			class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
-		>
-			{isLiked ? 'Unlike' : 'Like'}
-		</button>
-	{:else}
-		<a
-			href="/auth?goto={$page.url.pathname}"
-			class="font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
-		>
-			Log in to like
-		</a>
-	{/if}
+		{isLiked ? 'Unlike' : 'Like'}
+	</button>
 </div>
