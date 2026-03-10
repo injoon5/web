@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
 	import { formatDate } from '$lib/utils';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Readotron from '@untemps/svelte-readotron';

@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
 	import { page } from '$app/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { createWebHaptics } from 'web-haptics/svelte';
@@ -16,34 +16,34 @@
 	let submitError = '';
 
 	// Comments list
-	let comments: any[] = [];
+	let comments[] = [];
 	let currentPath = '';
 	let commentsLoading = true;
 	let commentsError = false;
 
 	// Edit state (shared singleton — only one comment editable at a time)
-	let editingId: string | null = null;
+	let editingId | null = null;
 	let editText = '';
 	let editPassword = '';
 	let editError = '';
 	let editSubmitting = false;
 
 	// Vote state
-	let votingId: string | null = null;
-	let votingAnimId: string | null = null;
-	let votingSide: string | null = null;
-	let votingAnimTimer: ReturnType<typeof setTimeout> | null = null;
+	let votingId | null = null;
+	let votingAnimId | null = null;
+	let votingSide | null = null;
+	let votingAnimTimer = null;
 	let voteError = '';
-	let voteErrorTimer: ReturnType<typeof setTimeout> | null = null;
+	let voteErrorTimer = null;
 
 	// Delete state (shared singleton — only one delete form at a time)
-	let deletingId: string | null = null;
+	let deletingId | null = null;
 	let deletePassword = '';
 	let deleteError = '';
 	let deleteSubmitting = false;
 
 	// Reply state (shared singleton — only one reply form at a time)
-	let replyingToId: string | null = null;
+	let replyingToId | null = null;
 	let replyText = '';
 	let replyUsername = '';
 	let replyPassword = '';
@@ -64,11 +64,11 @@
 
 	// Build a nested comment tree from the flat API response.
 	// Root comments retain server order (score desc). Children are sorted chronologically.
-	function buildTree(flat: any[]): any[] {
+	function buildTree(flat[])[] {
 		const map = new Map<string, any>();
 		for (const c of flat) map.set(c.id, { ...c, children: [] });
 
-		const roots: any[] = [];
+		const roots[] = [];
 		for (const node of map.values()) {
 			if (node.parentId && map.has(node.parentId)) {
 				map.get(node.parentId).children.push(node);
@@ -80,7 +80,7 @@
 
 		for (const node of map.values()) {
 			node.children.sort(
-				(a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+				(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
 			);
 		}
 
@@ -164,7 +164,7 @@
 		}
 	}
 
-	function showVoteError(message: string) {
+	function showVoteError(message) {
 		voteError = message;
 		if (voteErrorTimer) clearTimeout(voteErrorTimer);
 		voteErrorTimer = setTimeout(() => {
@@ -172,7 +172,7 @@
 		}, 3000);
 	}
 
-	async function vote(commentId: string, voteType: string) {
+	async function vote(commentId, voteType) {
 		if (votingId === commentId) return;
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 
@@ -217,7 +217,7 @@
 		}
 	}
 
-	function startEdit(comment: any) {
+	function startEdit(comment) {
 		editingId = comment.id;
 		editText = comment.text;
 		editPassword = '';
@@ -232,7 +232,7 @@
 		editError = '';
 	}
 
-	async function saveEdit(commentId: string) {
+	async function saveEdit(commentId) {
 		editError = '';
 		if (!editText.trim()) {
 			editError = 'Comment cannot be empty.';
@@ -272,7 +272,7 @@
 		}
 	}
 
-	function startReply(comment: any) {
+	function startReply(comment) {
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 		replyingToId = comment.id;
 		replyText = '';
@@ -332,7 +332,7 @@
 		}
 	}
 
-	function startDelete(comment: any) {
+	function startDelete(comment) {
 		deletingId = comment.id;
 		deletePassword = '';
 		deleteError = '';
@@ -346,7 +346,7 @@
 		deleteError = '';
 	}
 
-	async function confirmDelete(commentId: string) {
+	async function confirmDelete(commentId) {
 		deleteError = '';
 		if (deletePassword.length < 4) {
 			deleteError = 'Password must be at least 4 characters.';
