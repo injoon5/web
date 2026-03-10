@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { browser } from '$app/environment';
 
 	export let data;
 	export let form;
@@ -19,7 +20,7 @@
 	let banReason = '';
 	let banningComment: string | null = null;
 
-	$: if (data.authenticated) {
+	$: if (browser && data.authenticated) {
 		adminSecret = getCookieValue('admin_token') ?? '';
 		loadComments();
 		loadBans();
