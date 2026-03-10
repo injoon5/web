@@ -64,7 +64,7 @@
 
 	// Build a nested comment tree from the flat API response.
 	// Root comments retain server order (score desc). Children are sorted chronologically.
-	function buildTree(flat): any[] {
+	function buildTree(flat) {
 		const map = new Map();
 		for (const c of flat) map.set(c.id, { ...c, children: [] });
 
