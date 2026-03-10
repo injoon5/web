@@ -24,6 +24,7 @@
 	let replyText = '';
 	let banningComment = null;
 	let banReason = '';
+	let deletingComment = null;
 
 	$: if (browser && data.authenticated) {
 		adminSecret = data.adminSecret ?? '';
@@ -83,6 +84,7 @@
 		selectedComments = [];
 		replyingTo = null;
 		banningComment = null;
+		deletingComment = null;
 		loadingComments = true;
 		try {
 			const res = await apiFetch(`/api/admin/comments?url=${encodeURIComponent(url)}`);
@@ -101,6 +103,7 @@
 		selectedComments = [];
 		replyingTo = null;
 		banningComment = null;
+		deletingComment = null;
 	}
 
 	async function loadBans() {
@@ -112,8 +115,29 @@
 		}
 	}
 
-	async function deleteComment(id) {
-		if (!confirm('Delete this comment?')) return;
+	function startDelete(comment) {
+		deletingComment = comment.id;
+		replyingTo = null;
+		replyText = '';
+		banningComment = null;
+		banReason = '';
+	}
+
+	function cancelDelete() {
+		deletingComment = null;
+	}
+
+	async function softDelete(id) {
+		const res = await apiFetch(`/api/admin/comments/${id}?soft=1`, { method: 'DELETE' });
+		if (res.ok) {
+			selectedComments = selectedComments.map((c) =>
+				c.id === id ? { ...c, text: '[deleted]', username: '[deleted]' } : c
+			);
+			deletingComment = null;
+		}
+	}
+
+	async function hardDelete(id) {
 		const res = await apiFetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
 		if (res.ok) {
 			selectedComments = selectedComments.filter((c) => c.id !== id);
@@ -121,6 +145,7 @@
 				u.url === selectedUrl ? { ...u, count: u.count - 1 } : u
 			);
 			statsTotal.comments--;
+			deletingComment = null;
 		}
 	}
 
@@ -129,6 +154,7 @@
 		replyText = comment.reply ?? '';
 		banningComment = null;
 		banReason = '';
+		deletingComment = null;
 	}
 
 	function cancelReply() {
@@ -155,6 +181,7 @@
 		banReason = '';
 		replyingTo = null;
 		replyText = '';
+		deletingComment = null;
 	}
 
 	function cancelBan() {
@@ -325,9 +352,13 @@
 									{comment}
 									{replyingTo}
 									{banningComment}
+									{deletingComment}
 									bind:replyText
 									bind:banReason
-									onDelete={deleteComment}
+									onStartDelete={startDelete}
+									onCancelDelete={cancelDelete}
+									onSoftDelete={softDelete}
+									onHardDelete={hardDelete}
 									onStartReply={startReply}
 									onSaveReply={saveReply}
 									onCancelReply={cancelReply}
@@ -344,9 +375,13 @@
 												comment={reply}
 												{replyingTo}
 												{banningComment}
+												{deletingComment}
 												bind:replyText
 												bind:banReason
-												onDelete={deleteComment}
+												onStartDelete={startDelete}
+												onCancelDelete={cancelDelete}
+												onSoftDelete={softDelete}
+												onHardDelete={hardDelete}
 												onStartReply={startReply}
 												onSaveReply={saveReply}
 												onCancelReply={cancelReply}
@@ -363,9 +398,13 @@
 															comment={subreply}
 															{replyingTo}
 															{banningComment}
+															{deletingComment}
 															bind:replyText
 															bind:banReason
-															onDelete={deleteComment}
+															onStartDelete={startDelete}
+															onCancelDelete={cancelDelete}
+															onSoftDelete={softDelete}
+															onHardDelete={hardDelete}
 															onStartReply={startReply}
 															onSaveReply={saveReply}
 															onCancelReply={cancelReply}

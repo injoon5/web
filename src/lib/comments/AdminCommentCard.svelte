@@ -9,8 +9,14 @@
 	export let replyText = '';
 	export let banReason = '';
 
+	// Which comment has the delete choice open
+	export let deletingComment = null;
+
 	// Callbacks
-	export let onDelete = () => {};
+	export let onStartDelete = () => {};
+	export let onCancelDelete = () => {};
+	export let onSoftDelete = () => {};
+	export let onHardDelete = () => {};
 	export let onStartReply = () => {};
 	export let onSaveReply = () => {};
 	export let onCancelReply = () => {};
@@ -80,10 +86,10 @@
 			{banningComment === comment.id ? 'Cancel' : 'Ban'}
 		</button>
 		<button
-			on:click={() => onDelete(comment.id)}
+			on:click={() => (deletingComment === comment.id ? onCancelDelete() : onStartDelete(comment))}
 			class="rounded-lg border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/40"
 		>
-			Delete
+			{deletingComment === comment.id ? 'Cancel' : 'Delete'}
 		</button>
 	</div>
 
@@ -122,6 +128,27 @@
 					class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600"
 				>
 					Confirm ban
+				</button>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Delete choice -->
+	{#if deletingComment === comment.id}
+		<div class="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-700">
+			<p class="mb-2 text-xs text-neutral-500 dark:text-neutral-400">How do you want to delete this comment?</p>
+			<div class="flex flex-wrap gap-2">
+				<button
+					on:click={() => onSoftDelete(comment.id)}
+					class="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-200 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+				>
+					Redact <span class="opacity-60">(keep thread, set to [deleted])</span>
+				</button>
+				<button
+					on:click={() => onHardDelete(comment.id)}
+					class="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-600"
+				>
+					Remove entirely
 				</button>
 			</div>
 		</div>
