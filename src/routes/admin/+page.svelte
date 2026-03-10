@@ -1,38 +1,39 @@
-<script lang="ts">
+<script>
 	import { enhance } from '$app/forms';
+	import { browser } from '$app/environment';
 
 	export let data;
 	export let form;
 
-	let tab: 'comments' | 'bans' = 'comments';
+	let tab = 'comments';
 	let adminSecret = '';
-	let comments: any[] = [];
-	let bans: any[] = [];
+	let comments = [];
+	let bans = [];
 	let loading = false;
 	let statsTotal = { comments: 0, bans: 0 };
 
 	// Reply state
-	let replyingTo: string | null = null;
+	let replyingTo = null;
 	let replyText = '';
 
 	// Ban reason
 	let banReason = '';
-	let banningComment: string | null = null;
+	let banningComment = null;
 
-	$: if (data.authenticated) {
+	$: if (browser && data.authenticated) {
 		adminSecret = getCookieValue('admin_token') ?? '';
 		loadComments();
 		loadBans();
 	}
 
-	function getCookieValue(name: string): string | undefined {
+	function getCookieValue(name) {
 		return document.cookie
 			.split('; ')
 			.find((row) => row.startsWith(name + '='))
 			?.split('=')[1];
 	}
 
-	async function apiFetch(path: string, options: RequestInit = {}) {
+	async function apiFetch(path, options = {}) {
 		return fetch(path, {
 			...options,
 			headers: {
@@ -66,7 +67,7 @@
 		}
 	}
 
-	async function deleteComment(id: string) {
+	async function deleteComment(id) {
 		if (!confirm('Delete this comment?')) return;
 		const res = await apiFetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
 		if (res.ok) {
@@ -75,7 +76,7 @@
 		}
 	}
 
-	async function saveReply(id: string) {
+	async function saveReply(id) {
 		const res = await apiFetch(`/api/admin/comments/${id}`, {
 			method: 'POST',
 			body: JSON.stringify({ reply: replyText })
@@ -87,7 +88,7 @@
 		}
 	}
 
-	async function banCommenter(commentId: string) {
+	async function banCommenter(commentId) {
 		const res = await apiFetch('/api/admin/bans', {
 			method: 'POST',
 			body: JSON.stringify({ commentId, reason: banReason || undefined })
@@ -99,7 +100,7 @@
 		}
 	}
 
-	async function unban(id: string) {
+	async function unban(id) {
 		const res = await apiFetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
 		if (res.ok) {
 			bans = bans.filter((b) => b.id !== id);
@@ -107,11 +108,11 @@
 		}
 	}
 
-	function formatDate(d: string) {
+	function formatDate(d) {
 		return new Date(d).toLocaleString();
 	}
 
-	function truncate(s: string, n = 80) {
+	function truncate(s, n = 80) {
 		return s.length > n ? s.slice(0, n) + '…' : s;
 	}
 </script>
