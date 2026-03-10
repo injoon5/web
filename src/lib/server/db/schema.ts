@@ -5,8 +5,10 @@ import {
 	timestamp,
 	pgEnum,
 	uniqueIndex,
-	index
+	index,
+	integer
 } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 export const voteTypeEnum = pgEnum('vote_type', ['up', 'down']);
 
@@ -19,6 +21,8 @@ export const comments = pgTable(
 		passwordHash: text('password_hash').notNull(),
 		text: text('text').notNull(),
 		ipHash: text('ip_hash').notNull(),
+		parentId: uuid('parent_id').references((): AnyPgColumn => comments.id, { onDelete: 'set null' }),
+		depth: integer('depth').notNull().default(0),
 		reply: text('reply'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

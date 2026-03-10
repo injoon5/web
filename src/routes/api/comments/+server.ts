@@ -22,6 +22,8 @@ export const GET: RequestHandler = async ({ url, request }) => {
 			username: comments.username,
 			text: comments.text,
 			reply: comments.reply,
+			parentId: comments.parentId,
+			depth: comments.depth,
 			createdAt: comments.createdAt,
 			updatedAt: comments.updatedAt,
 			upvotes: sql<number>`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int)`,
@@ -37,7 +39,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 			sql`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int) - cast(count(case when ${commentVotes.voteType} = 'down' then 1 end) as int) desc`,
 			desc(comments.createdAt)
 		)
-		.limit(100);
+		.limit(200);
 
 	return json({ comments: rows });
 };
@@ -75,7 +77,21 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!parsed.success) {
 		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 	}
-	const { url: pageUrl, username, password, text } = parsed.data;
+	const { url: pageUrl, username, password, text, parentId } = parsed.data;
+
+	// Validate parent and determine depth
+	let depth = 0;
+	if (parentId) {
+		const [parent] = await db
+			.select({ id: comments.id, depth: comments.depth })
+			.from(comments)
+			.where(and(eq(comments.id, parentId), isNull(comments.deletedAt)))
+			.limit(1);
+
+		if (!parent) throw error(400, 'Parent comment not found');
+		if (parent.depth >= 2) throw error(400, 'Maximum reply depth reached');
+		depth = parent.depth + 1;
+	}
 
 	const passwordHash = await bcrypt.hash(password, 10);
 
@@ -86,7 +102,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			username: username?.trim() || 'Anonymous',
 			passwordHash,
 			text,
-			ipHash
+			ipHash,
+			...(parentId ? { parentId, depth } : {})
 		})
 		.returning({
 			id: comments.id,
@@ -94,6 +111,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			username: comments.username,
 			text: comments.text,
 			reply: comments.reply,
+			parentId: comments.parentId,
+			depth: comments.depth,
 			createdAt: comments.createdAt,
 			updatedAt: comments.updatedAt
 		});
