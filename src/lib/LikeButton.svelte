@@ -8,7 +8,7 @@
 	let toggling = false;
 	let currentPath = '';
 	let likeError = '';
-	let likeErrorTimer = null;
+	let likeErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(async () => {
 		currentPath = $page.url.pathname;

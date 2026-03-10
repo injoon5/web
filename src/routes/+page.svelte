@@ -1,16 +1,17 @@
-<script>
+<script lang="ts">
 	import { sliceText } from '$lib/utils';
 	import { onMount } from 'svelte';
 
+	type LoadState = 'loading' | 'ready' | 'error';
 
-	let nowlistening = null;
-	let photos = null;
+	let nowlistening: any = null;
+	let photos: any = null;
 
-	let nowState = 'loading';
-	let photosState = 'loading';
+	let nowState: LoadState = 'loading';
+	let photosState: LoadState = 'loading';
 
-	let nowError | null = null;
-	let photosError | null = null;
+	let nowError: string | null = null;
+	let photosError: string | null = null;
 
 	onMount(async () => {
 		nowState = 'loading';

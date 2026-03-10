@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { formatDate } from '$lib/utils';
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';

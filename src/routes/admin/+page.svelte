@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { enhance } from '$app/forms';
 
 	export let data;
@@ -6,18 +6,18 @@
 
 	let tab: 'comments' | 'bans' = 'comments';
 	let adminSecret = '';
-	let comments[] = [];
-	let bans[] = [];
+	let comments: any[] = [];
+	let bans: any[] = [];
 	let loading = false;
 	let statsTotal = { comments: 0, bans: 0 };
 
 	// Reply state
-	let replyingTo | null = null;
+	let replyingTo: string | null = null;
 	let replyText = '';
 
 	// Ban reason
 	let banReason = '';
-	let banningComment | null = null;
+	let banningComment: string | null = null;
 
 	$: if (data.authenticated) {
 		adminSecret = getCookieValue('admin_token') ?? '';
@@ -25,14 +25,14 @@
 		loadBans();
 	}
 
-	function getCookieValue(name) | undefined {
+	function getCookieValue(name: string): string | undefined {
 		return document.cookie
 			.split('; ')
 			.find((row) => row.startsWith(name + '='))
 			?.split('=')[1];
 	}
 
-	async function apiFetch(path, options: RequestInit = {}) {
+	async function apiFetch(path: string, options: RequestInit = {}) {
 		return fetch(path, {
 			...options,
 			headers: {
@@ -66,7 +66,7 @@
 		}
 	}
 
-	async function deleteComment(id) {
+	async function deleteComment(id: string) {
 		if (!confirm('Delete this comment?')) return;
 		const res = await apiFetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
 		if (res.ok) {
@@ -75,7 +75,7 @@
 		}
 	}
 
-	async function saveReply(id) {
+	async function saveReply(id: string) {
 		const res = await apiFetch(`/api/admin/comments/${id}`, {
 			method: 'POST',
 			body: JSON.stringify({ reply: replyText })
@@ -87,7 +87,7 @@
 		}
 	}
 
-	async function banCommenter(commentId) {
+	async function banCommenter(commentId: string) {
 		const res = await apiFetch('/api/admin/bans', {
 			method: 'POST',
 			body: JSON.stringify({ commentId, reason: banReason || undefined })
@@ -99,7 +99,7 @@
 		}
 	}
 
-	async function unban(id) {
+	async function unban(id: string) {
 		const res = await apiFetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
 		if (res.ok) {
 			bans = bans.filter((b) => b.id !== id);
@@ -107,11 +107,11 @@
 		}
 	}
 
-	function formatDate(d) {
+	function formatDate(d: string) {
 		return new Date(d).toLocaleString();
 	}
 
-	function truncate(s, n = 80) {
+	function truncate(s: string, n = 80) {
 		return s.length > n ? s.slice(0, n) + '…' : s;
 	}
 </script>

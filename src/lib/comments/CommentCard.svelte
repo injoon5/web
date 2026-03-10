@@ -1,49 +1,49 @@
-<script>
+<script lang="ts">
 	// All display + form state for a single comment card.
 	// Edit, reply, and delete form state is held in the parent (CommentsSection) and
 	// flows down as props so only one form is ever open at a time.
 
-	export let comment;
+	export let comment: any;
 
 	// Which comment is being acted on (read-only booleans from parent)
-	export let editingId | null = null;
-	export let votingId | null = null;
-	export let votingAnimId | null = null;
-	export let votingSide | null = null;
-	export let replyingToId | null = null;
-	export let deletingId | null = null;
+	export let editingId: string | null = null;
+	export let votingId: string | null = null;
+	export let votingAnimId: string | null = null;
+	export let votingSide: string | null = null;
+	export let replyingToId: string | null = null;
+	export let deletingId: string | null = null;
 
 	// Edit form (two-way bound from parent, active when editingId === comment.id)
-	export let editText = '';
-	export let editPassword = '';
-	export let editError = '';
-	export let editSubmitting = false;
+	export let editText: string = '';
+	export let editPassword: string = '';
+	export let editError: string = '';
+	export let editSubmitting: boolean = false;
 
 	// Reply form (two-way bound from parent, active when replyingToId === comment.id)
-	export let replyText = '';
-	export let replyUsername = '';
-	export let replyPassword = '';
-	export let replyError = '';
-	export let replySubmitting = false;
+	export let replyText: string = '';
+	export let replyUsername: string = '';
+	export let replyPassword: string = '';
+	export let replyError: string = '';
+	export let replySubmitting: boolean = false;
 
 	// Delete form (two-way bound from parent, active when deletingId === comment.id)
-	export let deletePassword = '';
-	export let deleteError = '';
-	export let deleteSubmitting = false;
+	export let deletePassword: string = '';
+	export let deleteError: string = '';
+	export let deleteSubmitting: boolean = false;
 
-	export let MAX_LENGTH = 200;
+	export let MAX_LENGTH: number = 200;
 
 	// Callbacks (parent handles logic + haptics)
-	export let onVote = > void = () => {};
-	export let onStartEdit = > void = () => {};
+	export let onVote: (id: string, voteType: string) => void = () => {};
+	export let onStartEdit: (comment: any) => void = () => {};
 	export let onCancelEdit: () => void = () => {};
-	export let onSaveEdit = > void = () => {};
-	export let onStartReply = > void = () => {};
+	export let onSaveEdit: (id: string) => void = () => {};
+	export let onStartReply: (comment: any) => void = () => {};
 	export let onCancelReply: () => void = () => {};
 	export let onSubmitReply: () => void = () => {};
-	export let onStartDelete = > void = () => {};
+	export let onStartDelete: (comment: any) => void = () => {};
 	export let onCancelDelete: () => void = () => {};
-	export let onConfirmDelete = > void = () => {};
+	export let onConfirmDelete: (id: string) => void = () => {};
 
 	$: replyCharsLeft = MAX_LENGTH - replyText.length;
 	$: showReplyCharsLeft = replyText.length > MAX_LENGTH - 10;
