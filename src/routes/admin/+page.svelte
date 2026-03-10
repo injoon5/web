@@ -164,7 +164,7 @@
 			<form method="POST" action="?/logout" use:enhance>
 				<button
 					type="submit"
-					class="rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-600 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
+					class="rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
 				>
 					Sign out
 				</button>
@@ -191,17 +191,17 @@
 		<div class="mb-6 flex gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900">
 			<button
 				on:click={() => tab = 'comments'}
-				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-colors {tab === 'comments'
-					? 'bg-white shadow-sm dark:bg-neutral-800 dark:text-white'
-					: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
+				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab === 'comments'
+					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
+					: 'text-neutral-500 hover:bg-white/60 hover:text-neutral-800 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'}"
 			>
 				Comments
 			</button>
 			<button
 				on:click={() => tab = 'bans'}
-				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-colors {tab === 'bans'
-					? 'bg-white shadow-sm dark:bg-neutral-800 dark:text-white'
-					: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
+				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab === 'bans'
+					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
+					: 'text-neutral-500 hover:bg-white/60 hover:text-neutral-800 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'}"
 			>
 				Bans
 			</button>
@@ -209,9 +209,9 @@
 
 		{#if tab === 'comments'}
 			{#if loading}
-				<div class="py-16 text-center text-sm text-neutral-400">Loading…</div>
+				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
 			{:else if comments.length === 0}
-				<div class="py-16 text-center text-sm text-neutral-400">No comments yet.</div>
+				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No comments yet.</div>
 			{:else}
 				<div class="space-y-3">
 					{#each comments as comment (comment.id)}
@@ -258,7 +258,7 @@
 										replyingTo = replyingTo === comment.id ? null : comment.id;
 										replyText = comment.reply ?? '';
 									}}
-									class="rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-900"
+									class="rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 								>
 									{replyingTo === comment.id ? 'Cancel' : 'Reply'}
 								</button>
@@ -267,13 +267,13 @@
 										banningComment = banningComment === comment.id ? null : comment.id;
 										banReason = '';
 									}}
-									class="rounded-lg border border-amber-200 px-3 py-1 text-xs font-medium text-amber-600 hover:bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:hover:bg-amber-950/30"
+									class="rounded-lg border border-amber-200 px-3 py-1 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
 								>
 									{banningComment === comment.id ? 'Cancel' : 'Ban'}
 								</button>
 								<button
 									on:click={() => deleteComment(comment.id)}
-									class="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/30"
+									class="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
 								>
 									Delete
 								</button>
@@ -291,7 +291,7 @@
 									<div class="mt-2 flex justify-end gap-2">
 										<button
 											on:click={() => saveReply(comment.id)}
-											class="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
+											class="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 										>
 											Save reply
 										</button>
@@ -311,7 +311,7 @@
 									<div class="mt-2 flex justify-end gap-2">
 										<button
 											on:click={() => banCommenter(comment.id)}
-											class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600"
+											class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
 										>
 											Confirm ban
 										</button>
@@ -325,7 +325,7 @@
 		{:else}
 			<!-- Bans tab -->
 			{#if bans.length === 0}
-				<div class="py-16 text-center text-sm text-neutral-400">No active bans.</div>
+				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No active bans.</div>
 			{:else}
 				<div class="space-y-2">
 					{#each bans as ban (ban.id)}
@@ -341,7 +341,7 @@
 							</div>
 							<button
 								on:click={() => unban(ban.id)}
-								class="ml-4 shrink-0 rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
+								class="ml-4 shrink-0 rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
 							>
 								Unban
 							</button>

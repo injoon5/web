@@ -7,10 +7,10 @@ export const redis = new Redis({
 	token: UPSTASH_REDIS_REST_TOKEN
 });
 
-// 5 comments per 10 minutes per IP
+// 3 comments per 10 minutes per IP
 export const commentRatelimit = new Ratelimit({
 	redis,
-	limiter: Ratelimit.slidingWindow(5, '10 m'),
+	limiter: Ratelimit.slidingWindow(3, '10 m'),
 	prefix: 'rl:comment',
 	analytics: true
 });
@@ -23,10 +23,10 @@ export const voteRatelimit = new Ratelimit({
 	analytics: true
 });
 
-// 20 likes per minute per IP
+// 10 likes per minute per IP
 export const likeRatelimit = new Ratelimit({
 	redis,
-	limiter: Ratelimit.slidingWindow(20, '1 m'),
+	limiter: Ratelimit.slidingWindow(10, '1 m'),
 	prefix: 'rl:like',
 	analytics: true
 });

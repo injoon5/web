@@ -25,8 +25,9 @@
 	let editError = '';
 	let editSubmitting = false;
 
-	// My comment IDs (persisted in localStorage)
-	let myCommentIds = [];
+	// Animation state for vote buttons
+	let votingId = null;
+	let votingSide = null;
 
 	const MAX_LENGTH = 200;
 	const CHAR_THRESHOLD = 10;
@@ -37,7 +38,6 @@
 
 	onMount(() => {
 		currentPath = $page.url.pathname;
-		myCommentIds = JSON.parse(localStorage.getItem('myCommentIds') ?? '[]');
 		loadComments();
 	});
 
@@ -50,6 +50,7 @@
 		submitError = '';
 		comments = [];
 		editingId = null;
+		votingId = null;
 		loadComments();
 	}
 
@@ -92,11 +93,7 @@
 				return;
 			}
 
-			// Store comment ID locally
-			myCommentIds = [...myCommentIds, data.comment.id];
-			localStorage.setItem('myCommentIds', JSON.stringify(myCommentIds));
-
-			commentText = '';
+				commentText = '';
 			username = '';
 			password = '';
 			formSubmitted = false;
@@ -110,6 +107,9 @@
 
 	async function vote(commentId, voteType) {
 		trigger([{ duration: 15 }], { intensity: 0.4 });
+		votingId = commentId;
+		votingSide = voteType;
+		setTimeout(() => { votingId = null; votingSide = null; }, 300);
 		try {
 			const res = await fetch(`/api/comments/${commentId}/vote`, {
 				method: 'POST',
@@ -213,7 +213,7 @@
 		<button
 			on:click={() => { trigger([{ duration: 15 }], { intensity: 0.4 }); submitComment(); }}
 			disabled={isSubmitDisabled}
-			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
+			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 		>
 			{submitting ? 'Submitting…' : 'Submit'}
 		</button>
@@ -238,7 +238,7 @@
 						<button
 							on:click={() => vote(comment.id, 'up')}
 							aria-label="Upvote"
-							class="rounded-full p-1 transition-colors duration-200 {comment.myVote === 'up'
+							class="rounded-full p-1 transition-all duration-200 active:scale-90 {votingId === comment.id && votingSide === 'up' ? 'vote-pop' : ''} {comment.myVote === 'up'
 								? 'bg-green-500 text-white'
 								: 'bg-neutral-200 text-neutral-600 hover:bg-green-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-green-800'}"
 						>
@@ -249,7 +249,7 @@
 						<button
 							on:click={() => vote(comment.id, 'down')}
 							aria-label="Downvote"
-							class="rounded-full p-1 transition-colors duration-200 {comment.myVote === 'down'
+							class="rounded-full p-1 transition-all duration-200 active:scale-90 {votingId === comment.id && votingSide === 'down' ? 'vote-pop' : ''} {comment.myVote === 'down'
 								? 'bg-red-500 text-white'
 								: 'bg-neutral-200 text-neutral-600 hover:bg-red-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-red-800'}"
 						>
@@ -257,17 +257,15 @@
 								<path fill-rule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clip-rule="evenodd" />
 							</svg>
 						</button>
-						{#if myCommentIds.includes(comment.id)}
-							<button
-								on:click={() => startEdit(comment)}
-								aria-label="Edit comment"
-								class="rounded-full bg-neutral-200 p-1 text-neutral-600 transition-colors duration-200 hover:bg-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-									<path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-								</svg>
-							</button>
-						{/if}
+						<button
+							on:click={() => startEdit(comment)}
+							aria-label="Edit comment"
+							class="rounded-full bg-neutral-200 p-1 text-neutral-600 transition-all duration-200 active:scale-90 hover:bg-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+								<path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+							</svg>
+						</button>
 					</div>
 				</div>
 
@@ -294,13 +292,13 @@
 							<button
 								on:click={() => saveEdit(comment.id)}
 								disabled={editSubmitting}
-								class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
+								class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 							>
 								{editSubmitting ? 'Saving…' : 'Save'}
 							</button>
 							<button
 								on:click={cancelEdit}
-								class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400"
+								class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-all duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 							>
 								Cancel
 							</button>

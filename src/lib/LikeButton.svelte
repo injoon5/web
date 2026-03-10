@@ -6,6 +6,7 @@
 	let isLiked = false;
 	let loading = true;
 	let currentPath = '';
+	let animating = false;
 
 	onMount(async () => {
 		currentPath = $page.url.pathname;
@@ -46,6 +47,10 @@
 				const data = await res.json();
 				likeCount = data.count;
 				isLiked = data.liked;
+				if (data.liked) {
+					animating = true;
+					setTimeout(() => (animating = false), 350);
+				}
 			}
 		} catch {
 			// silently fail
@@ -60,7 +65,7 @@
 	<button
 		on:click={toggleLike}
 		disabled={loading}
-		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
+		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 {animating ? 'like-pop' : ''}"
 	>
 		{isLiked ? 'Unlike' : 'Like'}
 	</button>
