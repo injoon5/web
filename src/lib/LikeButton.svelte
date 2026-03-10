@@ -1,105 +1,97 @@
 <script>
-import { page } from "$app/stores";
-import { onMount } from "svelte";
-import PocketBase from "pocketbase";
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 
-const pb = new PocketBase("https://pb.injoon5.com");
+	let likeCount = 0;
+	let isLiked = false;
+	let loading = true;
+	let toggling = false;
+	let currentPath = '';
+	let animating = false;
+	let likeError = '';
+	let likeErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
-let likeCount = 0;
-let isLiked = false;
-let likeRecord = null;
-let currentPath = "";
+	onMount(async () => {
+		currentPath = $page.url.pathname;
+		await loadLikeData();
+	});
 
-onMount(async () => {
-	currentPath = $page.url.pathname;
-	await loadLikeData();
-});
-
-// Watch for route changes
-$: if ($page.url.pathname !== currentPath) {
-	likeCount = 0;
-	isLiked = false;
-	likeRecord = null;
-	currentPath = $page.url.pathname;
-	loadLikeData();
-}
-
-async function loadLikeData() {
-	try {
-		const records = await pb.collection("likes").getList(1, 1, {
-			filter: `url = "${$page.url.pathname}"`,
-		});
-
-		if (records.items.length > 0) {
-			likeRecord = records.items[0];
-			likeCount = likeRecord.user?.length || 0;
-			if (pb.authStore.isValid) {
-				isLiked = likeRecord.user?.includes(pb.authStore.model.id) || false;
-			}
-		}
-	} catch (error) {
-		// console.error('Error loading like data:', error);
-	}
-}
-
-async function toggleLike() {
-	if (!pb.authStore.isValid) {
-		alert("Please log in to like posts.");
-		window.location.href = "/auth?goto=" + $page.url.pathname;
-		return;
+	$: if ($page.url.pathname !== currentPath && currentPath) {
+		likeCount = 0;
+		isLiked = false;
+		loading = true;
+		likeError = '';
+		currentPath = $page.url.pathname;
+		loadLikeData();
 	}
 
-	try {
-		if (!likeRecord) {
-			// Create a new record if it doesn't exist
-			likeRecord = await pb.collection("likes").create({
-				url: $page.url.pathname,
-				user: [pb.authStore.model.id],
-			});
-			isLiked = true;
-			likeCount = 1;
-		} else {
-			let users = likeRecord.user || [];
-			if (isLiked) {
-				// Unlike: remove user from the array
-				users = users.filter((id) => id !== pb.authStore.model.id);
+	function showLikeError(message: string) {
+		likeError = message;
+		if (likeErrorTimer) clearTimeout(likeErrorTimer);
+		likeErrorTimer = setTimeout(() => { likeError = ''; }, 3000);
+	}
+
+	async function loadLikeData() {
+		try {
+			const res = await fetch(`/api/likes?url=${encodeURIComponent($page.url.pathname)}`);
+			if (res.ok) {
+				const data = await res.json();
+				likeCount = data.count;
+				isLiked = data.liked;
 			} else {
-				// Like: add user to the array
-				if (!users.includes(pb.authStore.model.id)) {
-					users.push(pb.authStore.model.id);
-				}
+				showLikeError('Could not load likes.');
 			}
-			// Update the existing record
-			await pb.collection("likes").update(likeRecord.id, {
-				user: users,
-			});
-			isLiked = !isLiked;
-			likeCount = users.length;
+		} catch {
+			showLikeError('Could not load likes.');
+		} finally {
+			loading = false;
 		}
-	} catch (error) {
-		console.error("Error toggling like:", error);
-		alert("Failed to update like status. Please try again.");
 	}
-}
+
+	async function toggleLike() {
+		toggling = true;
+		try {
+			const res = await fetch('/api/likes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ url: $page.url.pathname })
+			});
+			if (res.ok) {
+				const data = await res.json();
+				likeCount = data.count;
+				isLiked = data.liked;
+				if (data.liked) {
+					animating = true;
+					setTimeout(() => (animating = false), 350);
+				}
+			} else {
+				const data = await res.json().catch(() => ({}));
+				showLikeError(data.message ?? 'Could not save like.');
+			}
+		} catch {
+			showLikeError('Something went wrong.');
+		} finally {
+			toggling = false;
+		}
+	}
 </script>
 
 <div class="flex items-center justify-between">
-	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100"
-		>{likeCount} like{likeCount != 1 ? 's' : ''}</span
+	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100">
+		{likeCount} like{likeCount !== 1 ? 's' : ''}
+	</span>
+	<button
+		on:click={toggleLike}
+		disabled={loading || toggling}
+		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 {animating ? 'like-pop' : ''}"
 	>
-	{#if pb.authStore.isValid}
-		<button
-			on:click={toggleLike}
-			class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
-		>
+		{#if toggling}
+			{isLiked ? 'Unliking…' : 'Liking…'}
+		{:else}
 			{isLiked ? 'Unlike' : 'Like'}
-		</button>
-	{:else}
-		<a
-			href="/auth?goto={$page.url.pathname}"
-			class="font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
-		>
-			Log in to like
-		</a>
-	{/if}
+		{/if}
+	</button>
 </div>
+{#if likeError}
+	<p class="mt-2 text-sm text-red-500">{likeError}</p>
+{/if}

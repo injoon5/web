@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1773068431386,
+      "tag": "0000_dizzy_hellion",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1741564800000,
+      "tag": "0001_add_comment_url_index",
+      "breakpoints": true
+    }
+  ]
+}
