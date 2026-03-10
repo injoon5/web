@@ -149,7 +149,7 @@
 			});
 			const data = await res.json();
 			if (!res.ok) {
-				submitError = data.message ?? 'Failed to submit comment.';
+				submitError = data.message ?? data.error ?? 'Failed to submit comment.';
 				return;
 			}
 			commentText = '';
@@ -320,7 +320,7 @@
 			});
 			const data = await res.json();
 			if (!res.ok) {
-				replyError = data.message ?? 'Failed to submit reply.';
+				replyError = data.message ?? data.error ?? 'Failed to submit reply.';
 				return;
 			}
 			cancelReply();
