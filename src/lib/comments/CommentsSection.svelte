@@ -17,6 +17,8 @@
 	// Comments
 	let comments = [];
 	let currentPath = '';
+	let commentsLoading = true;
+	let commentsError = false;
 
 	// Edit state
 	let editingId = null;
@@ -25,8 +27,9 @@
 	let editError = '';
 	let editSubmitting = false;
 
-	// Animation state for vote buttons
+	// Vote state
 	let votingId = null;
+	let votingAnimId = null;
 	let votingSide = null;
 	let voteError = '';
 	let voteErrorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -51,20 +54,28 @@
 		formSubmitted = false;
 		submitError = '';
 		comments = [];
+		commentsLoading = true;
+		commentsError = false;
 		editingId = null;
 		votingId = null;
 		loadComments();
 	}
 
 	async function loadComments() {
+		commentsLoading = true;
+		commentsError = false;
 		try {
 			const res = await fetch(`/api/comments?url=${encodeURIComponent($page.url.pathname)}`);
 			if (res.ok) {
 				const data = await res.json();
 				comments = data.comments;
+			} else {
+				commentsError = true;
 			}
 		} catch {
-			// silently fail
+			commentsError = true;
+		} finally {
+			commentsLoading = false;
 		}
 	}
 
@@ -95,7 +106,7 @@
 				return;
 			}
 
-				commentText = '';
+			commentText = '';
 			username = '';
 			password = '';
 			formSubmitted = false;
@@ -114,10 +125,16 @@
 	}
 
 	async function vote(commentId, voteType) {
+		if (votingId === commentId) return;
 		trigger([{ duration: 15 }], { intensity: 0.4 });
-		votingId = commentId;
+
+		// Animate pop immediately, clear after 300 ms
+		votingAnimId = commentId;
 		votingSide = voteType;
-		setTimeout(() => { votingId = null; votingSide = null; }, 300);
+		setTimeout(() => { votingAnimId = null; votingSide = null; }, 300);
+
+		// Disable buttons until request settles
+		votingId = commentId;
 		try {
 			const res = await fetch(`/api/comments/${commentId}/vote`, {
 				method: 'POST',
@@ -137,6 +154,8 @@
 			}
 		} catch {
 			showVoteError('Something went wrong.');
+		} finally {
+			votingId = null;
 		}
 	}
 
@@ -238,7 +257,26 @@
 
 <!-- Comment list -->
 <div class="mt-8">
-	{#if comments.length > 0}
+	{#if commentsLoading}
+		{#each [1, 2, 3] as _}
+			<div class="mb-4 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900">
+				<div class="mb-3 h-4 w-24 rounded bg-neutral-300 dark:bg-neutral-700"></div>
+				<div class="h-3 w-full rounded bg-neutral-200 dark:bg-neutral-800"></div>
+				<div class="mt-2 h-3 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800"></div>
+				<div class="mt-3 h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800"></div>
+			</div>
+		{/each}
+	{:else if commentsError}
+		<div class="flex flex-col items-center gap-3 py-10 text-center">
+			<p class="text-neutral-500 dark:text-neutral-400">Could not load comments.</p>
+			<button
+				on:click={loadComments}
+				class="rounded-lg border border-neutral-300 px-4 py-1.5 text-sm font-medium text-neutral-600 transition-all duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+			>
+				Retry
+			</button>
+		</div>
+	{:else if comments.length > 0}
 		{#each comments as comment (comment.id)}
 			<div
 				class="mb-4 rounded-lg border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
@@ -253,8 +291,9 @@
 						<span class="font-medium">{comment.score}</span>
 						<button
 							on:click={() => vote(comment.id, 'up')}
+							disabled={votingId === comment.id}
 							aria-label="Upvote"
-							class="rounded-full p-1 transition-all duration-200 active:scale-90 {votingId === comment.id && votingSide === 'up' ? 'vote-pop' : ''} {comment.myVote === 'up'
+							class="rounded-full p-1 transition-all duration-200 active:scale-90 disabled:opacity-50 {votingAnimId === comment.id && votingSide === 'up' ? 'vote-pop' : ''} {comment.myVote === 'up'
 								? 'bg-green-500 text-white'
 								: 'bg-neutral-200 text-neutral-600 hover:bg-green-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-green-800'}"
 						>
@@ -264,8 +303,9 @@
 						</button>
 						<button
 							on:click={() => vote(comment.id, 'down')}
+							disabled={votingId === comment.id}
 							aria-label="Downvote"
-							class="rounded-full p-1 transition-all duration-200 active:scale-90 {votingId === comment.id && votingSide === 'down' ? 'vote-pop' : ''} {comment.myVote === 'down'
+							class="rounded-full p-1 transition-all duration-200 active:scale-90 disabled:opacity-50 {votingAnimId === comment.id && votingSide === 'down' ? 'vote-pop' : ''} {comment.myVote === 'down'
 								? 'bg-red-500 text-white'
 								: 'bg-neutral-200 text-neutral-600 hover:bg-red-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-red-800'}"
 						>

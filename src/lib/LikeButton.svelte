@@ -5,8 +5,11 @@
 	let likeCount = 0;
 	let isLiked = false;
 	let loading = true;
+	let toggling = false;
 	let currentPath = '';
 	let animating = false;
+	let likeError = '';
+	let likeErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
 	onMount(async () => {
 		currentPath = $page.url.pathname;
@@ -17,8 +20,15 @@
 		likeCount = 0;
 		isLiked = false;
 		loading = true;
+		likeError = '';
 		currentPath = $page.url.pathname;
 		loadLikeData();
+	}
+
+	function showLikeError(message: string) {
+		likeError = message;
+		if (likeErrorTimer) clearTimeout(likeErrorTimer);
+		likeErrorTimer = setTimeout(() => { likeError = ''; }, 3000);
 	}
 
 	async function loadLikeData() {
@@ -28,15 +38,18 @@
 				const data = await res.json();
 				likeCount = data.count;
 				isLiked = data.liked;
+			} else {
+				showLikeError('Could not load likes.');
 			}
 		} catch {
-			// silently fail
+			showLikeError('Could not load likes.');
 		} finally {
 			loading = false;
 		}
 	}
 
 	async function toggleLike() {
+		toggling = true;
 		try {
 			const res = await fetch('/api/likes', {
 				method: 'POST',
@@ -51,9 +64,14 @@
 					animating = true;
 					setTimeout(() => (animating = false), 350);
 				}
+			} else {
+				const data = await res.json().catch(() => ({}));
+				showLikeError(data.message ?? 'Could not save like.');
 			}
 		} catch {
-			// silently fail
+			showLikeError('Something went wrong.');
+		} finally {
+			toggling = false;
 		}
 	}
 </script>
@@ -64,9 +82,16 @@
 	</span>
 	<button
 		on:click={toggleLike}
-		disabled={loading}
+		disabled={loading || toggling}
 		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 {animating ? 'like-pop' : ''}"
 	>
-		{isLiked ? 'Unlike' : 'Like'}
+		{#if toggling}
+			{isLiked ? 'Unliking…' : 'Liking…'}
+		{:else}
+			{isLiked ? 'Unlike' : 'Like'}
+		{/if}
 	</button>
 </div>
+{#if likeError}
+	<p class="mt-2 text-sm text-red-500">{likeError}</p>
+{/if}
