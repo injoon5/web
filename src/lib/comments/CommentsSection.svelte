@@ -16,7 +16,7 @@
 	let submitError = '';
 
 	// Comments list
-	let comments[] = [];
+	let comments = [];
 	let currentPath = '';
 	let commentsLoading = true;
 	let commentsError = false;
