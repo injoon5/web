@@ -1,37 +1,57 @@
 <script>
 	import { enhance } from '$app/forms';
 	import { browser } from '$app/environment';
+	import AdminCommentCard from '$lib/comments/AdminCommentCard.svelte';
 
 	export let data;
 	export let form;
 
 	let tab = 'comments';
 	let adminSecret = '';
-	let comments = [];
 	let bans = [];
-	let loading = false;
 	let statsTotal = { comments: 0, bans: 0 };
 
-	// Reply state
+	// Comments navigation
+	let view = 'urls'; // 'urls' | 'comments'
+	let urlList = []; // [{ url, count }]
+	let selectedUrl = null;
+	let selectedComments = [];
+	let loadingUrls = false;
+	let loadingComments = false;
+
+	// Admin action state (shared across comment cards — one form open at a time)
 	let replyingTo = null;
 	let replyText = '';
-
-	// Ban reason
-	let banReason = '';
 	let banningComment = null;
+	let banReason = '';
+	let deletingComment = null;
 
 	$: if (browser && data.authenticated) {
-		adminSecret = getCookieValue('admin_token') ?? '';
-		loadComments();
+		adminSecret = data.adminSecret ?? '';
+		loadUrlList();
 		loadBans();
 	}
 
-	function getCookieValue(name) {
-		return document.cookie
-			.split('; ')
-			.find((row) => row.startsWith(name + '='))
-			?.split('=')[1];
+	// Build nested comment tree from flat list (chronological children)
+	function buildTree(flat) {
+		const map = new Map();
+		for (const c of flat) map.set(c.id, { ...c, children: [] });
+
+		const roots = [];
+		for (const node of map.values()) {
+			if (node.parentId && map.has(node.parentId)) {
+				map.get(node.parentId).children.push(node);
+			} else if (!node.parentId) {
+				roots.push(node);
+			}
+		}
+		for (const node of map.values()) {
+			node.children.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+		}
+		return roots;
 	}
+
+	$: commentTree = buildTree(selectedComments);
 
 	async function apiFetch(path, options = {}) {
 		return fetch(path, {
@@ -44,18 +64,46 @@
 		});
 	}
 
-	async function loadComments() {
-		loading = true;
+	async function loadUrlList() {
+		loadingUrls = true;
 		try {
 			const res = await apiFetch('/api/admin/comments');
 			if (res.ok) {
 				const d = await res.json();
-				comments = d.comments;
-				statsTotal.comments = d.comments.length;
+				urlList = d.urls;
+				statsTotal.comments = d.urls.reduce((sum, u) => sum + u.count, 0);
 			}
 		} finally {
-			loading = false;
+			loadingUrls = false;
 		}
+	}
+
+	async function selectUrl(url) {
+		selectedUrl = url;
+		view = 'comments';
+		selectedComments = [];
+		replyingTo = null;
+		banningComment = null;
+		deletingComment = null;
+		loadingComments = true;
+		try {
+			const res = await apiFetch(`/api/admin/comments?url=${encodeURIComponent(url)}`);
+			if (res.ok) {
+				const d = await res.json();
+				selectedComments = d.comments;
+			}
+		} finally {
+			loadingComments = false;
+		}
+	}
+
+	function goBack() {
+		view = 'urls';
+		selectedUrl = null;
+		selectedComments = [];
+		replyingTo = null;
+		banningComment = null;
+		deletingComment = null;
 	}
 
 	async function loadBans() {
@@ -67,13 +115,51 @@
 		}
 	}
 
-	async function deleteComment(id) {
-		if (!confirm('Delete this comment?')) return;
+	function startDelete(comment) {
+		deletingComment = comment.id;
+		replyingTo = null;
+		replyText = '';
+		banningComment = null;
+		banReason = '';
+	}
+
+	function cancelDelete() {
+		deletingComment = null;
+	}
+
+	async function softDelete(id) {
+		const res = await apiFetch(`/api/admin/comments/${id}?soft=1`, { method: 'DELETE' });
+		if (res.ok) {
+			selectedComments = selectedComments.map((c) =>
+				c.id === id ? { ...c, text: '[deleted]', username: '[deleted]' } : c
+			);
+			deletingComment = null;
+		}
+	}
+
+	async function hardDelete(id) {
 		const res = await apiFetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
 		if (res.ok) {
-			comments = comments.filter((c) => c.id !== id);
+			selectedComments = selectedComments.filter((c) => c.id !== id);
+			urlList = urlList.map((u) =>
+				u.url === selectedUrl ? { ...u, count: u.count - 1 } : u
+			);
 			statsTotal.comments--;
+			deletingComment = null;
 		}
+	}
+
+	function startReply(comment) {
+		replyingTo = comment.id;
+		replyText = comment.reply ?? '';
+		banningComment = null;
+		banReason = '';
+		deletingComment = null;
+	}
+
+	function cancelReply() {
+		replyingTo = null;
+		replyText = '';
 	}
 
 	async function saveReply(id) {
@@ -82,13 +168,28 @@
 			body: JSON.stringify({ reply: replyText })
 		});
 		if (res.ok) {
-			comments = comments.map((c) => (c.id === id ? { ...c, reply: replyText || null } : c));
+			selectedComments = selectedComments.map((c) =>
+				c.id === id ? { ...c, reply: replyText || null } : c
+			);
 			replyingTo = null;
 			replyText = '';
 		}
 	}
 
-	async function banCommenter(commentId) {
+	function startBan(comment) {
+		banningComment = comment.id;
+		banReason = '';
+		replyingTo = null;
+		replyText = '';
+		deletingComment = null;
+	}
+
+	function cancelBan() {
+		banningComment = null;
+		banReason = '';
+	}
+
+	async function confirmBan(commentId) {
 		const res = await apiFetch('/api/admin/bans', {
 			method: 'POST',
 			body: JSON.stringify({ commentId, reason: banReason || undefined })
@@ -110,10 +211,6 @@
 
 	function formatDate(d) {
 		return new Date(d).toLocaleString();
-	}
-
-	function truncate(s, n = 80) {
-		return s.length > n ? s.slice(0, n) + '…' : s;
 	}
 </script>
 
@@ -191,7 +288,7 @@
 		<!-- Tabs -->
 		<div class="mb-6 flex gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900">
 			<button
-				on:click={() => tab = 'comments'}
+				on:click={() => { tab = 'comments'; }}
 				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab === 'comments'
 					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
 					: 'text-neutral-500 hover:bg-white/60 hover:text-neutral-800 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'}"
@@ -199,7 +296,7 @@
 				Comments
 			</button>
 			<button
-				on:click={() => tab = 'bans'}
+				on:click={() => { tab = 'bans'; }}
 				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab === 'bans'
 					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
 					: 'text-neutral-500 hover:bg-white/60 hover:text-neutral-800 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'}"
@@ -209,119 +306,122 @@
 		</div>
 
 		{#if tab === 'comments'}
-			{#if loading}
-				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
-			{:else if comments.length === 0}
-				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No comments yet.</div>
+			{#if view === 'urls'}
+				<!-- URL list -->
+				{#if loadingUrls}
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
+				{:else if urlList.length === 0}
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No comments yet.</div>
+				{:else}
+					<div class="space-y-2">
+						{#each urlList as item (item.url)}
+							<button
+								on:click={() => selectUrl(item.url)}
+								class="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900"
+							>
+								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300">{item.url}</span>
+								<span class="ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+									{item.count}
+								</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
 			{:else}
-				<div class="space-y-3">
-					{#each comments as comment (comment.id)}
-						<div
-							class="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950"
-						>
-							<!-- Header -->
-							<div class="flex flex-wrap items-start justify-between gap-2">
-								<div>
-									<span class="font-semibold">{comment.username}</span>
-									<span class="ml-2 text-xs text-neutral-400">{comment.url}</span>
-									<span class="ml-2 text-xs text-neutral-400">{formatDate(comment.createdAt)}</span>
-								</div>
-								<div class="flex items-center gap-1.5">
-									<span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400">
-										↑{comment.upvotes}
-									</span>
-									<span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-400">
-										↓{comment.downvotes}
-									</span>
-								</div>
-							</div>
-
-							<!-- Text -->
-							<p class="mt-2 text-sm leading-relaxed break-words">{comment.text}</p>
-
-							<!-- Existing reply -->
-							{#if comment.reply}
-								<div class="mt-2 rounded-lg bg-neutral-100 px-3 py-2 dark:bg-neutral-800">
-									<p class="text-xs font-semibold text-neutral-500">Admin reply:</p>
-									<p class="mt-0.5 text-sm">{comment.reply}</p>
-								</div>
-							{/if}
-
-							<!-- IP hash -->
-							<p class="mt-1.5 font-mono text-xs text-neutral-400">
-								ip: {comment.ipHash.slice(0, 16)}…
-							</p>
-
-							<!-- Actions -->
-							<div class="mt-3 flex flex-wrap gap-2">
-								<button
-									on:click={() => {
-										replyingTo = replyingTo === comment.id ? null : comment.id;
-										replyText = comment.reply ?? '';
-									}}
-									class="rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
-								>
-									{replyingTo === comment.id ? 'Cancel' : 'Reply'}
-								</button>
-								<button
-									on:click={() => {
-										banningComment = banningComment === comment.id ? null : comment.id;
-										banReason = '';
-									}}
-									class="rounded-lg border border-amber-200 px-3 py-1 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
-								>
-									{banningComment === comment.id ? 'Cancel' : 'Ban'}
-								</button>
-								<button
-									on:click={() => deleteComment(comment.id)}
-									class="rounded-lg border border-red-200 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/40"
-								>
-									Delete
-								</button>
-							</div>
-
-							<!-- Reply form -->
-							{#if replyingTo === comment.id}
-								<div class="mt-3">
-									<textarea
-										bind:value={replyText}
-										rows="3"
-										placeholder="Write a reply…"
-										class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-50 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
-									></textarea>
-									<div class="mt-2 flex justify-end gap-2">
-										<button
-											on:click={() => saveReply(comment.id)}
-											class="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-neutral-700 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
-										>
-											Save reply
-										</button>
-									</div>
-								</div>
-							{/if}
-
-							<!-- Ban form -->
-							{#if banningComment === comment.id}
-								<div class="mt-3">
-									<input
-										bind:value={banReason}
-										type="text"
-										placeholder="Reason (optional)"
-										class="w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
-									/>
-									<div class="mt-2 flex justify-end gap-2">
-										<button
-											on:click={() => banCommenter(comment.id)}
-											class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
-										>
-											Confirm ban
-										</button>
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/each}
+				<!-- Comment tree for selected URL -->
+				<div class="mb-5 flex items-center gap-3">
+					<button
+						on:click={goBack}
+						class="flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
+					>
+						← All posts
+					</button>
+					<span class="truncate font-mono text-sm text-neutral-500">{selectedUrl}</span>
 				</div>
+
+				{#if loadingComments}
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
+				{:else if commentTree.length === 0}
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No comments for this post.</div>
+				{:else}
+					<div>
+						{#each commentTree as comment (comment.id)}
+							<div class="mb-4">
+								<!-- Depth 0 -->
+								<AdminCommentCard
+									{comment}
+									{replyingTo}
+									{banningComment}
+									{deletingComment}
+									bind:replyText
+									bind:banReason
+									onStartDelete={startDelete}
+									onCancelDelete={cancelDelete}
+									onSoftDelete={softDelete}
+									onHardDelete={hardDelete}
+									onStartReply={startReply}
+									onSaveReply={saveReply}
+									onCancelReply={cancelReply}
+									onStartBan={startBan}
+									onConfirmBan={confirmBan}
+									onCancelBan={cancelBan}
+								/>
+
+								<!-- Depth 1 replies -->
+								{#if comment.children.length > 0}
+									<div class="mt-2 ml-4 space-y-2 border-l-2 border-neutral-200 pl-4 dark:border-neutral-700">
+										{#each comment.children as reply (reply.id)}
+											<AdminCommentCard
+												comment={reply}
+												{replyingTo}
+												{banningComment}
+												{deletingComment}
+												bind:replyText
+												bind:banReason
+												onStartDelete={startDelete}
+												onCancelDelete={cancelDelete}
+												onSoftDelete={softDelete}
+												onHardDelete={hardDelete}
+												onStartReply={startReply}
+												onSaveReply={saveReply}
+												onCancelReply={cancelReply}
+												onStartBan={startBan}
+												onConfirmBan={confirmBan}
+												onCancelBan={cancelBan}
+											/>
+
+											<!-- Depth 2 replies -->
+											{#if reply.children.length > 0}
+												<div class="ml-4 space-y-2 border-l-2 border-neutral-200/70 pl-4 dark:border-neutral-700/70">
+													{#each reply.children as subreply (subreply.id)}
+														<AdminCommentCard
+															comment={subreply}
+															{replyingTo}
+															{banningComment}
+															{deletingComment}
+															bind:replyText
+															bind:banReason
+															onStartDelete={startDelete}
+															onCancelDelete={cancelDelete}
+															onSoftDelete={softDelete}
+															onHardDelete={hardDelete}
+															onStartReply={startReply}
+															onSaveReply={saveReply}
+															onCancelReply={cancelReply}
+															onStartBan={startBan}
+															onConfirmBan={confirmBan}
+															onCancelBan={cancelBan}
+														/>
+													{/each}
+												</div>
+											{/if}
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
 			{/if}
 		{:else}
 			<!-- Bans tab -->
