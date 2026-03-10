@@ -32,8 +32,15 @@
 	let votingId: string | null = null;
 	let votingAnimId: string | null = null;
 	let votingSide: string | null = null;
+	let votingAnimTimer: ReturnType<typeof setTimeout> | null = null;
 	let voteError = '';
 	let voteErrorTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// Delete state (shared singleton — only one delete form at a time)
+	let deletingId: string | null = null;
+	let deletePassword = '';
+	let deleteError = '';
+	let deleteSubmitting = false;
 
 	// Reply state (shared singleton — only one reply form at a time)
 	let replyingToId: string | null = null;
@@ -169,11 +176,13 @@
 		if (votingId === commentId) return;
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 
+		// Cancel any in-flight animation timer before starting a new one
+		if (votingAnimTimer) clearTimeout(votingAnimTimer);
 		votingAnimId = commentId;
 		votingSide = voteType;
-		setTimeout(() => {
+		votingAnimTimer = setTimeout(() => {
 			votingAnimId = null;
-			votingSide = null;
+			votingAnimTimer = null;
 		}, 300);
 
 		votingId = commentId;
@@ -204,6 +213,7 @@
 			showVoteError('Something went wrong.');
 		} finally {
 			votingId = null;
+			votingSide = null;
 		}
 	}
 
@@ -322,6 +332,52 @@
 		}
 	}
 
+	function startDelete(comment: any) {
+		deletingId = comment.id;
+		deletePassword = '';
+		deleteError = '';
+		editingId = null;
+		replyingToId = null;
+	}
+
+	function cancelDelete() {
+		deletingId = null;
+		deletePassword = '';
+		deleteError = '';
+	}
+
+	async function confirmDelete(commentId: string) {
+		deleteError = '';
+		if (deletePassword.length < 4) {
+			deleteError = 'Password must be at least 4 characters.';
+			return;
+		}
+
+		deleteSubmitting = true;
+		try {
+			const res = await fetch(`/api/comments/${commentId}`, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ password: deletePassword })
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				deleteError = data.message ?? 'Failed to delete comment.';
+				return;
+			}
+			comments = comments.map((c) =>
+				c.id === commentId
+					? { ...c, text: '[deleted]', username: '[deleted]', updatedAt: new Date().toISOString() }
+					: c
+			);
+			cancelDelete();
+		} catch {
+			deleteError = 'Something went wrong.';
+		} finally {
+			deleteSubmitting = false;
+		}
+	}
+
 	// Shared props passed to every CommentCard
 	$: cardProps = {
 		editingId,
@@ -338,6 +394,10 @@
 		replyPassword,
 		replyError,
 		replySubmitting,
+		deletingId,
+		deletePassword,
+		deleteError,
+		deleteSubmitting,
 		MAX_LENGTH,
 		onVote: vote,
 		onStartEdit: startEdit,
@@ -345,7 +405,10 @@
 		onSaveEdit: saveEdit,
 		onStartReply: startReply,
 		onCancelReply: cancelReply,
-		onSubmitReply: submitReply
+		onSubmitReply: submitReply,
+		onStartDelete: startDelete,
+		onCancelDelete: cancelDelete,
+		onConfirmDelete: confirmDelete
 	};
 </script>
 
@@ -440,6 +503,7 @@
 					bind:replyText
 					bind:replyUsername
 					bind:replyPassword
+					bind:deletePassword
 					{...cardProps}
 				/>
 
@@ -456,6 +520,7 @@
 								bind:replyText
 								bind:replyUsername
 								bind:replyPassword
+								bind:deletePassword
 								{...cardProps}
 							/>
 
@@ -472,6 +537,7 @@
 											bind:replyText
 											bind:replyUsername
 											bind:replyPassword
+											bind:deletePassword
 											{...cardProps}
 										/>
 									{/each}

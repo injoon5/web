@@ -7,7 +7,6 @@
 	let loading = true;
 	let toggling = false;
 	let currentPath = '';
-	let animating = false;
 	let likeError = '';
 	let likeErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -60,10 +59,6 @@
 				const data = await res.json();
 				likeCount = data.count;
 				isLiked = data.liked;
-				if (data.liked) {
-					animating = true;
-					setTimeout(() => (animating = false), 350);
-				}
 			} else {
 				const data = await res.json().catch(() => ({}));
 				showLikeError(data.message ?? 'Could not save like.');
@@ -77,13 +72,18 @@
 </script>
 
 <div class="flex items-center justify-between">
-	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100">
-		{likeCount} like{likeCount !== 1 ? 's' : ''}
+	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100" style="display: inline-flex; align-items: baseline; overflow: hidden;">
+		<span style="display: inline-block; overflow: hidden; height: 1.5rem; line-height: 1.5rem;">
+			{#key likeCount}
+				<span class="count-animate inline-block">{likeCount}</span>
+			{/key}
+		</span>
+		<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
 	</span>
 	<button
 		on:click={toggleLike}
 		disabled={loading || toggling}
-		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 {animating ? 'like-pop' : ''}"
+		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 	>
 		{#if toggling}
 			{isLiked ? 'Unliking…' : 'Liking…'}
