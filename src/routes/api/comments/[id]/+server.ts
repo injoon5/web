@@ -47,15 +47,47 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	return json({ comment: updated });
 };
 
-// DELETE /api/comments/[id] - Hard delete (admin only)
+// DELETE /api/comments/[id]
+// - Admin (via secret header): hard-delete (sets deletedAt)
+// - User (via password body): soft-delete (sets text + username to '[deleted]')
 export const DELETE: RequestHandler = async ({ params, request }) => {
-	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
-
 	const { id } = params;
+
+	// Admin path
+	if (verifyAdminSecret(request)) {
+		await db.update(comments).set({ deletedAt: new Date() }).where(eq(comments.id, id));
+		return json({ success: true });
+	}
+
+	// User path – requires password
+	let raw: { password?: unknown };
+	try {
+		raw = await request.json();
+	} catch {
+		throw error(400, 'Invalid request body');
+	}
+
+	const password = typeof raw?.password === 'string' ? raw.password : null;
+	if (!password || password.length < 4) throw error(400, 'Password must be at least 4 characters');
+
+	const ipHash = hashIp(getClientIp(request));
+	const { success } = await editRatelimit.limit(ipHash);
+	if (!success) throw error(429, 'Too many requests. Please slow down.');
+
+	const [comment] = await db
+		.select()
+		.from(comments)
+		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
+		.limit(1);
+
+	if (!comment) throw error(404, 'Comment not found');
+
+	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
+	if (!passwordMatch) throw error(401, 'Incorrect password');
 
 	await db
 		.update(comments)
-		.set({ deletedAt: new Date() })
+		.set({ text: '[deleted]', username: '[deleted]', updatedAt: new Date() })
 		.where(eq(comments.id, id));
 
 	return json({ success: true });
