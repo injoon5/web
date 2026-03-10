@@ -21,16 +21,9 @@
 	let banningComment = null;
 
 	$: if (browser && data.authenticated) {
-		adminSecret = getCookieValue('admin_token') ?? '';
+		adminSecret = data.adminSecret ?? '';
 		loadComments();
 		loadBans();
-	}
-
-	function getCookieValue(name) {
-		return document.cookie
-			.split('; ')
-			.find((row) => row.startsWith(name + '='))
-			?.split('=')[1];
 	}
 
 	async function apiFetch(path, options = {}) {

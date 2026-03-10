@@ -4,7 +4,8 @@ import { ADMIN_SECRET } from '$env/static/private';
 
 export const load: PageServerLoad = async ({ cookies }) => {
 	const token = cookies.get('admin_token');
-	return { authenticated: token === ADMIN_SECRET };
+	const authenticated = token === ADMIN_SECRET;
+	return { authenticated, adminSecret: authenticated ? token : null };
 };
 
 export const actions = {
