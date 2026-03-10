@@ -30,3 +30,11 @@ export const likeRatelimit = new Ratelimit({
 	prefix: 'rl:like',
 	analytics: true
 });
+
+// 5 edits per 10 minutes per IP
+export const editRatelimit = new Ratelimit({
+	redis,
+	limiter: Ratelimit.slidingWindow(5, '10 m'),
+	prefix: 'rl:edit',
+	analytics: true
+});

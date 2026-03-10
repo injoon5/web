@@ -28,6 +28,8 @@
 	// Animation state for vote buttons
 	let votingId = null;
 	let votingSide = null;
+	let voteError = '';
+	let voteErrorTimer: ReturnType<typeof setTimeout> | null = null;
 
 	const MAX_LENGTH = 200;
 	const CHAR_THRESHOLD = 10;
@@ -105,6 +107,12 @@
 		}
 	}
 
+	function showVoteError(message: string) {
+		voteError = message;
+		if (voteErrorTimer) clearTimeout(voteErrorTimer);
+		voteErrorTimer = setTimeout(() => { voteError = ''; }, 3000);
+	}
+
 	async function vote(commentId, voteType) {
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 		votingId = commentId;
@@ -123,9 +131,12 @@
 						? { ...c, upvotes: data.upvotes, downvotes: data.downvotes, score: data.upvotes - data.downvotes, myVote: data.myVote }
 						: c
 				);
+			} else {
+				const data = await res.json().catch(() => ({}));
+				showVoteError(data.message ?? 'Could not register vote.');
 			}
 		} catch {
-			// silently fail
+			showVoteError('Something went wrong.');
 		}
 	}
 
@@ -219,6 +230,11 @@
 		</button>
 	</div>
 </div>
+
+<!-- Vote error toast -->
+{#if voteError}
+	<p class="mt-4 text-sm text-red-500">{voteError}</p>
+{/if}
 
 <!-- Comment list -->
 <div class="mt-8">

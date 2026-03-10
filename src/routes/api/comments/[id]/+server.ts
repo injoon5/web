@@ -5,10 +5,16 @@ import { comments } from '$lib/server/db/schema';
 import { eq, isNull, and } from 'drizzle-orm';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { editCommentSchema } from '$lib/server/validation';
+import { editRatelimit } from '$lib/server/redis';
+import { getClientIp, hashIp } from '$lib/server/ip';
 import bcrypt from 'bcryptjs';
 
 // PATCH /api/comments/[id] - Edit a comment (requires password)
 export const PATCH: RequestHandler = async ({ params, request }) => {
+	const ipHash = hashIp(getClientIp(request));
+	const { success } = await editRatelimit.limit(ipHash);
+	if (!success) throw error(429, 'Too many edit requests. Please slow down.');
+
 	const { id } = params;
 	const raw = await request.json();
 	const parsed = editCommentSchema.safeParse(raw);

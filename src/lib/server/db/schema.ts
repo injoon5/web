@@ -4,23 +4,28 @@ import {
 	text,
 	timestamp,
 	pgEnum,
-	uniqueIndex
+	uniqueIndex,
+	index
 } from 'drizzle-orm/pg-core';
 
 export const voteTypeEnum = pgEnum('vote_type', ['up', 'down']);
 
-export const comments = pgTable('comments', {
-	id: uuid('id').primaryKey().defaultRandom(),
-	url: text('url').notNull(),
-	username: text('username').notNull().default('Anonymous'),
-	passwordHash: text('password_hash').notNull(),
-	text: text('text').notNull(),
-	ipHash: text('ip_hash').notNull(),
-	reply: text('reply'),
-	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-	deletedAt: timestamp('deleted_at', { withTimezone: true })
-});
+export const comments = pgTable(
+	'comments',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		url: text('url').notNull(),
+		username: text('username').notNull().default('Anonymous'),
+		passwordHash: text('password_hash').notNull(),
+		text: text('text').notNull(),
+		ipHash: text('ip_hash').notNull(),
+		reply: text('reply'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+		deletedAt: timestamp('deleted_at', { withTimezone: true })
+	},
+	(t) => [index('idx_comments_url').on(t.url)]
+);
 
 export const commentVotes = pgTable(
 	'comment_votes',
