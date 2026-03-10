@@ -9,7 +9,7 @@
 	let currentPath = '';
 	let animating = false;
 	let likeError = '';
-	let likeErrorTimer: ReturnType<typeof setTimeout> | null = null;
+	let likeErrorTimer = null;
 
 	onMount(async () => {
 		currentPath = $page.url.pathname;
@@ -25,7 +25,7 @@
 		loadLikeData();
 	}
 
-	function showLikeError(message: string) {
+	function showLikeError(message) {
 		likeError = message;
 		if (likeErrorTimer) clearTimeout(likeErrorTimer);
 		likeErrorTimer = setTimeout(() => { likeError = ''; }, 3000);
