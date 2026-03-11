@@ -6,10 +6,27 @@ import remarkGfm from 'remark-gfm';
 import remarkGemoji from 'remark-gemoji';
 import remarkEmbedder from '@remark-embedder/core';
 import oembedTransformer from '@remark-embedder/transformer-oembed';
-// import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
 import { createHighlighter } from '@svelte-dev/pretty-code';
+import { visit } from 'unist-util-visit';
+
+function remarkEnhancedImages() {
+	return function (tree) {
+		visit(tree, 'image', function (node, index, parent) {
+			const src = node.url;
+			if (!src || !src.startsWith('/images/')) return;
+
+			const libSrc = '$lib' + src;
+			const alt = (node.alt || '').replace(/"/g, '&quot;');
+
+			parent.children[index] = {
+				type: 'html',
+				value: `<enhanced:img src="${libSrc}" alt="${alt}" loading="lazy" />`
+			};
+		});
+	};
+}
 
 const config = {
 	extensions: ['.md'],
@@ -26,8 +43,8 @@ const config = {
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,
-		[remarkEmbedder.default, { transformers: [oembedTransformer.default] }]
-		// [enhancedImage, { attributes: { loading: 'lazy', fetchpriority: 'low' } }]
+		[remarkEmbedder.default, { transformers: [oembedTransformer.default] }],
+		remarkEnhancedImages
 	],
 	rehypePlugins: [
 		rehypeKatexSvelte,
