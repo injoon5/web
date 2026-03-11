@@ -10,13 +10,21 @@ import oembedTransformer from '@remark-embedder/transformer-oembed';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
 import { createHighlighter } from '@svelte-dev/pretty-code';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const pierreDark = require('./src/lib/themes/pierre-dark.json');
+const pierreLight = require('./src/lib/themes/pierre-light.json');
 
 const config = {
 	extensions: ['.md'],
 	highlight: {
 		highlighter: createHighlighter({
 			// keepBackground: false,
-			theme: 'github-dark'
+			theme: {
+				dark: pierreDark,
+				light: pierreLight
+			}
 		})
 	},
 	smartypants: {
