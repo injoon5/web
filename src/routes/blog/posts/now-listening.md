@@ -24,7 +24,7 @@ Apple Developer accounts cost $99/year, which, fine, that's whatever. The real i
 
 Spotify's API is free and doesn't have age restrictions. So theoretically I could just... switch.
 
-![Spotify desktop app UI](/images/uploads/spotify-screenshot.png)
+![Spotify desktop app UI](/images/uploads/now-playing/spotify-screenshot.png)
 
 No.
 
@@ -40,7 +40,7 @@ To actually enable the Apple Music → Last.fm sync on macOS, I used an app call
 
 Sleeve is a tiny macOS app that sits on your desktop and shows the currently playing track with album art. It looks really clean:
 
-![Sleeve showing album art on the desktop](/images/uploads/sleeve-example.png)
+![Sleeve showing album art on the desktop](/images/uploads/now-playing/sleeve-example.png)
 
 More importantly for our purposes, Sleeve has a Last.fm scrobbling toggle built in. Turn it on, connect your Last.fm account, and every song you play in Apple Music gets logged automatically. It just works.
 
