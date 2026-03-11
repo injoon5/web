@@ -22,7 +22,9 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		.from(likes)
 		.where(eq(likes.url, pageUrl));
 
-	return json({ count: result?.count ?? 0, liked: result?.liked ?? false });
+	return json({ count: result?.count ?? 0, liked: result?.liked ?? false }, {
+		headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=300' }
+	});
 };
 
 export const POST: RequestHandler = async ({ request }) => {

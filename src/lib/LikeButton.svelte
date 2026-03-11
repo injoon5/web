@@ -31,17 +31,32 @@
 	}
 
 	async function loadLikeData() {
+		const cacheKey = `likes:${$page.url.pathname}`;
+
+		// Show cached state immediately
+		const cached = sessionStorage.getItem(cacheKey);
+		if (cached) {
+			try {
+				const data = JSON.parse(cached);
+				likeCount = data.count;
+				isLiked = data.liked;
+				loading = false;
+			} catch {}
+		}
+
+		// Always fetch fresh in the background
 		try {
 			const res = await fetch(`/api/likes?url=${encodeURIComponent($page.url.pathname)}`);
 			if (res.ok) {
 				const data = await res.json();
 				likeCount = data.count;
 				isLiked = data.liked;
-			} else {
+				sessionStorage.setItem(cacheKey, JSON.stringify(data));
+			} else if (!cached) {
 				showLikeError('Could not load likes.');
 			}
 		} catch {
-			showLikeError('Could not load likes.');
+			if (!cached) showLikeError('Could not load likes.');
 		} finally {
 			loading = false;
 		}
@@ -59,6 +74,7 @@
 				const data = await res.json();
 				likeCount = data.count;
 				isLiked = data.liked;
+				sessionStorage.setItem(`likes:${$page.url.pathname}`, JSON.stringify(data));
 			} else {
 				const data = await res.json().catch(() => ({}));
 				showLikeError(data.message ?? 'Could not save like.');

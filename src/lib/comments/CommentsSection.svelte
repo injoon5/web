@@ -111,18 +111,30 @@
 	}
 
 	async function loadComments() {
-		commentsLoading = true;
 		commentsError = false;
+		const cacheKey = `comments:${$page.url.pathname}`;
+
+		// Show cached data immediately — no loading flash for repeat visits
+		const cached = sessionStorage.getItem(cacheKey);
+		if (cached) {
+			try {
+				comments = JSON.parse(cached);
+				commentsLoading = false;
+			} catch {}
+		}
+
+		// Always fetch fresh data in the background
 		try {
 			const res = await fetch(`/api/comments?url=${encodeURIComponent($page.url.pathname)}`);
 			if (res.ok) {
 				const data = await res.json();
 				comments = data.comments;
-			} else {
+				sessionStorage.setItem(cacheKey, JSON.stringify(data.comments));
+			} else if (!cached) {
 				commentsError = true;
 			}
 		} catch {
-			commentsError = true;
+			if (!cached) commentsError = true;
 		} finally {
 			commentsLoading = false;
 		}

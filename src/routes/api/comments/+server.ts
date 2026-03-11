@@ -42,7 +42,9 @@ export const GET: RequestHandler = async ({ url, request }) => {
 		)
 		.limit(200);
 
-	return json({ comments: rows });
+	return json({ comments: rows }, {
+		headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=300' }
+	});
 };
 
 export const POST: RequestHandler = async ({ request }) => {
