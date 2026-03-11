@@ -72,14 +72,18 @@
 </script>
 
 <div class="flex items-center justify-between">
-	<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100" style="display: inline-flex; align-items: baseline; overflow: hidden;">
-		<span style="display: inline-block; overflow: hidden; height: 1.5rem; line-height: 1.5rem;">
-			{#key likeCount}
-				<span class="count-animate inline-block">{likeCount}</span>
-			{/key}
+	{#if loading}
+		<span class="mr-2 h-6 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700"></span>
+	{:else}
+		<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100" style="display: inline-flex; align-items: baseline; overflow: hidden;">
+			<span style="display: inline-block; overflow: hidden; height: 1.5rem; line-height: 1.5rem;">
+				{#key likeCount}
+					<span class="count-animate inline-block">{likeCount}</span>
+				{/key}
+			</span>
+			<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
 		</span>
-		<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
-	</span>
+	{/if}
 	<button
 		on:click={toggleLike}
 		disabled={loading || toggling}
