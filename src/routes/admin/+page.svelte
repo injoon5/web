@@ -32,7 +32,8 @@
 		loadBans();
 	}
 
-	// Build nested comment tree from flat list (chronological children)
+	// Build nested comment tree from flat list (chronological children).
+	// Comments whose parent was hard-deleted become stray roots (stray: true).
 	function buildTree(flat) {
 		const map = new Map();
 		for (const c of flat) map.set(c.id, { ...c, children: [] });
@@ -43,6 +44,9 @@
 				map.get(node.parentId).children.push(node);
 			} else if (!node.parentId) {
 				roots.push(node);
+			} else {
+				// parentId set but parent is missing (hard-deleted) — stray comment
+				roots.push({ ...node, stray: true });
 			}
 		}
 		for (const node of map.values()) {
@@ -348,6 +352,13 @@
 						{#each commentTree as comment (comment.id)}
 							<div class="mb-4">
 								<!-- Depth 0 -->
+								{#if comment.stray}
+									<div class="mb-1 flex items-center gap-1.5">
+										<span class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+											orphaned reply — parent deleted
+										</span>
+									</div>
+								{/if}
 								<AdminCommentCard
 									{comment}
 									{replyingTo}

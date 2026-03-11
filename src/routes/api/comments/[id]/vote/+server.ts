@@ -6,6 +6,7 @@ import { eq, isNull, and, sql, type SQL } from 'drizzle-orm';
 import { voteRatelimit } from '$lib/server/redis';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { voteSchema } from '$lib/server/validation';
+import { verifyAdminSecret } from '$lib/server/admin';
 
 export const POST: RequestHandler = async ({ params, request }) => {
 	const ip = getClientIp(request);
@@ -15,9 +16,11 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const ban = await db.select().from(bannedIps).where(eq(bannedIps.ipHash, ipHash)).limit(1);
 	if (ban.length > 0) throw error(403, 'You have been banned');
 
-	// Rate limit (Redis, not a DB query)
-	const { success } = await voteRatelimit.limit(ipHash);
-	if (!success) throw error(429, 'Too many votes. Please slow down.');
+	// Rate limit (skipped for admin)
+	if (!verifyAdminSecret(request)) {
+		const { success } = await voteRatelimit.limit(ipHash);
+		if (!success) throw error(429, 'Too many votes. Please slow down.');
+	}
 
 	const { id: commentId } = params;
 	const raw = await request.json();
