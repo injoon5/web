@@ -22,8 +22,7 @@ const config = {
 		highlighter: createHighlighter({
 			// keepBackground: false,
 			theme: {
-				dark: pierreDark,
-				light: pierreLight
+				pierreDark
 			}
 		})
 	},
