@@ -24,9 +24,9 @@ Apple Developer accounts cost $99/year, which, fine, that's whatever. The real i
 
 Spotify's API is free and doesn't have age restrictions. So theoretically I could just... switch.
 
-![Spotify's cluttered, algorithmically-poisoned UI](/images/uploads/spotify-ui.png)
+![Spotify desktop app UI](/images/uploads/spotify-screenshot.png)
 
-No. Absolutely not. I refuse. Spotify's recommendation algorithm has been broken for years, the UI is a mess, and I genuinely do not want to give up Apple Music's sound quality and ecosystem just so I can call a REST API. Hard pass. Moving on.
+No.
 
 ## Option 2: Last.fm
 
@@ -37,8 +37,6 @@ The key part: **Apple Music can sync to Last.fm.** Every song I play on Apple Mu
 ## Sleeve
 
 To actually enable the Apple Music → Last.fm sync on macOS, I used an app called [Sleeve](https://replay.software/sleeve).
-
-[![Sleeve app icon](https://replay.software/sleeve/images/sleeve-icon.png)](https://replay.software/sleeve)
 
 Sleeve is a tiny macOS app that sits on your desktop and shows the currently playing track with album art. It looks really clean:
 
