@@ -1,8 +1,11 @@
 <script>
 	import { page } from '$app/stores';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import CommentCard from './CommentCard.svelte';
+
+	// Shared store provided by the blog article page; absent on other routes.
+	const sharedData = getContext('pageData');
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -20,6 +23,8 @@
 	let currentPath = '';
 	let commentsLoading = true;
 	let commentsError = false;
+	// Tracks whether the initial data from the shared store has been applied
+	let initialized = false;
 
 	// Edit state (shared singleton — only one comment editable at a time)
 	let editingId = null;
@@ -89,9 +94,31 @@
 
 	$: commentTree = buildTree(comments);
 
+	if (sharedData) {
+		// Read initial comments from the shared store (avoids a separate fetch)
+		const unsub = sharedData.subscribe(({ comments: c, loading, error: e }) => {
+			if (loading) {
+				// Parent is (re-)loading — reset to loading state and wait for data
+				commentsLoading = true;
+				commentsError = false;
+				initialized = false;
+			} else {
+				commentsError = e;
+				commentsLoading = false;
+				if (!initialized) {
+					comments = c;
+					initialized = true;
+				}
+			}
+		});
+		onDestroy(unsub);
+	}
+
 	onMount(() => {
 		currentPath = $page.url.pathname;
-		loadComments();
+		if (!sharedData) {
+			loadComments();
+		}
 	});
 
 	$: if ($page.url.pathname !== currentPath && currentPath) {
@@ -101,13 +128,15 @@
 		password = '';
 		formSubmitted = false;
 		submitError = '';
-		comments = [];
-		commentsLoading = true;
-		commentsError = false;
 		editingId = null;
 		votingId = null;
 		replyingToId = null;
-		loadComments();
+		if (!sharedData) {
+			comments = [];
+			commentsLoading = true;
+			commentsError = false;
+			loadComments();
+		}
 	}
 
 	async function loadComments() {

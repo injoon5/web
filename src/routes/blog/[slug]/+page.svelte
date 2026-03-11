@@ -1,14 +1,47 @@
-<script lang="ts">
+<script>
 	import { formatDate } from '$lib/utils';
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
-
 	import Readotron from '@untemps/svelte-readotron';
+	import { page } from '$app/stores';
+	import { setContext, onMount } from 'svelte';
+	import { writable } from 'svelte/store';
 
 	export let data;
 
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.date))}`;
+
+	// Shared store for likes + comments — fetched in one request, shared via context
+	const pageData = writable({ likes: { count: 0, liked: false }, comments: [], loading: true, error: false });
+	setContext('pageData', pageData);
+
+	let currentPath = '';
+
+	onMount(() => {
+		currentPath = $page.url.pathname;
+		loadPageData();
+	});
+
+	$: if ($page.url.pathname !== currentPath && currentPath) {
+		currentPath = $page.url.pathname;
+		pageData.set({ likes: { count: 0, liked: false }, comments: [], loading: true, error: false });
+		loadPageData();
+	}
+
+	async function loadPageData() {
+		try {
+			const res = await fetch(`/api/page-data?url=${encodeURIComponent($page.url.pathname)}`);
+			if (res.ok) {
+				const d = await res.json();
+				pageData.set({ likes: d.likes, comments: d.comments, loading: false, error: false });
+			} else {
+				pageData.update((s) => ({ ...s, loading: false, error: true }));
+			}
+		} catch {
+			pageData.update((s) => ({ ...s, loading: false, error: true }));
+		}
+	}
 </script>
 
 <!-- SEO -->

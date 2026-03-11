@@ -1,6 +1,11 @@
 <script>
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy, getContext } from 'svelte';
+
+	// When used inside the blog article page, a shared 'pageData' writable store is
+	// provided via context so both likes and comments load in a single request.
+	// On other pages (e.g. projects) the context is absent and we fetch independently.
+	const sharedData = getContext('pageData');
 
 	let likeCount = 0;
 	let isLiked = false;
@@ -10,12 +15,24 @@
 	let likeError = '';
 	let likeErrorTimer = null;
 
-	onMount(async () => {
-		currentPath = $page.url.pathname;
-		await loadLikeData();
-	});
+	if (sharedData) {
+		// Derive like state from the shared store
+		const unsub = sharedData.subscribe(({ likes, loading: l }) => {
+			likeCount = likes?.count ?? 0;
+			isLiked = likes?.liked ?? false;
+			loading = l;
+		});
+		onDestroy(unsub);
+	} else {
+		// Standalone mode: fetch likes independently (used on project pages)
+		onMount(async () => {
+			currentPath = $page.url.pathname;
+			await loadLikeData();
+		});
+	}
 
-	$: if ($page.url.pathname !== currentPath && currentPath) {
+	// Reload on navigation in standalone mode
+	$: if (!sharedData && $page.url.pathname !== currentPath && currentPath) {
 		likeCount = 0;
 		isLiked = false;
 		loading = true;
@@ -27,16 +44,18 @@
 	function showLikeError(message) {
 		likeError = message;
 		if (likeErrorTimer) clearTimeout(likeErrorTimer);
-		likeErrorTimer = setTimeout(() => { likeError = ''; }, 3000);
+		likeErrorTimer = setTimeout(() => {
+			likeError = '';
+		}, 3000);
 	}
 
 	async function loadLikeData() {
 		try {
 			const res = await fetch(`/api/likes?url=${encodeURIComponent($page.url.pathname)}`);
 			if (res.ok) {
-				const data = await res.json();
-				likeCount = data.count;
-				isLiked = data.liked;
+				const d = await res.json();
+				likeCount = d.count;
+				isLiked = d.liked;
 			} else {
 				showLikeError('Could not load likes.');
 			}
@@ -56,12 +75,16 @@
 				body: JSON.stringify({ url: $page.url.pathname })
 			});
 			if (res.ok) {
-				const data = await res.json();
-				likeCount = data.count;
-				isLiked = data.liked;
+				const d = await res.json();
+				if (sharedData) {
+					sharedData.update((s) => ({ ...s, likes: { count: d.count, liked: d.liked } }));
+				} else {
+					likeCount = d.count;
+					isLiked = d.liked;
+				}
 			} else {
-				const data = await res.json().catch(() => ({}));
-				showLikeError(data.message ?? 'Could not save like.');
+				const d = await res.json().catch(() => ({}));
+				showLikeError(d.message ?? 'Could not save like.');
 			}
 		} catch {
 			showLikeError('Something went wrong.');

@@ -53,7 +53,7 @@ export const likes = pgTable(
 		ipHash: text('ip_hash').notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(t) => [uniqueIndex('likes_unique').on(t.url, t.ipHash)]
+	(t) => [uniqueIndex('likes_unique').on(t.url, t.ipHash), index('idx_likes_url').on(t.url)]
 );
 
 export const bannedIps = pgTable('banned_ips', {
