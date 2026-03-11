@@ -6,7 +6,7 @@ import type { Project } from '$lib/types';
 async function getProjects() {
 	let projects: Project[] = [];
 
-	const paths = import.meta.glob('/src/routes/projects/projects/*.md', {
+	const paths = import.meta.glob('/src/routes/projects/projects/en/*.md', {
 		eager: true
 	});
 
