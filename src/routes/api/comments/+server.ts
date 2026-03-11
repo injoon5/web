@@ -6,6 +6,7 @@ import { eq, isNull, and, sql, desc } from 'drizzle-orm';
 import { commentRatelimit } from '$lib/server/redis';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { createCommentSchema } from '$lib/server/validation';
+import { verifyAdminSecret } from '$lib/server/admin';
 import bcrypt from 'bcryptjs';
 
 export const GET: RequestHandler = async ({ url, request }) => {
@@ -59,17 +60,19 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(403, 'You have been banned from commenting');
 	}
 
-	// Rate limit
-	const { success, reset } = await commentRatelimit.limit(ipHash);
-	if (!success) {
-		const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-		return new Response(JSON.stringify({ error: 'Too many comments. Please wait before posting again.' }), {
-			status: 429,
-			headers: {
-				'Content-Type': 'application/json',
-				'Retry-After': String(retryAfter)
-			}
-		});
+	// Rate limit (skipped for admin)
+	if (!verifyAdminSecret(request)) {
+		const { success, reset } = await commentRatelimit.limit(ipHash);
+		if (!success) {
+			const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+			return new Response(JSON.stringify({ error: 'Too many comments. Please wait before posting again.' }), {
+				status: 429,
+				headers: {
+					'Content-Type': 'application/json',
+					'Retry-After': String(retryAfter)
+				}
+			});
+		}
 	}
 
 	const raw = await request.json();

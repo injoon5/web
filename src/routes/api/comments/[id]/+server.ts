@@ -12,8 +12,10 @@ import bcrypt from 'bcryptjs';
 // PATCH /api/comments/[id] - Edit a comment (requires password)
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	const ipHash = hashIp(getClientIp(request));
-	const { success } = await editRatelimit.limit(ipHash);
-	if (!success) throw error(429, 'Too many edit requests. Please slow down.');
+	if (!verifyAdminSecret(request)) {
+		const { success } = await editRatelimit.limit(ipHash);
+		if (!success) throw error(429, 'Too many edit requests. Please slow down.');
+	}
 
 	const { id } = params;
 	const raw = await request.json();
