@@ -35,26 +35,25 @@
 			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
 				{currentMeta.title}
 			</h1>
-			<div class="mt-2 flex flex-row items-center gap-3 text-2xl font-medium text-neutral-600 dark:text-neutral-400">
+			<div class="mt-2 flex flex-row text-2xl font-medium text-neutral-600 dark:text-neutral-400">
 				<p>{formatDate(currentMeta.date)}</p>
 				<p class="mx-1">·</p>
 				<Readotron selector=".readtime" lang="ar" />
-
-				{#if data.availableLangs.length > 1}
-					<div class="ml-auto flex items-center gap-1 text-sm">
-						{#each data.availableLangs as l}
-							<button
-								on:click={() => lang = l}
-								class="rounded px-2 py-0.5 font-semibold transition-colors {lang === l
-									? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
-									: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
-							>
-								{l === 'en' ? 'EN' : '한국어'}
-							</button>
-						{/each}
-					</div>
-				{/if}
 			</div>
+			{#if data.availableLangs.length > 1}
+				<div class="mt-2 flex items-center gap-1">
+					{#each data.availableLangs as l}
+						<button
+							on:click={() => lang = l}
+							class="rounded px-2 py-0.5 text-sm font-semibold transition-colors {lang === l
+								? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+								: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
+						>
+							{l === 'en' ? 'EN' : '한국어'}
+						</button>
+					{/each}
+				</div>
+			{/if}
 			<div class="my-4">
 				<LikeButton />
 			</div>
