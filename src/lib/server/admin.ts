@@ -1,7 +1,7 @@
-import { ADMIN_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export function verifyAdminSecret(request: Request): boolean {
 	const header = request.headers.get('x-admin-secret');
-	if (!ADMIN_SECRET || !header) return false;
-	return header === ADMIN_SECRET;
+	if (!env.ADMIN_SECRET || !header) return false;
+	return header === env.ADMIN_SECRET;
 }

@@ -1,10 +1,10 @@
 import { redirect, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { ADMIN_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ cookies }) => {
 	const token = cookies.get('admin_token');
-	const authenticated = token === ADMIN_SECRET;
+	const authenticated = token === env.ADMIN_SECRET;
 	return { authenticated, adminSecret: authenticated ? token : null };
 };
 
@@ -13,10 +13,10 @@ export const actions = {
 		const form = await request.formData();
 		const password = form.get('password');
 
-		if (!ADMIN_SECRET) return fail(500, { error: 'Admin access is not configured' });
-		if (password !== ADMIN_SECRET) return fail(401, { error: 'Incorrect password' });
+		if (!env.ADMIN_SECRET) return fail(500, { error: 'Admin access is not configured' });
+		if (password !== env.ADMIN_SECRET) return fail(401, { error: 'Incorrect password' });
 
-		cookies.set('admin_token', ADMIN_SECRET, {
+		cookies.set('admin_token', env.ADMIN_SECRET, {
 			path: '/admin',
 			httpOnly: true,
 			sameSite: 'strict',

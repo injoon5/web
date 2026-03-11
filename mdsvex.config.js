@@ -44,11 +44,16 @@ const config = {
 		remarkGfm,
 		remarkGemoji,
 		[remarkEmbedder.default, {
-			transformers: [oembedTransformer.default],
-			handleError: ({ error, url }) => {
-				console.warn(`remark-embedder: failed to embed ${url}: ${error.message}`);
-				return `<a href="${url}">${url}</a>`;
-			}
+			transformers: [{
+				...oembedTransformer.default,
+				shouldTransform: async (url) => {
+					try {
+						return await oembedTransformer.default.shouldTransform(url);
+					} catch {
+						return false;
+					}
+				}
+			}]
 		}],
 		remarkEnhancedImages
 	],
