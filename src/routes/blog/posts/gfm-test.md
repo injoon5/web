@@ -130,8 +130,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ## 임베드
 
 [This](https://www.youtube.com/watch?v=dQw4w9WgXcQ) is a great YouTube video.
-Watch it here:
-
-https://www.youtube.com/watch?v=dQw4w9WgXcQ
-
-Isn't it great!?

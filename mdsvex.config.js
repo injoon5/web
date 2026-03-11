@@ -43,7 +43,13 @@ const config = {
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,
-		[remarkEmbedder.default, { transformers: [oembedTransformer.default] }],
+		[remarkEmbedder.default, {
+			transformers: [oembedTransformer.default],
+			handleError: ({ error, url }) => {
+				console.warn(`remark-embedder: failed to embed ${url}: ${error.message}`);
+				return `<a href="${url}">${url}</a>`;
+			}
+		}],
 		remarkEnhancedImages
 	],
 	rehypePlugins: [
