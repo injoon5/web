@@ -1,8 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { comments } from '$lib/server/db/schema';
-import { eq, isNull, and } from 'drizzle-orm';
+import { convex, api } from '$lib/server/convex.js';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { editCommentSchema } from '$lib/server/validation';
 import { editRatelimit } from '$lib/server/redis';
@@ -25,26 +23,18 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	}
 	const { text, password } = parsed.data;
 
-	const [comment] = await db
-		.select()
-		.from(comments)
-		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
-		.limit(1);
-
+	let comment;
+	try {
+		comment = await convex.query(api.comments.getById, { id });
+	} catch {
+		throw error(404, 'Comment not found');
+	}
 	if (!comment) throw error(404, 'Comment not found');
 
 	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
 	if (!passwordMatch) throw error(401, 'Incorrect password');
 
-	const [updated] = await db
-		.update(comments)
-		.set({ text, updatedAt: new Date() })
-		.where(eq(comments.id, id))
-		.returning({
-			id: comments.id,
-			text: comments.text,
-			updatedAt: comments.updatedAt
-		});
+	const updated = await convex.mutation(api.comments.editText, { id, text });
 
 	return json({ comment: updated });
 };
@@ -57,7 +47,11 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 
 	// Admin path
 	if (verifyAdminSecret(request)) {
-		await db.update(comments).set({ deletedAt: new Date() }).where(eq(comments.id, id));
+		try {
+			await convex.mutation(api.comments.hardDelete, { id });
+		} catch {
+			throw error(404, 'Comment not found');
+		}
 		return json({ success: true });
 	}
 
@@ -76,21 +70,18 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	const { success } = await editRatelimit.limit(ipHash);
 	if (!success) throw error(429, 'Too many requests. Please slow down.');
 
-	const [comment] = await db
-		.select()
-		.from(comments)
-		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
-		.limit(1);
-
+	let comment;
+	try {
+		comment = await convex.query(api.comments.getById, { id });
+	} catch {
+		throw error(404, 'Comment not found');
+	}
 	if (!comment) throw error(404, 'Comment not found');
 
 	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
 	if (!passwordMatch) throw error(401, 'Incorrect password');
 
-	await db
-		.update(comments)
-		.set({ text: '[deleted]', username: '[deleted]', updatedAt: new Date() })
-		.where(eq(comments.id, id));
+	await convex.mutation(api.comments.softDelete, { id });
 
 	return json({ success: true });
 };
