@@ -6,7 +6,7 @@ import type { Post } from "$lib/types";
 async function getPosts() {
 	let posts: Post[] = [];
 
-	const paths = import.meta.glob("/src/routes/blog/posts/*.md", {
+	const paths = import.meta.glob("/src/routes/blog/posts/en/*.md", {
 		eager: true,
 	});
 

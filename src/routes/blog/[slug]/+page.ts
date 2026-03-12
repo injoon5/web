@@ -1,29 +1,48 @@
 export const prerender = true;
 
-import { error, type LoadEvent } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 
-export async function load({ params, fetch }: LoadEvent) {
-	try {
-		// Dynamically import the markdown file based on the slug
-		const post = await import(`../posts/${params.slug}.md`);
+const enModules = import.meta.glob("../posts/en/*.md");
+const koModules = import.meta.glob("../posts/ko/*.md");
 
-		// Use event.fetch instead of global fetch for relative URLs
-		const response = await fetch("/api/posts");
-		const posts = await response.json();
+export async function load({ params, fetch }) {
+	const enKey = `../posts/en/${params.slug}.md`;
+	const koKey = `../posts/ko/${params.slug}.md`;
 
-		// Filter the posts that belong to the same series
-		const series = posts.filter(
-			(tempPost: any) => tempPost.series === post.metadata.series,
-		);
+	let enPost = null;
+	let koPost = null;
 
-		return {
-			content: post.default,
-			meta: post.metadata,
-			series: series,
-		};
-	} catch (e) {
-		console.log(e);
-		// Throw a 404 error if the post is not found
+	if (enModules[enKey]) {
+		enPost = await enModules[enKey]();
+	}
+	if (koModules[koKey]) {
+		koPost = await koModules[koKey]();
+	}
+
+	const primaryPost = enPost || koPost;
+	if (!primaryPost) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
+
+	const response = await fetch("/api/posts");
+	const posts = await response.json();
+
+	const series = posts.filter(
+		(tempPost) => tempPost.series === primaryPost.metadata.series,
+	);
+
+	const availableLangs = [
+		...(enPost ? ["en"] : []),
+		...(koPost ? ["ko"] : []),
+	];
+
+	return {
+		enContent: enPost?.default ?? null,
+		koContent: koPost?.default ?? null,
+		enMeta: enPost?.metadata ?? null,
+		koMeta: koPost?.metadata ?? null,
+		meta: primaryPost.metadata,
+		series,
+		availableLangs,
+	};
 }

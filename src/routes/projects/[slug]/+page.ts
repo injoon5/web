@@ -1,19 +1,40 @@
 export const prerender = true;
 
-import { error, type LoadEvent } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 
-export async function load({ params }: LoadEvent) {
-	try {
-		// Dynamically import the markdown file based on the slug
-		const project = await import(`../projects/${params.slug}.md`);
+const enModules = import.meta.glob("../projects/en/*.md");
+const koModules = import.meta.glob("../projects/ko/*.md");
 
-		// Return the content and metadata from the markdown file
-		return {
-			content: project.default,
-			meta: project.metadata,
-		};
-	} catch (e) {
-		// Throw a 404 error if the project is not found
+export async function load({ params }) {
+	const enKey = `../projects/en/${params.slug}.md`;
+	const koKey = `../projects/ko/${params.slug}.md`;
+
+	let enProject = null;
+	let koProject = null;
+
+	if (enModules[enKey]) {
+		enProject = await enModules[enKey]();
+	}
+	if (koModules[koKey]) {
+		koProject = await koModules[koKey]();
+	}
+
+	const primaryProject = enProject || koProject;
+	if (!primaryProject) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
+
+	const availableLangs = [
+		...(enProject ? ["en"] : []),
+		...(koProject ? ["ko"] : []),
+	];
+
+	return {
+		enContent: enProject?.default ?? null,
+		koContent: koProject?.default ?? null,
+		enMeta: enProject?.metadata ?? null,
+		koMeta: koProject?.metadata ?? null,
+		meta: primaryProject.metadata,
+		availableLangs,
+	};
 }
