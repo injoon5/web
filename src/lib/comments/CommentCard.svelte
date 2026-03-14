@@ -68,7 +68,7 @@
 		<p class="font-semibold {isDeleted ? 'text-neutral-400 dark:text-neutral-600' : ''}">{comment.username}</p>
 		<div class="flex items-center space-x-2">
 			<!-- Score with number-flow animation -->
-			<NumberFlow value={comment.score} class="font-medium" />
+			<NumberFlow value={comment.score} trend={0} class="font-medium" />
 
 			{#if !isDeleted}
 				<!-- Upvote button -->
