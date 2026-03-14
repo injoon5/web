@@ -22,7 +22,7 @@ export const likeSchema = z.object({
 });
 
 export const replySchema = z.object({
-	reply: z.string().min(1).max(1000)
+	reply: z.string().min(1).max(500)
 });
 
 export const banSchema = z.object({

@@ -4,6 +4,8 @@
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import { page } from '$app/stores';
+	import Lightbox from '$lib/Lightbox.svelte';
+	import { lightboxAction } from '$lib/lightbox.js';
 
 	import Readotron from '@untemps/svelte-readotron';
 
@@ -25,6 +27,8 @@
 	<meta property="og:image" content={ogImageUrl} />
 	<meta property="og:url" content="https://www.injoon5.com/blog/{$page.params.slug}" />
 </svelte:head>
+
+<Lightbox />
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
 	<article class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
@@ -69,7 +73,8 @@
 
 		<!-- Post -->
 		<div
-			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:w-4/5 mt-10 max-w-none"
+			use:lightboxAction
+			class="readtime prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:w-4/5 prose-img:cursor-zoom-in mt-10 max-w-none"
 		>
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />

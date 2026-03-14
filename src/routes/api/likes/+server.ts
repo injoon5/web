@@ -53,8 +53,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Unlike
 		await db.delete(likes).where(and(eq(likes.url, pageUrl), eq(likes.ipHash, ipHash)));
 	} else {
-		// Like
-		await db.insert(likes).values({ url: pageUrl, ipHash });
+		// Like (ON CONFLICT DO NOTHING prevents 500 on duplicate concurrent requests)
+		await db.insert(likes).values({ url: pageUrl, ipHash }).onConflictDoNothing();
 	}
 
 	// Return updated count
@@ -66,5 +66,5 @@ export const POST: RequestHandler = async ({ request }) => {
 		.from(likes)
 		.where(eq(likes.url, pageUrl));
 
-	return json({ count: result?.count ?? 0, liked: !existing });
+	return json({ count: result?.count ?? 0, liked: result?.liked ?? false });
 };
