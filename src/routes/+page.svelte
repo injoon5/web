@@ -64,7 +64,7 @@
 	<meta property="og:description" content="A student who is interested in math, science, and computers." />
 	<meta
 		property="og:image"
-		content="https://og.ij5.dev/api/og/?title=injoon5.com&subheading=injoon5%27s+website"
+		content="https://og.ij5.dev/api/og/?title=injoon5.com&subheading=Injoon+Oh"
 	/>
 
 	<meta property="og:url" content="https://www.injoon5.com/" />

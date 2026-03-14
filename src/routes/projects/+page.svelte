@@ -7,7 +7,7 @@
 	<meta name="description" content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects." />
 	<meta property="og:title" content="Projects - Injoon Oh" />
 	<meta property="og:description" content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects." />
-	<meta property="og:image" content="https://og.ij5.dev/api/og/?title=Projects&subheading=injoon5%27s+projects" />
+	<meta property="og:image" content="https://og.ij5.dev/api/og/?title=Projects&subheading=Injoon+Oh" />
 	<meta property="og:url" content="https://www.injoon5.com/projects" />
 </svelte:head>
 

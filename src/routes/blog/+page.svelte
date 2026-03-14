@@ -14,7 +14,7 @@
 	<meta name="description" content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about." />
 	<meta property="og:title" content="Blog - Injoon Oh" />
 	<meta property="og:description" content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about." />
-	<meta property="og:image" content="https://og.ij5.dev/api/og/?title=Blog&subheading=injoon5%27s+blog" />
+	<meta property="og:image" content="https://og.ij5.dev/api/og/?title=Blog&subheading=Injoon+Oh" />
 	<meta property="og:url" content="https://www.injoon5.com/blog" />
 </svelte:head>
 
