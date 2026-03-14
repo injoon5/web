@@ -50,8 +50,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		// Change direction
 		writeOp = sql`UPDATE comment_votes SET vote_type = ${voteType}::vote_type WHERE comment_id = ${commentId}::uuid AND ip_hash = ${ipHash}`;
 	} else {
-		// New vote
-		writeOp = sql`INSERT INTO comment_votes (comment_id, ip_hash, vote_type) VALUES (${commentId}::uuid, ${ipHash}, ${voteType}::vote_type)`;
+		// New vote (ON CONFLICT DO NOTHING prevents 500 on duplicate concurrent requests)
+		writeOp = sql`INSERT INTO comment_votes (comment_id, ip_hash, vote_type) VALUES (${commentId}::uuid, ${ipHash}, ${voteType}::vote_type) ON CONFLICT DO NOTHING`;
 	}
 
 	const result = await db.execute(sql`
