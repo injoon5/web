@@ -1,12 +1,15 @@
-<script lang="ts">
+<script>
 	import PostLink from '$lib/PostLink.svelte';
 
-	import { onMount } from 'svelte';
 	import { formatDate, sliceText } from '$lib/utils';
+	import { lang } from '$lib/stores/lang.js';
+	import { t } from '$lib/i18n/index.js';
 
 	export let data;
 
 	let renderedSeries = [];
+
+	$: filteredPosts = data.posts.filter((p) => (p.lang ?? 'en') === $lang);
 </script>
 
 <svelte:head>
@@ -17,35 +20,16 @@
 	<h1
 		class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100"
 	>
-		Blog
+		{$t.blog.title}
 	</h1>
 	<h2
 		class="text-md text-xl font-semibold tracking-tight text-neutral-500 sm:text-2xl dark:text-neutral-500"
 	>
-		Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote
-		about.
+		{$t.blog.subtitle}
 	</h2>
-	<!--
-		<div class="my-6 text-base">
-			{#each data.posts as post}
-				{#if post.series && !renderedPosts.includes(post.series) && renderedPosts.push(post.series)}
-					<p class="-mb-1 mt-4 font-semibold">Series: {post.series}</p>
-					<div class="ml-5">
-						{#each data.posts
-							.filter((sameseries) => sameseries.series === post.series)
-							.reverse() as same_series_post}
-							<PostLink data={same_series_post} slug="blog" />
-						{/each}
-					</div>
-				{:else if !post.series}
-					<PostLink data={post} slug="blog" />
-				{/if}
-			{/each}
-		</div>
-		-->
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
-		{#each data.posts as post}
+		{#each filteredPosts as post}
 			{#if post.series && !renderedSeries.includes(post.series) && renderedSeries.push(post.series)}
 				<!-- Series group header -->
 				<div
@@ -53,7 +37,7 @@
 				>
 					Series: {post.series}
 				</div>
-				{#each data.posts.filter((p: any) => p.series === post.series) as seriesPost}
+				{#each filteredPosts.filter((p) => p.series === post.series) as seriesPost}
 					<div class="py-2">
 						<a
 							href={`/blog/${seriesPost.slug}`}

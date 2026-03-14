@@ -6,17 +6,19 @@ import type { Project } from '$lib/types';
 async function getProjects() {
 	let projects: Project[] = [];
 
-	const paths = import.meta.glob('/src/routes/projects/projects/en/*.md', {
+	const paths = import.meta.glob('/src/routes/projects/projects/**/*.md', {
 		eager: true
 	});
 
 	for (const path in paths) {
 		const file = paths[path];
 		const slug = path.split('/').at(-1)?.replace('.md', '');
+		const langMatch = path.match(/\/projects\/([^/]+)\//);
+		const lang = langMatch ? langMatch[1] : 'en';
 
 		if (file && typeof file === 'object' && 'metadata' in file && slug) {
 			const metadata = file.metadata as Omit<Project, 'slug'>;
-			const project = { ...metadata, slug } satisfies Project;
+			const project = { ...metadata, slug, lang } satisfies Project;
 			project.published && projects.push(project);
 		}
 	}

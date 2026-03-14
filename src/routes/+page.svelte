@@ -1,17 +1,17 @@
-<script lang="ts">
+<script>
 	import { sliceText } from '$lib/utils';
 	import { onMount } from 'svelte';
+	import { lang } from '$lib/stores/lang.js';
+	import { t } from '$lib/i18n/index.js';
 
-	type LoadState = 'loading' | 'ready' | 'error';
+	let nowlistening = null;
+	let photos = null;
 
-	let nowlistening: any = null;
-	let photos: any = null;
+	let nowState = 'loading';
+	let photosState = 'loading';
 
-	let nowState: LoadState = 'loading';
-	let photosState: LoadState = 'loading';
-
-	let nowError: string | null = null;
-	let photosError: string | null = null;
+	let nowError = null;
+	let photosError = null;
 
 	onMount(async () => {
 		nowState = 'loading';
@@ -55,6 +55,9 @@
 	});
 
 	export let data;
+
+	$: filteredPosts = data.posts.filter((p) => (p.lang ?? 'en') === $lang);
+	$: filteredProjects = data.projects.filter((p) => (p.lang ?? 'en') === $lang);
 </script>
 
 <svelte:head>
@@ -77,26 +80,21 @@
 	<div class=" col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-28" style="height: max-content;">
 			<h2 class="text-xl font-medium tracking-tight text-neutral-900 italic dark:text-neutral-100">
-				Hello! -
+				{$t.home.hello}
 			</h2>
 		</div>
 	</div>
 	<div class="col-span-5 mt-4 justify-center md:mr-2 lg:mt-0">
 		<p class="mb-4 text-neutral-900 dark:text-neutral-100">
-			I am a student who is interested in math, science, and computers.
+			{$t.home.intro1}
 		</p>
 		<p class=" text-neutral-900 dark:text-neutral-100">
-			I love exploring new concepts and getting to know cool new things. Whether it’s tackling
-			complex equations, researching about scientific stuff, or trying the latest tech, I’m always
-			eager to learn.
+			{$t.home.intro2}
 		</p>
 	</div>
 	<div class="col-span-5 mt-4 justify-center md:ml-2 lg:mt-0">
 		<p class="mb-2 text-neutral-900 dark:text-neutral-100">
-			Although I haven't decided the specific domain due to the industry evolving so rapidly, I want
-			to be a computer programmer when I grow up. <s class="text-neutral-500"
-				>(Nowadays I'm thinking about AI, but who knows?)</s
-			>
+			{$t.home.intro3} <s class="text-neutral-500">{$t.home.intro3strike}</s>
 		</p>
 	</div>
 </div>
@@ -110,14 +108,14 @@
 				<h2
 					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
 				>
-					Blog
+					{$t.home.blog}
 				</h2>
 			</a>
 		</div>
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			{#each data.posts.slice(0, 5) as post}
+			{#each filteredPosts.slice(0, 5) as post}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/blog/{post.slug}"
@@ -130,8 +128,7 @@
 					<p
 						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-base font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
-						{post.description ||
-							'Some amazing post that I forgot or failed to write a description for. '}
+						{post.description || $t.home.defaultPostDescription}
 					</p>
 					<div
 						class="neutral-100 space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
@@ -147,7 +144,7 @@
 				href="/blog"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
-					>Read all Posts</span
+					>{$t.home.readAllPosts}</span
 				>
 				<span
 					class="absolute right-0 mr-1 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -168,14 +165,14 @@
 				<h2
 					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
 				>
-					Projects
+					{$t.home.projects}
 				</h2>
 			</a>
 		</div>
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			{#each data.projects.slice(0, 5) as post}
+			{#each filteredProjects.slice(0, 5) as post}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 hover:bg-neutral-200 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/projects/{post.slug}"
@@ -188,8 +185,7 @@
 					<p
 						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-base font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
-						{post.description ||
-							'Some amazing project that I forgot or failed to write a description for. '}
+						{post.description || $t.home.defaultProjectDescription}
 					</p>
 					<div
 						class="neutral-100 space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
@@ -205,7 +201,7 @@
 				href="/projects"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
-					>View all Projects</span
+					>{$t.home.viewAllProjects}</span
 				>
 				<span
 					class="absolute right-0 mr-1 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -223,7 +219,7 @@
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
 			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
-				Tech Stack
+				{$t.home.techStack}
 			</h2>
 		</div>
 	</div>
@@ -256,26 +252,6 @@
 	</div>
 </div>
 
-<!-- <div id="tech-stack" class="mb-12">
-	<h2 class="flex justify-between text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
-		Tech Stack
-	</h2>
-	<div class="mt-4">
-		<div class="flex flex-wrap gap-2">
-			{#each data.techstack as stack}
-				<div class="text-neutral-900 dark:text-neutral-400 flex items-center justify-center">
-					<p class="font-light text-lg">{stack.name}</p>
-				</div>
-				{#each stack.technologies as technology}
-					<a href={technology.link} target="_blank" rel="noopener noreferrer" class="rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-950 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors duration-200">
-						<p class="text-sm">{technology.name}</p>
-					</a>
-				{/each}
-			{/each}
-		</div>
-	</div>
-</div> -->
-
 <div
 	id="now-listening"
 	class="mt-20 mb-56 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
@@ -283,10 +259,10 @@
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-24" style="height: max-content;">
 			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
-				Now Listening
+				{$t.home.nowListening}
 			</h2>
 			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500">
-				Last updated at
+				{$t.home.lastUpdatedAt}
 				<span class="inline lg:block">
 					{#if nowState === 'loading'}
 						<span class="inline-flex items-center gap-2"> Loading… </span>
@@ -318,7 +294,7 @@
 				{/each}
 			{:else if nowState === 'error'}
 				<div class=" text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
-					<p>Couldn’t load Now Listening</p>
+					<p>Couldn't load Now Listening</p>
 					<div class="mt-1 text-neutral-500 dark:text-neutral-500">
 						{nowError ?? 'Unknown error'}
 					</div>
@@ -364,7 +340,7 @@
 				<h2
 					class="text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
 				>
-					Photos
+					{$t.home.photos}
 				</h2>
 			</a>
 		</div>
@@ -384,7 +360,7 @@
 			{:else if photosState === 'error'}
 				<div class="col-span-2 sm:col-span-3">
 					<div class=" text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
-						<p>Couldn’t load Photos</p>
+						<p>Couldn't load Photos</p>
 						<div class="mt-1 text-neutral-500 dark:text-neutral-500">
 							{photosError ?? 'Unknown error'}
 						</div>
@@ -438,7 +414,7 @@
 				rel="noopener noreferrer"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5">
-					View all Photos
+					{$t.home.viewAllPhotos}
 				</span>
 				<span
 					class="absolute right-0 mr-1 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"

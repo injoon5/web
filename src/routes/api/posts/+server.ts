@@ -6,17 +6,19 @@ import type { Post } from "$lib/types";
 async function getPosts() {
 	let posts: Post[] = [];
 
-	const paths = import.meta.glob("/src/routes/blog/posts/en/*.md", {
+	const paths = import.meta.glob("/src/routes/blog/posts/**/*.md", {
 		eager: true,
 	});
 
 	for (const path in paths) {
 		const file = paths[path];
 		const slug = path.split("/").at(-1)?.replace(".md", "");
+		const langMatch = path.match(/\/posts\/([^/]+)\//);
+		const lang = langMatch ? langMatch[1] : "en";
 
 		if (file && typeof file === "object" && "metadata" in file && slug) {
 			const metadata = file.metadata as Omit<Post, "slug">;
-			const post = { ...metadata, slug } satisfies Post;
+			const post = { ...metadata, slug, lang } satisfies Post;
 			post.published && posts.push(post);
 		}
 	}

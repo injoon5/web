@@ -5,6 +5,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
+	import { t } from '$lib/i18n/index.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -73,7 +74,7 @@
 				>
 			</div>
 			<div class="col-span-12 sm:col-span-6 lg:col-span-5">
-				<p class="text-neutral-900 dark:text-neutral-100">Made in</p>
+				<p class="text-neutral-900 dark:text-neutral-100">{$t.footer.madeIn}</p>
 				<p class="text-neutral-900 dark:text-neutral-100">Seoul, South Korea</p>
 				<p>New York, New York, USA</p>
 				<p>San Francisco, California, USA</p>
@@ -86,11 +87,11 @@
 					on:click={() => { trigger([{ duration: SCROLL_DURATION }], { intensity: 1 }); scrollToTop(); }}
 					aria-label="Scroll to top"
 				>
-					Scroll to top
+					{$t.footer.scrollToTop}
 				</button>
 			</div>
 			<div class="col-span-12 lg:mt-10">
-				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
+				<p class="text-neutral-900 dark:text-neutral-100">{$t.footer.copyright}</p>
 			</div>
 		</div>
 	</div>

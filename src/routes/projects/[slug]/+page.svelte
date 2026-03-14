@@ -2,13 +2,16 @@
 	import { formatDate } from '$lib/utils';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Readotron from '@untemps/svelte-readotron';
+	import { lang } from '$lib/stores/lang.js';
 
 	export let data;
 
-	let lang = data.availableLangs[0] ?? 'en';
+	$: if (data.availableLangs.length > 0 && !data.availableLangs.includes($lang)) {
+		lang.set(data.availableLangs[0]);
+	}
 
-	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
-	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
+	$: currentMeta = ($lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
+	$: currentContent = ($lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.year))}`;
 </script>
 
@@ -34,8 +37,8 @@
 				<div class="mt-2 flex items-center gap-1">
 					{#each data.availableLangs as l}
 						<button
-							on:click={() => lang = l}
-							class="rounded px-2 py-0.5 text-sm font-semibold transition-colors {lang === l
+							on:click={() => lang.set(l)}
+							class="rounded px-2 py-0.5 text-sm font-semibold transition-colors {$lang === l
 								? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
 								: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
 						>

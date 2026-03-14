@@ -1,5 +1,10 @@
-<script lang="ts">
+<script>
+	import { lang } from '$lib/stores/lang.js';
+	import { t } from '$lib/i18n/index.js';
+
 	export let data;
+
+	$: filteredProjects = data.projects.filter((p) => (p.lang ?? 'en') === $lang);
 </script>
 
 <svelte:head>
@@ -10,17 +15,16 @@
 	<h1
 		class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl dark:text-neutral-100"
 	>
-		Projects
+		{$t.projects.title}
 	</h1>
 	<h2
 		class="text-md text-xl font-semibold tracking-tight text-neutral-500 sm:text-2xl dark:text-neutral-500"
 	>
-		Some of the stuff I did to escape from a boring day. Everything from school projects to personal
-		projects. (Not updated yet)
+		{$t.projects.subtitle}
 	</h2>
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
-		{#each data.projects as project}
+		{#each filteredProjects as project}
 			<div class="py-2">
 				<a
 					href={`/projects/${project.slug}`}
