@@ -9,5 +9,14 @@ export default defineConfig({
 		},
 		allowedHosts: true
 	},
-	plugins: [sveltekit()]
+	plugins: [sveltekit()],
+	test: {
+		environment: 'node',
+		include: ['src/**/*.test.js'],
+		clearMocks: true,
+		alias: {
+			'$env/static/private': '/home/user/web/src/tests/mocks/env.js',
+			'$lib': '/home/user/web/src/lib'
+		}
+	}
 });
