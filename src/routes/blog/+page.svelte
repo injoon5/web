@@ -58,7 +58,7 @@
 				>
 					Series: {post.series}
 				</div>
-				{#each data.posts.filter((p: any) => p.series === post.series) as seriesPost}
+				{#each data.posts.filter((p) => p.series === post.series) as seriesPost}
 					<div class="py-2">
 						<a
 							href={`/blog/${seriesPost.slug}`}
