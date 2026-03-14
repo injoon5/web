@@ -13,10 +13,12 @@ export async function load({ params }) {
 	let koProject = null;
 
 	if (enModules[enKey]) {
-		enProject = await enModules[enKey]();
+		const mod = await enModules[enKey]();
+		if (mod.metadata?.published) enProject = mod;
 	}
 	if (koModules[koKey]) {
-		koProject = await koModules[koKey]();
+		const mod = await koModules[koKey]();
+		if (mod.metadata?.published) koProject = mod;
 	}
 
 	const primaryProject = enProject || koProject;

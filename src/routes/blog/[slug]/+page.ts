@@ -13,10 +13,12 @@ export async function load({ params, fetch }) {
 	let koPost = null;
 
 	if (enModules[enKey]) {
-		enPost = await enModules[enKey]();
+		const mod = await enModules[enKey]();
+		if (mod.metadata?.published) enPost = mod;
 	}
 	if (koModules[koKey]) {
-		koPost = await koModules[koKey]();
+		const mod = await koModules[koKey]();
+		if (mod.metadata?.published) koPost = mod;
 	}
 
 	const primaryPost = enPost || koPost;
