@@ -6,6 +6,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { likeRatelimit } from '$lib/server/redis';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { likeSchema } from '$lib/server/validation';
+import { isValidPageUrl } from '$lib/server/valid-urls';
 
 export const GET: RequestHandler = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
@@ -41,6 +42,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	const parsed = likeSchema.safeParse(raw);
 	if (!parsed.success) throw error(400, 'Missing url');
 	const { url: pageUrl } = parsed.data;
+
+	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
 	// Check existing like
 	const [existing] = await db

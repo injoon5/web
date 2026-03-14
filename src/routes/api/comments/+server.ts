@@ -7,6 +7,7 @@ import { commentRatelimit } from '$lib/server/redis';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { createCommentSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
+import { isValidPageUrl } from '$lib/server/valid-urls';
 import bcrypt from 'bcryptjs';
 
 export const GET: RequestHandler = async ({ url, request }) => {
@@ -81,6 +82,8 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 	}
 	const { url: pageUrl, username, password, text, parentId } = parsed.data;
+
+	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
 	// Validate parent and determine depth
 	let depth = 0;
