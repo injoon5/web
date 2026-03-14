@@ -2,6 +2,7 @@
 	import { formatDate } from '$lib/utils';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Readotron from '@untemps/svelte-readotron';
+	import { page } from '$app/stores';
 
 	export let data;
 
@@ -9,14 +10,16 @@
 
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
-	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.year))}`;
+	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
 </script>
 
 <svelte:head>
 	<title>{data.meta.title}</title>
 	<meta property="og:type" content="article" />
 	<meta property="og:title" content={data.meta.title} />
+	<meta property="og:description" content={currentMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta property="og:url" content="https://www.injoon5.com/projects/{$page.params.slug}" />
 </svelte:head>
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">

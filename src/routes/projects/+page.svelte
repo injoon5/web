@@ -1,9 +1,14 @@
-<script lang="ts">
+<script>
 	export let data;
 </script>
 
 <svelte:head>
 	<title>Projects - Injoon Oh</title>
+	<meta name="description" content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects." />
+	<meta property="og:title" content="Projects - Injoon Oh" />
+	<meta property="og:description" content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects." />
+	<meta property="og:image" content="https://og.ij5.dev/api/og/?title=Projects&subheading=Injoon+Oh" />
+	<meta property="og:url" content="https://www.injoon5.com/projects" />
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">

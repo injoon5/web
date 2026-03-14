@@ -10,7 +10,7 @@ export const createCommentSchema = z.object({
 
 export const editCommentSchema = z.object({
 	text: z.string().min(1, 'Comment cannot be empty').max(200, 'Comment must be 200 characters or less').trim(),
-	password: z.string().min(1, 'Password is required')
+	password: z.string().min(4, 'Password must be at least 4 characters')
 });
 
 export const voteSchema = z.object({
@@ -22,7 +22,7 @@ export const likeSchema = z.object({
 });
 
 export const replySchema = z.object({
-	reply: z.string().max(500)
+	reply: z.string().min(1).max(500)
 });
 
 export const banSchema = z.object({

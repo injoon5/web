@@ -75,7 +75,12 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 	}
 
-	const raw = await request.json();
+	let raw;
+	try {
+		raw = await request.json();
+	} catch {
+		throw error(400, 'Invalid request body');
+	}
 	const parsed = createCommentSchema.safeParse(raw);
 	if (!parsed.success) {
 		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');

@@ -24,7 +24,12 @@ export const DELETE: RequestHandler = async ({ params, request, url }) => {
 export const POST: RequestHandler = async ({ params, request }) => {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 
-	const body = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Invalid request body');
+	}
 	const parsed = replySchema.safeParse(body);
 	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid reply');
 

@@ -3,6 +3,7 @@
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
+	import { page } from '$app/stores';
 	import Lightbox from '$lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 
@@ -14,7 +15,7 @@
 
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
-	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=${encodeURIComponent(formatDate(data.meta.date))}`;
+	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
 </script>
 
 <!-- SEO -->
@@ -22,7 +23,9 @@
 	<title>{data.meta.title}</title>
 	<meta property="og:type" content="article" />
 	<meta property="og:title" content={data.meta.title} />
+	<meta property="og:description" content={data.meta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta property="og:url" content="https://www.injoon5.com/blog/{$page.params.slug}" />
 </svelte:head>
 
 <Lightbox />

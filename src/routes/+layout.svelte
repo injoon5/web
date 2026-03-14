@@ -1,10 +1,10 @@
 <script>
 	import '../app.css';
-	// import NavBar from '$lib/NavBar.svelte';
 	import NavBar from '$lib/NavBar.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
+	import { page } from '$app/stores';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-	<link rel="canonical" href="https://www.injoon5.com" />
+	<link rel="canonical" href="https://www.injoon5.com{$page.url.pathname}" />
 </svelte:head>
 
 <nav
