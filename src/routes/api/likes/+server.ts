@@ -66,5 +66,5 @@ export const POST: RequestHandler = async ({ request }) => {
 		.from(likes)
 		.where(eq(likes.url, pageUrl));
 
-	return json({ count: result?.count ?? 0, liked: !existing });
+	return json({ count: result?.count ?? 0, liked: result?.liked ?? false });
 };
