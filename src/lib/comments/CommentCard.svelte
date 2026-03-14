@@ -3,6 +3,8 @@
 	// Edit, reply, and delete form state is held in the parent (CommentsSection) and
 	// flows down as props so only one form is ever open at a time.
 
+	import NumberFlow from '@number-flow/svelte';
+
 	export let comment;
 
 	// Which comment is being acted on (read-only booleans from parent)
@@ -65,12 +67,8 @@
 	<div class="flex flex-row items-start justify-between">
 		<p class="font-semibold {isDeleted ? 'text-neutral-400 dark:text-neutral-600' : ''}">{comment.username}</p>
 		<div class="flex items-center space-x-2">
-			<!-- Score with slide animation on change -->
-			<div class="overflow-hidden" style="height: 1.5rem; display: flex; align-items: center;">
-				{#key comment.score}
-					<span class="count-animate inline-block font-medium">{comment.score}</span>
-				{/key}
-			</div>
+			<!-- Score with number-flow animation -->
+			<NumberFlow value={comment.score} trend={0} class="font-medium" />
 
 			{#if !isDeleted}
 				<!-- Upvote button -->

@@ -1,6 +1,7 @@
 <script>
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import NumberFlow from '@number-flow/svelte';
 
 	let likeCount = 0;
 	let isLiked = false;
@@ -75,12 +76,8 @@
 	{#if loading}
 		<span class="mr-2 h-6 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700"></span>
 	{:else}
-		<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100" style="display: inline-flex; align-items: baseline; overflow: hidden;">
-			<span style="display: inline-block; overflow: hidden; height: 1.5rem; line-height: 1.5rem;">
-				{#key likeCount}
-					<span class="count-animate inline-block">{likeCount}</span>
-				{/key}
-			</span>
+		<span class="mr-2 text-lg text-neutral-900 dark:text-neutral-100" style="display: inline-flex; align-items: baseline;">
+			<NumberFlow value={likeCount} trend={0} />
 			<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
 		</span>
 	{/if}
