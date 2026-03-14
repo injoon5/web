@@ -2,6 +2,7 @@
 	import { formatDate } from '$lib/utils';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import Readotron from '@untemps/svelte-readotron';
+	import { page } from '$app/stores';
 
 	export let data;
 
@@ -16,7 +17,9 @@
 	<title>{data.meta.title}</title>
 	<meta property="og:type" content="article" />
 	<meta property="og:title" content={data.meta.title} />
+	<meta property="og:description" content={currentMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta property="og:url" content="https://www.injoon5.com/projects/{$page.params.slug}" />
 </svelte:head>
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">

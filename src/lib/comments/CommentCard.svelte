@@ -184,7 +184,7 @@
 	{:else if isDeleted}
 		<p class="mt-1 text-sm italic text-neutral-400 dark:text-neutral-600">[deleted]</p>
 	{:else}
-		<p class="wrap-break-word mt-1 font-medium">{comment.text}</p>
+		<p class="break-words mt-1 font-medium">{comment.text}</p>
 	{/if}
 
 	<!-- Delete confirmation form -->

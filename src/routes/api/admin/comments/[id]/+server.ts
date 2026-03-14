@@ -23,7 +23,12 @@ export const DELETE: RequestHandler = async ({ params, request, url }) => {
 export const POST: RequestHandler = async ({ params, request }) => {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 
-	const body = await request.json();
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		throw error(400, 'Invalid request body');
+	}
 	const { reply } = body;
 
 	if (typeof reply !== 'string') throw error(400, 'Reply must be a string');

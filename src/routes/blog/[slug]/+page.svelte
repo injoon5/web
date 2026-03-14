@@ -3,6 +3,7 @@
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
+	import { page } from '$app/stores';
 
 	import Readotron from '@untemps/svelte-readotron';
 
@@ -20,7 +21,9 @@
 	<title>{data.meta.title}</title>
 	<meta property="og:type" content="article" />
 	<meta property="og:title" content={data.meta.title} />
+	<meta property="og:description" content={data.meta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta property="og:url" content="https://www.injoon5.com/blog/{$page.params.slug}" />
 </svelte:head>
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">

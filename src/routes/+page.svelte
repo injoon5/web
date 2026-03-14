@@ -1,17 +1,16 @@
-<script lang="ts">
+<script>
 	import { sliceText } from '$lib/utils';
 	import { onMount } from 'svelte';
 
-	type LoadState = 'loading' | 'ready' | 'error';
+	// LoadState: 'loading' | 'ready' | 'error'
+	let nowlistening = null;
+	let photos = null;
 
-	let nowlistening: any = null;
-	let photos: any = null;
+	let nowState = 'loading';
+	let photosState = 'loading';
 
-	let nowState: LoadState = 'loading';
-	let photosState: LoadState = 'loading';
-
-	let nowError: string | null = null;
-	let photosError: string | null = null;
+	let nowError = null;
+	let photosError = null;
 
 	onMount(async () => {
 		nowState = 'loading';
@@ -62,6 +61,7 @@
 	<meta charset="UTF-8" />
 	<meta property="og:title" content="Injoon Oh" />
 	<meta name="description" content="A student who is interested in math, science, and computers." />
+	<meta property="og:description" content="A student who is interested in math, science, and computers." />
 	<meta
 		property="og:image"
 		content="https://og.ij5.dev/api/og/?title=injoon5.com&subheading=injoon5%27s+website"
@@ -74,7 +74,7 @@
 	id="introduction"
 	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
-	<div class=" col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
+	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-28" style="height: max-content;">
 			<h2 class="text-xl font-medium tracking-tight text-neutral-900 italic dark:text-neutral-100">
 				Hello! -
@@ -134,7 +134,7 @@
 							'Some amazing post that I forgot or failed to write a description for. '}
 					</p>
 					<div
-						class="neutral-100 space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
+						class="whitespace-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
 					>
 						{post.date || post.year}
 					</div>
@@ -164,7 +164,7 @@
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
-			<a href="/blog" class="group">
+			<a href="/projects" class="group">
 				<h2
 					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
 				>
@@ -192,7 +192,7 @@
 							'Some amazing project that I forgot or failed to write a description for. '}
 					</p>
 					<div
-						class="neutral-100 space-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
+						class="whitespace-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
 					>
 						{post.date || post.year}
 					</div>
@@ -335,7 +335,7 @@
 								<img
 									loading="lazy"
 									src={track?.image?.[2]?.['#text'] ?? ''}
-									alt={sliceText(track?.name ?? '', 10)}
+									alt={track?.name ?? 'Album cover'}
 									class="absolute inset-0 h-full w-full object-cover"
 								/>
 							</div>

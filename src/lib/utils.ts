@@ -21,8 +21,4 @@ function sliceText(description: string, limit: number) {
 	}
 }
 
-function deploymentInfoOnVercel() {
-	// https://vercel.com/docs/rest-api#endpoints/deployments/get-a-deployment-by-id-or-url
-}
-
 export { sliceText, formatDate };
