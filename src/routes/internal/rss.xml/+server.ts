@@ -1,3 +1,5 @@
+export const prerender = true;
+
 import { create } from "xmlbuilder2";
 import fs from "fs";
 import path from "path";
@@ -5,12 +7,23 @@ import path from "path";
 // Define the path to your blog posts directory
 const postsDir = path.resolve("src/routes/blog/posts/");
 
+// Recursively collect all .md file paths under a directory
+const collectMdFiles = (dir) => {
+	const entries = fs.readdirSync(dir, { withFileTypes: true });
+	return entries.flatMap((entry) => {
+		const full = path.join(dir, entry.name);
+		if (entry.isDirectory()) return collectMdFiles(full);
+		if (entry.isFile() && entry.name.endsWith(".md")) return [full];
+		return [];
+	});
+};
+
 // Function to fetch all posts
 const getPosts = () => {
-	const files = fs.readdirSync(postsDir);
+	const files = collectMdFiles(postsDir);
 	return files
 		.map((file) => {
-			const content = fs.readFileSync(path.join(postsDir, file), "utf-8");
+			const content = fs.readFileSync(file, "utf-8");
 			const match = /---\s*([\s\S]+?)\s*---/.exec(content);
 			if (match) {
 				const frontmatter = match[1];
@@ -24,12 +37,12 @@ const getPosts = () => {
 						}),
 				);
 
-				meta.slug = file.replace(".md", "");
+				meta.slug = path.basename(file, ".md");
 				meta.content = content.replace(/---[\s\S]+?---/, ""); // Remove frontmatter
 				return meta;
 			}
 		})
-		.filter((post) => post && post.published);
+		.filter((post) => post && post.published === "true");
 };
 
 // Function to clean up content by stripping non-text elements (e.g., images, embeds)
