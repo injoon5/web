@@ -6,6 +6,7 @@
 	import { page } from '$app/stores';
 	import Lightbox from '$lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
+	import TableOfContents from '$lib/TableOfContents.svelte';
 
 	export let data;
 
@@ -84,4 +85,9 @@
 			<CommentsSection />
 		</div>
 	</article>
+
+	<!-- TOC sidebar: only visible at xl+ in the right margin columns -->
+	<aside class="hidden xl:block xl:col-span-2 xl:col-start-1 xl:row-start-1 xl:pt-14">
+		<TableOfContents />
+	</aside>
 </div>
