@@ -11,7 +11,7 @@ export function lightboxAction(node) {
 		// Skip tiny icons / decorative images
 		if (img.naturalWidth < 100 && img.naturalHeight < 100) return;
 		e.preventDefault();
-		lightboxStore.set({ src: img.currentSrc || img.src, alt: img.alt });
+		lightboxStore.set({ src: img.currentSrc || img.src, alt: img.alt, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight });
 	}
 
 	node.addEventListener('click', handleClick);
