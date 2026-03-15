@@ -88,7 +88,7 @@
 	</article>
 
 	<!-- TOC sidebar: only visible at xl+ in the right margin columns -->
-	<aside class="hidden xl:block xl:col-span-2 xl:col-start-11 xl:pt-10">
+	<aside class="hidden xl:block xl:col-span-2 xl:col-start-11 xl:pt-14">
 		<TableOfContents />
 	</aside>
 </div>
