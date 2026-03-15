@@ -1,5 +1,6 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 
 	const TARGET = 'gravity';
 	let buffer = '';
@@ -76,6 +77,7 @@
 
 	onMount(() => window.addEventListener('keydown', onKeyDown));
 	onDestroy(() => {
+		if (!browser) return;
 		window.removeEventListener('keydown', onKeyDown);
 		if (animFrame) cancelAnimationFrame(animFrame);
 	});
