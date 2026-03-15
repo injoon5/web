@@ -74,7 +74,7 @@
 		<!-- Post -->
 		<div
 			use:lightboxAction
-			class="prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:w-4/5 prose-img:cursor-zoom-in mt-10 max-w-none"
+			class="prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:cursor-zoom-in mt-10 max-w-none"
 		>
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />
