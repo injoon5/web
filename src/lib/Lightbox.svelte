@@ -1,43 +1,129 @@
 <script>
+	import { tick } from 'svelte';
 	import { lightboxStore } from './lightbox.js';
 
 	let visible = false;
 	let src = '';
 	let alt = '';
 	let zoomed = false;
-	let imgEl;
+	let imgWrapEl;
 	let backdropEl;
 	let closing = false;
 	let swipeDismissing = false;
-	// For touch swipe-to-close
+	let sourceRect = null;
+	let hasSourceRect = false;
+	let animating = false;
+
+	// JS-driven transform state (replaces CSS keyframe animations when sourceRect present)
+	let wrapTransform = '';
+	let wrapTransition = '';
+
+	// Touch/swipe state
 	let touchStartY = 0;
 	let dragY = 0;
 	let dragging = false;
+	let velocityY = 0;
+	let lastTouchY = 0;
+	let lastTouchTime = 0;
 
-	lightboxStore.subscribe((val) => {
+	$: wrapStyle = [
+		wrapTransform ? `transform: ${wrapTransform}` : '',
+		wrapTransition ? `transition: ${wrapTransition}` : ''
+	].filter(Boolean).join('; ');
+
+	lightboxStore.subscribe(async (val) => {
 		if (val) {
 			src = val.src;
 			alt = val.alt;
+			sourceRect = val.sourceRect || null;
+			hasSourceRect = !!sourceRect;
 			zoomed = false;
 			dragY = 0;
 			dragging = false;
 			closing = false;
 			swipeDismissing = false;
+			animating = false;
+			wrapTransform = '';
+			wrapTransition = '';
 			visible = true;
+
+			if (sourceRect) {
+				await tick();
+				playOpenAnimation();
+			}
 		} else {
 			visible = false;
 			closing = false;
 			swipeDismissing = false;
+			animating = false;
+			wrapTransform = '';
+			wrapTransition = '';
 		}
 	});
 
-	function close() {
+	function playOpenAnimation() {
+		if (!imgWrapEl || !sourceRect) return;
+
+		const rect = imgWrapEl.getBoundingClientRect();
+		if (!rect.width || !rect.height) return;
+
+		const dx = (sourceRect.left + sourceRect.width / 2) - (rect.left + rect.width / 2);
+		const dy = (sourceRect.top + sourceRect.height / 2) - (rect.top + rect.height / 2);
+		const sx = sourceRect.width / rect.width;
+		const sy = sourceRect.height / rect.height;
+
+		animating = true;
+		// Snap to thumbnail position instantly (no transition)
+		wrapTransition = '';
+		wrapTransform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+
+		// Force reflow so the browser applies the initial transform before animating
+		imgWrapEl.getBoundingClientRect();
+
+		// Spring to natural center position
+		wrapTransition = 'transform 0.42s cubic-bezier(0.16, 1, 0.3, 1)';
+		wrapTransform = '';
+
+		setTimeout(() => {
+			if (!closing) {
+				wrapTransition = '';
+				animating = false;
+			}
+		}, 440);
+	}
+
+	function computeToSourceTransform() {
+		if (!imgWrapEl || !sourceRect) return null;
+		const rect = imgWrapEl.getBoundingClientRect();
+		if (!rect.width || !rect.height) return null;
+
+		const dx = (sourceRect.left + sourceRect.width / 2) - (rect.left + rect.width / 2);
+		const dy = (sourceRect.top + sourceRect.height / 2) - (rect.top + rect.height / 2);
+		const sx = sourceRect.width / rect.width;
+		const sy = sourceRect.height / rect.height;
+
+		return `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+	}
+
+	function close(duration = 280) {
+		if (closing) return;
 		closing = true;
+
+		if (sourceRect && imgWrapEl) {
+			const t = computeToSourceTransform();
+			if (t) {
+				wrapTransition = `transform ${duration}ms cubic-bezier(0.4, 0, 0.6, 1)`;
+				wrapTransform = t;
+				setTimeout(() => lightboxStore.set(null), duration);
+				return;
+			}
+		}
+		// CSS fallback — lb-img-out and lb-fade-out handle it via class:closing
 	}
 
 	function onBackdropAnimationEnd(e) {
-		// Only handle the normal close path; swipe uses setTimeout
-		if (closing && !swipeDismissing && e.animationName === 'lb-fade-out') {
+		// Only fire for the CSS-fallback close path (no sourceRect)
+		if (closing && !hasSourceRect && e.animationName === 'lb-fade-out') {
 			lightboxStore.set(null);
 		}
 	}
@@ -54,31 +140,78 @@
 	}
 
 	function toggleZoom() {
-		zoomed = !zoomed;
+		if (!closing && !animating) zoomed = !zoomed;
 	}
 
-	// Touch drag-to-dismiss
+	// Touch drag-to-dismiss with velocity tracking
 	function onTouchStart(e) {
-		if (closing || swipeDismissing) return;
+		if (closing || zoomed) return;
 		touchStartY = e.touches[0].clientY;
+		lastTouchY = touchStartY;
+		lastTouchTime = Date.now();
 		dragY = 0;
+		velocityY = 0;
 		dragging = true;
+		// Cancel any ongoing open animation so drag takes over immediately
+		if (animating) {
+			animating = false;
+			wrapTransform = '';
+		}
+		wrapTransition = 'none';
 	}
 
 	function onTouchMove(e) {
 		if (!dragging) return;
 		e.preventDefault();
-		dragY = e.touches[0].clientY - touchStartY;
+
+		const now = Date.now();
+		const newY = e.touches[0].clientY;
+		const dt = Math.max(now - lastTouchTime, 1);
+		const iv = (newY - lastTouchY) / dt; // px/ms
+		velocityY = velocityY * 0.7 + iv * 0.3; // exponential moving average
+
+		lastTouchY = newY;
+		lastTouchTime = now;
+		dragY = newY - touchStartY;
+
+		wrapTransition = 'none';
+		wrapTransform = `translateY(${dragY}px)`;
 	}
 
 	function onTouchEnd() {
+		if (!dragging) return;
 		dragging = false;
-		if (Math.abs(dragY) > 80) {
-			// Fly image off screen while fading the backdrop — both over 320ms
+
+		const speed = Math.abs(velocityY); // px/ms
+		const dist = Math.abs(dragY);
+		const shouldDismiss = dist > 80 || speed > 0.5;
+
+		if (shouldDismiss) {
+			// Faster gesture → shorter animation (inertia feel)
+			const dur = Math.round(Math.max(180, Math.min(340, 300 - speed * 120)));
+			closing = true;
 			swipeDismissing = true;
-			dragY = dragY > 0 ? window.innerHeight : -window.innerHeight;
-			setTimeout(() => lightboxStore.set(null), 320);
+
+			if (sourceRect && imgWrapEl) {
+				// Shrink back to the thumbnail — same as intentional close
+				const t = computeToSourceTransform();
+				if (t) {
+					wrapTransition = `transform ${dur}ms cubic-bezier(0.4, 0, 0.6, 1)`;
+					wrapTransform = t;
+					setTimeout(() => lightboxStore.set(null), dur);
+					return;
+				}
+			}
+			// Fallback: fly off screen in drag direction
+			const flyDir = (dragY >= 0 ? 1 : -1) * window.innerHeight;
+			wrapTransition = `transform ${dur}ms cubic-bezier(0.4, 0, 0.6, 1)`;
+			wrapTransform = `translateY(${flyDir}px)`;
+			setTimeout(() => lightboxStore.set(null), dur);
 		} else {
+			// Spring snap-back — higher release velocity → slightly bouncier spring
+			const snapDur = Math.round(Math.min(620, Math.max(380, 400 + speed * 180)));
+			wrapTransition = `transform ${snapDur}ms cubic-bezier(0.16, 1, 0.3, 1)`;
+			wrapTransform = '';
 			dragY = 0;
 		}
 	}
@@ -86,6 +219,9 @@
 	function onTouchCancel() {
 		dragging = false;
 		dragY = 0;
+		velocityY = 0;
+		wrapTransition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+		wrapTransform = '';
 	}
 </script>
 
@@ -113,31 +249,27 @@
 			</svg>
 		</button>
 
-		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
+		<!-- Image wrapper — owns both the FLIP origin transform and swipe drag offset -->
+		<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 		<div
-			class="lb-drag-wrapper"
-			style="transform: translateY({dragY}px); transition: {dragging ? 'none' : 'transform 0.32s cubic-bezier(0.16,1,0.3,1)'};"
+			bind:this={imgWrapEl}
+			class="lb-img-wrap"
+			class:zoomed
+			class:closing={closing && !hasSourceRect}
+			class:js-origin={hasSourceRect}
+			style={wrapStyle}
 		>
-			<!-- Image wrapper -->
-			<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-			<div
-				class="lb-img-wrap"
+			<img
+				{src}
+				{alt}
+				class="lb-img"
 				class:zoomed
-				class:closing
-			>
-				<img
-					bind:this={imgEl}
-					{src}
-					{alt}
-					class="lb-img"
-					class:zoomed
-					on:click={toggleZoom}
-					draggable="false"
-				/>
-				{#if alt}
-					<p class="lb-caption">{alt}</p>
-				{/if}
-			</div>
+				on:click={toggleZoom}
+				draggable="false"
+			/>
+			{#if alt}
+				<p class="lb-caption">{alt}</p>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -159,11 +291,11 @@
 	}
 
 	.lb-backdrop.closing {
-		animation: lb-fade-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+		animation: lb-fade-out 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
 	}
 
 	.lb-backdrop.swipe-dismissing {
-		animation: lb-fade-out 0.32s ease forwards;
+		animation: lb-fade-out 0.35s ease forwards;
 	}
 
 	@keyframes lb-fade-in {
@@ -206,12 +338,6 @@
 		height: 1.125rem;
 	}
 
-	.lb-drag-wrapper {
-		display: flex;
-		max-width: 100%;
-		max-height: 100%;
-	}
-
 	.lb-img-wrap {
 		display: flex;
 		flex-direction: column;
@@ -219,18 +345,24 @@
 		gap: 0.75rem;
 		max-width: 100%;
 		max-height: 100%;
-		animation: lb-img-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+		/* CSS fallback animation — suppressed when JS handles it via .js-origin */
+		animation: lb-img-in 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 		cursor: zoom-in;
+		will-change: transform;
+	}
+
+	/* Suppress CSS keyframe when JS FLIP animation is active */
+	.lb-img-wrap.js-origin {
+		animation: none;
 	}
 
 	.lb-img-wrap.closing {
-		animation: lb-img-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+		animation: lb-img-out 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
 	}
 
 	.lb-img-wrap.zoomed {
 		cursor: zoom-out;
 		overflow: auto;
-		/* allow scrolling when zoomed */
 	}
 
 	@keyframes lb-img-in {
