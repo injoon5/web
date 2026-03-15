@@ -7,6 +7,7 @@
 	let active = false;
 	let animFrame;
 	let objects = [];
+	let settled = [];
 	let toastVisible = false;
 
 	function onKeyDown(e) {
@@ -22,11 +23,14 @@
 
 	function activate() {
 		active = true;
+		settled = [];
 		toastVisible = true;
 		setTimeout(() => (toastVisible = false), 2500);
 
+		const nav = document.querySelector('nav');
 		const selectors = 'h1,h2,h3,h4,p,a,img,button,li';
 		const els = [...document.querySelectorAll(selectors)].filter((el) => {
+			if (nav && nav.contains(el)) return false;
 			const r = el.getBoundingClientRect();
 			return r.width > 0 && r.height > 0;
 		});
@@ -49,7 +53,12 @@
 				vx: (Math.random() - 0.5) * 60,
 				vy: Math.random() * -30,
 				rot: 0,
-				angVel: (Math.random() - 0.5) * 150
+				angVel: (Math.random() - 0.5) * 150,
+				isSettled: false,
+				elTop: r.top,
+				elLeft: r.left,
+				elWidth: r.width,
+				elHeight: r.height
 			};
 		});
 
@@ -58,18 +67,49 @@
 		function step(now) {
 			const dt = Math.min((now - last) / 1000, 0.05);
 			last = now;
-			let alive = false;
+			let anyMoving = false;
+
 			for (const o of objects) {
-				if (!o.el) continue;
+				if (o.isSettled) continue;
+
 				o.vy += 980 * dt;
 				o.x += o.vx * dt;
 				o.y += o.vy * dt;
 				o.rot += o.angVel * dt;
-				o.el.style.transform = `translate(${o.x}px,${o.y}px) rotate(${o.rot}deg)`;
-				const top = parseFloat(o.el.style.top);
-				if (top + o.y < window.innerHeight + 200) alive = true;
+
+				// Find the highest surface this element can land on
+				const currentBottom = o.elTop + o.y + o.elHeight;
+				const eLeft = o.elLeft + o.x;
+				const eRight = eLeft + o.elWidth;
+
+				let landY = window.innerHeight;
+				for (const s of settled) {
+					if (eRight > s.left && eLeft < s.left + s.width && s.top < landY) {
+						landY = s.top;
+					}
+				}
+
+				if (currentBottom >= landY) {
+					o.y = landY - o.elHeight - o.elTop;
+					o.vy = 0;
+					o.vx = 0;
+					o.angVel = 0;
+					o.rot = 0;
+					o.isSettled = true;
+					settled.push({
+						left: o.elLeft + o.x,
+						top: landY - o.elHeight,
+						width: o.elWidth,
+						height: o.elHeight
+					});
+					o.el.style.transform = `translate(${o.x}px,${o.y}px)`;
+				} else {
+					o.el.style.transform = `translate(${o.x}px,${o.y}px) rotate(${o.rot}deg)`;
+					anyMoving = true;
+				}
 			}
-			if (alive) animFrame = requestAnimationFrame(step);
+
+			if (anyMoving) animFrame = requestAnimationFrame(step);
 		}
 
 		animFrame = requestAnimationFrame(step);
