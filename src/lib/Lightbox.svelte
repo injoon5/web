@@ -1,6 +1,5 @@
 <script>
 	import { lightboxStore } from './lightbox.js';
-	import { onMount } from 'svelte';
 
 	let visible = false;
 	let src = '';
@@ -8,6 +7,7 @@
 	let zoomed = false;
 	let imgEl;
 	let backdropEl;
+	let closing = false;
 	// For touch swipe-to-close
 	let touchStartY = 0;
 	let dragY = 0;
@@ -20,14 +20,22 @@
 			zoomed = false;
 			dragY = 0;
 			dragging = false;
+			closing = false;
 			visible = true;
 		} else {
 			visible = false;
+			closing = false;
 		}
 	});
 
 	function close() {
-		lightboxStore.set(null);
+		closing = true;
+	}
+
+	function onBackdropAnimationEnd(e) {
+		if (closing && e.animationName === 'lb-fade-out') {
+			lightboxStore.set(null);
+		}
 	}
 
 	function handleBackdropClick(e) {
@@ -47,6 +55,7 @@
 
 	// Touch drag-to-dismiss
 	function onTouchStart(e) {
+		if (closing) return;
 		touchStartY = e.touches[0].clientY;
 		dragY = 0;
 		dragging = true;
@@ -61,7 +70,9 @@
 	function onTouchEnd() {
 		dragging = false;
 		if (Math.abs(dragY) > 80) {
-			close();
+			// Fly the image off screen in the drag direction, then close
+			dragY = dragY > 0 ? window.innerHeight : -window.innerHeight;
+			setTimeout(() => lightboxStore.set(null), 320);
 		} else {
 			dragY = 0;
 		}
@@ -80,7 +91,9 @@
 	<div
 		bind:this={backdropEl}
 		class="lb-backdrop"
+		class:closing
 		on:click={handleBackdropClick}
+		on:animationend={onBackdropAnimationEnd}
 		on:touchstart={onTouchStart}
 		on:touchmove={onTouchMove}
 		on:touchend={onTouchEnd}
@@ -94,25 +107,31 @@
 			</svg>
 		</button>
 
-		<!-- Image wrapper -->
-		<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
 		<div
-			class="lb-img-wrap"
-			class:zoomed
-			style="transform: translateY({dragY}px); transition: {dragging ? 'none' : 'transform 0.35s cubic-bezier(0.16,1,0.3,1)'};"
+			class="lb-drag-wrapper"
+			style="transform: translateY({dragY}px); transition: {dragging ? 'none' : 'transform 0.32s cubic-bezier(0.16,1,0.3,1)'};"
 		>
-			<img
-				bind:this={imgEl}
-				{src}
-				{alt}
-				class="lb-img"
+			<!-- Image wrapper -->
+			<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+			<div
+				class="lb-img-wrap"
 				class:zoomed
-				on:click={toggleZoom}
-				draggable="false"
-			/>
-			{#if alt}
-				<p class="lb-caption">{alt}</p>
-			{/if}
+				class:closing
+			>
+				<img
+					bind:this={imgEl}
+					{src}
+					{alt}
+					class="lb-img"
+					class:zoomed
+					on:click={toggleZoom}
+					draggable="false"
+				/>
+				{#if alt}
+					<p class="lb-caption">{alt}</p>
+				{/if}
+			</div>
 		</div>
 	</div>
 {/if}
@@ -133,13 +152,18 @@
 		cursor: zoom-out;
 	}
 
+	.lb-backdrop.closing {
+		animation: lb-fade-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+	}
+
 	@keyframes lb-fade-in {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	@keyframes lb-fade-out {
+		from { opacity: 1; }
+		to { opacity: 0; }
 	}
 
 	.lb-close {
@@ -172,6 +196,12 @@
 		height: 1.125rem;
 	}
 
+	.lb-drag-wrapper {
+		display: flex;
+		max-width: 100%;
+		max-height: 100%;
+	}
+
 	.lb-img-wrap {
 		display: flex;
 		flex-direction: column;
@@ -181,6 +211,10 @@
 		max-height: 100%;
 		animation: lb-img-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 		cursor: zoom-in;
+	}
+
+	.lb-img-wrap.closing {
+		animation: lb-img-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
 	}
 
 	.lb-img-wrap.zoomed {
@@ -197,6 +231,17 @@
 		to {
 			opacity: 1;
 			transform: scale(1);
+		}
+	}
+
+	@keyframes lb-img-out {
+		from {
+			opacity: 1;
+			transform: scale(1);
+		}
+		to {
+			opacity: 0;
+			transform: scale(0.88);
 		}
 	}
 
