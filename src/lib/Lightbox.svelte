@@ -32,14 +32,9 @@
 	});
 
 	function close() {
+		if (closing) return;
 		closing = true;
-	}
-
-	function onBackdropAnimationEnd(e) {
-		// Only handle the normal close path; swipe uses setTimeout
-		if (closing && !swipeDismissing && e.animationName === 'lb-fade-out') {
-			lightboxStore.set(null);
-		}
+		setTimeout(() => lightboxStore.set(null), 230);
 	}
 
 	function handleBackdropClick(e) {
@@ -99,7 +94,6 @@
 		class:closing
 		class:swipe-dismissing={swipeDismissing}
 		on:click={handleBackdropClick}
-		on:animationend={onBackdropAnimationEnd}
 		on:touchstart={onTouchStart}
 		on:touchmove={onTouchMove}
 		on:touchend={onTouchEnd}
