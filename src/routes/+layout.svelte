@@ -1,7 +1,7 @@
 <script>
 	import '../app.css';
 	import NavBar from '$lib/NavBar.svelte';
-	import GravityEasterEgg from '$lib/GravityEasterEgg.svelte';
+	import Gravity from '$lib/Gravity.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
@@ -97,4 +97,4 @@
 	</div>
 </footer>
 
-<GravityEasterEgg />
+<Gravity />
