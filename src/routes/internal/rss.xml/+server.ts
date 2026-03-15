@@ -42,7 +42,7 @@ const getPosts = () => {
 				return meta;
 			}
 		})
-		.filter((post) => post && post.published);
+		.filter((post) => post && post.published === "true");
 };
 
 // Function to clean up content by stripping non-text elements (e.g., images, embeds)
