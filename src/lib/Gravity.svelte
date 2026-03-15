@@ -6,61 +6,70 @@
 	let buffer = '';
 	let active = false;
 	let animFrame;
-	let objects = [];
-	let settled = [];
-	let toastVisible = false;
 
 	function onKeyDown(e) {
-		if (active && e.key === 'Escape') {
-			window.location.reload();
-			return;
-		}
 		if (active) return;
-
 		buffer = (buffer + e.key.toLowerCase()).slice(-TARGET.length);
 		if (buffer === TARGET) activate();
 	}
 
 	function activate() {
 		active = true;
-		settled = [];
-		toastVisible = true;
-		setTimeout(() => (toastVisible = false), 2500);
+
+		const COLS = 60;
+		const colW = window.innerWidth / COLS;
+		const floorY = new Array(COLS).fill(window.innerHeight);
+
+		function getFloor(left, right) {
+			const c1 = Math.max(0, Math.floor(left / colW));
+			const c2 = Math.min(COLS - 1, Math.floor(right / colW));
+			let floor = window.innerHeight;
+			for (let c = c1; c <= c2; c++) floor = Math.min(floor, floorY[c]);
+			return floor;
+		}
+
+		function markFloor(left, right, top) {
+			const c1 = Math.max(0, Math.floor(left / colW));
+			const c2 = Math.min(COLS - 1, Math.floor(right / colW));
+			for (let c = c1; c <= c2; c++) floorY[c] = Math.min(floorY[c], top);
+		}
 
 		const nav = document.querySelector('nav');
 		const selectors = 'h1,h2,h3,h4,p,a,img,button,li';
-		const els = [...document.querySelectorAll(selectors)].filter((el) => {
-			if (nav && nav.contains(el)) return false;
-			const r = el.getBoundingClientRect();
-			return r.width > 0 && r.height > 0;
-		});
 
-		objects = els.map((el) => {
-			const r = el.getBoundingClientRect();
-			el.style.position = 'fixed';
-			el.style.left = r.left + 'px';
-			el.style.top = r.top + 'px';
-			el.style.width = r.width + 'px';
-			el.style.height = r.height + 'px';
-			el.style.margin = '0';
-			el.style.zIndex = '9000';
-			el.style.pointerEvents = 'none';
-			el.style.boxSizing = 'border-box';
-			return {
-				el,
-				x: 0,
-				y: 0,
-				vx: (Math.random() - 0.5) * 60,
-				vy: Math.random() * -30,
-				rot: 0,
-				angVel: (Math.random() - 0.5) * 150,
-				isSettled: false,
-				elTop: r.top,
-				elLeft: r.left,
-				elWidth: r.width,
-				elHeight: r.height
-			};
-		});
+		const objects = [...document.querySelectorAll(selectors)]
+			.filter((el) => {
+				if (nav && nav.contains(el)) return false;
+				const r = el.getBoundingClientRect();
+				return r.width > 0 && r.height > 0;
+			})
+			.map((el) => {
+				const r = el.getBoundingClientRect();
+				el.style.cssText +=
+					';position:fixed!important;left:' +
+					r.left +
+					'px;top:' +
+					r.top +
+					'px;width:' +
+					r.width +
+					'px;height:' +
+					r.height +
+					'px;margin:0;z-index:9000;pointer-events:none;box-sizing:border-box;';
+				return {
+					el,
+					x: 0,
+					y: 0,
+					vx: (Math.random() - 0.5) * 60,
+					vy: 0,
+					rot: 0,
+					angVel: (Math.random() - 0.5) * 150,
+					done: false,
+					top: r.top,
+					left: r.left,
+					w: r.width,
+					h: r.height
+				};
+			});
 
 		let last = performance.now();
 
@@ -70,39 +79,26 @@
 			let anyMoving = false;
 
 			for (const o of objects) {
-				if (o.isSettled) continue;
+				if (o.done) continue;
 
 				o.vy += 980 * dt;
 				o.x += o.vx * dt;
 				o.y += o.vy * dt;
 				o.rot += o.angVel * dt;
 
-				// Find the highest surface this element can land on
-				const currentBottom = o.elTop + o.y + o.elHeight;
-				const eLeft = o.elLeft + o.x;
-				const eRight = eLeft + o.elWidth;
+				const sLeft = o.left + o.x;
+				const sRight = sLeft + o.w;
+				const sBottom = o.top + o.y + o.h;
+				const floor = getFloor(sLeft, sRight);
 
-				let landY = window.innerHeight;
-				for (const s of settled) {
-					if (eRight > s.left && eLeft < s.left + s.width && s.top < landY) {
-						landY = s.top;
-					}
-				}
-
-				if (currentBottom >= landY) {
-					o.y = landY - o.elHeight - o.elTop;
+				if (sBottom >= floor) {
+					o.y = floor - o.h - o.top;
 					o.vy = 0;
 					o.vx = 0;
 					o.angVel = 0;
-					o.rot = 0;
-					o.isSettled = true;
-					settled.push({
-						left: o.elLeft + o.x,
-						top: landY - o.elHeight,
-						width: o.elWidth,
-						height: o.elHeight
-					});
-					o.el.style.transform = `translate(${o.x}px,${o.y}px)`;
+					o.done = true;
+					markFloor(o.left + o.x, o.left + o.x + o.w, floor - o.h);
+					o.el.style.transform = `translate(${o.x}px,${o.y}px) rotate(${o.rot}deg)`;
 				} else {
 					o.el.style.transform = `translate(${o.x}px,${o.y}px) rotate(${o.rot}deg)`;
 					anyMoving = true;
@@ -122,29 +118,3 @@
 		if (animFrame) cancelAnimationFrame(animFrame);
 	});
 </script>
-
-{#if toastVisible}
-	<div class="gravity-toast">🌍 Gravity mode — press ESC to escape</div>
-{/if}
-
-<style>
-	.gravity-toast {
-		position: fixed;
-		bottom: 2rem;
-		left: 50%;
-		transform: translateX(-50%);
-		background: #171717;
-		color: #fafafa;
-		padding: 0.5rem 1.25rem;
-		font-size: 0.875rem;
-		font-family: inherit;
-		z-index: 99999;
-		pointer-events: none;
-		white-space: nowrap;
-	}
-
-	:global(.dark) .gravity-toast {
-		background: #fafafa;
-		color: #171717;
-	}
-</style>
