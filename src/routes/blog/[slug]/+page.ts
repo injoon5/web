@@ -52,7 +52,7 @@ export async function load({ params, fetch }) {
 		meta: primaryPost.metadata,
 		series,
 		availableLangs,
-		enReadingTime: enRaw ? readingTime(enRaw) : null,
-		koReadingTime: koRaw ? readingTime(koRaw) : null,
+		enReadingTime: enRaw ? readingTime(enRaw, 'en') : null,
+		koReadingTime: koRaw ? readingTime(koRaw, 'ko') : null,
 	};
 }
