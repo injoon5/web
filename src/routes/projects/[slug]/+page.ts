@@ -12,25 +12,23 @@ export async function load({ params }) {
 	const enKey = `../projects/en/${params.slug}.md`;
 	const koKey = `../projects/ko/${params.slug}.md`;
 
-	let enProject = null;
-	let koProject = null;
+	const [enMod, koMod] = await Promise.all([
+		enModules[enKey] ? enModules[enKey]() : null,
+		koModules[koKey] ? koModules[koKey]() : null,
+	]);
 
-	if (enModules[enKey]) {
-		const mod = await enModules[enKey]();
-		if (mod.metadata?.published) enProject = mod;
-	}
-	if (koModules[koKey]) {
-		const mod = await koModules[koKey]();
-		if (mod.metadata?.published) koProject = mod;
-	}
+	const enProject = enMod?.metadata?.published ? enMod : null;
+	const koProject = koMod?.metadata?.published ? koMod : null;
 
 	const primaryProject = enProject || koProject;
 	if (!primaryProject) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
-	const enRaw = enProject && enRawModules[enKey] ? await enRawModules[enKey]() : null;
-	const koRaw = koProject && koRawModules[koKey] ? await koRawModules[koKey]() : null;
+	const [enRaw, koRaw] = await Promise.all([
+		enProject && enRawModules[enKey] ? enRawModules[enKey]() : null,
+		koProject && koRawModules[koKey] ? koRawModules[koKey]() : null,
+	]);
 
 	const availableLangs = [
 		...(enProject ? ["en"] : []),
