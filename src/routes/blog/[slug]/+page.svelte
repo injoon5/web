@@ -32,7 +32,7 @@
 <Lightbox />
 
 <div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-	<article class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3 xl:col-span-7 xl:col-start-2">
+	<article class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if data.series?.[0]?.series}
@@ -87,8 +87,8 @@
 		</div>
 	</article>
 
-	<!-- TOC sidebar: only visible at xl+ when there's room -->
-	<aside class="hidden xl:block xl:col-span-3 xl:col-start-10 xl:pt-10">
+	<!-- TOC sidebar: only visible at xl+ in the right margin columns -->
+	<aside class="hidden xl:block xl:col-span-2 xl:col-start-11 xl:pt-10">
 		<TableOfContents />
 	</aside>
 </div>
