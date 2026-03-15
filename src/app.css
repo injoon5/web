@@ -70,16 +70,17 @@
 	animation: vote-pop 0.28s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
 
-/* Like button pop */
-@keyframes like-pop {
-	0%   { transform: scale(1); }
-	35%  { transform: scale(1.35); }
-	65%  { transform: scale(0.88); }
-	100% { transform: scale(1); }
+/* Like button heart confetti */
+@keyframes heart-particle {
+	0%   { transform: translate(0, 0) scale(0) rotate(var(--r)); opacity: 1; }
+	20%  { opacity: 1; }
+	100% { transform: translate(var(--tx), var(--ty)) scale(var(--s)) rotate(var(--r)); opacity: 0; }
 }
 
-.like-pop {
-	animation: like-pop 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+.heart-particle {
+	animation: heart-particle 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+	font-size: 0.85rem;
+	line-height: 1;
 }
 
 

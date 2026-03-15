@@ -10,8 +10,8 @@
 	let currentPath = '';
 	let likeError = '';
 	let likeErrorTimer = null;
-	let heartPopping = false;
-	let heartPopTimer = null;
+	let particles = [];
+	let particleId = 0;
 
 	onMount(async () => {
 		currentPath = $page.url.pathname;
@@ -50,6 +50,29 @@
 		}
 	}
 
+	function spawnHearts() {
+		const count = 10;
+		const batch = Array.from({ length: count }, (_, i) => {
+			// Spread hearts in all directions, biased slightly upward
+			const angle = (360 / count) * i + (Math.random() * 24 - 12);
+			const distance = 38 + Math.random() * 36;
+			const rad = ((angle - 90) * Math.PI) / 180; // -90 so 0° is up
+			return {
+				id: particleId++,
+				tx: Math.cos(rad) * distance,
+				ty: Math.sin(rad) * distance,
+				rotate: Math.random() * 50 - 25,
+				scale: 0.7 + Math.random() * 0.6,
+				delay: Math.floor(Math.random() * 60)
+			};
+		});
+		particles = [...particles, ...batch];
+		setTimeout(() => {
+			const ids = new Set(batch.map((p) => p.id));
+			particles = particles.filter((p) => !ids.has(p.id));
+		}, 900);
+	}
+
 	async function toggleLike() {
 		toggling = true;
 		try {
@@ -62,16 +85,7 @@
 				const data = await res.json();
 				likeCount = data.count;
 				isLiked = data.liked;
-				// Trigger heart pop on like (not unlike)
-				if (isLiked) {
-					if (heartPopTimer) clearTimeout(heartPopTimer);
-					heartPopping = false;
-					// Force reflow so re-adding the class restarts the animation
-					requestAnimationFrame(() => {
-						heartPopping = true;
-						heartPopTimer = setTimeout(() => { heartPopping = false; }, 350);
-					});
-				}
+				if (isLiked) spawnHearts();
 			} else {
 				const data = await res.json().catch(() => ({}));
 				showLikeError(data.message ?? 'Could not save like.');
@@ -93,30 +107,29 @@
 			<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
 		</span>
 	{/if}
-	<button
-		on:click={toggleLike}
-		disabled={loading || toggling}
-		class="inline-flex items-center gap-2 rounded-lg p-2 px-4 font-medium text-neutral-100 transition-all duration-300 hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50
-			{isLiked ? 'bg-rose-600 dark:bg-rose-500' : 'bg-black dark:bg-white dark:text-neutral-900'}"
-	>
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			class="h-4 w-4 {heartPopping ? 'like-pop' : ''} {isLiked ? 'fill-white' : 'fill-current'}"
-			viewBox="0 0 20 20"
-			aria-hidden="true"
+
+	<div class="relative">
+		<!-- Heart confetti particles -->
+		{#each particles as p (p.id)}
+			<span
+				class="heart-particle pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none text-rose-500"
+				style="--tx: {p.tx}px; --ty: {p.ty}px; --r: {p.rotate}deg; --s: {p.scale}; animation-delay: {p.delay}ms;"
+				aria-hidden="true"
+			>❤</span>
+		{/each}
+
+		<button
+			on:click={toggleLike}
+			disabled={loading || toggling}
+			class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 		>
-			{#if isLiked}
-				<path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+			{#if toggling}
+				{isLiked ? 'Unliking…' : 'Liking…'}
 			{:else}
-				<path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+				{isLiked ? 'Unlike' : 'Like'}
 			{/if}
-		</svg>
-		{#if toggling}
-			{isLiked ? 'Unliking…' : 'Liking…'}
-		{:else}
-			{isLiked ? 'Unlike' : 'Like'}
-		{/if}
-	</button>
+		</button>
+	</div>
 </div>
 {#if likeError}
 	<p class="mt-2 text-sm text-red-500">{likeError}</p>
