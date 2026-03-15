@@ -8,6 +8,7 @@
 	let imgEl;
 	let backdropEl;
 	let closing = false;
+	let swipeDismissing = false;
 	// For touch swipe-to-close
 	let touchStartY = 0;
 	let dragY = 0;
@@ -21,10 +22,12 @@
 			dragY = 0;
 			dragging = false;
 			closing = false;
+			swipeDismissing = false;
 			visible = true;
 		} else {
 			visible = false;
 			closing = false;
+			swipeDismissing = false;
 		}
 	});
 
@@ -33,7 +36,8 @@
 	}
 
 	function onBackdropAnimationEnd(e) {
-		if (closing && e.animationName === 'lb-fade-out') {
+		// Only handle the normal close path; swipe uses setTimeout
+		if (closing && !swipeDismissing && e.animationName === 'lb-fade-out') {
 			lightboxStore.set(null);
 		}
 	}
@@ -55,7 +59,7 @@
 
 	// Touch drag-to-dismiss
 	function onTouchStart(e) {
-		if (closing) return;
+		if (closing || swipeDismissing) return;
 		touchStartY = e.touches[0].clientY;
 		dragY = 0;
 		dragging = true;
@@ -70,7 +74,8 @@
 	function onTouchEnd() {
 		dragging = false;
 		if (Math.abs(dragY) > 80) {
-			// Fly the image off screen in the drag direction, then close
+			// Fly image off screen while fading the backdrop — both over 320ms
+			swipeDismissing = true;
 			dragY = dragY > 0 ? window.innerHeight : -window.innerHeight;
 			setTimeout(() => lightboxStore.set(null), 320);
 		} else {
@@ -92,6 +97,7 @@
 		bind:this={backdropEl}
 		class="lb-backdrop"
 		class:closing
+		class:swipe-dismissing={swipeDismissing}
 		on:click={handleBackdropClick}
 		on:animationend={onBackdropAnimationEnd}
 		on:touchstart={onTouchStart}
@@ -154,6 +160,10 @@
 
 	.lb-backdrop.closing {
 		animation: lb-fade-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+	}
+
+	.lb-backdrop.swipe-dismissing {
+		animation: lb-fade-out 0.32s ease forwards;
 	}
 
 	@keyframes lb-fade-in {
