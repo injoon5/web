@@ -4,6 +4,8 @@ import rehypeSlug from 'rehype-slug';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import remarkGemoji from 'remark-gemoji';
+import remarkEmbedder from '@remark-embedder/core';
+import oembedTransformer from '@remark-embedder/transformer-oembed';
 // import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
@@ -24,6 +26,13 @@ const config = {
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,
+		[remarkEmbedder.default, {
+			transformers: [oembedTransformer.default],
+			handleError: ({ error, url }) => {
+				console.error(`Failed to embed ${url}:`, error);
+				return `<a href="${url}">${url}</a>`;
+			}
+		}]
 		// [enhancedImage, { attributes: { loading: 'lazy', fetchpriority: 'low' } }]
 	],
 	rehypePlugins: [
