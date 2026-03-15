@@ -4,6 +4,8 @@
 	let visible = false;
 	let src = '';
 	let alt = '';
+	let naturalWidth = 0;
+	let naturalHeight = 0;
 	let zoomed = false;
 	let imgEl;
 	let backdropEl;
@@ -18,6 +20,8 @@
 		if (val) {
 			src = val.src;
 			alt = val.alt;
+			naturalWidth = val.naturalWidth || 0;
+			naturalHeight = val.naturalHeight || 0;
 			zoomed = false;
 			dragY = 0;
 			dragging = false;
@@ -125,6 +129,7 @@
 					{alt}
 					class="lb-img"
 					class:zoomed
+					style={!zoomed && naturalWidth ? `max-width: min(100%, ${naturalWidth}px); max-height: min(calc(100dvh - 6rem), ${naturalHeight}px);` : ''}
 					on:click={toggleZoom}
 					draggable="false"
 				/>
