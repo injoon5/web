@@ -1,5 +1,6 @@
 <script>
 	import { lightboxStore } from './lightbox.js';
+	import { browser } from '$app/environment';
 
 	let visible = false;
 	let src = '';
@@ -28,10 +29,12 @@
 			closing = false;
 			swipeDismissing = false;
 			visible = true;
+			if (browser) document.body.style.overflow = 'hidden';
 		} else {
 			visible = false;
 			closing = false;
 			swipeDismissing = false;
+			if (browser) document.body.style.overflow = '';
 		}
 	});
 
