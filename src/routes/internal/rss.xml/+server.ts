@@ -1,3 +1,5 @@
+export const prerender = true;
+
 import { create } from "xmlbuilder2";
 import fs from "fs";
 import path from "path";
