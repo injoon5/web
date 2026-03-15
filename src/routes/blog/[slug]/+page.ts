@@ -1,12 +1,9 @@
 export const prerender = true;
 
 import { error } from "@sveltejs/kit";
-import { readingTime } from "$lib/readingTime.js";
 
 const enModules = import.meta.glob("../posts/en/*.md");
 const koModules = import.meta.glob("../posts/ko/*.md");
-const enRawModules = import.meta.glob("../posts/en/*.md", { query: "?raw", import: "default" });
-const koRawModules = import.meta.glob("../posts/ko/*.md", { query: "?raw", import: "default" });
 
 export async function load({ params, fetch }) {
 	const enKey = `../posts/en/${params.slug}.md`;
@@ -29,9 +26,6 @@ export async function load({ params, fetch }) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
-	const enRaw = enPost && enRawModules[enKey] ? await enRawModules[enKey]() : null;
-	const koRaw = koPost && koRawModules[koKey] ? await koRawModules[koKey]() : null;
-
 	const response = await fetch("/api/posts");
 	const posts = await response.json();
 
@@ -52,7 +46,7 @@ export async function load({ params, fetch }) {
 		meta: primaryPost.metadata,
 		series,
 		availableLangs,
-		enReadingTime: enRaw ? readingTime(enRaw, 'en') : null,
-		koReadingTime: koRaw ? readingTime(koRaw, 'ko') : null,
+		enReadingTime: enPost?.metadata?.readingTime ?? null,
+		koReadingTime: koPost?.metadata?.readingTime ?? null,
 	};
 }

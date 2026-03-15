@@ -10,6 +10,7 @@ import oembedTransformer from '@remark-embedder/transformer-oembed';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
 import { createHighlighter } from '@svelte-dev/pretty-code';
+import { remarkReadingTime } from './src/lib/remarkReadingTime.js';
 
 const config = {
 	extensions: ['.md'],
@@ -23,6 +24,7 @@ const config = {
 		dashes: 'oldschool'
 	},
 	remarkPlugins: [
+		remarkReadingTime,
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,

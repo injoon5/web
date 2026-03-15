@@ -1,12 +1,9 @@
 export const prerender = true;
 
 import { error } from "@sveltejs/kit";
-import { readingTime } from "$lib/readingTime.js";
 
 const enModules = import.meta.glob("../projects/en/*.md");
 const koModules = import.meta.glob("../projects/ko/*.md");
-const enRawModules = import.meta.glob("../projects/en/*.md", { query: "?raw", import: "default" });
-const koRawModules = import.meta.glob("../projects/ko/*.md", { query: "?raw", import: "default" });
 
 export async function load({ params }) {
 	const enKey = `../projects/en/${params.slug}.md`;
@@ -29,9 +26,6 @@ export async function load({ params }) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
-	const enRaw = enProject && enRawModules[enKey] ? await enRawModules[enKey]() : null;
-	const koRaw = koProject && koRawModules[koKey] ? await koRawModules[koKey]() : null;
-
 	const availableLangs = [
 		...(enProject ? ["en"] : []),
 		...(koProject ? ["ko"] : []),
@@ -44,7 +38,7 @@ export async function load({ params }) {
 		koMeta: koProject?.metadata ?? null,
 		meta: primaryProject.metadata,
 		availableLangs,
-		enReadingTime: enRaw ? readingTime(enRaw, 'en') : null,
-		koReadingTime: koRaw ? readingTime(koRaw, 'ko') : null,
+		enReadingTime: enProject?.metadata?.readingTime ?? null,
+		koReadingTime: koProject?.metadata?.readingTime ?? null,
 	};
 }
