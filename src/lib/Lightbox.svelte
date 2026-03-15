@@ -24,10 +24,12 @@
 			closing = false;
 			swipeDismissing = false;
 			visible = true;
+			document.body.style.overflow = 'hidden';
 		} else {
 			visible = false;
 			closing = false;
 			swipeDismissing = false;
+			document.body.style.overflow = '';
 		}
 	});
 
