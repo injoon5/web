@@ -48,11 +48,13 @@
 	// Touch drag-to-dismiss
 	function onTouchStart(e) {
 		touchStartY = e.touches[0].clientY;
+		dragY = 0;
 		dragging = true;
 	}
 
 	function onTouchMove(e) {
 		if (!dragging) return;
+		e.preventDefault();
 		dragY = e.touches[0].clientY - touchStartY;
 	}
 
@@ -64,6 +66,11 @@
 			dragY = 0;
 		}
 	}
+
+	function onTouchCancel() {
+		dragging = false;
+		dragY = 0;
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -74,6 +81,10 @@
 		bind:this={backdropEl}
 		class="lb-backdrop"
 		on:click={handleBackdropClick}
+		on:touchstart={onTouchStart}
+		on:touchmove={onTouchMove}
+		on:touchend={onTouchEnd}
+		on:touchcancel={onTouchCancel}
 	>
 		<!-- Close button -->
 		<button class="lb-close" on:click={close} aria-label="Close image">
@@ -88,10 +99,7 @@
 		<div
 			class="lb-img-wrap"
 			class:zoomed
-			style="transform: translateY({dragging ? dragY : 0}px); transition: {dragging ? 'none' : 'transform 0.35s cubic-bezier(0.16,1,0.3,1)'};"
-			on:touchstart={onTouchStart}
-			on:touchmove|passive={onTouchMove}
-			on:touchend={onTouchEnd}
+			style="transform: translateY({dragY}px); transition: {dragging ? 'none' : 'transform 0.35s cubic-bezier(0.16,1,0.3,1)'};"
 		>
 			<img
 				bind:this={imgEl}
