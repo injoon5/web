@@ -2,7 +2,15 @@ import { writable } from 'svelte/store';
 
 export const lightboxStore = writable(null); // null = closed, { src, alt } = open
 
+export function lazyImagesAction(node) {
+	node.querySelectorAll('img').forEach((img) => {
+		img.loading = 'lazy';
+	});
+}
+
 export function lightboxAction(node) {
+	lazyImagesAction(node);
+
 	function handleClick(e) {
 		const img = e.target.closest('img');
 		if (!img) return;

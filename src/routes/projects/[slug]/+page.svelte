@@ -2,6 +2,7 @@
 	import { formatDate } from '$lib/utils';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import { page } from '$app/stores';
+	import { lazyImagesAction } from '$lib/lightbox.js';
 
 	export let data;
 
@@ -63,6 +64,7 @@
 			</div>
 		</div>
 		<div
+			use:lazyImagesAction
 			class="prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-h1:text-3xl prose-h1:font-semibold prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:w-4/5 mt-10 max-w-none"
 		>
 			{#if currentContent}
