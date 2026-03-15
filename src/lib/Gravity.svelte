@@ -1,5 +1,6 @@
 <script>
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 
 	const TRIGGER_WORD = 'gravity';
 	const GRAVITY = 1800;
@@ -140,10 +141,9 @@
 
 	onMount(() => {
 		window.addEventListener('keydown', handleKeydown);
-	});
-
-	onDestroy(() => {
-		window.removeEventListener('keydown', handleKeydown);
-		if (animFrameId) cancelAnimationFrame(animFrameId);
+		return () => {
+			window.removeEventListener('keydown', handleKeydown);
+			if (animFrameId) cancelAnimationFrame(animFrameId);
+		};
 	});
 </script>
