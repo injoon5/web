@@ -330,19 +330,24 @@
 						href={track.url}
 					>
 						<div class="shrink-0">
-							<div class="relative h-14 w-14">
+							<div class="relative h-14 w-14 overflow-hidden">
 								<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
 								<img
 									loading="lazy"
 									src={track?.image?.[2]?.['#text'] ?? ''}
 									alt={track?.name ?? 'Album cover'}
-									class="absolute inset-0 h-full w-full object-cover"
+									class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
 								/>
 							</div>
 						</div>
 						<div class="flex w-full items-center justify-between text-lg font-medium">
-							<span class="line-clamp-1">{track.name}</span>
-							<span class="ml-2 line-clamp-1">
+							<div class="flex min-w-0 items-center gap-2">
+								{#if track?.['@attr']?.nowplaying === 'true'}
+									<span class="h-2 w-2 shrink-0 animate-pulse rounded-full bg-green-500"></span>
+								{/if}
+								<span class="line-clamp-1">{track.name}</span>
+							</div>
+							<span class="ml-2 shrink-0 line-clamp-1">
 								{track?.artist?.['#text'] === 'Lany' ? 'LANY' : track?.artist?.['#text']}
 							</span>
 						</div>
@@ -407,7 +412,7 @@
 								loading="lazy"
 								src={photo?.src?.medium?.url ?? ''}
 								alt={photo?.title || 'Photo'}
-								class="z-10 max-h-[80%] max-w-[80%] object-contain shadow-lg"
+								class="z-10 max-h-[80%] max-w-[80%] object-contain shadow-lg transition-transform duration-300 group-hover:scale-105"
 							/>
 
 							{#if (photo?.src?.medium?.width ?? 0) >= (photo?.src?.medium?.height ?? 0)}
