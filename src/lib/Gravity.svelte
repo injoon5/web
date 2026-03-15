@@ -28,7 +28,7 @@
 		const selectors = 'h1,h2,h3,h4,p,a,img,button,li';
 		const els = [...document.querySelectorAll(selectors)].filter((el) => {
 			const r = el.getBoundingClientRect();
-			return r.width > 0 && r.height > 0 && r.top < window.innerHeight + 100;
+			return r.width > 0 && r.height > 0;
 		});
 
 		objects = els.map((el) => {
