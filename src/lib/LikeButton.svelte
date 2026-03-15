@@ -10,6 +10,8 @@
 	let currentPath = '';
 	let likeError = '';
 	let likeErrorTimer = null;
+	let heartPopping = false;
+	let heartPopTimer = null;
 
 	onMount(async () => {
 		currentPath = $page.url.pathname;
@@ -60,6 +62,16 @@
 				const data = await res.json();
 				likeCount = data.count;
 				isLiked = data.liked;
+				// Trigger heart pop on like (not unlike)
+				if (isLiked) {
+					if (heartPopTimer) clearTimeout(heartPopTimer);
+					heartPopping = false;
+					// Force reflow so re-adding the class restarts the animation
+					requestAnimationFrame(() => {
+						heartPopping = true;
+						heartPopTimer = setTimeout(() => { heartPopping = false; }, 350);
+					});
+				}
 			} else {
 				const data = await res.json().catch(() => ({}));
 				showLikeError(data.message ?? 'Could not save like.');
@@ -84,8 +96,21 @@
 	<button
 		on:click={toggleLike}
 		disabled={loading || toggling}
-		class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+		class="inline-flex items-center gap-2 rounded-lg p-2 px-4 font-medium text-neutral-100 transition-all duration-300 hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50
+			{isLiked ? 'bg-rose-600 dark:bg-rose-500' : 'bg-black dark:bg-white dark:text-neutral-900'}"
 	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-4 w-4 {heartPopping ? 'like-pop' : ''} {isLiked ? 'fill-white' : 'fill-current'}"
+			viewBox="0 0 20 20"
+			aria-hidden="true"
+		>
+			{#if isLiked}
+				<path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+			{:else}
+				<path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd" />
+			{/if}
+		</svg>
 		{#if toggling}
 			{isLiked ? 'Unliking…' : 'Liking…'}
 		{:else}
