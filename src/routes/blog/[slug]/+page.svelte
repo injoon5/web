@@ -7,6 +7,18 @@
 	import Lightbox from '$lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import TableOfContents from '$lib/TableOfContents.svelte';
+	import { cubicOut } from 'svelte/easing';
+
+	/** @param {Element} node */
+	function langFade(node, { duration = 250 } = {}) {
+		return {
+			duration,
+			css: (t) => {
+				const eased = cubicOut(t);
+				return `opacity: ${eased}; transform: translateY(${(1 - eased) * 8}px);`;
+			}
+		};
+	}
 
 	export let data;
 
@@ -39,14 +51,18 @@
 					{data.series[0].series}
 				</h2>
 			{/if}
-			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
-				{currentMeta.title}
-			</h1>
-			<div class="mt-2 flex flex-row text-2xl font-medium text-neutral-600 dark:text-neutral-400">
-				<p>{formatDate(currentMeta.date)}</p>
-				<p class="mx-1">·</p>
-				<p>{currentReadingTime}</p>
-			</div>
+			{#key lang}
+				<div in:langFade={{ duration: 220 }}>
+					<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
+						{currentMeta.title}
+					</h1>
+					<div class="mt-2 flex flex-row text-2xl font-medium text-neutral-600 dark:text-neutral-400">
+						<p>{formatDate(currentMeta.date)}</p>
+						<p class="mx-1">·</p>
+						<p>{currentReadingTime}</p>
+					</div>
+				</div>
+			{/key}
 			{#if data.availableLangs.length > 1}
 				<div class="mt-2 flex items-center gap-1">
 					{#each data.availableLangs as l}
@@ -72,14 +88,17 @@
 		</div>
 
 		<!-- Post -->
-		<div
-			use:lightboxAction
-			class="prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:cursor-zoom-in mt-10 max-w-none"
-		>
-			{#if currentContent}
-				<svelte:component this={currentContent} class="prose" />
-			{/if}
-		</div>
+		{#key lang}
+			<div
+				in:langFade={{ duration: 260 }}
+				use:lightboxAction
+				class="prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:no-underline prose-a:hover:underline prose-img:mx-auto prose-img:cursor-zoom-in mt-10 max-w-none"
+			>
+				{#if currentContent}
+					<svelte:component this={currentContent} class="prose" />
+				{/if}
+			</div>
+		{/key}
 
 		<div class="my-10">
 			<CommentsSection />
