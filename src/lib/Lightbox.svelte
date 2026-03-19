@@ -14,6 +14,11 @@
 	let touchStartY = 0;
 	let dragY = 0;
 	let dragging = false;
+	// For pinch-to-zoom
+	let pinchScale = 1;
+	let pinchBaseScale = 1;
+	let pinchStartDist = 0;
+	let isPinching = false;
 
 	lightboxStore.subscribe((val) => {
 		if (val) {
@@ -24,12 +29,16 @@
 			dragging = false;
 			closing = false;
 			swipeDismissing = false;
+			pinchScale = 1;
+			isPinching = false;
 			visible = true;
 			if (browser) document.body.style.overflow = 'hidden';
 		} else {
 			visible = false;
 			closing = false;
 			swipeDismissing = false;
+			pinchScale = 1;
+			isPinching = false;
 			if (browser) document.body.style.overflow = '';
 		}
 	});
@@ -52,38 +61,67 @@
 	}
 
 	function toggleZoom() {
+		if (isPinching) return;
 		zoomed = !zoomed;
+		if (!zoomed) pinchScale = 1;
 	}
 
-	// Touch drag-to-dismiss
+	function getPinchDist(touches) {
+		const dx = touches[0].clientX - touches[1].clientX;
+		const dy = touches[0].clientY - touches[1].clientY;
+		return Math.hypot(dx, dy);
+	}
+
+	// Touch drag-to-dismiss + pinch-to-zoom
 	function onTouchStart(e) {
 		if (closing || swipeDismissing) return;
-		touchStartY = e.touches[0].clientY;
-		dragY = 0;
-		dragging = true;
+		if (e.touches.length === 2) {
+			isPinching = true;
+			dragging = false;
+			pinchStartDist = getPinchDist(e.touches);
+			pinchBaseScale = pinchScale;
+		} else if (e.touches.length === 1 && pinchScale <= 1) {
+			touchStartY = e.touches[0].clientY;
+			dragY = 0;
+			dragging = true;
+		}
 	}
 
 	function onTouchMove(e) {
-		if (!dragging) return;
-		e.preventDefault();
-		dragY = e.touches[0].clientY - touchStartY;
+		if (isPinching && e.touches.length === 2) {
+			e.preventDefault();
+			const dist = getPinchDist(e.touches);
+			pinchScale = Math.min(5, Math.max(1, pinchBaseScale * (dist / pinchStartDist)));
+		} else if (dragging && pinchScale <= 1) {
+			e.preventDefault();
+			dragY = e.touches[0].clientY - touchStartY;
+		}
 	}
 
-	function onTouchEnd() {
-		dragging = false;
-		if (Math.abs(dragY) > 80) {
-			// Fly image off screen while fading the backdrop — both over 320ms
-			swipeDismissing = true;
-			dragY = dragY > 0 ? window.innerHeight : -window.innerHeight;
-			setTimeout(() => lightboxStore.set(null), 320);
-		} else {
-			dragY = 0;
+	function onTouchEnd(e) {
+		if (isPinching && e.touches.length < 2) {
+			isPinching = false;
+			// Snap back to 1 if barely zoomed
+			if (pinchScale < 1.15) pinchScale = 1;
+		}
+		if (!isPinching && e.touches.length === 0) {
+			dragging = false;
+			if (pinchScale <= 1 && Math.abs(dragY) > 80) {
+				// Fly image off screen while fading the backdrop — both over 320ms
+				swipeDismissing = true;
+				dragY = dragY > 0 ? window.innerHeight : -window.innerHeight;
+				setTimeout(() => lightboxStore.set(null), 320);
+			} else {
+				dragY = 0;
+			}
 		}
 	}
 
 	function onTouchCancel() {
+		isPinching = false;
 		dragging = false;
 		dragY = 0;
+		if (pinchScale < 1.15) pinchScale = 1;
 	}
 </script>
 
@@ -128,6 +166,7 @@
 					{alt}
 					class="lb-img"
 					class:zoomed
+					style="transform: scale({pinchScale}); transition: {isPinching ? 'none' : 'transform 0.25s ease'};"
 					on:click={toggleZoom}
 					draggable="false"
 				/>
@@ -262,12 +301,9 @@
 		box-shadow:
 			0 25px 60px rgba(0, 0, 0, 0.5),
 			0 0 0 1px rgba(255, 255, 255, 0.06);
-		transition:
-			transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-			max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-			max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 		user-select: none;
 		cursor: zoom-in;
+		transform-origin: center;
 	}
 
 	.lb-img.zoomed {
