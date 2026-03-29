@@ -286,7 +286,7 @@
 				Now Listening
 			</h2>
 			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500">
-				Last updated at
+				Last updated on
 				<span class="inline lg:block">
 					{#if nowState === 'loading'}
 						<span class="inline-flex items-center gap-2"> Loading… </span>
