@@ -15,18 +15,22 @@ export const GET = async ({ url, request }) => {
 	const ip = getClientIp(request);
 	const ipHash = hashIp(ip);
 
-	const { comments, commentVotes } = await db.query({
+	const { comments } = await db.query({
 		comments: {
 			$: {
 				where: { url: pageUrl, deletedAt: { $isNull: true } },
 			},
 		},
-		commentVotes: {
-			$: {
-				where: { 'comment.url': pageUrl },
-			},
-		},
 	});
+
+	const commentIds = comments.map((c) => c.id);
+	let commentVotes = [];
+	if (commentIds.length > 0) {
+		const result = await db.query({
+			commentVotes: { $: { where: { commentId: { $in: commentIds } } } },
+		});
+		commentVotes = result.commentVotes;
+	}
 
 	// Build vote maps
 	const upvoteMap = {};

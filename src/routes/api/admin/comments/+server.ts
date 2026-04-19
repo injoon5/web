@@ -26,14 +26,20 @@ export const GET = async ({ request, url }) => {
 	}
 
 	// Return comments for a specific URL including vote counts
-	const { comments, commentVotes } = await db.query({
+	const { comments } = await db.query({
 		comments: {
 			$: { where: { url: urlFilter, deletedAt: { $isNull: true } } },
 		},
-		commentVotes: {
-			$: { where: { 'comment.url': urlFilter } },
-		},
 	});
+
+	const commentIds = comments.map((c) => c.id);
+	let commentVotes = [];
+	if (commentIds.length > 0) {
+		const result = await db.query({
+			commentVotes: { $: { where: { commentId: { $in: commentIds } } } },
+		});
+		commentVotes = result.commentVotes;
+	}
 
 	const upvoteMap = {};
 	const downvoteMap = {};
