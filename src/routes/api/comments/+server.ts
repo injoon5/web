@@ -1,78 +1,88 @@
 import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { id } from '@instantdb/admin';
 import { db } from '$lib/server/db';
-import { comments, commentVotes, bannedIps } from '$lib/server/db/schema';
-import { eq, isNull, and, sql, desc } from 'drizzle-orm';
-import { commentRatelimit } from '$lib/server/redis';
+import { checkRateLimit, logRateLimit } from '$lib/server/ratelimit.js';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { createCommentSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { isValidPageUrl } from '$lib/server/valid-urls';
 import bcrypt from 'bcryptjs';
 
-export const GET: RequestHandler = async ({ url, request }) => {
+export const GET = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
 
 	const ip = getClientIp(request);
 	const ipHash = hashIp(ip);
 
-	const rows = await db
-		.select({
-			id: comments.id,
-			url: comments.url,
-			username: comments.username,
-			text: comments.text,
-			reply: comments.reply,
-			parentId: comments.parentId,
-			depth: comments.depth,
-			createdAt: comments.createdAt,
-			updatedAt: comments.updatedAt,
-			upvotes: sql<number>`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int)`,
-			downvotes: sql<number>`cast(count(case when ${commentVotes.voteType} = 'down' then 1 end) as int)`,
-			score: sql<number>`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int) - cast(count(case when ${commentVotes.voteType} = 'down' then 1 end) as int)`,
-			myVote: sql<string | null>`max(case when ${commentVotes.ipHash} = ${ipHash} then ${commentVotes.voteType}::text end)`
-		})
-		.from(comments)
-		.leftJoin(commentVotes, eq(commentVotes.commentId, comments.id))
-		.where(and(eq(comments.url, pageUrl), isNull(comments.deletedAt)))
-		.groupBy(comments.id)
-		.orderBy(
-			sql`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int) - cast(count(case when ${commentVotes.voteType} = 'down' then 1 end) as int) desc`,
-			desc(comments.createdAt)
-		)
-		.limit(200);
+	const { comments, commentVotes } = await db.query({
+		comments: {
+			$: {
+				where: { url: pageUrl, deletedAt: { $isNull: true } },
+			},
+		},
+		commentVotes: {
+			$: {
+				where: { 'comment.url': pageUrl },
+			},
+		},
+	});
 
-	return json({ comments: rows });
+	// Build vote maps
+	const upvoteMap = {};
+	const downvoteMap = {};
+	const myVoteMap = {};
+
+	for (const vote of commentVotes) {
+		const cid = vote.commentId;
+		if (vote.voteType === 'up') upvoteMap[cid] = (upvoteMap[cid] || 0) + 1;
+		else downvoteMap[cid] = (downvoteMap[cid] || 0) + 1;
+		if (vote.ipHash === ipHash) myVoteMap[cid] = vote.voteType;
+	}
+
+	const rows = comments.map((c) => ({
+		id: c.id,
+		url: c.url,
+		username: c.username,
+		text: c.text,
+		reply: c.reply ?? null,
+		parentId: c.parentId ?? null,
+		depth: c.depth,
+		createdAt: c.createdAt,
+		updatedAt: c.updatedAt,
+		upvotes: upvoteMap[c.id] || 0,
+		downvotes: downvoteMap[c.id] || 0,
+		score: (upvoteMap[c.id] || 0) - (downvoteMap[c.id] || 0),
+		myVote: myVoteMap[c.id] ?? null,
+	}));
+
+	// Sort by score desc, then createdAt desc — mirrors the old SQL ORDER BY
+	rows.sort((a, b) => b.score - a.score || new Date(b.createdAt) - new Date(a.createdAt));
+
+	return json({ comments: rows.slice(0, 200) });
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST = async ({ request }) => {
 	const ip = getClientIp(request);
 	const ipHash = hashIp(ip);
 
-	// Check if IP is banned
-	const ban = await db
-		.select()
-		.from(bannedIps)
-		.where(eq(bannedIps.ipHash, ipHash))
-		.limit(1);
-
-	if (ban.length > 0) {
-		throw error(403, 'You have been banned from commenting');
-	}
+	// Ban check
+	const { bannedIps } = await db.query({
+		bannedIps: { $: { where: { ipHash } } },
+	});
+	if (bannedIps.length > 0) throw error(403, 'You have been banned from commenting');
 
 	// Rate limit (skipped for admin)
 	if (!verifyAdminSecret(request)) {
-		const { success, reset } = await commentRatelimit.limit(ipHash);
-		if (!success) {
-			const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-			return new Response(JSON.stringify({ error: 'Too many comments. Please wait before posting again.' }), {
-				status: 429,
-				headers: {
-					'Content-Type': 'application/json',
-					'Retry-After': String(retryAfter)
+		const rl = await checkRateLimit(ipHash, 'comment');
+		if (rl.limited) {
+			return new Response(
+				JSON.stringify({ error: 'Too many comments. Please wait before posting again.' }),
+				{
+					status: 429,
+					headers: { 'Content-Type': 'application/json', 'Retry-After': String(rl.retryAfter) },
 				}
-			});
+			);
 		}
 	}
 
@@ -83,50 +93,67 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(400, 'Invalid request body');
 	}
 	const parsed = createCommentSchema.safeParse(raw);
-	if (!parsed.success) {
-		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
-	}
-	const { url: pageUrl, username, password, text, parentId } = parsed.data;
+	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 
+	const { url: pageUrl, username, password, text, parentId } = parsed.data;
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
 	// Validate parent and determine depth
 	let depth = 0;
 	if (parentId) {
-		const [parent] = await db
-			.select({ id: comments.id, depth: comments.depth })
-			.from(comments)
-			.where(and(eq(comments.id, parentId), isNull(comments.deletedAt)))
-			.limit(1);
-
+		const { comments: parents } = await db.query({
+			comments: {
+				$: { where: { id: parentId, deletedAt: { $isNull: true } } },
+			},
+		});
+		const parent = parents[0];
 		if (!parent) throw error(400, 'Parent comment not found');
 		if (parent.depth >= 2) throw error(400, 'Maximum reply depth reached');
 		depth = parent.depth + 1;
 	}
 
 	const passwordHash = await bcrypt.hash(password, 10);
+	const commentId = id();
+	const now = new Date().toISOString();
 
-	const [comment] = await db
-		.insert(comments)
-		.values({
+	await db.transact(
+		db.tx.comments[commentId].update({
 			url: pageUrl,
 			username: username?.trim() || 'Anonymous',
 			passwordHash,
 			text,
 			ipHash,
-			...(parentId ? { parentId, depth } : {})
+			depth,
+			...(parentId ? { parentId } : {}),
+			createdAt: now,
+			updatedAt: now,
 		})
-		.returning({
-			id: comments.id,
-			url: comments.url,
-			username: comments.username,
-			text: comments.text,
-			reply: comments.reply,
-			parentId: comments.parentId,
-			depth: comments.depth,
-			createdAt: comments.createdAt,
-			updatedAt: comments.updatedAt
-		});
+	);
 
-	return json({ comment }, { status: 201 });
+	// Log rate limit event after successful insert
+	if (!verifyAdminSecret(request)) {
+		await logRateLimit(ipHash, 'comment');
+	}
+
+	const { comments } = await db.query({
+		comments: { $: { where: { id: commentId } } },
+	});
+	const comment = comments[0];
+
+	return json(
+		{
+			comment: {
+				id: comment.id,
+				url: comment.url,
+				username: comment.username,
+				text: comment.text,
+				reply: comment.reply ?? null,
+				parentId: comment.parentId ?? null,
+				depth: comment.depth,
+				createdAt: comment.createdAt,
+				updatedAt: comment.updatedAt,
+			},
+		},
+		{ status: 201 }
+	);
 };

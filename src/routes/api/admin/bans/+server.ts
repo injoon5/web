@@ -1,20 +1,24 @@
 import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { id } from '@instantdb/admin';
 import { db } from '$lib/server/db';
-import { bannedIps, comments } from '$lib/server/db/schema';
-import { eq, desc } from 'drizzle-orm';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { banSchema } from '$lib/server/validation';
 
-export const GET: RequestHandler = async ({ request }) => {
+export const GET = async ({ request }) => {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 
-	const bans = await db.select().from(bannedIps).orderBy(desc(bannedIps.createdAt));
+	const { bannedIps } = await db.query({
+		bannedIps: {},
+	});
+
+	const bans = [...bannedIps].sort(
+		(a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+	);
 
 	return json({ bans });
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST = async ({ request }) => {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 
 	const raw = await request.json();
@@ -23,23 +27,37 @@ export const POST: RequestHandler = async ({ request }) => {
 	const { commentId, reason } = parsed.data;
 
 	// Look up the comment's IP hash
-	const [comment] = await db
-		.select({ ipHash: comments.ipHash })
-		.from(comments)
-		.where(eq(comments.id, commentId))
-		.limit(1);
-
+	const { comments } = await db.query({
+		comments: { $: { where: { id: commentId } } },
+	});
+	const comment = comments[0];
 	if (!comment) throw error(404, 'Comment not found');
 
-	// Upsert ban
-	const [ban] = await db
-		.insert(bannedIps)
-		.values({ ipHash: comment.ipHash, reason: reason?.trim() || null })
-		.onConflictDoUpdate({
-			target: bannedIps.ipHash,
-			set: { reason: reason?.trim() || null }
-		})
-		.returning();
+	// Check for existing ban
+	const { bannedIps: existing } = await db.query({
+		bannedIps: { $: { where: { ipHash: comment.ipHash } } },
+	});
+
+	let ban;
+	if (existing.length > 0) {
+		// Update existing ban
+		await db.transact(
+			db.tx.bannedIps[existing[0].id].update({ reason: reason?.trim() || null })
+		);
+		ban = { ...existing[0], reason: reason?.trim() || null };
+	} else {
+		// Create new ban
+		const banId = id();
+		const now = new Date().toISOString();
+		await db.transact(
+			db.tx.bannedIps[banId].update({
+				ipHash: comment.ipHash,
+				reason: reason?.trim() || null,
+				createdAt: now,
+			})
+		);
+		ban = { id: banId, ipHash: comment.ipHash, reason: reason?.trim() || null, createdAt: now };
+	}
 
 	return json({ ban }, { status: 201 });
 };

@@ -1,68 +1,60 @@
 import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
 import { db } from '$lib/server/db';
-import { comments } from '$lib/server/db/schema';
-import { eq, isNull, and } from 'drizzle-orm';
+import { checkRateLimit, logRateLimit } from '$lib/server/ratelimit.js';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { editCommentSchema } from '$lib/server/validation';
-import { editRatelimit } from '$lib/server/redis';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import bcrypt from 'bcryptjs';
 
-// PATCH /api/comments/[id] - Edit a comment (requires password)
-export const PATCH: RequestHandler = async ({ params, request }) => {
+// PATCH /api/comments/[id] — edit a comment (requires password)
+export const PATCH = async ({ params, request }) => {
 	const ipHash = hashIp(getClientIp(request));
+
 	if (!verifyAdminSecret(request)) {
-		const { success } = await editRatelimit.limit(ipHash);
-		if (!success) throw error(429, 'Too many edit requests. Please slow down.');
+		const rl = await checkRateLimit(ipHash, 'edit');
+		if (rl.limited) throw error(429, 'Too many edit requests. Please slow down.');
 	}
 
 	const { id } = params;
 	const raw = await request.json();
 	const parsed = editCommentSchema.safeParse(raw);
-	if (!parsed.success) {
-		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
-	}
+	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 	const { text, password } = parsed.data;
 
-	const [comment] = await db
-		.select()
-		.from(comments)
-		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
-		.limit(1);
-
+	const { comments } = await db.query({
+		comments: { $: { where: { id, deletedAt: { $isNull: true } } } },
+	});
+	const comment = comments[0];
 	if (!comment) throw error(404, 'Comment not found');
 
 	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
 	if (!passwordMatch) throw error(401, 'Incorrect password');
 
-	const [updated] = await db
-		.update(comments)
-		.set({ text, updatedAt: new Date() })
-		.where(eq(comments.id, id))
-		.returning({
-			id: comments.id,
-			text: comments.text,
-			updatedAt: comments.updatedAt
-		});
+	const now = new Date().toISOString();
+	await db.transact(db.tx.comments[id].update({ text, updatedAt: now }));
 
-	return json({ comment: updated });
+	if (!verifyAdminSecret(request)) {
+		await logRateLimit(ipHash, 'edit');
+	}
+
+	return json({ comment: { id, text, updatedAt: now } });
 };
 
 // DELETE /api/comments/[id]
-// - Admin (via secret header): hard-delete (sets deletedAt)
-// - User (via password body): soft-delete (sets text + username to '[deleted]')
-export const DELETE: RequestHandler = async ({ params, request }) => {
+// Admin (secret header): hard-delete (sets deletedAt)
+// User (password body): soft-delete (sets text + username to '[deleted]')
+export const DELETE = async ({ params, request }) => {
 	const { id } = params;
 
-	// Admin path
 	if (verifyAdminSecret(request)) {
-		await db.update(comments).set({ deletedAt: new Date() }).where(eq(comments.id, id));
+		await db.transact(
+			db.tx.comments[id].update({ deletedAt: new Date().toISOString() })
+		);
 		return json({ success: true });
 	}
 
-	// User path – requires password
-	let raw: { password?: unknown };
+	// User path — requires password
+	let raw;
 	try {
 		raw = await request.json();
 	} catch {
@@ -73,24 +65,24 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	if (!password || password.length < 4) throw error(400, 'Password must be at least 4 characters');
 
 	const ipHash = hashIp(getClientIp(request));
-	const { success } = await editRatelimit.limit(ipHash);
-	if (!success) throw error(429, 'Too many requests. Please slow down.');
+	const rl = await checkRateLimit(ipHash, 'edit');
+	if (rl.limited) throw error(429, 'Too many requests. Please slow down.');
 
-	const [comment] = await db
-		.select()
-		.from(comments)
-		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
-		.limit(1);
-
+	const { comments } = await db.query({
+		comments: { $: { where: { id, deletedAt: { $isNull: true } } } },
+	});
+	const comment = comments[0];
 	if (!comment) throw error(404, 'Comment not found');
 
 	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
 	if (!passwordMatch) throw error(401, 'Incorrect password');
 
-	await db
-		.update(comments)
-		.set({ text: '[deleted]', username: '[deleted]', updatedAt: new Date() })
-		.where(eq(comments.id, id));
+	const now = new Date().toISOString();
+	await db.transact(
+		db.tx.comments[id].update({ text: '[deleted]', username: '[deleted]', updatedAt: now })
+	);
+
+	await logRateLimit(ipHash, 'edit');
 
 	return json({ success: true });
 };

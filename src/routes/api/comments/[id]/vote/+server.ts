@@ -1,25 +1,25 @@
 import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { id } from '@instantdb/admin';
 import { db } from '$lib/server/db';
-import { comments, commentVotes, bannedIps } from '$lib/server/db/schema';
-import { eq, isNull, and, sql, type SQL } from 'drizzle-orm';
-import { voteRatelimit } from '$lib/server/redis';
+import { checkRateLimit, logRateLimit } from '$lib/server/ratelimit.js';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { voteSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 
-export const POST: RequestHandler = async ({ params, request }) => {
+export const POST = async ({ params, request }) => {
 	const ip = getClientIp(request);
 	const ipHash = hashIp(ip);
 
-	// 1. Ban check
-	const ban = await db.select().from(bannedIps).where(eq(bannedIps.ipHash, ipHash)).limit(1);
-	if (ban.length > 0) throw error(403, 'You have been banned');
+	// Ban check
+	const { bannedIps } = await db.query({
+		bannedIps: { $: { where: { ipHash } } },
+	});
+	if (bannedIps.length > 0) throw error(403, 'You have been banned');
 
 	// Rate limit (skipped for admin)
 	if (!verifyAdminSecret(request)) {
-		const { success } = await voteRatelimit.limit(ipHash);
-		if (!success) throw error(429, 'Too many votes. Please slow down.');
+		const rl = await checkRateLimit(ipHash, 'vote');
+		if (rl.limited) throw error(429, 'Too many votes. Please slow down.');
 	}
 
 	const { id: commentId } = params;
@@ -28,42 +28,55 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (!parsed.success) throw error(400, 'Invalid vote type');
 	const { voteType } = parsed.data;
 
-	// 2. Comment exists + existing vote in one round-trip (was 2 separate queries)
-	const [row] = await db
-		.select({ commentId: comments.id, existingVoteType: commentVotes.voteType })
-		.from(comments)
-		.leftJoin(
-			commentVotes,
-			and(eq(commentVotes.commentId, commentId), eq(commentVotes.ipHash, ipHash))
-		)
-		.where(and(eq(comments.id, commentId), isNull(comments.deletedAt)))
-		.limit(1);
+	// Verify comment exists and is not deleted
+	const { comments } = await db.query({
+		comments: { $: { where: { id: commentId, deletedAt: { $isNull: true } } } },
+	});
+	if (!comments[0]) throw error(404, 'Comment not found');
 
-	if (!row) throw error(404, 'Comment not found');
+	// Find existing vote by this IP for this comment
+	const { commentVotes } = await db.query({
+		commentVotes: { $: { where: { commentId, ipHash } } },
+	});
+	const existing = commentVotes[0];
 
-	// 3. Write + return updated counts in one CTE round-trip (was 2 separate queries)
-	let writeOp: SQL;
-	if (row.existingVoteType === voteType) {
-		// Toggle off - remove the vote
-		writeOp = sql`DELETE FROM comment_votes WHERE comment_id = ${commentId}::uuid AND ip_hash = ${ipHash}`;
-	} else if (row.existingVoteType) {
-		// Change direction
-		writeOp = sql`UPDATE comment_votes SET vote_type = ${voteType}::vote_type WHERE comment_id = ${commentId}::uuid AND ip_hash = ${ipHash}`;
+	if (existing) {
+		if (existing.voteType === voteType) {
+			// Toggle off — remove the vote
+			await db.transact(db.tx.commentVotes[existing.id].delete());
+		} else {
+			// Change direction
+			await db.transact(db.tx.commentVotes[existing.id].update({ voteType }));
+		}
 	} else {
-		// New vote (ON CONFLICT DO NOTHING prevents 500 on duplicate concurrent requests)
-		writeOp = sql`INSERT INTO comment_votes (comment_id, ip_hash, vote_type) VALUES (${commentId}::uuid, ${ipHash}, ${voteType}::vote_type) ON CONFLICT DO NOTHING`;
+		// New vote
+		await db.transact(
+			db.tx.commentVotes[id()].update({
+				commentId,
+				ipHash,
+				voteType,
+				createdAt: new Date().toISOString(),
+			})
+		);
 	}
 
-	const result = await db.execute(sql`
-		WITH write_op AS (${writeOp} RETURNING id)
-		SELECT
-			cast(count(case when vote_type = 'up' then 1 end) as int) as upvotes,
-			cast(count(case when vote_type = 'down' then 1 end) as int) as downvotes,
-			max(case when ip_hash = ${ipHash} then vote_type::text end) as my_vote
-		FROM comment_votes
-		WHERE comment_id = ${commentId}::uuid
-	`);
+	if (!verifyAdminSecret(request)) {
+		await logRateLimit(ipHash, 'vote');
+	}
 
-	const counts = result[0] as { upvotes: number; downvotes: number; my_vote: string | null };
-	return json({ upvotes: counts.upvotes, downvotes: counts.downvotes, myVote: counts.my_vote });
+	// Return updated counts
+	const { commentVotes: allVotes } = await db.query({
+		commentVotes: { $: { where: { commentId } } },
+	});
+
+	let upvotes = 0;
+	let downvotes = 0;
+	let myVote = null;
+	for (const v of allVotes) {
+		if (v.voteType === 'up') upvotes++;
+		else downvotes++;
+		if (v.ipHash === ipHash) myVote = v.voteType;
+	}
+
+	return json({ upvotes, downvotes, myVote });
 };

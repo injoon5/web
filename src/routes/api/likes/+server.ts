@@ -1,42 +1,44 @@
 import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
+import { id } from '@instantdb/admin';
 import { db } from '$lib/server/db';
-import { likes, bannedIps } from '$lib/server/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
-import { likeRatelimit } from '$lib/server/redis';
+import { checkRateLimit, logRateLimit } from '$lib/server/ratelimit.js';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { likeSchema } from '$lib/server/validation';
 import { isValidPageUrl } from '$lib/server/valid-urls';
+import { verifyAdminSecret } from '$lib/server/admin';
 
-export const GET: RequestHandler = async ({ url, request }) => {
+export const GET = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
 
 	const ip = getClientIp(request);
 	const ipHash = hashIp(ip);
 
-	const [result] = await db
-		.select({
-			count: sql<number>`cast(count(*) as int)`,
-			liked: sql<boolean>`bool_or(${likes.ipHash} = ${ipHash})`
-		})
-		.from(likes)
-		.where(eq(likes.url, pageUrl));
+	const { likes } = await db.query({
+		likes: { $: { where: { url: pageUrl } } },
+	});
 
-	return json({ count: result?.count ?? 0, liked: result?.liked ?? false });
+	const count = likes.length;
+	const liked = likes.some((l) => l.ipHash === ipHash);
+
+	return json({ count, liked });
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST = async ({ request }) => {
 	const ip = getClientIp(request);
 	const ipHash = hashIp(ip);
 
-	// Check if IP is banned
-	const ban = await db.select().from(bannedIps).where(eq(bannedIps.ipHash, ipHash)).limit(1);
-	if (ban.length > 0) throw error(403, 'You have been banned');
+	// Ban check
+	const { bannedIps } = await db.query({
+		bannedIps: { $: { where: { ipHash } } },
+	});
+	if (bannedIps.length > 0) throw error(403, 'You have been banned');
 
-	// Rate limit
-	const { success } = await likeRatelimit.limit(ipHash);
-	if (!success) throw error(429, 'Too many requests. Please slow down.');
+	// Rate limit (skipped for admin)
+	if (!verifyAdminSecret(request)) {
+		const rl = await checkRateLimit(ipHash, 'like');
+		if (rl.limited) throw error(429, 'Too many requests. Please slow down.');
+	}
 
 	const raw = await request.json();
 	const parsed = likeSchema.safeParse(raw);
@@ -46,28 +48,35 @@ export const POST: RequestHandler = async ({ request }) => {
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
 	// Check existing like
-	const [existing] = await db
-		.select()
-		.from(likes)
-		.where(and(eq(likes.url, pageUrl), eq(likes.ipHash, ipHash)))
-		.limit(1);
+	const { likes: existing } = await db.query({
+		likes: { $: { where: { url: pageUrl, ipHash } } },
+	});
 
-	if (existing) {
+	if (existing.length > 0) {
 		// Unlike
-		await db.delete(likes).where(and(eq(likes.url, pageUrl), eq(likes.ipHash, ipHash)));
+		await db.transact(db.tx.likes[existing[0].id].delete());
 	} else {
-		// Like (ON CONFLICT DO NOTHING prevents 500 on duplicate concurrent requests)
-		await db.insert(likes).values({ url: pageUrl, ipHash }).onConflictDoNothing();
+		// Like
+		await db.transact(
+			db.tx.likes[id()].update({
+				url: pageUrl,
+				ipHash,
+				createdAt: new Date().toISOString(),
+			})
+		);
+	}
+
+	if (!verifyAdminSecret(request)) {
+		await logRateLimit(ipHash, 'like');
 	}
 
 	// Return updated count
-	const [result] = await db
-		.select({
-			count: sql<number>`cast(count(*) as int)`,
-			liked: sql<boolean>`bool_or(${likes.ipHash} = ${ipHash})`
-		})
-		.from(likes)
-		.where(eq(likes.url, pageUrl));
+	const { likes: allLikes } = await db.query({
+		likes: { $: { where: { url: pageUrl } } },
+	});
 
-	return json({ count: result?.count ?? 0, liked: result?.liked ?? false });
+	const count = allLikes.length;
+	const liked = allLikes.some((l) => l.ipHash === ipHash);
+
+	return json({ count, liked });
 };
