@@ -1,8 +1,10 @@
 import { mutation } from './_generated/server';
 import { v } from 'convex/values';
+import { ConvexError } from 'convex/values';
 import type { Id } from './_generated/dataModel';
+import { rateLimiter } from './rateLimiter';
 
-// Toggles a vote on a comment. Includes ban check.
+// Toggles a vote on a comment. Includes ban check and rate limiting.
 // Returns updated upvotes, downvotes, and the user's current vote state.
 export const voteOnComment = mutation({
 	args: {
@@ -15,7 +17,10 @@ export const voteOnComment = mutation({
 			.query('bannedIps')
 			.withIndex('by_ip', (q) => q.eq('ipHash', ipHash))
 			.unique();
-		if (ban) throw new Error('You have been banned');
+		if (ban) throw new ConvexError({ code: 'BANNED', message: 'You have been banned' });
+
+		const { ok, retryAfter } = await rateLimiter.limit(ctx, 'vote', { key: ipHash });
+		if (!ok) throw new ConvexError({ code: 'RATE_LIMITED', retryAfter: retryAfter ?? 0 });
 
 		const comment = await ctx.db.get(commentId as Id<'comments'>);
 		if (!comment || comment.deletedAt !== undefined) throw new Error('Comment not found');

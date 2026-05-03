@@ -1,6 +1,8 @@
 import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
+import { ConvexError } from 'convex/values';
 import type { Id } from './_generated/dataModel';
+import { rateLimiter } from './rateLimiter';
 
 // Public query used by useQuery in CommentsSection for real-time updates.
 // Returns all active comments for a URL, sorted by score desc then createdAt desc.
@@ -118,7 +120,8 @@ export const getUrlsWithCounts = query({
 	}
 });
 
-// Creates a new comment. Ban check is enforced here.
+// Creates a new comment. Includes ban check and rate limiting.
+// Pass isAdmin: true to bypass the rate limit (verified by SvelteKit before calling).
 export const createComment = mutation({
 	args: {
 		url: v.string(),
@@ -127,14 +130,20 @@ export const createComment = mutation({
 		text: v.string(),
 		ipHash: v.string(),
 		parentId: v.optional(v.string()),
-		depth: v.number()
+		depth: v.number(),
+		isAdmin: v.optional(v.boolean())
 	},
 	handler: async (ctx, args) => {
 		const ban = await ctx.db
 			.query('bannedIps')
 			.withIndex('by_ip', (q) => q.eq('ipHash', args.ipHash))
 			.unique();
-		if (ban) throw new Error('You have been banned from commenting');
+		if (ban) throw new ConvexError({ code: 'BANNED', message: 'You have been banned from commenting' });
+
+		if (!args.isAdmin) {
+			const { ok, retryAfter } = await rateLimiter.limit(ctx, 'comment', { key: args.ipHash });
+			if (!ok) throw new ConvexError({ code: 'RATE_LIMITED', retryAfter: retryAfter ?? 0 });
+		}
 
 		const now = Date.now();
 		const id = await ctx.db.insert('comments', {
@@ -167,9 +176,15 @@ export const createComment = mutation({
 });
 
 // Updates a comment's text. Password is verified by the SvelteKit route before calling this.
+// Provide ipHash to apply edit rate limiting (user path); omit for admin edits.
 export const editComment = mutation({
-	args: { id: v.string(), text: v.string() },
-	handler: async (ctx, { id, text }) => {
+	args: { id: v.string(), text: v.string(), ipHash: v.optional(v.string()) },
+	handler: async (ctx, { id, text, ipHash }) => {
+		if (ipHash) {
+			const { ok, retryAfter } = await rateLimiter.limit(ctx, 'edit', { key: ipHash });
+			if (!ok) throw new ConvexError({ code: 'RATE_LIMITED', retryAfter: retryAfter ?? 0 });
+		}
+
 		const updatedAt = Date.now();
 		await ctx.db.patch(id as Id<'comments'>, { text, updatedAt });
 		const comment = await ctx.db.get(id as Id<'comments'>);
@@ -182,9 +197,15 @@ export const editComment = mutation({
 });
 
 // Soft-delete: sets text + username to '[deleted]', preserves thread structure.
+// Provide ipHash to apply edit rate limiting (user path); omit for admin soft-deletes.
 export const softDeleteComment = mutation({
-	args: { id: v.string() },
-	handler: async (ctx, { id }) => {
+	args: { id: v.string(), ipHash: v.optional(v.string()) },
+	handler: async (ctx, { id, ipHash }) => {
+		if (ipHash) {
+			const { ok, retryAfter } = await rateLimiter.limit(ctx, 'edit', { key: ipHash });
+			if (!ok) throw new ConvexError({ code: 'RATE_LIMITED', retryAfter: retryAfter ?? 0 });
+		}
+
 		await ctx.db.patch(id as Id<'comments'>, {
 			text: '[deleted]',
 			username: '[deleted]',

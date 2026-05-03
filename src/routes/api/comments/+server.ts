@@ -2,11 +2,11 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '../../../convex/_generated/api';
-import { commentRatelimit } from '$lib/server/redis';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { createCommentSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { isValidPageUrl } from '$lib/server/valid-urls';
+import { handleConvexError } from '$lib/server/convexError';
 import bcrypt from 'bcryptjs';
 
 export const GET: RequestHandler = async ({ url, request }) => {
@@ -23,20 +23,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 export const POST: RequestHandler = async ({ request }) => {
 	const ip = getClientIp(request);
 	const ipHash = hashIp(ip);
-
-	if (!verifyAdminSecret(request)) {
-		const { success, reset } = await commentRatelimit.limit(ipHash);
-		if (!success) {
-			const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-			return new Response(
-				JSON.stringify({ error: 'Too many comments. Please wait before posting again.' }),
-				{
-					status: 429,
-					headers: { 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) }
-				}
-			);
-		}
-	}
+	const isAdmin = verifyAdminSecret(request);
 
 	let raw;
 	try {
@@ -61,15 +48,19 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	const passwordHash = await bcrypt.hash(password, 10);
 
-	const comment = await convex.mutation(api.comments.createComment, {
-		url: pageUrl,
-		username: username?.trim() || 'Anonymous',
-		passwordHash,
-		text,
-		ipHash,
-		parentId: parentId || undefined,
-		depth
-	});
-
-	return json({ comment }, { status: 201 });
+	try {
+		const comment = await convex.mutation(api.comments.createComment, {
+			url: pageUrl,
+			username: username?.trim() || 'Anonymous',
+			passwordHash,
+			text,
+			ipHash,
+			parentId: parentId || undefined,
+			depth,
+			isAdmin: isAdmin || undefined
+		});
+		return json({ comment }, { status: 201 });
+	} catch (err) {
+		return handleConvexError(err, 'Too many comments. Please wait before posting again.');
+	}
 };

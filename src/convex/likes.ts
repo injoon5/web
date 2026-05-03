@@ -1,5 +1,7 @@
 import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
+import { ConvexError } from 'convex/values';
+import { rateLimiter } from './rateLimiter';
 
 export const getLikes = query({
 	args: { url: v.string(), ipHash: v.string() },
@@ -14,7 +16,7 @@ export const getLikes = query({
 	}
 });
 
-// Toggles a like for a URL. Includes ban check.
+// Toggles a like for a URL. Includes ban check and rate limiting.
 export const toggleLike = mutation({
 	args: { url: v.string(), ipHash: v.string() },
 	handler: async (ctx, { url, ipHash }) => {
@@ -22,7 +24,10 @@ export const toggleLike = mutation({
 			.query('bannedIps')
 			.withIndex('by_ip', (q) => q.eq('ipHash', ipHash))
 			.unique();
-		if (ban) throw new Error('You have been banned');
+		if (ban) throw new ConvexError({ code: 'BANNED', message: 'You have been banned' });
+
+		const { ok, retryAfter } = await rateLimiter.limit(ctx, 'like', { key: ipHash });
+		if (!ok) throw new ConvexError({ code: 'RATE_LIMITED', retryAfter: retryAfter ?? 0 });
 
 		const existing = await ctx.db
 			.query('likes')
