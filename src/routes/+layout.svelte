@@ -5,6 +5,10 @@
 	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { page } from '$app/stores';
+	import { setupConvex } from 'convex-svelte';
+	import { PUBLIC_CONVEX_URL } from '$env/static/public';
+
+	setupConvex(PUBLIC_CONVEX_URL);
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);

@@ -1,12 +1,11 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { comments } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { convex } from '$lib/server/convex';
+import { api } from '../../../../../convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { replySchema } from '$lib/server/validation';
 
-// POST /api/comments/[id]/reply - Admin reply
+// POST /api/comments/[id]/reply — Admin reply (legacy; prefer /api/admin/comments/[id])
 export const POST: RequestHandler = async ({ params, request }) => {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 
@@ -15,10 +14,10 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const parsed = replySchema.safeParse(body);
 	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid reply');
 
-	await db
-		.update(comments)
-		.set({ reply: parsed.data.reply.trim() || null })
-		.where(eq(comments.id, id));
+	await convex.mutation(api.comments.setAdminReply, {
+		id,
+		reply: parsed.data.reply.trim() || undefined
+	});
 
 	return json({ success: true });
 };

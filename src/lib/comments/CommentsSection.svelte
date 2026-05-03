@@ -1,8 +1,10 @@
 <script>
 	import { page } from '$app/stores';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
+	import { useQuery } from 'convex-svelte';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import CommentCard from './CommentCard.svelte';
+	import { api } from '../../convex/_generated/api';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -14,12 +16,6 @@
 	let formSubmitted = false;
 	let submitting = false;
 	let submitError = '';
-
-	// Comments list
-	let comments = [];
-	let currentPath = '';
-	let commentsLoading = true;
-	let commentsError = false;
 
 	// Edit state (shared singleton — only one comment editable at a time)
 	let editingId = null;
@@ -62,7 +58,18 @@
 		password.length < 4 ||
 		commentText.length > MAX_LENGTH;
 
-	// Build a nested comment tree from the flat API response.
+	// Real-time Convex query — args are captured at mount time.
+	// The parent wraps this component in {#key $page.url.pathname} to remount on navigation.
+	const commentsQuery = useQuery(api.comments.getComments, {
+		url: $page.url.pathname,
+		ipHash: $page.data.ipHash ?? ''
+	});
+
+	$: comments = commentsQuery.data ?? [];
+	$: commentsLoading = commentsQuery.isLoading;
+	$: commentsError = !!commentsQuery.error;
+
+	// Build a nested comment tree from the flat Convex response.
 	// Root comments retain server order (score desc). Children are sorted chronologically.
 	function buildTree(flat) {
 		const map = new Map();
@@ -88,45 +95,6 @@
 	}
 
 	$: commentTree = buildTree(comments);
-
-	onMount(() => {
-		currentPath = $page.url.pathname;
-		loadComments();
-	});
-
-	$: if ($page.url.pathname !== currentPath && currentPath) {
-		currentPath = $page.url.pathname;
-		commentText = '';
-		username = '';
-		password = '';
-		formSubmitted = false;
-		submitError = '';
-		comments = [];
-		commentsLoading = true;
-		commentsError = false;
-		editingId = null;
-		votingId = null;
-		replyingToId = null;
-		loadComments();
-	}
-
-	async function loadComments() {
-		commentsLoading = true;
-		commentsError = false;
-		try {
-			const res = await fetch(`/api/comments?url=${encodeURIComponent($page.url.pathname)}`);
-			if (res.ok) {
-				const data = await res.json();
-				comments = data.comments;
-			} else {
-				commentsError = true;
-			}
-		} catch {
-			commentsError = true;
-		} finally {
-			commentsLoading = false;
-		}
-	}
 
 	async function submitComment() {
 		formSubmitted = true;
@@ -156,7 +124,7 @@
 			username = '';
 			password = '';
 			formSubmitted = false;
-			await loadComments();
+			// Convex real-time subscription will update commentsQuery.data automatically
 		} catch {
 			submitError = 'Something went wrong. Please try again.';
 		} finally {
@@ -176,7 +144,6 @@
 		if (votingId === commentId) return;
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 
-		// Cancel any in-flight animation timer before starting a new one
 		if (votingAnimTimer) clearTimeout(votingAnimTimer);
 		votingAnimId = commentId;
 		votingSide = voteType;
@@ -192,23 +159,11 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ voteType })
 			});
-			if (res.ok) {
-				const data = await res.json();
-				comments = comments.map((c) =>
-					c.id === commentId
-						? {
-								...c,
-								upvotes: data.upvotes,
-								downvotes: data.downvotes,
-								score: data.upvotes - data.downvotes,
-								myVote: data.myVote
-							}
-						: c
-				);
-			} else {
+			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
 				showVoteError(data.message ?? 'Could not register vote.');
 			}
+			// Convex real-time subscription will update vote counts automatically
 		} catch {
 			showVoteError('Something went wrong.');
 		} finally {
@@ -259,12 +214,8 @@
 				editError = data.message ?? 'Failed to save.';
 				return;
 			}
-			comments = comments.map((c) =>
-				c.id === commentId
-					? { ...c, text: data.comment.text, updatedAt: data.comment.updatedAt }
-					: c
-			);
 			cancelEdit();
+			// Convex real-time subscription updates the comment automatically
 		} catch {
 			editError = 'Something went wrong.';
 		} finally {
@@ -324,7 +275,7 @@
 				return;
 			}
 			cancelReply();
-			await loadComments();
+			// Convex real-time subscription updates the list automatically
 		} catch {
 			replyError = 'Something went wrong. Please try again.';
 		} finally {
@@ -365,12 +316,8 @@
 				deleteError = data.message ?? 'Failed to delete comment.';
 				return;
 			}
-			comments = comments.map((c) =>
-				c.id === commentId
-					? { ...c, text: '[deleted]', username: '[deleted]', updatedAt: new Date().toISOString() }
-					: c
-			);
 			cancelDelete();
+			// Convex real-time subscription updates the list automatically
 		} catch {
 			deleteError = 'Something went wrong.';
 		} finally {
@@ -485,12 +432,6 @@
 	{:else if commentsError}
 		<div class="flex flex-col items-center gap-3 py-10 text-center">
 			<p class="text-neutral-500 dark:text-neutral-400">Could not load comments.</p>
-			<button
-				on:click={loadComments}
-				class="rounded-lg border border-neutral-300 px-4 py-1.5 text-sm font-medium text-neutral-600 transition-all duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
-			>
-				Retry
-			</button>
 		</div>
 	{:else if commentTree.length > 0}
 		{#each commentTree as comment (comment.id)}

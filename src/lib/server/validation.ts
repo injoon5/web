@@ -5,7 +5,7 @@ export const createCommentSchema = z.object({
 	username: z.string().max(32).optional().default('Anonymous'),
 	password: z.string().min(4, 'Password must be at least 4 characters'),
 	text: z.string().min(1, 'Comment cannot be empty').max(200, 'Comment must be 200 characters or less').trim(),
-	parentId: z.string().uuid().optional()
+	parentId: z.string().optional()
 });
 
 export const editCommentSchema = z.object({
@@ -26,6 +26,6 @@ export const replySchema = z.object({
 });
 
 export const banSchema = z.object({
-	commentId: z.string().uuid(),
+	commentId: z.string().min(1),
 	reason: z.string().max(500).optional()
 });

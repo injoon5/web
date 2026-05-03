@@ -1,15 +1,14 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { comments } from '$lib/server/db/schema';
-import { eq, isNull, and } from 'drizzle-orm';
+import { convex } from '$lib/server/convex';
+import { api } from '../../../../convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { editCommentSchema } from '$lib/server/validation';
 import { editRatelimit } from '$lib/server/redis';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import bcrypt from 'bcryptjs';
 
-// PATCH /api/comments/[id] - Edit a comment (requires password)
+// PATCH /api/comments/[id] — Edit a comment (requires password)
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	const ipHash = hashIp(getClientIp(request));
 	if (!verifyAdminSecret(request)) {
@@ -20,48 +19,31 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	const { id } = params;
 	const raw = await request.json();
 	const parsed = editCommentSchema.safeParse(raw);
-	if (!parsed.success) {
-		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
-	}
+	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 	const { text, password } = parsed.data;
 
-	const [comment] = await db
-		.select()
-		.from(comments)
-		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
-		.limit(1);
+	// Fetch comment to verify password — need passwordHash for bcrypt comparison
+	const rows = await convex.query(api.comments.getCommentForEdit, { id });
+	if (!rows) throw error(404, 'Comment not found');
 
-	if (!comment) throw error(404, 'Comment not found');
-
-	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
+	const passwordMatch = await bcrypt.compare(password, rows.passwordHash);
 	if (!passwordMatch) throw error(401, 'Incorrect password');
 
-	const [updated] = await db
-		.update(comments)
-		.set({ text, updatedAt: new Date() })
-		.where(eq(comments.id, id))
-		.returning({
-			id: comments.id,
-			text: comments.text,
-			updatedAt: comments.updatedAt
-		});
-
+	const updated = await convex.mutation(api.comments.editComment, { id, text });
 	return json({ comment: updated });
 };
 
 // DELETE /api/comments/[id]
-// - Admin (via secret header): hard-delete (sets deletedAt)
-// - User (via password body): soft-delete (sets text + username to '[deleted]')
+// Admin path: hard-delete (sets deletedAt)
+// User path: soft-delete (sets text + username to '[deleted]'), requires password
 export const DELETE: RequestHandler = async ({ params, request }) => {
 	const { id } = params;
 
-	// Admin path
 	if (verifyAdminSecret(request)) {
-		await db.update(comments).set({ deletedAt: new Date() }).where(eq(comments.id, id));
+		await convex.mutation(api.comments.hardDeleteComment, { id });
 		return json({ success: true });
 	}
 
-	// User path – requires password
 	let raw: { password?: unknown };
 	try {
 		raw = await request.json();
@@ -76,21 +58,12 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	const { success } = await editRatelimit.limit(ipHash);
 	if (!success) throw error(429, 'Too many requests. Please slow down.');
 
-	const [comment] = await db
-		.select()
-		.from(comments)
-		.where(and(eq(comments.id, id), isNull(comments.deletedAt)))
-		.limit(1);
+	const rows = await convex.query(api.comments.getCommentForEdit, { id });
+	if (!rows) throw error(404, 'Comment not found');
 
-	if (!comment) throw error(404, 'Comment not found');
-
-	const passwordMatch = await bcrypt.compare(password, comment.passwordHash);
+	const passwordMatch = await bcrypt.compare(password, rows.passwordHash);
 	if (!passwordMatch) throw error(401, 'Incorrect password');
 
-	await db
-		.update(comments)
-		.set({ text: '[deleted]', username: '[deleted]', updatedAt: new Date() })
-		.where(eq(comments.id, id));
-
+	await convex.mutation(api.comments.softDeleteComment, { id });
 	return json({ success: true });
 };

@@ -82,7 +82,9 @@
 		</div>
 
 		<div class="my-10">
-			<CommentsSection />
+			{#key $page.url.pathname}
+				<CommentsSection />
+			{/key}
 		</div>
 	</article>
 
