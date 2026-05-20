@@ -1,68 +1,71 @@
 <script>
 	import { page } from '$app/stores';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { createWebHaptics } from 'web-haptics/svelte';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$convex/_generated/api';
 	import CommentCard from './CommentCard.svelte';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
 
 	// Main comment form
-	let commentText = '';
-	let username = '';
-	let password = '';
-	let formSubmitted = false;
-	let submitting = false;
-	let submitError = '';
+	let commentText = $state('');
+	let username = $state('');
+	let password = $state('');
+	let formSubmitted = $state(false);
+	let submitting = $state(false);
+	let submitError = $state('');
 
-	// Comments list
-	let comments = [];
-	let currentPath = '';
-	let commentsLoading = true;
-	let commentsError = false;
+	// Reactive comments query — live updates across tabs
+	const query = useQuery(api.comments.list, () => ({
+		url: $page.url.pathname,
+		ipHash: $page.data.ipHash ?? ''
+	}));
 
-	// Edit state (shared singleton — only one comment editable at a time)
-	let editingId = null;
-	let editText = '';
-	let editPassword = '';
-	let editError = '';
-	let editSubmitting = false;
+	// Edit state
+	let editingId = $state(null);
+	let editText = $state('');
+	let editPassword = $state('');
+	let editError = $state('');
+	let editSubmitting = $state(false);
 
 	// Vote state
-	let votingId = null;
-	let votingAnimId = null;
-	let votingSide = null;
+	let votingId = $state(null);
+	let votingAnimId = $state(null);
+	let votingSide = $state(null);
 	let votingAnimTimer = null;
-	let voteError = '';
+	let voteError = $state('');
 	let voteErrorTimer = null;
 
-	// Delete state (shared singleton — only one delete form at a time)
-	let deletingId = null;
-	let deletePassword = '';
-	let deleteError = '';
-	let deleteSubmitting = false;
+	// Delete state
+	let deletingId = $state(null);
+	let deletePassword = $state('');
+	let deleteError = $state('');
+	let deleteSubmitting = $state(false);
 
-	// Reply state (shared singleton — only one reply form at a time)
-	let replyingToId = null;
-	let replyText = '';
-	let replyUsername = '';
-	let replyPassword = '';
-	let replySubmitting = false;
-	let replyError = '';
+	// Reply state
+	let replyingToId = $state(null);
+	let replyText = $state('');
+	let replyUsername = $state('');
+	let replyPassword = $state('');
+	let replySubmitting = $state(false);
+	let replyError = $state('');
 
 	const MAX_LENGTH = 200;
 	const CHAR_THRESHOLD = 10;
 
-	$: charsLeft = MAX_LENGTH - commentText.length;
-	$: showCharsLeft = commentText.length > MAX_LENGTH - CHAR_THRESHOLD;
-	$: isSubmitDisabled =
+	const charsLeft = $derived(MAX_LENGTH - commentText.length);
+	const showCharsLeft = $derived(commentText.length > MAX_LENGTH - CHAR_THRESHOLD);
+	const isSubmitDisabled = $derived(
 		submitting ||
-		!commentText.trim() ||
-		!password ||
-		password.length < 4 ||
-		commentText.length > MAX_LENGTH;
+			!commentText.trim() ||
+			!password ||
+			password.length < 4 ||
+			commentText.length > MAX_LENGTH
+	);
 
-	// Build a nested comment tree from the flat API response.
+	// Build a nested comment tree from the flat query response.
 	// Root comments retain server order (score desc). Children are sorted chronologically.
 	function buildTree(flat) {
 		const map = new Map();
@@ -79,54 +82,30 @@
 		}
 
 		for (const node of map.values()) {
-			node.children.sort(
-				(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-			);
+			node.children.sort((a, b) => a.createdAt - b.createdAt);
 		}
 
 		return roots;
 	}
 
-	$: commentTree = buildTree(comments);
+	const commentTree = $derived(buildTree(query.data ?? []));
 
-	onMount(() => {
-		currentPath = $page.url.pathname;
-		loadComments();
-	});
-
-	$: if ($page.url.pathname !== currentPath && currentPath) {
-		currentPath = $page.url.pathname;
-		commentText = '';
-		username = '';
-		password = '';
-		formSubmitted = false;
-		submitError = '';
-		comments = [];
-		commentsLoading = true;
-		commentsError = false;
-		editingId = null;
-		votingId = null;
-		replyingToId = null;
-		loadComments();
-	}
-
-	async function loadComments() {
-		commentsLoading = true;
-		commentsError = false;
-		try {
-			const res = await fetch(`/api/comments?url=${encodeURIComponent($page.url.pathname)}`);
-			if (res.ok) {
-				const data = await res.json();
-				comments = data.comments;
-			} else {
-				commentsError = true;
-			}
-		} catch {
-			commentsError = true;
-		} finally {
-			commentsLoading = false;
+	// Reset transient form state on path change (the reactive query swaps automatically)
+	let currentPath = $state($page.url.pathname);
+	$effect(() => {
+		if ($page.url.pathname !== currentPath) {
+			currentPath = $page.url.pathname;
+			commentText = '';
+			username = '';
+			password = '';
+			formSubmitted = false;
+			submitError = '';
+			editingId = null;
+			votingId = null;
+			replyingToId = null;
+			deletingId = null;
 		}
-	}
+	});
 
 	async function submitComment() {
 		formSubmitted = true;
@@ -147,16 +126,15 @@
 					text: commentText.trim()
 				})
 			});
-			const data = await res.json();
+			const responseData = await res.json();
 			if (!res.ok) {
-				submitError = data.message ?? data.error ?? 'Failed to submit comment.';
+				submitError = responseData.message ?? responseData.error ?? 'Failed to submit comment.';
 				return;
 			}
 			commentText = '';
 			username = '';
 			password = '';
 			formSubmitted = false;
-			await loadComments();
 		} catch {
 			submitError = 'Something went wrong. Please try again.';
 		} finally {
@@ -176,7 +154,6 @@
 		if (votingId === commentId) return;
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 
-		// Cancel any in-flight animation timer before starting a new one
 		if (votingAnimTimer) clearTimeout(votingAnimTimer);
 		votingAnimId = commentId;
 		votingSide = voteType;
@@ -192,22 +169,9 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ voteType })
 			});
-			if (res.ok) {
-				const data = await res.json();
-				comments = comments.map((c) =>
-					c.id === commentId
-						? {
-								...c,
-								upvotes: data.upvotes,
-								downvotes: data.downvotes,
-								score: data.upvotes - data.downvotes,
-								myVote: data.myVote
-							}
-						: c
-				);
-			} else {
-				const data = await res.json().catch(() => ({}));
-				showVoteError(data.message ?? 'Could not register vote.');
+			if (!res.ok) {
+				const responseData = await res.json().catch(() => ({}));
+				showVoteError(responseData.message ?? 'Could not register vote.');
 			}
 		} catch {
 			showVoteError('Something went wrong.');
@@ -254,16 +218,11 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ text: editText.trim(), password: editPassword })
 			});
-			const data = await res.json();
+			const responseData = await res.json();
 			if (!res.ok) {
-				editError = data.message ?? 'Failed to save.';
+				editError = responseData.message ?? 'Failed to save.';
 				return;
 			}
-			comments = comments.map((c) =>
-				c.id === commentId
-					? { ...c, text: data.comment.text, updatedAt: data.comment.updatedAt }
-					: c
-			);
 			cancelEdit();
 		} catch {
 			editError = 'Something went wrong.';
@@ -318,13 +277,12 @@
 					parentId: replyingToId
 				})
 			});
-			const data = await res.json();
+			const responseData = await res.json();
 			if (!res.ok) {
-				replyError = data.message ?? data.error ?? 'Failed to submit reply.';
+				replyError = responseData.message ?? responseData.error ?? 'Failed to submit reply.';
 				return;
 			}
 			cancelReply();
-			await loadComments();
 		} catch {
 			replyError = 'Something went wrong. Please try again.';
 		} finally {
@@ -360,16 +318,11 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ password: deletePassword })
 			});
-			const data = await res.json();
+			const responseData = await res.json();
 			if (!res.ok) {
-				deleteError = data.message ?? 'Failed to delete comment.';
+				deleteError = responseData.message ?? 'Failed to delete comment.';
 				return;
 			}
-			comments = comments.map((c) =>
-				c.id === commentId
-					? { ...c, text: '[deleted]', username: '[deleted]', updatedAt: new Date().toISOString() }
-					: c
-			);
 			cancelDelete();
 		} catch {
 			deleteError = 'Something went wrong.';
@@ -378,8 +331,7 @@
 		}
 	}
 
-	// Shared props passed to every CommentCard
-	$: cardProps = {
+	const cardProps = $derived({
 		editingId,
 		editText,
 		editPassword,
@@ -409,7 +361,7 @@
 		onStartDelete: startDelete,
 		onCancelDelete: cancelDelete,
 		onConfirmDelete: confirmDelete
-	};
+	});
 </script>
 
 <div>
@@ -422,7 +374,7 @@
 			type="text"
 			placeholder="Name (optional)"
 			maxlength="32"
-			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
+			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 		/>
 		<div>
 			<textarea
@@ -430,7 +382,7 @@
 				placeholder="Show me what you got.. (max {MAX_LENGTH} characters)"
 				maxlength={MAX_LENGTH}
 				rows="3"
-				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
+				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			></textarea>
 			{#if showCharsLeft}
 				<p class="mt-1 text-sm text-neutral-500">Characters left: {charsLeft}</p>
@@ -442,7 +394,7 @@
 				type="password"
 				placeholder="Password (save this to edit your comment later)"
 				autocomplete="off"
-				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:outline-hidden focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
+				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			/>
 			{#if formSubmitted && password.length > 0 && password.length < 4}
 				<p class="mt-1 text-sm text-red-500">Password must be at least 4 characters.</p>
@@ -452,7 +404,7 @@
 			<p class="text-sm text-red-500">{submitError}</p>
 		{/if}
 		<button
-			on:click={() => {
+			onclick={() => {
 				trigger([{ duration: 15 }], { intensity: 0.4 });
 				submitComment();
 			}}
@@ -471,7 +423,7 @@
 
 <!-- Comment list -->
 <div class="mt-8">
-	{#if commentsLoading}
+	{#if query.isLoading}
 		{#each [1, 2, 3] as _}
 			<div
 				class="mb-4 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
@@ -482,15 +434,9 @@
 				<div class="mt-3 h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800"></div>
 			</div>
 		{/each}
-	{:else if commentsError}
+	{:else if query.error != null}
 		<div class="flex flex-col items-center gap-3 py-10 text-center">
 			<p class="text-neutral-500 dark:text-neutral-400">Could not load comments.</p>
-			<button
-				on:click={loadComments}
-				class="rounded-lg border border-neutral-300 px-4 py-1.5 text-sm font-medium text-neutral-600 transition-all duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
-			>
-				Retry
-			</button>
 		</div>
 	{:else if commentTree.length > 0}
 		{#each commentTree as comment (comment.id)}

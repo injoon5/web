@@ -1,73 +1,56 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { likes, bannedIps } from '$lib/server/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
-import { likeRatelimit } from '$lib/server/redis';
+import { convex } from '$lib/server/convex';
+import { api } from '$convex/_generated/api';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { likeSchema } from '$lib/server/validation';
+import { verifyAdminSecret } from '$lib/server/admin';
 import { isValidPageUrl } from '$lib/server/valid-urls';
+import { convexErrorToResponse } from '$lib/server/api';
+import { ADMIN_SECRET } from '$env/static/private';
 
 export const GET: RequestHandler = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
 
-	const ip = getClientIp(request);
-	const ipHash = hashIp(ip);
+	const ipHash = hashIp(getClientIp(request));
 
-	const [result] = await db
-		.select({
-			count: sql<number>`cast(count(*) as int)`,
-			liked: sql<boolean>`bool_or(${likes.ipHash} = ${ipHash})`
-		})
-		.from(likes)
-		.where(eq(likes.url, pageUrl));
-
-	return json({ count: result?.count ?? 0, liked: result?.liked ?? false });
+	try {
+		const result = await convex.query(api.likes.get, { url: pageUrl, ipHash });
+		return json(result);
+	} catch (err) {
+		const mapped = convexErrorToResponse(err);
+		if (mapped instanceof Response) return mapped;
+		throw mapped;
+	}
 };
 
 export const POST: RequestHandler = async ({ request }) => {
-	const ip = getClientIp(request);
-	const ipHash = hashIp(ip);
+	const ipHash = hashIp(getClientIp(request));
+	const admin = verifyAdminSecret(request);
 
-	// Check if IP is banned
-	const ban = await db.select().from(bannedIps).where(eq(bannedIps.ipHash, ipHash)).limit(1);
-	if (ban.length > 0) throw error(403, 'You have been banned');
-
-	// Rate limit
-	const { success } = await likeRatelimit.limit(ipHash);
-	if (!success) throw error(429, 'Too many requests. Please slow down.');
-
-	const raw = await request.json();
+	let raw;
+	try {
+		raw = await request.json();
+	} catch {
+		throw error(400, 'Invalid request body');
+	}
 	const parsed = likeSchema.safeParse(raw);
 	if (!parsed.success) throw error(400, 'Missing url');
-	const { url: pageUrl } = parsed.data;
 
+	const { url: pageUrl } = parsed.data;
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
-	// Check existing like
-	const [existing] = await db
-		.select()
-		.from(likes)
-		.where(and(eq(likes.url, pageUrl), eq(likes.ipHash, ipHash)))
-		.limit(1);
-
-	if (existing) {
-		// Unlike
-		await db.delete(likes).where(and(eq(likes.url, pageUrl), eq(likes.ipHash, ipHash)));
-	} else {
-		// Like (ON CONFLICT DO NOTHING prevents 500 on duplicate concurrent requests)
-		await db.insert(likes).values({ url: pageUrl, ipHash }).onConflictDoNothing();
+	try {
+		const result = await convex.mutation(api.likes.toggle, {
+			url: pageUrl,
+			ipHash,
+			adminSecret: admin ? ADMIN_SECRET : undefined
+		});
+		return json(result);
+	} catch (err) {
+		const mapped = convexErrorToResponse(err);
+		if (mapped instanceof Response) return mapped;
+		throw mapped;
 	}
-
-	// Return updated count
-	const [result] = await db
-		.select({
-			count: sql<number>`cast(count(*) as int)`,
-			liked: sql<boolean>`bool_or(${likes.ipHash} = ${ipHash})`
-		})
-		.from(likes)
-		.where(eq(likes.url, pageUrl));
-
-	return json({ count: result?.count ?? 0, liked: result?.liked ?? false });
 };

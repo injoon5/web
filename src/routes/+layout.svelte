@@ -5,6 +5,10 @@
 	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { page } from '$app/stores';
+	import { setupConvex } from 'convex-svelte';
+	import { PUBLIC_CONVEX_URL } from '$env/static/public';
+
+	setupConvex(PUBLIC_CONVEX_URL);
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -18,9 +22,10 @@
 		function step(currentTime) {
 			const elapsed = currentTime - startTime;
 			const progress = Math.min(elapsed / SCROLL_DURATION, 1);
-			const ease = progress < 0.5
-				? 4 * progress * progress * progress
-				: 1 - Math.pow(-2 * progress + 2, 3) / 2;
+			const ease =
+				progress < 0.5
+					? 4 * progress * progress * progress
+					: 1 - Math.pow(-2 * progress + 2, 3) / 2;
 			window.scrollTo(0, start * (1 - ease));
 			if (progress < 1) requestAnimationFrame(step);
 		}
@@ -72,9 +77,8 @@
 					class=" hover:text-neutral-900 dark:hover:text-neutral-100">@injoon_oh (Twitter)</a
 				>
 				<br />
-				<a
-					href="/internal/rss.xml"
-					class=" hover:text-neutral-900 dark:hover:text-neutral-100">RSS Feed</a
+				<a href="/internal/rss.xml" class=" hover:text-neutral-900 dark:hover:text-neutral-100"
+					>RSS Feed</a
 				>
 			</div>
 			<div class="col-span-12 sm:col-span-6 lg:col-span-5">
@@ -88,7 +92,10 @@
 				class="col-span-12 mt-10 flex hover:text-neutral-900 md:col-span-6 lg:col-span-5 lg:mt-0 lg:justify-end dark:hover:text-neutral-100"
 			>
 				<button
-					on:click={() => { trigger([{ duration: SCROLL_DURATION }], { intensity: 1 }); scrollToTop(); }}
+					on:click={() => {
+						trigger([{ duration: SCROLL_DURATION }], { intensity: 1 });
+						scrollToTop();
+					}}
 					aria-label="Scroll to top"
 				>
 					Scroll to top

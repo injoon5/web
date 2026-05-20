@@ -1,39 +1,55 @@
 <script>
 	import { enhance } from '$app/forms';
-	import { browser } from '$app/environment';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$convex/_generated/api';
 	import AdminCommentCard from '$lib/comments/AdminCommentCard.svelte';
 
-	export let data;
-	export let form;
+	let { data, form } = $props();
 
-	let tab = 'comments';
-	let adminSecret = '';
-	let bans = [];
-	let statsTotal = { comments: 0, bans: 0 };
+	const adminSecret = $derived(data.adminSecret ?? '');
+
+	let tab = $state('comments');
 
 	// Comments navigation
-	let view = 'urls'; // 'urls' | 'comments'
-	let urlList = []; // [{ url, count }]
-	let selectedUrl = null;
-	let selectedComments = [];
-	let loadingUrls = false;
-	let loadingComments = false;
+	let view = $state('urls'); // 'urls' | 'comments'
+	let selectedUrl = $state(null);
 
-	// Admin action state (shared across comment cards — one form open at a time)
-	let replyingTo = null;
-	let replyText = '';
-	let banningComment = null;
-	let banReason = '';
-	let deletingComment = null;
+	// Admin action state (shared across cards — one form open at a time)
+	let replyingTo = $state(null);
+	let replyText = $state('');
+	let banningComment = $state(null);
+	let banReason = $state('');
+	let deletingComment = $state(null);
 
-	$: if (browser && data.authenticated) {
-		adminSecret = data.adminSecret ?? '';
-		loadUrlList();
-		loadBans();
-	}
+	// Reactive queries — gated via "skip" so they only run when authenticated and active
+	const urlListQuery = useQuery(api.admin.listUrls, () =>
+		data.authenticated && tab === 'comments' && view === 'urls' ? { adminSecret } : 'skip'
+	);
 
-	// Build nested comment tree from flat list (chronological children).
-	// Comments whose parent was hard-deleted become stray roots (stray: true).
+	const commentsQuery = useQuery(api.admin.listForUrl, () =>
+		data.authenticated && tab === 'comments' && view === 'comments' && selectedUrl
+			? { url: selectedUrl, adminSecret }
+			: 'skip'
+	);
+
+	const bansQuery = useQuery(api.bans.list, () =>
+		data.authenticated && tab === 'bans' ? { adminSecret } : 'skip'
+	);
+
+	const urlList = $derived(urlListQuery.data ?? []);
+	const selectedComments = $derived(commentsQuery.data ?? []);
+	const bans = $derived(bansQuery.data ?? []);
+
+	const statsTotal = $derived({
+		comments: urlList.reduce((sum, u) => sum + u.count, 0),
+		bans: bans.length
+	});
+
+	const loadingUrls = $derived(urlListQuery.isLoading);
+	const loadingComments = $derived(commentsQuery.isLoading);
+
+	// Build nested comment tree (chronological children).
+	// Comments whose parent was hard-deleted become stray roots.
 	function buildTree(flat) {
 		const map = new Map();
 		for (const c of flat) map.set(c.id, { ...c, children: [] });
@@ -45,17 +61,16 @@
 			} else if (!node.parentId) {
 				roots.push(node);
 			} else {
-				// parentId set but parent is missing (hard-deleted) — stray comment
 				roots.push({ ...node, stray: true });
 			}
 		}
 		for (const node of map.values()) {
-			node.children.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+			node.children.sort((a, b) => a.createdAt - b.createdAt);
 		}
 		return roots;
 	}
 
-	$: commentTree = buildTree(selectedComments);
+	const commentTree = $derived(buildTree(selectedComments));
 
 	async function apiFetch(path, options = {}) {
 		return fetch(path, {
@@ -68,55 +83,20 @@
 		});
 	}
 
-	async function loadUrlList() {
-		loadingUrls = true;
-		try {
-			const res = await apiFetch('/api/admin/comments');
-			if (res.ok) {
-				const d = await res.json();
-				urlList = d.urls;
-				statsTotal.comments = d.urls.reduce((sum, u) => sum + u.count, 0);
-			}
-		} finally {
-			loadingUrls = false;
-		}
-	}
-
-	async function selectUrl(url) {
+	function selectUrl(url) {
 		selectedUrl = url;
 		view = 'comments';
-		selectedComments = [];
 		replyingTo = null;
 		banningComment = null;
 		deletingComment = null;
-		loadingComments = true;
-		try {
-			const res = await apiFetch(`/api/admin/comments?url=${encodeURIComponent(url)}`);
-			if (res.ok) {
-				const d = await res.json();
-				selectedComments = d.comments;
-			}
-		} finally {
-			loadingComments = false;
-		}
 	}
 
 	function goBack() {
 		view = 'urls';
 		selectedUrl = null;
-		selectedComments = [];
 		replyingTo = null;
 		banningComment = null;
 		deletingComment = null;
-	}
-
-	async function loadBans() {
-		const res = await apiFetch('/api/admin/bans');
-		if (res.ok) {
-			const d = await res.json();
-			bans = d.bans;
-			statsTotal.bans = d.bans.length;
-		}
 	}
 
 	function startDelete(comment) {
@@ -133,24 +113,12 @@
 
 	async function softDelete(id) {
 		const res = await apiFetch(`/api/admin/comments/${id}?soft=1`, { method: 'DELETE' });
-		if (res.ok) {
-			selectedComments = selectedComments.map((c) =>
-				c.id === id ? { ...c, text: '[deleted]', username: '[deleted]' } : c
-			);
-			deletingComment = null;
-		}
+		if (res.ok) deletingComment = null;
 	}
 
 	async function hardDelete(id) {
 		const res = await apiFetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
-		if (res.ok) {
-			selectedComments = selectedComments.filter((c) => c.id !== id);
-			urlList = urlList.map((u) =>
-				u.url === selectedUrl ? { ...u, count: u.count - 1 } : u
-			);
-			statsTotal.comments--;
-			deletingComment = null;
-		}
+		if (res.ok) deletingComment = null;
 	}
 
 	function startReply(comment) {
@@ -172,9 +140,6 @@
 			body: JSON.stringify({ reply: replyText })
 		});
 		if (res.ok) {
-			selectedComments = selectedComments.map((c) =>
-				c.id === id ? { ...c, reply: replyText || null } : c
-			);
 			replyingTo = null;
 			replyText = '';
 		}
@@ -201,16 +166,11 @@
 		if (res.ok) {
 			banningComment = null;
 			banReason = '';
-			await loadBans();
 		}
 	}
 
 	async function unban(id) {
-		const res = await apiFetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
-		if (res.ok) {
-			bans = bans.filter((b) => b.id !== id);
-			statsTotal.bans--;
-		}
+		await apiFetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
 	}
 
 	function formatDate(d) {
@@ -234,7 +194,9 @@
 				<p class="mb-6 text-sm text-neutral-500">Enter your admin password to continue.</p>
 
 				{#if form?.error}
-					<p class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">
+					<p
+						class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400"
+					>
 						{form.error}
 					</p>
 				{/if}
@@ -245,7 +207,7 @@
 						name="password"
 						placeholder="Password"
 						autocomplete="current-password"
-						class="mb-3 w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
+						class="mb-3 w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 					/>
 					<button
 						type="submit"
@@ -278,30 +240,38 @@
 			<div
 				class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>
-				<p class="text-xs font-medium uppercase tracking-wider text-neutral-400">Comments</p>
+				<p class="text-xs font-medium tracking-wider text-neutral-400 uppercase">Comments</p>
 				<p class="mt-1 text-3xl font-semibold">{statsTotal.comments}</p>
 			</div>
 			<div
 				class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>
-				<p class="text-xs font-medium uppercase tracking-wider text-neutral-400">Bans</p>
+				<p class="text-xs font-medium tracking-wider text-neutral-400 uppercase">Bans</p>
 				<p class="mt-1 text-3xl font-semibold">{statsTotal.bans}</p>
 			</div>
 		</div>
 
 		<!-- Tabs -->
-		<div class="mb-6 flex gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900">
+		<div
+			class="mb-6 flex gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900"
+		>
 			<button
-				on:click={() => { tab = 'comments'; }}
-				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab === 'comments'
+				onclick={() => {
+					tab = 'comments';
+				}}
+				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab ===
+				'comments'
 					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
 					: 'text-neutral-500 hover:bg-white/60 hover:text-neutral-800 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'}"
 			>
 				Comments
 			</button>
 			<button
-				on:click={() => { tab = 'bans'; }}
-				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab === 'bans'
+				onclick={() => {
+					tab = 'bans';
+				}}
+				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab ===
+				'bans'
 					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
 					: 'text-neutral-500 hover:bg-white/60 hover:text-neutral-800 dark:hover:bg-neutral-800/50 dark:hover:text-neutral-200'}"
 			>
@@ -313,18 +283,26 @@
 			{#if view === 'urls'}
 				<!-- URL list -->
 				{#if loadingUrls}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+						Loading…
+					</div>
 				{:else if urlList.length === 0}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No comments yet.</div>
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+						No comments yet.
+					</div>
 				{:else}
 					<div class="space-y-2">
 						{#each urlList as item (item.url)}
 							<button
-								on:click={() => selectUrl(item.url)}
+								onclick={() => selectUrl(item.url)}
 								class="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900"
 							>
-								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300">{item.url}</span>
-								<span class="ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300"
+									>{item.url}</span
+								>
+								<span
+									class="ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+								>
 									{item.count}
 								</span>
 							</button>
@@ -335,7 +313,7 @@
 				<!-- Comment tree for selected URL -->
 				<div class="mb-5 flex items-center gap-3">
 					<button
-						on:click={goBack}
+						onclick={goBack}
 						class="flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
 					>
 						← All posts
@@ -344,9 +322,13 @@
 				</div>
 
 				{#if loadingComments}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+						Loading…
+					</div>
 				{:else if commentTree.length === 0}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No comments for this post.</div>
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+						No comments for this post.
+					</div>
 				{:else}
 					<div>
 						{#each commentTree as comment (comment.id)}
@@ -354,7 +336,9 @@
 								<!-- Depth 0 -->
 								{#if comment.stray}
 									<div class="mb-1 flex items-center gap-1.5">
-										<span class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+										<span
+											class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+										>
 											orphaned reply — parent deleted
 										</span>
 									</div>
@@ -380,7 +364,9 @@
 
 								<!-- Depth 1 replies -->
 								{#if comment.children.length > 0}
-									<div class="mt-2 ml-4 space-y-2 border-l-2 border-neutral-200 pl-4 dark:border-neutral-700">
+									<div
+										class="mt-2 ml-4 space-y-2 border-l-2 border-neutral-200 pl-4 dark:border-neutral-700"
+									>
 										{#each comment.children as reply (reply.id)}
 											<AdminCommentCard
 												comment={reply}
@@ -403,7 +389,9 @@
 
 											<!-- Depth 2 replies -->
 											{#if reply.children.length > 0}
-												<div class="ml-4 space-y-2 border-l-2 border-neutral-200/70 pl-4 dark:border-neutral-700/70">
+												<div
+													class="ml-4 space-y-2 border-l-2 border-neutral-200/70 pl-4 dark:border-neutral-700/70"
+												>
 													{#each reply.children as subreply (subreply.id)}
 														<AdminCommentCard
 															comment={subreply}
@@ -437,7 +425,9 @@
 		{:else}
 			<!-- Bans tab -->
 			{#if bans.length === 0}
-				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">No active bans.</div>
+				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+					No active bans.
+				</div>
 			{:else}
 				<div class="space-y-2">
 					{#each bans as ban (ban.id)}
@@ -452,7 +442,7 @@
 								<p class="mt-0.5 text-xs text-neutral-400">{formatDate(ban.createdAt)}</p>
 							</div>
 							<button
-								on:click={() => unban(ban.id)}
+								onclick={() => unban(ban.id)}
 								class="ml-4 shrink-0 rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
 							>
 								Unban

@@ -9,7 +9,10 @@ async function getProjects() {
 
 	const bySlug: Record<string, Project> = {};
 
-	for (const [paths, lang] of [[koPaths, 'ko'], [enPaths, 'en']] as const) {
+	for (const [paths, lang] of [
+		[koPaths, 'ko'],
+		[enPaths, 'en']
+	] as const) {
 		for (const path in paths) {
 			const file = paths[path];
 			const slug = path.split('/').at(-1)?.replace('.md', '');
