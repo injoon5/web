@@ -11,6 +11,7 @@ export type Post = {
 	coverimage: string;
 	tags: TagsList[];
 	published: boolean;
+	hasEn?: boolean;
 };
 
 export type Project = {

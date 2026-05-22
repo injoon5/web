@@ -1,0 +1,44 @@
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
+
+export default defineSchema({
+	comments: defineTable({
+		url: v.string(),
+		username: v.string(),
+		passwordHash: v.string(),
+		text: v.string(),
+		ipHash: v.string(),
+		parentId: v.union(v.id('comments'), v.null()),
+		depth: v.number(),
+		reply: v.union(v.string(), v.null()),
+		updatedAt: v.union(v.number(), v.null()),
+		deletedAt: v.union(v.number(), v.null())
+	})
+		.index('by_url', ['url'])
+		.index('by_parent', ['parentId']),
+
+	commentVotes: defineTable({
+		commentId: v.id('comments'),
+		ipHash: v.string(),
+		voteType: v.union(v.literal('up'), v.literal('down'))
+	})
+		.index('by_comment', ['commentId'])
+		.index('by_comment_ip', ['commentId', 'ipHash']),
+
+	likes: defineTable({
+		url: v.string(),
+		ipHash: v.string()
+	})
+		.index('by_url', ['url'])
+		.index('by_url_ip', ['url', 'ipHash']),
+
+	bannedIps: defineTable({
+		ipHash: v.string(),
+		reason: v.union(v.string(), v.null())
+	}).index('by_ip', ['ipHash']),
+
+	nowPage: defineTable({
+		content: v.string(),
+		updatedAt: v.number()
+	})
+});

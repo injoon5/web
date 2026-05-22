@@ -75,18 +75,14 @@
 				const mql = window.matchMedia('(prefers-color-scheme: dark)');
 
 				const apply = () => {
-					// If you later add a manual toggle, set localStorage.theme = "dark"|"light"
-					const saved = localStorage.getItem('theme');
-					const isDark = saved ? saved === 'dark' : mql.matches;
-					root.classList.toggle('dark', isDark);
-					root.classList.toggle('light', !isDark); // optional (you use .light selectors)
+					root.classList.toggle('dark', mql.matches);
+					root.classList.toggle('light', !mql.matches);
 				};
 
 				apply();
 
-				// Update when OS theme changes (only if no manual override)
 				const onChange = () => {
-					if (!localStorage.getItem('theme')) apply();
+					apply();
 				};
 
 				if (mql.addEventListener) mql.addEventListener('change', onChange);

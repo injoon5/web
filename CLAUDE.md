@@ -1,5 +1,9 @@
 # Project Guidelines
 
+## Quotes
+
+- Always use straight quotes (`'`, `"`) in all files. Never use curly/smart quotes (`'`, `'`, `"`, `"`). Svelte's parser will throw `js_parse_error` on smart quotes inside `{}` expressions.
+
 ## Package Management
 
 - After installing packages with npm, delete `pnpm-lock.yaml` if it exists — it goes stale and causes `ERR_PNPM_OUTDATED_LOCKFILE` errors.
@@ -220,3 +224,17 @@ However if a comment was hard-deleted *before* the FK cascade ran (or via `delet
 | `ADMIN_SECRET`            | Admin auth (header + cookie)|
 | `UPSTASH_REDIS_REST_URL`  | Rate limiting              |
 | `UPSTASH_REDIS_REST_TOKEN`| Rate limiting              |
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

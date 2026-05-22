@@ -1,11 +1,12 @@
 ---
 type: blog
 title: 웹사이트에 "지금 듣는 음악" 섹션을 만든 방법
-slug: '{{slug}}'
+slug: 'now-listening'
 description: 'Apple Music API 없이, Last.fm과 GitHub Actions를 이용해 구현했다.'
 date: '2025-02-09'
 coverimage: ''
 published: true
+aiTranslated: true
 ---
 
 ## 아이디어

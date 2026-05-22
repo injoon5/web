@@ -82,13 +82,13 @@ export const load = async ({ fetch }: LoadEvent) => {
 				{
 					name: 'SvelteKit',
 					description:
-						"I really like SvelteKit because it's a fast framework that's easy to learn and use. It's perfect for my small side projects because it makes development faster with its concise syntax and common features like store built-in. This very website is built with SvelteKit too. ",
+						"I really like SvelteKit because it's a fast framework that's easy to learn and use. This very website is built with SvelteKit too. ",
 					link: 'https://svelte.dev'
 				},
 				{
 					name: 'Next.js',
 					description:
-						'Next.js is a powerful framework for building web applications. I know some bits of it from trying it in some of my projects, but it has some parts optimised for enterprise stuff which makes things harder for me. ',
+						'Next.js is a powerful framework for building web applications. I know how to use it.. but not really. Honestly too much for me. ',
 					link: 'https://nextjs.org'
 				},
 				{
@@ -105,13 +105,13 @@ export const load = async ({ fetch }: LoadEvent) => {
 				{
 					name: 'Swift',
 					description:
-						"Swift is a cool language developed by Apple for their platforms. I've been using it for a while now and it's a great language for building apps. (Except that string manipulation is a real pain to use)",
+						"Swift is a cool language developed by Apple. It's cool that its fast and has a nice syntax at the same time. (Except that string manipulation is a real pain to use)",
 					link: 'https://developer.apple.com/swift/'
 				},
 				{
 					name: 'SwiftUI',
 					description:
-						"This is by far one of my favorite UI frameworks. The joy of using all the cool components in a simple way is amazing. The limited platforms it can run on is a bit of a downside, but ironically that's why it's so intuitive to use.",
+						"This is by far one of my favorite UI frameworks. The joy of using all the cool components made by Apple is uncomparable. The limited platforms it can run on is a bit of a downside, but ironically that's why it's so intuitive to use.",
 					link: 'https://developer.apple.com/xcode/swiftui/'
 				}
 			]
@@ -122,7 +122,7 @@ export const load = async ({ fetch }: LoadEvent) => {
 				{
 					name: 'Python',
 					description:
-						"One of my first text-based programming languages I learned. It's a great language for rapidly building things. I'm a big fan of it's simple syntax. I know performance isn't the best, but I haven't faced this as a problem yet.",
+						"One of my first text-based programming languages I learned. It's a great language for rapidly building things. I know performance isn't the best, but I haven't faced this as a problem yet.",
 					link: 'https://www.python.org'
 				},
 				{
@@ -181,7 +181,7 @@ export const load = async ({ fetch }: LoadEvent) => {
 				{
 					name: 'Obsidian',
 					description:
-						"I've finally settled down with Obsidian. It's a great note-taking app that's really fast and easy to use. I like everything about it; the design, the developer, the features... Everything I've written is stored in my vault.",
+						"I've finally settled down with Obsidian. It's a great note-taking app that's really fast and easy to use. I like everything about it. So everything I've written is stored in my vault.",
 					link: 'https://obsidian.md'
 				},
 				{

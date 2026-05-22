@@ -1,80 +1,34 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import { comments, commentVotes, bannedIps } from '$lib/server/db/schema';
-import { eq, isNull, and, sql, desc } from 'drizzle-orm';
-import { commentRatelimit } from '$lib/server/redis';
+import { convex } from '$lib/server/convex';
+import { api } from '$convex/_generated/api';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { createCommentSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { isValidPageUrl } from '$lib/server/valid-urls';
+import { convexErrorToResponse } from '$lib/server/api';
+import { ADMIN_SECRET } from '$env/static/private';
 import bcrypt from 'bcryptjs';
 
 export const GET: RequestHandler = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
 
-	const ip = getClientIp(request);
-	const ipHash = hashIp(ip);
+	const ipHash = hashIp(getClientIp(request));
 
-	const rows = await db
-		.select({
-			id: comments.id,
-			url: comments.url,
-			username: comments.username,
-			text: comments.text,
-			reply: comments.reply,
-			parentId: comments.parentId,
-			depth: comments.depth,
-			createdAt: comments.createdAt,
-			updatedAt: comments.updatedAt,
-			upvotes: sql<number>`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int)`,
-			downvotes: sql<number>`cast(count(case when ${commentVotes.voteType} = 'down' then 1 end) as int)`,
-			score: sql<number>`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int) - cast(count(case when ${commentVotes.voteType} = 'down' then 1 end) as int)`,
-			myVote: sql<string | null>`max(case when ${commentVotes.ipHash} = ${ipHash} then ${commentVotes.voteType}::text end)`
-		})
-		.from(comments)
-		.leftJoin(commentVotes, eq(commentVotes.commentId, comments.id))
-		.where(and(eq(comments.url, pageUrl), isNull(comments.deletedAt)))
-		.groupBy(comments.id)
-		.orderBy(
-			sql`cast(count(case when ${commentVotes.voteType} = 'up' then 1 end) as int) - cast(count(case when ${commentVotes.voteType} = 'down' then 1 end) as int) desc`,
-			desc(comments.createdAt)
-		)
-		.limit(200);
-
-	return json({ comments: rows });
+	try {
+		const comments = await convex.query(api.comments.list, { url: pageUrl, ipHash });
+		return json({ comments });
+	} catch (err) {
+		const mapped = convexErrorToResponse(err);
+		if (mapped instanceof Response) return mapped;
+		throw mapped;
+	}
 };
 
 export const POST: RequestHandler = async ({ request }) => {
-	const ip = getClientIp(request);
-	const ipHash = hashIp(ip);
-
-	// Check if IP is banned
-	const ban = await db
-		.select()
-		.from(bannedIps)
-		.where(eq(bannedIps.ipHash, ipHash))
-		.limit(1);
-
-	if (ban.length > 0) {
-		throw error(403, 'You have been banned from commenting');
-	}
-
-	// Rate limit (skipped for admin)
-	if (!verifyAdminSecret(request)) {
-		const { success, reset } = await commentRatelimit.limit(ipHash);
-		if (!success) {
-			const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-			return new Response(JSON.stringify({ error: 'Too many comments. Please wait before posting again.' }), {
-				status: 429,
-				headers: {
-					'Content-Type': 'application/json',
-					'Retry-After': String(retryAfter)
-				}
-			});
-		}
-	}
+	const ipHash = hashIp(getClientIp(request));
+	const admin = verifyAdminSecret(request);
 
 	let raw;
 	try {
@@ -90,43 +44,22 @@ export const POST: RequestHandler = async ({ request }) => {
 
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
-	// Validate parent and determine depth
-	let depth = 0;
-	if (parentId) {
-		const [parent] = await db
-			.select({ id: comments.id, depth: comments.depth })
-			.from(comments)
-			.where(and(eq(comments.id, parentId), isNull(comments.deletedAt)))
-			.limit(1);
-
-		if (!parent) throw error(400, 'Parent comment not found');
-		if (parent.depth >= 2) throw error(400, 'Maximum reply depth reached');
-		depth = parent.depth + 1;
-	}
-
 	const passwordHash = await bcrypt.hash(password, 10);
 
-	const [comment] = await db
-		.insert(comments)
-		.values({
+	try {
+		const comment = await convex.mutation(api.comments.create, {
 			url: pageUrl,
-			username: username?.trim() || 'Anonymous',
+			username: username ?? 'Anonymous',
 			passwordHash,
 			text,
+			parentId,
 			ipHash,
-			...(parentId ? { parentId, depth } : {})
-		})
-		.returning({
-			id: comments.id,
-			url: comments.url,
-			username: comments.username,
-			text: comments.text,
-			reply: comments.reply,
-			parentId: comments.parentId,
-			depth: comments.depth,
-			createdAt: comments.createdAt,
-			updatedAt: comments.updatedAt
+			adminSecret: admin ? ADMIN_SECRET : undefined
 		});
-
-	return json({ comment }, { status: 201 });
+		return json({ comment }, { status: 201 });
+	} catch (err) {
+		const mapped = convexErrorToResponse(err);
+		if (mapped instanceof Response) return mapped;
+		throw mapped;
+	}
 };

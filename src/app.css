@@ -56,6 +56,11 @@
 	::file-selector-button {
 		border-color: var(--color-gray-200, currentcolor);
 	}
+
+	html {
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
 }
 
 /* Vote button pop */

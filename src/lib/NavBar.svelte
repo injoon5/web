@@ -9,7 +9,7 @@
 	const navItems = [
 		{ label: 'projects', href: '/projects' },
 		{ label: 'blog', href: '/blog' },
-		{ label: 'github', href: 'http://github.com/injoon5' }
+		{ label: 'now', href: '/now' }
 	];
 </script>
 
