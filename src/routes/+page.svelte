@@ -76,23 +76,23 @@
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-28" style="height: max-content;">
-			<h2 class="text-xl font-medium font-mono tracking-tight text-neutral-900 dark:text-neutral-100">
+			<h2 class="text-xl font-medium font-mono tracking-tight text-neutral-900 dark:text-neutral-100 text-balance">
 				Hello World
 			</h2>
 		</div>
 	</div>
 	<div class="col-span-5 mt-4 justify-center md:mr-2 lg:mt-0">
-		<p class="mb-4 text-neutral-900 dark:text-neutral-100">
+		<p class="mb-4 text-neutral-900 dark:text-neutral-100 text-pretty">
 			I am a student who is interested in math, science, and computers.
 		</p>
-		<p class=" text-neutral-900 dark:text-neutral-100">
+		<p class="text-neutral-900 dark:text-neutral-100 text-pretty">
 			I love exploring new concepts and getting to know cool new things. Whether it's tackling
 			complex equations, researching about scientific stuff, or trying the latest tech, I'm always
 			eager to learn.
 		</p>
 	</div>
 	<div class="col-span-5 mt-4 justify-center md:ml-2 lg:mt-0">
-		<p class="mb-2 text-neutral-900 dark:text-neutral-100">
+		<p class="mb-2 text-neutral-900 dark:text-neutral-100 text-pretty">
 			Although I haven't decided the specific domain due to the industry evolving so rapidly, I want
 			to be a computer programmer when I grow up. <s class="text-neutral-500"
 				>(Nowadays I'm thinking about AI, but who knows?)</s
@@ -108,7 +108,7 @@
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
 			<a href="/blog" class="group">
 				<h2
-					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
+					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400 text-balance"
 				>
 					Blog
 				</h2>
@@ -166,7 +166,7 @@
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
 			<a href="/projects" class="group">
 				<h2
-					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
+					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400 text-balance"
 				>
 					Projects
 				</h2>
@@ -298,7 +298,7 @@
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:absolute lg:z-10 lg:top-0 lg:left-0">
 		<div class="md:sticky md:top-24 lg:static" style="height: max-content;">
-			<h2 class="lg:mt-1 text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 lg:text-white" style="text-shadow: 0 1px 4px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.9), 0 4px 48px rgba(0,0,0,0.8);">
+			<h2 class="lg:mt-1 text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 lg:text-white text-balance" style="text-shadow: 0 1px 4px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.9), 0 4px 48px rgba(0,0,0,0.8);">
 				Now Listening
 			</h2>
 			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500 lg:text-white dark:lg:text-white lg:opacity-70 dark:lg:opacity-70" style="text-shadow: 0 1px 4px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.9), 0 4px 48px rgba(0,0,0,0.8);">
@@ -335,7 +335,7 @@
 				<div class="now-marquee flex" style="--track-count:{(nowlistening?.recenttracks?.track ?? []).length};">
 					{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
 						<a
-							class="group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3"
+							class="group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"
 							href={track.url}
 						>
 							<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
