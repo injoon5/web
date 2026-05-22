@@ -1,170 +1,164 @@
 ---
 type: blog
-title: LG AI 청소년 캠프 참가 후기
-slug: '{{slug}}'
-description: 'LG 디스커버리랩과 서울대학교가 함께 운영하는 LG AI 청소년 캠프에 1기로 약 6개월 간 참여했습니다. '
+title: LG AI Youth Camp
+slug: lg-ai-youth-camp
+description: I spent about 6 months as a first-generation participant in the LG AI Youth Camp, a program run by LG Discovery Lab and Seoul National University.
 date: '2024-05-14'
-series: 'LG AI 청소년 캠프'
+series: 'LG AI Youth Camp'
 coverimage: ''
 published: true
+aiTranslated: true
 ---
 
-지난 11월에 목운중으로 전학을 와서 바쁘게 밀린 수행을 채우던 중, 급식시간에 줄을 서 있다가 포스터 하나가 눈에 들어왔다.
+I had just transferred to Mongmun Middle School in November and was busy catching up on all the assignments I'd missed, when I spotted a poster while waiting in the lunch line.
 
-![놀라운 발견](/images/uploads/SCR-20240731-kqxz.jpeg)
+![An interesting discovery](/images/uploads/SCR-20240731-kqxz.jpeg)
 
-일단 보자마자 **'이건 나를 위한 캠프다'** 싶어서 사진을 찍긴 했다. 그런데 그 뒤로 고민을 하기 시작했는데, 이때 학원을 꽤 바쁘게 다니고 있었어서 섣불리 지원했다가 시간만 날리게 되는 초등학교 4학년때 삼성에서 하는 대회에서 한 경험이 반복되나 싶어서 며칠간 계속 생각을 했었다.
+The moment I saw it, I thought **"this camp was made for me"** and took a photo. But then the second-guessing started. I was already running a pretty packed academy schedule, and I'd been burned before — back in fourth grade, I impulsively entered a Samsung competition and just wasted time on it. I kept going back and forth for a few days.
 
-근데? 아무리 생각해봐도 **미국 캠프**를 무료로 보내준다는 것이 너무 끌렸다. 사실 몇 년 전에 실리콘밸리를 간 적이 있긴 한데, 그때는 테크 쪽에 막 관심을 가지기 시작하던 때여서 제대로 경험을 못했다. 그러다가 코로나가 터지면서 인터넷으로 관련 정보를 자세히 알게 되면서 꼭 한 번 다시 가보고 싶다는 생각을 하고 있었다.
+The thing that kept pulling me back? A **free trip to the US**. I'd been to Silicon Valley a few years earlier, but back then I was just starting to get interested in tech and didn't really take it in properly. Then COVID hit, and I spent a lot of time reading about the industry online — which only made me want to go back even more.
 
-결국 밑져야 본전이라는 생각을 하고 지원하기로 했다.
+I eventually decided to just go for it. Worst case, nothing happens.
 
-## LG AI 청소년 캠프란?
+## What is the LG AI Youth Camp?
 
-집에 와서 열심히 찾아보기 시작했다.
+I went home and looked it up properly.
 
-> LG AI 청소년 캠프는 LG디스커버리랩과 서울대학교가 함께 만드는
-> 청소년 인공지능 교육과정입니다.
+> The LG AI Youth Camp is a youth AI curriculum created by LG Discovery Lab and Seoul National University.
 
-> 서울대학교 1박 2일 캠프에 참여하여 일상생활 속 문제를 인공지능으로 해결하는 방안을 함께 탐색하고 10주간 온라인 AI 팀프로젝트를 수행하며 자기주도적으로 성장하여 미국 실리콘밸리 여름캠프에 무료로 참여할 수 있는 기회에 도전해 보세요!
+> Join a 1-night, 2-day camp at SNU, explore ways to solve real-world problems using AI, complete a 10-week online team project, and compete for a chance to attend a free summer camp in Silicon Valley.
 
-라고 하는데, 좀 풀어서 써보면 LG 내 인공지능 교육기관인 [LG 디스커버리랩](https://www.lgdlab.or.kr/)이랑 서울대랑 협력해서 진행하는 인공지능을 활용해서 프로젝트를 수행하는 일종의 대회라고 볼 수 있겠다.
+To put it plainly: it's essentially a competition run by [LG Discovery Lab](https://www.lgdlab.or.kr/) (LG's AI education arm) and Seoul National University, where you build an AI-powered project over several months.
 
-진행 과정은
+The process went roughly like this:
 
-- 1차 온라인 접수로 아이디어를 소개하는 영상 제출, 100명 선발
-- 2월 서울대 캠프에서 팀 배정 및 계획
-- 5월 최종발표에서 평가를 통해 최종 12명 선발
+- Submit an idea video in the first round of online applications — top 100 selected
+- February: SNU camp for team formation and planning
+- May: Final presentation, where 12 participants are selected for the US trip
 
-정도.
+*I also thought this might be a good chance to break my habit of obsessively learning new tech without ever actually building anything with it.*
 
-_항상 관련 기술만 엄청 찾아서 배우고, 실제로는 활용할 아이디어를 찾지 못하는 나의 습관(?)을 잘 고칠 수도 있겠다는 생각이 들었다. _
+## First Round Application
 
-## 1차 접수
+I usually spend a long time nailing down an idea before I write anything, and here that almost got me. I barely made it.
 
-원래 나는 보고서를 작성할 때 아이디어를 한 번 잡는데 시간을 오래 쓰고 나서 빠르게 작성을 하는 타입인데, 이거 때문에 제출을 못할 뻔했다.
+After a lot of deliberation (probably until around 10 PM after school), I landed on the idea of `a device that uses computer vision to read text from books, then uses an LLM to provide background knowledge or translations on demand`.
 
-한참을 생각하고서야 (아마 학교 갔다 와서 10시 정도까지 고민한 것 같다) `책을 읽을 때 컴퓨터 비전을 통해 텍스트를 읽어 LLM 처리를 통해 필요한 배경지식을 제공하거나, 번역을 해주는 기기`로 방향을 정해서 영상을 찍었다.
+The deadline was midnight. I finished filming around 11:40 and was feeling pretty good about having some time to spare — then I noticed there were two 500-character fields and one 1000-character field I hadn't even seen. I typed like crazy and submitted with about 30 seconds left. (Pretty sure I was the last one.)
 
-제출 기한이 밤 12시였는데, 한 11시 40분 즈음에 다 찍어서 시간이 조금 남았다고 좋아하면서 제출을 하려고 했다. 그런데.. 글을 500자씩 2개, 1000자 정도 써야하는 칸이 있어서 미친듯이 쓰고 한 30초 전에 냈다. (아마 마지막으로 제출했을듯 ㅋㅋ)
+In December, I was on my way home from the academy when my mom called to say I got in. I can't say I was completely shocked — when I have a feeling something will work out, it usually does. My main thought was just relief, given that I'd recently been rejected from the SNU gifted program.
 
-그러고 나서 12월에 밤에 학원 끝나고 집에 돌아가는데 엄마께서 됐다고 전화하셨다. 내가 상이나 합격을 많이는 못해도 "이거 된다" 라고 생각하면 웬만해서는 되는데, 이것도 그렇게 생각하고 있었어서 엄청 놀라지는 않고 그냥 서울대 영재원도 떨어진 판에 이거라도 되서 다행이라고 생각했다.
+## SNU Camp
 
-## 서울대 캠프
+![LG AI Youth Camp](/images/uploads/SCR-20240820-dos.png)
 
-![LG AI 청소민 캠프](/images/uploads/SCR-20240820-dos.png)
+In February, we spent one night and two days at Seoul National University — meeting our teammates, brainstorming ideas, and sitting through lectures by SNU professors. The lectures were basically the quality of an actual university orientation class, which was great for getting my thoughts on AI organized. (Most people slept through them.) Each team also got a SNU undergrad or grad student as a mentor, which was genuinely useful — both for the project and for asking questions I'd always been curious about.
 
-2월에 서울대에 가서 1박 2일로 캠프를 하면서 프로젝트를 함께 할 팀원들을 만나고, 아이디어를 구상했다. 아무리 해도 익숙해지지 않는 디자인 씽킹을 경험했고, 서울대 교수님들께서 주로 인공지능과 관련되어 강의를 해 주셨는데, 실제 대학교 오리엔테이션 수업 정도 되는 것 같은 퀄리티의 강의를 해 주셔서 이쪽 분야에 대해 내가 알고 있는 지식을 정리할 수 있었다. (남들이 많이 잤다) 또, 각 팀당 서울대학교에 재학 중이신 대학생/대학원생 한 분이 멘토 역할을 해 주셨는데, 도움도 많이 주시고 평소에 궁금했던 질문도 할 수 있었어서 좋았다.
+During the day, the food was good and it was fun to walk around campus.
 
-낯에는 음식도 맛있고, 서울대 구경도 재미있었다.
+![Things were good up to this point](/images/uploads/SCR-20240820-sod.png)
 
-![여기까진 좋았다](/images/uploads/SCR-20240820-sod.png)
+Then we got to the dorm and the ~~nightmare~~ suffering began. We had to come up with a solid idea by the next morning, and nothing was coming to me. It felt like a replay of the application process — I was up until around 3 AM in the room with my older teammates, constantly revising the proposal. We eventually landed on an idea I'd had as a backup during the application: `a program that describes product images on online shopping platforms`. We finished the write-up and went to sleep.
 
-근데 숙소에 들어가자마자 ~~지옥~~ 고통을 경험했다. 그 다음날 아침까지 쓸만한 아이디어를 짜내야 하는데, 떠오르는 아이디어가 없었다. 마치 1차 지원 과정을 반복하는 것처럼, 한 새벽 3시까지 형들이랑 방에서 보고서를 계속 수정했다. 그러다가 결국은 내가 지원 과정에서 후보로 두었었던 `온라인 쇼핑몰에서 상품 이미지를 설명해주는 프로그램` 으로 정하고 보고서를 빨리 쓰고 잤다.
+The next day, a professor gave us feedback and pointed out that **we needed to narrow the scope significantly**. At that point, we kept the image recognition concept but pivoted toward helping students study science textbooks — basic explanations plus interpreting figures and diagrams.
 
-다음날 교수님께 피드백을 받는 과정에서 **어떠한 특정 분야로 범위를 좁혀야 한다**는 의견을 받았다. 이때 당시에는 이미지 인식이라는 큰 틀은 유지하되, 과학 교과서 학습을 도와주는 쪽으로 (기본적인 해설 + 그림/도표 해석) 방향을 잡았었던 것 같다.
-
-일단 이정도 까지만 하고 집에 왔다.
+That was enough for now. We went home.
 
 ---
 
 https://www.youtube.com/watch?v=FpIRgBNSDcs
 
-## 10주간 프로젝트 진행
+## 10-Week Project
 
-프로젝트는 10주간, 매주 Zoom으로 모여서 소회의실에서 진행되었고, 총 3번의 중간발표 과정을 통해 피드백을 받고 개선을 할 수 있었다.
+The project ran over 10 weeks via weekly Zoom sessions, with three interim presentations to get feedback and iterate.
 
-### 역할 분담
+### Roles
 
-팀은 LG 측에서 지원할 당시 작성한 정보를 바탕으로 균형을 맞춰서 짰다고 했다. 실제로 우리 팀은 팀으로 지원한 2명과 개인으로 지원한 2명(나)로 구성되었다. 팀 내에서 프로그래밍을 제대로 할 수 있는 사람이 나밖에 없어서 자연스럽게 프로그래머를 맡게 되었고, 나머지 3명이 팀장, 디자이너, 그리고 (보조?) 프로그래머/조력자(?)를 맡았다.
+LG put teams together based on information from our applications, supposedly balancing skill sets. Our team ended up being two people who had applied as a pair, plus two individual applicants (including me). Since I was the only one on the team who could actually write code, I naturally became the developer. The other three took on roles as team lead, designer, and a sort of assistant developer / general helper.
 
-### 아이디어 구체화
+### Narrowing the Idea
 
-프로젝트의 방향성을 정하는 과정에서 기존 아이디어의 변이 (variant)가 많이 나왔다.
+The direction of the project shifted a lot during the planning phase, with many variations of the original concept floating around.
 
-- 시각장애인들이 **의류**를 구매할 때 사진으로 정보를 얻기 힘들다.
-- 마트에서 전시가 어지러운 등 쇼핑을 하기 어렵다.
-- 도서를 시각장애인들이 읽기가 어렵다.
-- 시각장애인들의 개인적인 추억이 담긴 사진을 설명해 주는 프로그램.
+- Visually impaired people have a hard time getting information from product images when buying **clothing** online.
+- Navigating a disorganized grocery store is difficult.
+- Books are hard to read for visually impaired people.
+- A program that describes personal photos for visually impaired users.
 
-각 팀원별로 하나의 의견을 제시한 뒤, 각 아이디어에 대해 사용할 수 있는 인공지능 모델, 데이터 등을 조사해서 발표하는 형식으로 방향을 정했다.
+Each team member proposed an idea, then we each researched the AI models and datasets that could support it and presented our findings.
 
-결국은 기존 아이디어에 **의류**라는 세부사항을 더해서 진행하기로 결정했었다.
+We ended up going with the original shopping concept, but narrowed to **clothing**.
 
-### 인공지능 모델 / 데이터 수집
+### AI Models and Data
 
-우리 팀의 능력이나, 주어진 시간 등을 고려했을 때, 직접 모델을 만들거나, 데이터를 구축한다는 것은 말도 안되는 일이어서 정말 열심히 자료조사를 했다. 한 2주 동안은 [공공데이터포털](https://data.go.kr)이랑 [Kaggle](https://kaggle.com), [Hugging Face](https://huggingface.co) 그리고 GitHub을 샅샅이 뒤졌던 것 같다.
+Given our skills and the time we had, training our own model or building a dataset from scratch was completely out of the question, so we did a lot of research. For about two weeks I went through [Korea's Public Data Portal](https://data.go.kr), [Kaggle](https://kaggle.com), [Hugging Face](https://huggingface.co), and GitHub pretty thoroughly.
 
-이 과정에서 **무언가를 실제로 실행한다는 것은 정말 어려운 일**이라는 것을 배우게 되었다. 학교에서 실습을 하거나, 예제를 돌려볼 때는 정말 쉬워 보였던 데이터 마련과 학습이 실제로 진행하다 보니 데이터 크기가 너무 크거나 (+400GB) 라이브러리 설치 과정에서 무언가 꼬이는 등 문제가 많았다.
+This is where I learned that **actually shipping something is hard**. Things that look simple when you're running practice code or tutorials — getting data, training a model — turn into a mess quickly. Datasets were too large (+400GB), library installations broke things, and so on.
 
-결국 범위를 줄인 결과인 의류도 우리에게는 너무 힘들다는 결론에 도달해서 신발로 더 범위를 줄였다.
+Even clothing turned out to be too ambitious, so we narrowed it down further to **shoes**.
 
-그리고 나서 내 맥북 프로로 YOLOv8을 훈련시켰다. 애플 실리콘 칩을 제대로 활용하는 MPS 모드(?)로 설정하고 진행했더니 생각했던 것보다 훨씬 빠르긴 했는데, 그래도 컴퓨터 사고 처음으로 비행기 이륙 소리를 들을 수 있었다.
+Then I trained YOLOv8 on my MacBook Pro. Setting it to use MPS (Apple Silicon's GPU acceleration) made it faster than I expected, but it was also the first time I've heard my computer sound like a plane taking off.
 
-### 프로토타입 제작
+### Prototype
 
-일단 YOLO 모델은 신발의 종류 (구두, 운동화 등)와 끈 유무만 JSON 형식으로 반환하도록 학습시켰다.
+I trained the YOLO model to return only the type of shoe (dress shoe, sneaker, etc.) and whether it had laces — as a JSON output.
 
-원래는 시각장애인이 주요 유저가 될 것으로 생각하고 정한 아이디어이기에, 실제로 화면이 보이지 않아도 VoiceOver 등의 기술을 통해 작동이 가능한 방식을 채택해야 했지만, 일단 우리는 이미지를 우클릭 하면 뜨는 컨텍스트 메뉴를 통해 실행 가능하도록 결정했다.
+The app was meant for visually impaired users, which meant it should ideally work with VoiceOver or similar accessibility tech. For the prototype though, we went with triggering it through the right-click context menu on an image. We also kept the stack as simple as possible — I'd learned from watching our idea shift rapidly that **the simpler the implementation, the better**. For the second interim presentation, the backend was FastAPI and the frontend was a single HTML file served from the same server. The backend just received the image and passed it to the model. ~~Pretty bare-bones in retrospect.~~
 
-또한, 프로젝트를 진행하다 아이디어가 순식간에 바뀌는 경험을 해보고서 깨달았다. **최대한 익숙한 기술 스택으로, 가장 단순하게 구현**해야 되겠다고. 그래서 일단 2번째 중간발표 때는 FastAPI로 백엔드를, 그리고 프론트엔드는 동일 서버에서 HTML 파일 하나로 구현을 했다. 백엔드는 단지 사용자가 요청한 이미지를 받아서 모델에 전달하는 역할만 했다. ~~생각해보니 꽤 단순하다..~~
+After that I piped the output to OpenAI's GPT-4 Turbo to generate a more detailed description of what the shoe looked like.
 
-그 뒤로는 이 정보를 OpenAI GPT-4 Turbo에 전달해 형태에 대한 더 정확한 정보를 얻을 수 있게 했다.
+## Graduation — Final Presentation
 
-## 수료식 -- 최종발표
+After a late night putting the finishing touches on everything, May 13th arrived: final presentation day.
 
-그 전날 밤 늦게까지 프로젝트를 마무리하고, 드디어 5월 13일 최종발표를 하게 되었다.
+![Entrance](/images/uploads/14F76946-2F6B-40C2-8F3C-1670E887A2C5_1_105_c.jpeg)
 
-![입구](/images/uploads/14F76946-2F6B-40C2-8F3C-1670E887A2C5_1_105_c.jpeg)
+The ceremony was originally scheduled for the SNU building where we'd held the camp, but it moved to the LG Electronics R&D campus in Magok for some reason. ~~(Works for me.)~~
 
-원래는 캠프를 진행했던 서울대 건물에서 시상식도 하는 것으로 예정되어 있던 모양인데, 무슨 이유인지 마곡에 있는 LG전자 연구소에서 하는 것으로 바뀌었다. ~~(오히려 좋아~~)
+Riding the escalator up, we passed some interesting floors.
 
-에스컬레이터 타고 올라가면서 이런 신기한 층도 보고
+![Secure zone vibes](/images/uploads/1E333D95-D305-437B-9593-E243A0B404A2_1_105_c.jpeg)
 
-![쌈@뽕한 보안구역](/images/uploads/1E333D95-D305-437B-9593-E243A0B404A2_1_105_c.jpeg)
+Got snacks.
 
-간식 받아서
+![We're in](/images/uploads/B6487BFC-5D25-4875-A47A-82045EEF918F_1_105_c.jpeg)
 
-![입장했다](/images/uploads/B6487BFC-5D25-4875-A47A-82045EEF918F_1_105_c.jpeg)
+The venue was a large conference hall — bigger than I expected.
 
-(사진으로는 잘 안담기지만) 되게 큰 컨퍼런스 홀 같은데서 진행해서 살짝 놀랐다.
+We arrived first and started "preparing" (which really meant last-minute additions). The other team members trickled in after.
 
-가장 먼저 도착해서 발표 준비 (라고 쓰고 추가 작업이라고 읽는다) 를 하고 있으니 다른 팀원들도 도착했다.
+After about an hour of prep, presentations began. With so many teams, it wasn't one-by-one on stage — instead, there were three time slots where each team had a small booth, and judges, teachers, and other teams circulated to see everyone.
 
-한 1시간 정도 준비를 하고 나서 발표를 시작했다. 팀이 너무 많아서 한 팀씩 무대에 올라가는 것이 아니라 세 타임으로 시간을 나뭐서 팀당 작은 부스를 준비한 후, 교수님들과 다른 선생님들, 다른 팀 팀원들이 쭉 돌면서 구경하는 방식이었다.
+The scale caught me off guard, and actual LG employees were walking around too. Our mentor had to leave for a medical appointment, so we were on our own. I handled the technical section solo; the other three covered the intro, purpose, and everything else.
 
-상상하지 못한 규모인데다 실제 LG 직원분들도 구경을 하러 오셨는데, 멘토님께서 병원에 가시는 바람에 우리끼리 발표를 해야 해서 조금 긴장했었다. 내가 거의 홀로 기술 파트를 담당했기에 이 부분은 나 혼자서 발표했고, 다른 팀원 3명이 소개, 목적 등 나머지 부분을 담당했다.
+I'd assumed "just present and it'll be fine," but seeing how thoroughly prepared other teams were, I started to feel like we'd underprepared. I tried to compensate by explaining the development process and implementation in as much detail as I could. People asked a lot of questions and seemed to respond well — probably because I'd talked through the project internally so many times that I could explain it clearly. One LG employee asked if I'd built everything myself, and when I said yes, he gave me a compliment. Whether he meant it or not, I appreciated it.
 
-사실 '발표 그냥 하면 되겠지' 라는 생각을 했었는데, 다른 팀들이 정말 꼼꼼히 준비해 오는 것을 보고 좀 망했다는 생각이 들었다. 그래도 내가 최대한 자세하게 개발 과정과 구현 방식 등을 설명했고, 평소에 팀 안에서 프로젝트에 대해 말을 많이 했었기에 질문도 많이 해주시고, 좋은 평가를 해 주신 것 같다.
+After lunch, scores were tallied and the top 6 teams were called up for a stage presentation. I wasn't expecting much — and then our team's name was called. I went up genuinely happy.
 
-특히 발표 과정에서 한 LG 직원 분이 내가 직접 구현을 했냐고 물어보시길래 맞다고 했더니 칭찬을 해 주셔서 (진심인지는 모르겠지만) 굉장히 감사했었다.
+The other teams had printed materials for the judges and clearly put in a lot of work, which surprised me again. I just did my best. We hadn't set up a proper evaluation method during the project, so when a judge asked about it, my answer wasn't great.
 
-이후 밥을 먹고 평가 결과를 바탕으로 최종 6팀을 선정하여 무대에 올라와 발표를 하도록 했는데, 별 큰 기대를 하고 있지 않다가 우리 팀이 불려서 굉장히 기뻐하면서 무대로 나갔다.
+![Me talking](/images/uploads/20240511_LG_AI행사-463.jpg)
 
-여기서도 다른 팀들은 심사 위원분들께 드릴 자료까지 출력을 해 오는 등 굉장히 많은 노력을 한 것이 보여서 또 조금 놀랐었는데, 이번에도 그냥 최선을 다했다. 프로젝트를 진행하면서 제대로 된 객관적인 평가 방법을 구상하지 못해 그냥 평가 없이 발표를 했더니 심사위원 분께서 질문을 하셔서 겨우 대답을 하긴 했는데, 별로 좋은 답은 아니었던 듯 했다.
+We moved to the awards room with some nerves.
 
-![내가 말하고 있다](/images/uploads/20240511_LG_AI행사-463.jpg)
+![The windows in the back were originally covered](/images/uploads/E08066D9-2123-4881-B0C5-A769B1072318_1_105_c.jpeg)
 
-조금 기다렸다가 조마조마한 마음으로 시상식장으로 이동했다.
+Everyone got a LAMY pen. Then the two lower-tier awards were announced — we won both, but honestly the third award (the US trip) was the only one I really cared about, so I just stayed tense.
 
-![저 뒤에 창문이 원래 가려져 있었다!!](/images/uploads/E08066D9-2123-4881-B0C5-A769B1072318_1_105_c.jpeg)
+The final award. Best case was winning as a team. Two other teams were called up. Then it went to individual selections.
 
-일단 모든 참가자들에게 라미 볼펜을 상으로 주었다. 그 후 총 3개 상 중 더 낮은 2개를 먼저 시상했는데, 둘 다 일단 받긴 했다. 근데 사실 세 번째 상이 미국에 가는 거라 크게 감정이 있지는 않았고, 그냥 긴장하고만 있었다.
+My name was called. I walked up to the stage genuinely thrilled.
 
-마지막 상을 시상하기 시작했다. 최선의 경우는 팀으로 뽑히는 것이어서 계속 이러기를 바라고 있었다. 그러나, 다른 두 팀이 불렸고, 그 다음부터는 정말 초조해하며 개인 수상을 기다렸다.
+![Going to America](/images/uploads/C13C2332-0685-4D54-A17B-92B63D415233_1_105_c.jpeg)
 
-그때, 내 이름이 불렸다. 정말 기뻐하며 무대에 올라 상을 받았다.
-
-![미국간다](/images/uploads/C13C2332-0685-4D54-A17B-92B63D415233_1_105_c.jpeg)
-
-이렇게 3개월간의 여정이 끝났다.
+That was the end of a three-month journey.
 
 ---
 
 https://www.youtube.com/watch?v=8cuL98yA3og
 
-## 후기
+## Thoughts
 
-보통 컴퓨터를 좋아한다고 하면 알고리즘을 생각하는데, 나는 알고리즘 보다는 실제 프로그램/서비스를 개발하는 쪽에 더 관심이 많다. 보통 알고리즘에 관련된 대회가 월등히 많아서 항상 수상을 못했었는데, 이렇게 실제 스타트업을 창업하는 과정을 경험해 볼 수 있는 대회가 있어 너무 좋았다. 특히 대기업에서 큰 자본을 투자해서 진행했기에 과정이 매끄러워 더 편하게 참가할 수 있었던 것 같다.
+Most competitions in the CS space are algorithm-focused, but I've always been more interested in actually building products. I'd never done well in those. Finding a competition that simulates the actual process of building something — like a startup — was genuinely refreshing. The fact that a major company backed it with real resources made the whole process feel polished and well-run.
 
-앞으로 꾸준히 진행될 것이라고 하는데, 꼭 수상을 못하더라도 실제 프로젝트 진행을 통해 배울 수 있는 점들이 정말 많으니 혹시 참가를 고민한다면 꼭 한 번 해보기를 권한다.
+The program is supposed to continue going forward, and I'd say it's worth applying even if you don't win. There's a lot you can only learn by actually running a project. If you're on the fence, just go for it.

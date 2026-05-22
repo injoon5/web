@@ -133,10 +133,11 @@
 						{post.description ||
 							'Some amazing post that I forgot or failed to write a description for. '}
 					</p>
-					<div
-						class="whitespace-nowrap text-sm font-medium text-neutral-500 dark:text-neutral-500"
-					>
-						{post.date || post.year}
+					<div class="flex items-center gap-2 text-sm font-medium text-neutral-500 dark:text-neutral-500">
+						<span class="whitespace-nowrap">{post.date || post.year}</span>
+						{#if post.hasEn}
+							<span class="text-xs font-semibold text-neutral-400 dark:text-neutral-600">English</span>
+						{/if}
 					</div>
 				</a>
 			{/each}
@@ -242,7 +243,7 @@
 										{technology.name}
 									</p>
 									<p
-										class="tracking-normal text-sm leading-normal font-normal text-neutral-600 dark:text-neutral-400"
+										class="tracking-tight text-sm leading-normal font-medium text-neutral-600 dark:text-neutral-400"
 									>
 										{technology.description}
 									</p>

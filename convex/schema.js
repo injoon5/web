@@ -35,5 +35,10 @@ export default defineSchema({
 	bannedIps: defineTable({
 		ipHash: v.string(),
 		reason: v.union(v.string(), v.null())
-	}).index('by_ip', ['ipHash'])
+	}).index('by_ip', ['ipHash']),
+
+	nowPage: defineTable({
+		content: v.string(),
+		updatedAt: v.number()
+	})
 });

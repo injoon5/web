@@ -29,13 +29,36 @@ export async function load({ params, fetch }) {
 	const response = await fetch("/api/posts");
 	const posts = await response.json();
 
-	const series = posts.filter(
-		(tempPost) => tempPost.series === primaryPost.metadata.series,
+	const seriesNames = new Set(
+		[enPost?.metadata?.series, koPost?.metadata?.series].filter(Boolean)
 	);
+	const seriesSlugs = posts
+		.filter((p) => p.series && seriesNames.has(p.series))
+		.map((p) => p.slug);
+
+	const enSeries = [];
+	const koSeries = [];
+
+	for (const slug of seriesSlugs) {
+		const eKey = `../posts/en/${slug}.md`;
+		const kKey = `../posts/ko/${slug}.md`;
+		let eMeta = null;
+		let kMeta = null;
+		if (enModules[eKey]) {
+			const mod = await enModules[eKey]();
+			if (mod.metadata?.published) eMeta = { ...mod.metadata, slug };
+		}
+		if (koModules[kKey]) {
+			const mod = await koModules[kKey]();
+			if (mod.metadata?.published) kMeta = { ...mod.metadata, slug };
+		}
+		enSeries.push(eMeta ?? kMeta);
+		koSeries.push(kMeta ?? eMeta);
+	}
 
 	const availableLangs = [
-		...(enPost ? ["en"] : []),
 		...(koPost ? ["ko"] : []),
+		...(enPost ? ["en"] : []),
 	];
 
 	return {
@@ -44,7 +67,8 @@ export async function load({ params, fetch }) {
 		enMeta: enPost?.metadata ?? null,
 		koMeta: koPost?.metadata ?? null,
 		meta: primaryPost.metadata,
-		series,
+		enSeries,
+		koSeries,
 		availableLangs,
 		enReadingTime: enPost?.metadata?.readingTime ?? null,
 		koReadingTime: koPost?.metadata?.readingTime ?? null,

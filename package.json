@@ -49,6 +49,7 @@
 		"bcryptjs": "^2.4.3",
 		"convex": "^1.39.1",
 		"convex-svelte": "^0.0.12",
+		"marked": "^18.0.4",
 		"mdast-util-to-string": "^4.0.0",
 		"onedollarstats": "^0.0.9",
 		"rehype-external-links": "^3.0.0",

@@ -7,6 +7,7 @@
 	import { page } from '$app/stores';
 	import { setupConvex } from 'convex-svelte';
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
+	import { theme } from '$lib/theme.js';
 
 	setupConvex(PUBLIC_CONVEX_URL);
 
@@ -33,12 +34,17 @@
 		requestAnimationFrame(step);
 	}
 
+	let cleanupTheme;
+
 	onMount(async () => {
 		configure({
 			collectorUrl: 'https://collector.onedollarstats.com/events',
 			autocollect: true
 		});
+		cleanupTheme = theme.syncWithOS();
 	});
+
+	onDestroy(() => cleanupTheme?.());
 </script>
 
 <svelte:head>

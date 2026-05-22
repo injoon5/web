@@ -14,6 +14,7 @@ import type * as comments from "../comments.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_serialize from "../lib/serialize.js";
 import type * as likes from "../likes.js";
+import type * as now from "../now.js";
 import type * as rateLimits from "../rateLimits.js";
 
 import type {
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/serialize": typeof lib_serialize;
   likes: typeof likes;
+  now: typeof now;
   rateLimits: typeof rateLimits;
 }>;
 

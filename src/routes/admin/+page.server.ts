@@ -17,7 +17,7 @@ export const actions = {
 		if (password !== ADMIN_SECRET) return fail(401, { error: 'Incorrect password' });
 
 		cookies.set('admin_token', ADMIN_SECRET, {
-			path: '/admin',
+			path: '/',
 			httpOnly: true,
 			sameSite: 'strict',
 			maxAge: 60 * 60 * 24 // 24 hours
@@ -27,7 +27,7 @@ export const actions = {
 	},
 
 	logout: async ({ cookies }) => {
-		cookies.delete('admin_token', { path: '/admin' });
+		cookies.delete('admin_token', { path: '/' });
 		throw redirect(303, '/admin');
 	}
 } satisfies Actions;

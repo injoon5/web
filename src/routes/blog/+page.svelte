@@ -69,10 +69,13 @@
 							>
 								{seriesPost.title}
 							</span>
-							<span
-								class="ml-4 text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
-							>
-								{seriesPost.date || seriesPost.year}
+							<span class="ml-4 flex shrink-0 items-center gap-2">
+								{#if seriesPost.hasEn}
+									<span class="text-xs font-semibold text-neutral-400 dark:text-neutral-600">English</span>
+								{/if}
+								<span class="text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500">
+									{seriesPost.date || seriesPost.year}
+								</span>
 							</span>
 						</a>
 					</div>
@@ -88,10 +91,13 @@
 						>
 							{post.title}
 						</span>
-						<span
-							class="ml-4 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
-						>
-							{post.date || post.year}
+						<span class="ml-4 flex shrink-0 items-center gap-2">
+							{#if post.hasEn}
+								<span class="text-xs font-semibold text-neutral-400 dark:text-neutral-600">English</span>
+							{/if}
+							<span class="text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500">
+								{post.date || post.year}
+							</span>
 						</span>
 					</a>
 				</div>
