@@ -18,9 +18,7 @@
 		nowError = null;
 		photosError = null;
 
-		const loadPhotos = fetch(`https://raw.githubusercontent.com/injoon5/data/main/photos.json`, {
-			cache: 'no-store'
-		})
+		const loadPhotos = fetch(`https://raw.githubusercontent.com/injoon5/data/main/photos.json`)
 			.then(async (r) => {
 				if (!r.ok) throw new Error(`photos.json HTTP ${r.status}`);
 				return r.json();
@@ -34,9 +32,7 @@
 				photosError = e?.message ?? 'Failed to load photos';
 			});
 
-		const loadNow = fetch(`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`, {
-			cache: 'no-store'
-		})
+		const loadNow = fetch(`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`)
 			.then(async (r) => {
 				if (!r.ok) throw new Error(`now-playing.json HTTP ${r.status}`);
 				return r.json();

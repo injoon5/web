@@ -5,11 +5,11 @@ import type { LoadEvent } from '@sveltejs/kit';
 export const prerender = true;
 
 export const load = async ({ fetch }: LoadEvent) => {
-	const postResponse = await fetch(`/api/posts`);
-	const posts = await postResponse.json();
-
-	const projectsResponse = await fetch(`/api/projects`);
-	const projects = await projectsResponse.json();
+	const [postResponse, projectsResponse] = await Promise.all([
+		fetch(`/api/posts`),
+		fetch(`/api/projects`)
+	]);
+	const [posts, projects] = await Promise.all([postResponse.json(), projectsResponse.json()]);
 
 	// Load tech stack descriptions
 	const techstackDescriptions = {

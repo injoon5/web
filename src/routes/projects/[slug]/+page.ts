@@ -9,17 +9,13 @@ export async function load({ params }) {
 	const enKey = `../projects/en/${params.slug}.md`;
 	const koKey = `../projects/ko/${params.slug}.md`;
 
-	let enProject = null;
-	let koProject = null;
+	const [enMod, koMod] = await Promise.all([
+		enModules[enKey] ? enModules[enKey]() : Promise.resolve(null),
+		koModules[koKey] ? koModules[koKey]() : Promise.resolve(null)
+	]);
 
-	if (enModules[enKey]) {
-		const mod = await enModules[enKey]();
-		if (mod.metadata?.published) enProject = mod;
-	}
-	if (koModules[koKey]) {
-		const mod = await koModules[koKey]();
-		if (mod.metadata?.published) koProject = mod;
-	}
+	const enProject = enMod?.metadata?.published ? enMod : null;
+	const koProject = koMod?.metadata?.published ? koMod : null;
 
 	const primaryProject = enProject || koProject;
 	if (!primaryProject) {

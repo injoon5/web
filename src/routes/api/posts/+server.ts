@@ -37,5 +37,9 @@ async function getPosts() {
 
 export async function GET() {
 	const posts = await getPosts();
-	return json(posts);
+	return json(posts, {
+		headers: {
+			'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
+		}
+	});
 }
