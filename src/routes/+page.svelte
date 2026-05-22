@@ -72,12 +72,12 @@
 
 <div
 	id="introduction"
-	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-base font-normal tracking-normal sm:grid-cols-5 sm:text-normal md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="md:sticky md:top-28" style="height: max-content;">
-			<h2 class="text-xl font-medium tracking-tight text-neutral-900 italic dark:text-neutral-100">
-				Hello! -
+			<h2 class="text-xl font-medium font-mono tracking-tight text-neutral-900 dark:text-neutral-100">
+				Hello World
 			</h2>
 		</div>
 	</div>
@@ -86,8 +86,8 @@
 			I am a student who is interested in math, science, and computers.
 		</p>
 		<p class=" text-neutral-900 dark:text-neutral-100">
-			I love exploring new concepts and getting to know cool new things. Whether it’s tackling
-			complex equations, researching about scientific stuff, or trying the latest tech, I’m always
+			I love exploring new concepts and getting to know cool new things. Whether it's tackling
+			complex equations, researching about scientific stuff, or trying the latest tech, I'm always
 			eager to learn.
 		</p>
 	</div>
@@ -123,18 +123,18 @@
 					href="/blog/{post.slug}"
 				>
 					<h3
-						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-semibold group-hover:underline"
+						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
 					>
 						{post.title}
 					</h3>
 					<p
-						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-base font-medium break-keep text-neutral-600 dark:text-neutral-400"
+						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-sm font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||
 							'Some amazing post that I forgot or failed to write a description for. '}
 					</p>
 					<div
-						class="whitespace-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
+						class="whitespace-nowrap text-sm font-medium text-neutral-500 dark:text-neutral-500"
 					>
 						{post.date || post.year}
 					</div>
@@ -143,7 +143,7 @@
 		</div>
 		<div class="mt-2 mb-4 flex justify-end">
 			<a
-				class="group relative inline-flex items-center text-base font-medium -tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+				class="group relative inline-flex items-center text-base font-medium tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="/blog"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
@@ -181,18 +181,18 @@
 					href="/projects/{post.slug}"
 				>
 					<h3
-						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-semibold group-hover:underline"
+						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
 					>
 						{post.title}
 					</h3>
 					<p
-						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-base font-medium break-keep text-neutral-600 dark:text-neutral-400"
+						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-sm font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||
 							'Some amazing project that I forgot or failed to write a description for. '}
 					</p>
 					<div
-						class="whitespace-nowrap text-sm font-semibold text-neutral-500 dark:text-neutral-500"
+						class="whitespace-nowrap text-sm font-medium text-neutral-500 dark:text-neutral-500"
 					>
 						{post.date || post.year}
 					</div>
@@ -232,17 +232,17 @@
 			<div class="space-y-10">
 				{#each data.techstack as stacks}
 					<div>
-						<h3 class="text-lg font-semibold tracking-tight text-neutral-900 dark:text-neutral-100">
+						<h3 class="text-base font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mt-0.5">
 							{stacks.name}
 						</h3>
 						<div class="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-12">
 							{#each stacks.technologies as technology}
 								<div class="col-span-4 mt-2">
-									<p class="text-base font-semibold text-neutral-900 dark:text-neutral-200">
+									<p class="tracking-normal text-base leading-normal font-normal text-neutral-900 dark:text-neutral-100">
 										{technology.name}
 									</p>
 									<p
-										class="tracking-tigh text-base leading-normal font-medium text-neutral-600 dark:text-neutral-400"
+										class="tracking-normal text-sm leading-normal font-normal text-neutral-600 dark:text-neutral-400"
 									>
 										{technology.description}
 									</p>
@@ -255,6 +255,22 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.now-marquee {
+		width: max-content;
+		will-change: transform;
+		animation: now-scroll linear infinite;
+		animation-duration: calc(var(--track-count, 10) * 5s);
+	}
+	.now-marquee:hover {
+		animation-play-state: paused;
+	}
+	@keyframes now-scroll {
+		from { transform: translateX(0); }
+		to   { transform: translateX(-50%); }
+	}
+</style>
 
 <!-- <div id="tech-stack" class="mb-12">
 	<h2 class="flex justify-between text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
@@ -278,14 +294,14 @@
 
 <div
 	id="now-listening"
-	class="mt-20 mb-56 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:relative lg:grid-cols-12"
 >
-	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
-		<div class="md:sticky md:top-24" style="height: max-content;">
-			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
+	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:absolute lg:z-10 lg:top-0 lg:left-0">
+		<div class="md:sticky md:top-24 lg:static" style="height: max-content;">
+			<h2 class="lg:mt-1 text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 lg:text-white" style="text-shadow: 0 1px 4px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.9), 0 4px 48px rgba(0,0,0,0.8);">
 				Now Listening
 			</h2>
-			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500">
+			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500 lg:text-white dark:lg:text-white lg:opacity-70 dark:lg:opacity-70" style="text-shadow: 0 1px 4px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.9), 0 4px 48px rgba(0,0,0,0.8);">
 				Last updated on
 				<span class="inline lg:block">
 					{#if nowState === 'loading'}
@@ -302,59 +318,45 @@
 		</div>
 	</div>
 
-	<div class="col-span-10 mt-4 justify-center lg:-mt-1 lg:-mb-1.5">
-		<div class="grid grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
-			{#if nowState === 'loading'}
-				{#each Array(4) as _}
-					<div class="flex items-center gap-3 py-2">
-						<div class="relative h-14 w-14 shrink-0 overflow-hidden">
-							<div class="absolute inset-0 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
-						</div>
-						<div class="flex w-full items-center justify-between">
-							<div class="h-5 w-2/3 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
-							<div class="ml-2 h-5 w-1/4 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
-						</div>
-					</div>
+	<div class="col-span-10 mt-4 lg:col-span-12 lg:mt-0 overflow-hidden -mx-4 sm:-mx-12 lg:-mx-4">
+		{#if nowState === 'loading'}
+			<div class="flex">
+				{#each Array(6) as _}
+					<div class="aspect-square w-40 shrink-0 lg:w-48 mr-3 animate-pulse rounded-xl bg-neutral-200 dark:bg-neutral-800"></div>
 				{/each}
-			{:else if nowState === 'error'}
-				<div class=" text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
-					<p>Couldn’t load Now Listening</p>
-					<div class="mt-1 text-neutral-500 dark:text-neutral-500">
-						{nowError ?? 'Unknown error'}
-					</div>
+			</div>
+		{:else if nowState === 'error'}
+			<div class="text-neutral-700 dark:text-neutral-300">
+				<p>Couldn't load Now Listening</p>
+				<div class="mt-1 text-neutral-500">{nowError ?? 'Unknown error'}</div>
+			</div>
+		{:else}
+			{#if (nowlistening?.recenttracks?.track ?? []).length > 0}
+				<div class="now-marquee flex" style="--track-count:{(nowlistening?.recenttracks?.track ?? []).length};">
+					{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
+						<a
+							class="group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3"
+							href={track.url}
+						>
+							<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
+							<img
+								loading="lazy"
+								src={track?.image?.[2]?.['#text'] ?? ''}
+								alt={track?.name ?? 'Album cover'}
+								class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+							/>
+							<div class="absolute inset-0 rounded-xl bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"></div>
+							<div class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0">
+								<p class="truncate text-sm font-semibold leading-tight text-white lg:text-base">{track.name}</p>
+								<p class="tracking-normal truncate text-sm font-normal text-white/60 lg:text-bas ">
+									{track?.artist?.['#text'] === 'Lany' ? 'LANY' : track?.artist?.['#text']}
+								</p>
+							</div>
+						</a>
+					{/each}
 				</div>
-			{:else}
-				{#each (nowlistening?.recenttracks?.track ?? []).slice(0, 4) as track}
-					<a
-						class="group flex items-center gap-3 py-2 text-neutral-900 hover:text-neutral-600 dark:text-neutral-100 dark:hover:text-neutral-400"
-						href={track.url}
-					>
-						<div class="shrink-0">
-							<div class="relative h-14 w-14 overflow-hidden">
-								<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
-								<img
-									loading="lazy"
-									src={track?.image?.[2]?.['#text'] ?? ''}
-									alt={track?.name ?? 'Album cover'}
-									class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-								/>
-							</div>
-						</div>
-						<div class="flex w-full items-center justify-between text-lg font-medium">
-							<div class="flex min-w-0 items-center gap-2">
-								{#if track?.['@attr']?.nowplaying === 'true'}
-									<span class="h-2 w-2 shrink-0 animate-pulse rounded-full bg-green-500"></span>
-								{/if}
-								<span class="line-clamp-1">{track.name}</span>
-							</div>
-							<span class="ml-2 shrink-0 line-clamp-1">
-								{track?.artist?.['#text'] === 'Lany' ? 'LANY' : track?.artist?.['#text']}
-							</span>
-						</div>
-					</a>
-				{/each}
 			{/if}
-		</div>
+		{/if}
 	</div>
 </div>
 
@@ -389,7 +391,7 @@
 			{:else if photosState === 'error'}
 				<div class="col-span-2 sm:col-span-3">
 					<div class=" text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
-						<p>Couldn’t load Photos</p>
+						<p>Couldn't load Photos</p>
 						<div class="mt-1 text-neutral-500 dark:text-neutral-500">
 							{photosError ?? 'Unknown error'}
 						</div>

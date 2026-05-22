@@ -35,14 +35,14 @@
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if data.series?.[0]?.series}
-				<h2 class="text-2xl font-medium text-neutral-500 dark:text-neutral-500">
+				<h2 class="text-xl font-medium text-neutral-500 dark:text-neutral-500">
 					{data.series[0].series}
 				</h2>
 			{/if}
 			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
 				{currentMeta.title}
 			</h1>
-			<div class="mt-2 flex flex-row text-2xl font-medium text-neutral-600 dark:text-neutral-400">
+			<div class="mt-1 flex flex-row text-xl font-medium text-neutral-600 dark:text-neutral-400">
 				<p>{formatDate(currentMeta.date)}</p>
 				<p class="mx-1">·</p>
 				<p>{currentReadingTime}</p>
