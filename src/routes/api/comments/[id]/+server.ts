@@ -58,54 +58,42 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 };
 
 // DELETE /api/comments/[id]
-// - Admin (via secret header): hard-delete (sets deletedAt)
-// - User (via password body): soft-delete
+// Hard-delete in both cases. Admin: via secret header. User: via password body.
 export const DELETE: RequestHandler = async ({ params, request }) => {
 	const { id } = params;
 	if (!id) throw error(400, 'Missing comment id');
 
-	if (verifyAdminSecret(request)) {
+	const admin = verifyAdminSecret(request);
+
+	if (!admin) {
+		let raw: { password?: unknown };
 		try {
-			await convex.mutation(api.comments.hardDelete, {
-				commentId: id,
-				adminSecret: ADMIN_SECRET
-			});
-			return json({ success: true });
+			raw = await request.json();
+		} catch {
+			throw error(400, 'Invalid request body');
+		}
+		const password = typeof raw?.password === 'string' ? raw.password : null;
+		if (!password || password.length < 4)
+			throw error(400, 'Password must be at least 4 characters');
+
+		let auth;
+		try {
+			auth = await convex.query(api.comments.getForAuth, { commentId: id });
 		} catch (err) {
 			const mapped = convexErrorToResponse(err);
 			if (mapped instanceof Response) return mapped;
 			throw mapped;
 		}
+		if (!auth || auth.deletedAt !== null) throw error(404, 'Comment not found');
+
+		const passwordMatch = await bcrypt.compare(password, auth.passwordHash);
+		if (!passwordMatch) throw error(401, 'Incorrect password');
 	}
 
-	let raw: { password?: unknown };
 	try {
-		raw = await request.json();
-	} catch {
-		throw error(400, 'Invalid request body');
-	}
-	const password = typeof raw?.password === 'string' ? raw.password : null;
-	if (!password || password.length < 4) throw error(400, 'Password must be at least 4 characters');
-
-	const ipHash = hashIp(getClientIp(request));
-
-	let auth;
-	try {
-		auth = await convex.query(api.comments.getForAuth, { commentId: id });
-	} catch (err) {
-		const mapped = convexErrorToResponse(err);
-		if (mapped instanceof Response) return mapped;
-		throw mapped;
-	}
-	if (!auth || auth.deletedAt !== null) throw error(404, 'Comment not found');
-
-	const passwordMatch = await bcrypt.compare(password, auth.passwordHash);
-	if (!passwordMatch) throw error(401, 'Incorrect password');
-
-	try {
-		await convex.mutation(api.comments.applySoftDelete, {
+		await convex.mutation(api.comments.hardDelete, {
 			commentId: id,
-			ipHash
+			adminSecret: ADMIN_SECRET
 		});
 		return json({ success: true });
 	} catch (err) {

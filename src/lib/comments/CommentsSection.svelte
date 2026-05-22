@@ -1,13 +1,21 @@
 <script>
 	import { page } from '$app/stores';
 	import { onDestroy } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
-	import CommentCard from './CommentCard.svelte';
+	import CommentNode from './CommentNode.svelte';
+
+	const MAX_LENGTH = 200;
+	const CHAR_THRESHOLD = 10;
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
+
+	function haptic() {
+		trigger([{ duration: 15 }], { intensity: 0.4 });
+	}
 
 	// Main comment form
 	let commentText = $state('');
@@ -23,37 +31,52 @@
 		ipHash: $page.data.ipHash ?? ''
 	}));
 
-	// Edit state
-	let editingId = $state(null);
-	let editText = $state('');
-	let editPassword = $state('');
-	let editError = $state('');
-	let editSubmitting = $state(false);
+	// Cross-card form coordination — only one form open at a time
+	let activeFormId = $state(null);
+	function setActiveForm(id) {
+		activeFormId = id;
+	}
 
-	// Vote state
-	let votingId = $state(null);
-	let votingAnimId = $state(null);
-	let votingSide = $state(null);
+	// Vote in-flight tracking (per-comment, race-safe)
+	const votingIds = new SvelteSet();
+	let votingAnim = $state({ id: null, side: null });
 	let votingAnimTimer = null;
 	let voteError = $state('');
 	let voteErrorTimer = null;
 
-	// Delete state
-	let deletingId = $state(null);
-	let deletePassword = $state('');
-	let deleteError = $state('');
-	let deleteSubmitting = $state(false);
+	function showVoteError(message) {
+		voteError = message;
+		if (voteErrorTimer) clearTimeout(voteErrorTimer);
+		voteErrorTimer = setTimeout(() => (voteError = ''), 3000);
+	}
 
-	// Reply state
-	let replyingToId = $state(null);
-	let replyText = $state('');
-	let replyUsername = $state('');
-	let replyPassword = $state('');
-	let replySubmitting = $state(false);
-	let replyError = $state('');
+	async function vote(commentId, voteType) {
+		if (votingIds.has(commentId)) return;
 
-	const MAX_LENGTH = 200;
-	const CHAR_THRESHOLD = 10;
+		if (votingAnimTimer) clearTimeout(votingAnimTimer);
+		votingAnim = { id: commentId, side: voteType };
+		votingAnimTimer = setTimeout(() => {
+			votingAnim = { id: null, side: null };
+			votingAnimTimer = null;
+		}, 300);
+
+		votingIds.add(commentId);
+		try {
+			const res = await fetch(`/api/comments/${commentId}/vote`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ voteType })
+			});
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({}));
+				showVoteError(data.message ?? 'Could not register vote.');
+			}
+		} catch {
+			showVoteError('Something went wrong.');
+		} finally {
+			votingIds.delete(commentId);
+		}
+	}
 
 	const charsLeft = $derived(MAX_LENGTH - commentText.length);
 	const showCharsLeft = $derived(commentText.length > MAX_LENGTH - CHAR_THRESHOLD);
@@ -65,8 +88,8 @@
 			commentText.length > MAX_LENGTH
 	);
 
-	// Build a nested comment tree from the flat query response.
-	// Root comments retain server order (score desc). Children are sorted chronologically.
+	// Build nested tree. Replies whose parent was hard-deleted are surfaced as
+	// stray roots (rendered with an "orphaned reply" badge).
 	function buildTree(flat) {
 		const map = new Map();
 		for (const c of flat) map.set(c.id, { ...c, children: [] });
@@ -77,8 +100,9 @@
 				map.get(node.parentId).children.push(node);
 			} else if (!node.parentId) {
 				roots.push(node);
+			} else {
+				roots.push({ ...node, stray: true });
 			}
-			// Replies whose parent was deleted are silently dropped
 		}
 
 		for (const node of map.values()) {
@@ -90,7 +114,7 @@
 
 	const commentTree = $derived(buildTree(query.data ?? []));
 
-	// Reset transient form state on path change (the reactive query swaps automatically)
+	// Reset transient form state on path change
 	let currentPath = $state($page.url.pathname);
 	$effect(() => {
 		if ($page.url.pathname !== currentPath) {
@@ -100,10 +124,7 @@
 			password = '';
 			formSubmitted = false;
 			submitError = '';
-			editingId = null;
-			votingId = null;
-			replyingToId = null;
-			deletingId = null;
+			activeFormId = null;
 		}
 	});
 
@@ -126,9 +147,9 @@
 					text: commentText.trim()
 				})
 			});
-			const responseData = await res.json();
+			const data = await res.json().catch(() => ({}));
 			if (!res.ok) {
-				submitError = responseData.message ?? responseData.error ?? 'Failed to submit comment.';
+				submitError = data.message ?? data.error ?? 'Failed to submit comment.';
 				return;
 			}
 			commentText = '';
@@ -141,227 +162,6 @@
 			submitting = false;
 		}
 	}
-
-	function showVoteError(message) {
-		voteError = message;
-		if (voteErrorTimer) clearTimeout(voteErrorTimer);
-		voteErrorTimer = setTimeout(() => {
-			voteError = '';
-		}, 3000);
-	}
-
-	async function vote(commentId, voteType) {
-		if (votingId === commentId) return;
-		trigger([{ duration: 15 }], { intensity: 0.4 });
-
-		if (votingAnimTimer) clearTimeout(votingAnimTimer);
-		votingAnimId = commentId;
-		votingSide = voteType;
-		votingAnimTimer = setTimeout(() => {
-			votingAnimId = null;
-			votingAnimTimer = null;
-		}, 300);
-
-		votingId = commentId;
-		try {
-			const res = await fetch(`/api/comments/${commentId}/vote`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ voteType })
-			});
-			if (!res.ok) {
-				const responseData = await res.json().catch(() => ({}));
-				showVoteError(responseData.message ?? 'Could not register vote.');
-			}
-		} catch {
-			showVoteError('Something went wrong.');
-		} finally {
-			votingId = null;
-			votingSide = null;
-		}
-	}
-
-	function startEdit(comment) {
-		editingId = comment.id;
-		editText = comment.text;
-		editPassword = '';
-		editError = '';
-		replyingToId = null;
-	}
-
-	function cancelEdit() {
-		editingId = null;
-		editText = '';
-		editPassword = '';
-		editError = '';
-	}
-
-	async function saveEdit(commentId) {
-		editError = '';
-		if (!editText.trim()) {
-			editError = 'Comment cannot be empty.';
-			return;
-		}
-		if (editText.length > MAX_LENGTH) {
-			editError = `Max ${MAX_LENGTH} characters.`;
-			return;
-		}
-		if (!editPassword) {
-			editError = 'Password is required.';
-			return;
-		}
-
-		editSubmitting = true;
-		try {
-			const res = await fetch(`/api/comments/${commentId}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ text: editText.trim(), password: editPassword })
-			});
-			const responseData = await res.json();
-			if (!res.ok) {
-				editError = responseData.message ?? 'Failed to save.';
-				return;
-			}
-			cancelEdit();
-		} catch {
-			editError = 'Something went wrong.';
-		} finally {
-			editSubmitting = false;
-		}
-	}
-
-	function startReply(comment) {
-		trigger([{ duration: 15 }], { intensity: 0.4 });
-		replyingToId = comment.id;
-		replyText = '';
-		replyUsername = '';
-		replyPassword = '';
-		replyError = '';
-		editingId = null;
-	}
-
-	function cancelReply() {
-		replyingToId = null;
-		replyText = '';
-		replyUsername = '';
-		replyPassword = '';
-		replyError = '';
-	}
-
-	async function submitReply() {
-		replyError = '';
-		if (!replyText.trim()) {
-			replyError = 'Reply cannot be empty.';
-			return;
-		}
-		if (replyPassword.length < 4) {
-			replyError = 'Password must be at least 4 characters.';
-			return;
-		}
-		if (replyText.length > MAX_LENGTH) {
-			replyError = `Max ${MAX_LENGTH} characters.`;
-			return;
-		}
-
-		replySubmitting = true;
-		try {
-			const res = await fetch('/api/comments', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					url: $page.url.pathname,
-					username: replyUsername.trim() || undefined,
-					password: replyPassword,
-					text: replyText.trim(),
-					parentId: replyingToId
-				})
-			});
-			const responseData = await res.json();
-			if (!res.ok) {
-				replyError = responseData.message ?? responseData.error ?? 'Failed to submit reply.';
-				return;
-			}
-			cancelReply();
-		} catch {
-			replyError = 'Something went wrong. Please try again.';
-		} finally {
-			replySubmitting = false;
-		}
-	}
-
-	function startDelete(comment) {
-		deletingId = comment.id;
-		deletePassword = '';
-		deleteError = '';
-		editingId = null;
-		replyingToId = null;
-	}
-
-	function cancelDelete() {
-		deletingId = null;
-		deletePassword = '';
-		deleteError = '';
-	}
-
-	async function confirmDelete(commentId) {
-		deleteError = '';
-		if (deletePassword.length < 4) {
-			deleteError = 'Password must be at least 4 characters.';
-			return;
-		}
-
-		deleteSubmitting = true;
-		try {
-			const res = await fetch(`/api/comments/${commentId}`, {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ password: deletePassword })
-			});
-			const responseData = await res.json();
-			if (!res.ok) {
-				deleteError = responseData.message ?? 'Failed to delete comment.';
-				return;
-			}
-			cancelDelete();
-		} catch {
-			deleteError = 'Something went wrong.';
-		} finally {
-			deleteSubmitting = false;
-		}
-	}
-
-	const cardProps = $derived({
-		editingId,
-		editText,
-		editPassword,
-		editError,
-		editSubmitting,
-		votingId,
-		votingAnimId,
-		votingSide,
-		replyingToId,
-		replyText,
-		replyUsername,
-		replyPassword,
-		replyError,
-		replySubmitting,
-		deletingId,
-		deletePassword,
-		deleteError,
-		deleteSubmitting,
-		MAX_LENGTH,
-		onVote: vote,
-		onStartEdit: startEdit,
-		onCancelEdit: cancelEdit,
-		onSaveEdit: saveEdit,
-		onStartReply: startReply,
-		onCancelReply: cancelReply,
-		onSubmitReply: submitReply,
-		onStartDelete: startDelete,
-		onCancelDelete: cancelDelete,
-		onConfirmDelete: confirmDelete
-	});
 </script>
 
 <div>
@@ -405,7 +205,7 @@
 		{/if}
 		<button
 			onclick={() => {
-				trigger([{ duration: 15 }], { intensity: 0.4 });
+				haptic();
 				submitComment();
 			}}
 			disabled={isSubmitDisabled}
@@ -416,12 +216,10 @@
 	</div>
 </div>
 
-<!-- Vote error toast -->
 {#if voteError}
 	<p class="mt-4 text-sm text-red-500">{voteError}</p>
 {/if}
 
-<!-- Comment list -->
 <div class="mt-8">
 	{#if query.isLoading}
 		{#each [1, 2, 3] as _}
@@ -441,57 +239,15 @@
 	{:else if commentTree.length > 0}
 		{#each commentTree as comment (comment.id)}
 			<div class="mb-4">
-				<!-- Depth 0 -->
-				<CommentCard
+				<CommentNode
 					{comment}
-					bind:editText
-					bind:editPassword
-					bind:replyText
-					bind:replyUsername
-					bind:replyPassword
-					bind:deletePassword
-					{...cardProps}
+					{activeFormId}
+					{setActiveForm}
+					{votingIds}
+					{votingAnim}
+					onVote={vote}
+					onHaptic={haptic}
 				/>
-
-				<!-- Depth 1 replies -->
-				{#if comment.children.length > 0}
-					<div
-						class="mt-2 ml-4 space-y-2 border-l-2 border-neutral-200 pl-4 dark:border-neutral-700"
-					>
-						{#each comment.children as reply (reply.id)}
-							<CommentCard
-								comment={reply}
-								bind:editText
-								bind:editPassword
-								bind:replyText
-								bind:replyUsername
-								bind:replyPassword
-								bind:deletePassword
-								{...cardProps}
-							/>
-
-							<!-- Depth 2 replies -->
-							{#if reply.children.length > 0}
-								<div
-									class="ml-4 space-y-2 border-l-2 border-neutral-200/70 pl-4 dark:border-neutral-700/70"
-								>
-									{#each reply.children as subreply (subreply.id)}
-										<CommentCard
-											comment={subreply}
-											bind:editText
-											bind:editPassword
-											bind:replyText
-											bind:replyUsername
-											bind:replyPassword
-											bind:deletePassword
-											{...cardProps}
-										/>
-									{/each}
-								</div>
-							{/if}
-						{/each}
-					</div>
-				{/if}
 			</div>
 		{/each}
 	{:else}

@@ -1,12 +1,8 @@
 <script>
 	import { enhance } from '$app/forms';
-	import { useQuery } from 'convex-svelte';
-	import { api } from '$convex/_generated/api';
-	import AdminCommentCard from '$lib/comments/AdminCommentCard.svelte';
+	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
 
 	let { data, form } = $props();
-
-	const adminSecret = $derived(data.adminSecret ?? '');
 
 	let tab = $state('comments');
 
@@ -14,42 +10,95 @@
 	let view = $state('urls'); // 'urls' | 'comments'
 	let selectedUrl = $state(null);
 
-	// Admin action state (shared across cards — one form open at a time)
-	let replyingTo = $state(null);
-	let replyText = $state('');
-	let banningComment = $state(null);
-	let banReason = $state('');
-	let deletingComment = $state(null);
+	// Server-fetched data
+	let urlList = $state([]);
+	let selectedComments = $state([]);
+	let bans = $state([]);
 
-	// Reactive queries — gated via "skip" so they only run when authenticated and active
-	const urlListQuery = useQuery(api.admin.listUrls, () =>
-		data.authenticated && tab === 'comments' && view === 'urls' ? { adminSecret } : 'skip'
-	);
+	let loadingUrls = $state(false);
+	let loadingComments = $state(false);
+	let loadingBans = $state(false);
 
-	const commentsQuery = useQuery(api.admin.listForUrl, () =>
-		data.authenticated && tab === 'comments' && view === 'comments' && selectedUrl
-			? { url: selectedUrl, adminSecret }
-			: 'skip'
-	);
+	// Cross-card form coordination
+	let activeFormId = $state(null);
+	function setActiveForm(id) {
+		activeFormId = id;
+	}
 
-	const bansQuery = useQuery(api.bans.list, () =>
-		data.authenticated && tab === 'bans' ? { adminSecret } : 'skip'
-	);
+	// Error toast
+	let errorMessage = $state('');
+	let errorTimer = null;
+	function showError(msg) {
+		errorMessage = msg;
+		if (errorTimer) clearTimeout(errorTimer);
+		errorTimer = setTimeout(() => (errorMessage = ''), 4000);
+	}
 
-	const urlList = $derived(urlListQuery.data ?? []);
-	const selectedComments = $derived(commentsQuery.data ?? []);
-	const bans = $derived(bansQuery.data ?? []);
+	async function loadUrls() {
+		loadingUrls = true;
+		try {
+			const res = await fetch('/api/admin/comments');
+			if (!res.ok) {
+				showError('Failed to load posts.');
+				return;
+			}
+			const body = await res.json();
+			urlList = body.urls ?? [];
+		} catch {
+			showError('Failed to load posts.');
+		} finally {
+			loadingUrls = false;
+		}
+	}
+
+	async function loadComments(url) {
+		loadingComments = true;
+		try {
+			const res = await fetch(`/api/admin/comments?url=${encodeURIComponent(url)}`);
+			if (!res.ok) {
+				showError('Failed to load comments.');
+				return;
+			}
+			const body = await res.json();
+			selectedComments = body.comments ?? [];
+		} catch {
+			showError('Failed to load comments.');
+		} finally {
+			loadingComments = false;
+		}
+	}
+
+	async function loadBans() {
+		loadingBans = true;
+		try {
+			const res = await fetch('/api/admin/bans');
+			if (!res.ok) {
+				showError('Failed to load bans.');
+				return;
+			}
+			const body = await res.json();
+			bans = body.bans ?? [];
+		} catch {
+			showError('Failed to load bans.');
+		} finally {
+			loadingBans = false;
+		}
+	}
+
+	// Reactive fetches when auth/tab/view changes
+	$effect(() => {
+		if (!data.authenticated) return;
+		if (tab === 'comments' && view === 'urls') loadUrls();
+		if (tab === 'comments' && view === 'comments' && selectedUrl) loadComments(selectedUrl);
+		if (tab === 'bans') loadBans();
+	});
 
 	const statsTotal = $derived({
 		comments: urlList.reduce((sum, u) => sum + u.count, 0),
 		bans: bans.length
 	});
 
-	const loadingUrls = $derived(urlListQuery.isLoading);
-	const loadingComments = $derived(commentsQuery.isLoading);
-
-	// Build nested comment tree (chronological children).
-	// Comments whose parent was hard-deleted become stray roots.
+	// Build nested tree. Comments whose parent was hard-deleted become stray roots.
 	function buildTree(flat) {
 		const map = new Map();
 		for (const c of flat) map.set(c.id, { ...c, children: [] });
@@ -72,105 +121,34 @@
 
 	const commentTree = $derived(buildTree(selectedComments));
 
-	async function apiFetch(path, options = {}) {
-		return fetch(path, {
-			...options,
-			headers: {
-				'Content-Type': 'application/json',
-				'x-admin-secret': adminSecret,
-				...(options.headers ?? {})
-			}
-		});
-	}
-
 	function selectUrl(url) {
 		selectedUrl = url;
 		view = 'comments';
-		replyingTo = null;
-		banningComment = null;
-		deletingComment = null;
+		activeFormId = null;
 	}
 
 	function goBack() {
 		view = 'urls';
 		selectedUrl = null;
-		replyingTo = null;
-		banningComment = null;
-		deletingComment = null;
+		activeFormId = null;
 	}
 
-	function startDelete(comment) {
-		deletingComment = comment.id;
-		replyingTo = null;
-		replyText = '';
-		banningComment = null;
-		banReason = '';
-	}
-
-	function cancelDelete() {
-		deletingComment = null;
-	}
-
-	async function softDelete(id) {
-		const res = await apiFetch(`/api/admin/comments/${id}?soft=1`, { method: 'DELETE' });
-		if (res.ok) deletingComment = null;
-	}
-
-	async function hardDelete(id) {
-		const res = await apiFetch(`/api/admin/comments/${id}`, { method: 'DELETE' });
-		if (res.ok) deletingComment = null;
-	}
-
-	function startReply(comment) {
-		replyingTo = comment.id;
-		replyText = comment.reply ?? '';
-		banningComment = null;
-		banReason = '';
-		deletingComment = null;
-	}
-
-	function cancelReply() {
-		replyingTo = null;
-		replyText = '';
-	}
-
-	async function saveReply(id) {
-		const res = await apiFetch(`/api/admin/comments/${id}`, {
-			method: 'POST',
-			body: JSON.stringify({ reply: replyText })
-		});
-		if (res.ok) {
-			replyingTo = null;
-			replyText = '';
-		}
-	}
-
-	function startBan(comment) {
-		banningComment = comment.id;
-		banReason = '';
-		replyingTo = null;
-		replyText = '';
-		deletingComment = null;
-	}
-
-	function cancelBan() {
-		banningComment = null;
-		banReason = '';
-	}
-
-	async function confirmBan(commentId) {
-		const res = await apiFetch('/api/admin/bans', {
-			method: 'POST',
-			body: JSON.stringify({ commentId, reason: banReason || undefined })
-		});
-		if (res.ok) {
-			banningComment = null;
-			banReason = '';
-		}
+	function onCommentChanged() {
+		if (selectedUrl) loadComments(selectedUrl);
 	}
 
 	async function unban(id) {
-		await apiFetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
+		try {
+			const res = await fetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				showError(body.message ?? 'Failed to unban.');
+				return;
+			}
+			loadBans();
+		} catch {
+			showError('Something went wrong.');
+		}
 	}
 
 	function formatDate(d) {
@@ -185,7 +163,6 @@
 
 <div class="mx-auto max-w-5xl px-4 py-12">
 	{#if !data.authenticated}
-		<!-- Login screen -->
 		<div class="flex min-h-[60vh] items-center justify-center">
 			<div
 				class="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm dark:border-neutral-800 dark:bg-neutral-950"
@@ -219,7 +196,6 @@
 			</div>
 		</div>
 	{:else}
-		<!-- Dashboard -->
 		<div class="mb-8 flex items-center justify-between">
 			<div>
 				<h1 class="text-2xl font-semibold tracking-tight">Admin Dashboard</h1>
@@ -235,7 +211,6 @@
 			</form>
 		</div>
 
-		<!-- Stats -->
 		<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
 			<div
 				class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
@@ -251,14 +226,11 @@
 			</div>
 		</div>
 
-		<!-- Tabs -->
 		<div
 			class="mb-6 flex gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900"
 		>
 			<button
-				onclick={() => {
-					tab = 'comments';
-				}}
+				onclick={() => (tab = 'comments')}
 				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab ===
 				'comments'
 					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
@@ -267,9 +239,7 @@
 				Comments
 			</button>
 			<button
-				onclick={() => {
-					tab = 'bans';
-				}}
+				onclick={() => (tab = 'bans')}
 				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab ===
 				'bans'
 					? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-800 dark:text-white'
@@ -281,7 +251,6 @@
 
 		{#if tab === 'comments'}
 			{#if view === 'urls'}
-				<!-- URL list -->
 				{#if loadingUrls}
 					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
 						Loading…
@@ -297,9 +266,7 @@
 								onclick={() => selectUrl(item.url)}
 								class="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900"
 							>
-								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300"
-									>{item.url}</span
-								>
+								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300">{item.url}</span>
 								<span
 									class="ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
 								>
@@ -310,7 +277,6 @@
 					</div>
 				{/if}
 			{:else}
-				<!-- Comment tree for selected URL -->
 				<div class="mb-5 flex items-center gap-3">
 					<button
 						onclick={goBack}
@@ -330,127 +296,55 @@
 						No comments for this post.
 					</div>
 				{:else}
-					<div>
+					<div class="space-y-4">
 						{#each commentTree as comment (comment.id)}
-							<div class="mb-4">
-								<!-- Depth 0 -->
-								{#if comment.stray}
-									<div class="mb-1 flex items-center gap-1.5">
-										<span
-											class="rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
-										>
-											orphaned reply — parent deleted
-										</span>
-									</div>
-								{/if}
-								<AdminCommentCard
-									{comment}
-									{replyingTo}
-									{banningComment}
-									{deletingComment}
-									bind:replyText
-									bind:banReason
-									onStartDelete={startDelete}
-									onCancelDelete={cancelDelete}
-									onSoftDelete={softDelete}
-									onHardDelete={hardDelete}
-									onStartReply={startReply}
-									onSaveReply={saveReply}
-									onCancelReply={cancelReply}
-									onStartBan={startBan}
-									onConfirmBan={confirmBan}
-									onCancelBan={cancelBan}
-								/>
-
-								<!-- Depth 1 replies -->
-								{#if comment.children.length > 0}
-									<div
-										class="mt-2 ml-4 space-y-2 border-l-2 border-neutral-200 pl-4 dark:border-neutral-700"
-									>
-										{#each comment.children as reply (reply.id)}
-											<AdminCommentCard
-												comment={reply}
-												{replyingTo}
-												{banningComment}
-												{deletingComment}
-												bind:replyText
-												bind:banReason
-												onStartDelete={startDelete}
-												onCancelDelete={cancelDelete}
-												onSoftDelete={softDelete}
-												onHardDelete={hardDelete}
-												onStartReply={startReply}
-												onSaveReply={saveReply}
-												onCancelReply={cancelReply}
-												onStartBan={startBan}
-												onConfirmBan={confirmBan}
-												onCancelBan={cancelBan}
-											/>
-
-											<!-- Depth 2 replies -->
-											{#if reply.children.length > 0}
-												<div
-													class="ml-4 space-y-2 border-l-2 border-neutral-200/70 pl-4 dark:border-neutral-700/70"
-												>
-													{#each reply.children as subreply (subreply.id)}
-														<AdminCommentCard
-															comment={subreply}
-															{replyingTo}
-															{banningComment}
-															{deletingComment}
-															bind:replyText
-															bind:banReason
-															onStartDelete={startDelete}
-															onCancelDelete={cancelDelete}
-															onSoftDelete={softDelete}
-															onHardDelete={hardDelete}
-															onStartReply={startReply}
-															onSaveReply={saveReply}
-															onCancelReply={cancelReply}
-															onStartBan={startBan}
-															onConfirmBan={confirmBan}
-															onCancelBan={cancelBan}
-														/>
-													{/each}
-												</div>
-											{/if}
-										{/each}
-									</div>
-								{/if}
-							</div>
+							<AdminCommentNode
+								{comment}
+								{activeFormId}
+								{setActiveForm}
+								onChange={onCommentChanged}
+								onError={showError}
+							/>
 						{/each}
 					</div>
 				{/if}
 			{/if}
+		{:else if loadingBans}
+			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
+		{:else if bans.length === 0}
+			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+				No active bans.
+			</div>
 		{:else}
-			<!-- Bans tab -->
-			{#if bans.length === 0}
-				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-					No active bans.
-				</div>
-			{:else}
-				<div class="space-y-2">
-					{#each bans as ban (ban.id)}
-						<div
-							class="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-950"
-						>
-							<div>
-								<p class="font-mono text-sm">{ban.ipHash.slice(0, 24)}…</p>
-								{#if ban.reason}
-									<p class="mt-0.5 text-xs text-neutral-500">{ban.reason}</p>
-								{/if}
-								<p class="mt-0.5 text-xs text-neutral-400">{formatDate(ban.createdAt)}</p>
-							</div>
-							<button
-								onclick={() => unban(ban.id)}
-								class="ml-4 shrink-0 rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
-							>
-								Unban
-							</button>
+			<div class="space-y-2">
+				{#each bans as ban (ban.id)}
+					<div
+						class="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-950"
+					>
+						<div>
+							<p class="font-mono text-sm">{ban.ipHash.slice(0, 24)}…</p>
+							{#if ban.reason}
+								<p class="mt-0.5 text-xs text-neutral-500">{ban.reason}</p>
+							{/if}
+							<p class="mt-0.5 text-xs text-neutral-400">{formatDate(ban.createdAt)}</p>
 						</div>
-					{/each}
-				</div>
-			{/if}
+						<button
+							onclick={() => unban(ban.id)}
+							class="ml-4 shrink-0 rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
+						>
+							Unban
+						</button>
+					</div>
+				{/each}
+			</div>
 		{/if}
 	{/if}
 </div>
+
+{#if errorMessage}
+	<div
+		class="fixed right-4 bottom-4 z-50 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow-lg dark:border-red-900 dark:bg-red-950/80 dark:text-red-400"
+	>
+		{errorMessage}
+	</div>
+{/if}
