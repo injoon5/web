@@ -11,10 +11,17 @@
 	// Fetch the visitor's real hash at runtime and re-subscribe with it.
 	let clientIpHash = $state($page.data.ipHash ?? '');
 
-	const query = useQuery(api.likes.get, () => ({
-		url: $page.url.pathname,
-		ipHash: clientIpHash
-	}));
+	const query = useQuery(
+		api.likes.get,
+		() => ({
+			url: $page.url.pathname,
+			ipHash: clientIpHash
+		}),
+		// The runtime ipHash re-subscription (see onMount) swaps the query args
+		// on every visit. Keep the prior result so the count doesn't flash back
+		// to the loading skeleton each load.
+		{ keepPreviousData: true }
+	);
 
 	onMount(async () => {
 		try {
