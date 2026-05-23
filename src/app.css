@@ -169,7 +169,7 @@
 */
 @utility prose-post {
 	@apply prose prose-neutral dark:prose-invert max-w-none mx-auto;
-	@apply prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed;
+	@apply prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed prose-p:font-normal;
 	@apply prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight;
 	@apply prose-h2:font-semibold prose-h2:tracking-tight;
 	@apply prose-h3:tracking-tight prose-h4:tracking-tight;
