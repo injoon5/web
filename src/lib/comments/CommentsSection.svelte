@@ -1,6 +1,6 @@
 <script>
 	import { page } from '$app/stores';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { useQuery } from 'convex-svelte';
@@ -48,11 +48,34 @@
 	}
 	const fallbackHandle = makeHandle();
 
+	// Pages are prerendered, so the layout's ipHash is frozen at build time and
+	// never matches a real visitor — per-user vote state would always read wrong.
+	// Fetch the visitor's real hash at runtime and re-subscribe with it.
+	let clientIpHash = $state($page.data.ipHash ?? '');
+
+	onMount(async () => {
+		try {
+			const res = await fetch('/api/ip-hash');
+			if (res.ok) {
+				const data = await res.json();
+				if (data.ipHash) clientIpHash = data.ipHash;
+			}
+		} catch {
+			// keep the fallback hash
+		}
+	});
+
 	// Reactive comments query — live updates across tabs
-	const query = useQuery(api.comments.list, () => ({
-		url: $page.url.pathname,
-		ipHash: $page.data.ipHash ?? ''
-	}));
+	const query = useQuery(
+		api.comments.list,
+		() => ({
+			url: $page.url.pathname,
+			ipHash: clientIpHash
+		}),
+		// The runtime ipHash re-subscription swaps the query args on every visit.
+		// Keep the prior result so the comments don't flash back to loading.
+		{ keepPreviousData: true }
+	);
 
 	// Cross-card form coordination — only one form open at a time
 	let activeFormId = $state(null);
