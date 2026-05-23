@@ -48,20 +48,29 @@
 	}
 	const fallbackHandle = makeHandle();
 
-	// Pages are prerendered, so the layout's ipHash is frozen at build time and
-	// never matches a real visitor — per-user vote state would always read wrong.
-	// Fetch the visitor's real hash at runtime and re-subscribe with it.
-	let clientIpHash = $state($page.data.ipHash ?? '');
+	// Pages are prerendered, so any ipHash baked in at build time never matches a
+	// real visitor. We fetch the visitor's real hash at runtime; until that
+	// resolves we must NOT trust each comment's `myVote` — it would read null for
+	// a comment the visitor has actually voted on, and clicking the arrow would
+	// then silently remove that vote (the score drops).
+	let clientIpHash = $state('');
+	let hashReal = $state(false);
+	let hashAttempted = $state(false);
 
 	onMount(async () => {
 		try {
 			const res = await fetch('/api/ip-hash');
 			if (res.ok) {
 				const data = await res.json();
-				if (data.ipHash) clientIpHash = data.ipHash;
+				if (data.ipHash) {
+					clientIpHash = data.ipHash;
+					hashReal = true;
+				}
 			}
 		} catch {
-			// keep the fallback hash
+			// keep the empty hash; vote state stays unknown
+		} finally {
+			hashAttempted = true;
 		}
 	});
 
@@ -97,6 +106,7 @@
 	}
 
 	async function vote(commentId, voteType) {
+		if (!canVote) return;
 		if (votingIds.has(commentId)) return;
 
 		if (votingAnimTimer) clearTimeout(votingAnimTimer);
@@ -159,6 +169,16 @@
 	}
 
 	const commentTree = $derived(buildTree(query.data ?? []));
+
+	// `myVote` is per-visitor: trust the highlight only once the real hash is in
+	// use and the subscription holds fresh (non-stale) data. Allow clicking once
+	// trusted, or once a failed /api/ip-hash leaves us with fresh data and no
+	// real hash (the vote itself is computed from the real IP server-side, so a
+	// broken hash fetch must not lock voting forever).
+	const voteKnown = $derived(hashReal && !query.isStale && !!query.data);
+	const canVote = $derived(
+		voteKnown || (hashAttempted && !hashReal && !query.isStale && !!query.data)
+	);
 
 	// Reset transient form state on path change
 	let currentPath = $state($page.url.pathname);
@@ -291,6 +311,8 @@
 					{setActiveForm}
 					{votingIds}
 					{votingAnim}
+					{canVote}
+					{voteKnown}
 					onVote={vote}
 					onHaptic={haptic}
 				/>
