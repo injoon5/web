@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'crypto';
 import { ADMIN_SECRET } from '$env/static/private';
 
-function secretsMatch(candidate: string): boolean {
+export function secretsMatch(candidate: string): boolean {
 	if (!ADMIN_SECRET) return false;
 	const a = Buffer.from(candidate);
 	const b = Buffer.from(ADMIN_SECRET);

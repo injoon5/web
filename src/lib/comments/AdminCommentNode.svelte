@@ -47,18 +47,12 @@
 		setActiveForm(null);
 	}
 
-	async function adminFetch(path, options) {
-		return fetch(path, {
-			...options,
-			headers: { 'Content-Type': 'application/json', ...(options?.headers ?? {}) }
-		});
-	}
-
 	async function saveReply() {
 		replySubmitting = true;
 		try {
-			const res = await adminFetch(`/api/admin/comments/${comment.id}`, {
+			const res = await fetch(`/api/admin/comments/${comment.id}`, {
 				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ reply: replyText })
 			});
 			if (!res.ok) {
@@ -78,8 +72,9 @@
 	async function confirmBan() {
 		banSubmitting = true;
 		try {
-			const res = await adminFetch('/api/admin/bans', {
+			const res = await fetch('/api/admin/bans', {
 				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ commentId: comment.id, reason: banReason || undefined })
 			});
 			if (!res.ok) {
@@ -99,7 +94,10 @@
 	async function doDelete() {
 		deleteSubmitting = true;
 		try {
-			const res = await adminFetch(`/api/admin/comments/${comment.id}`, { method: 'DELETE' });
+			const res = await fetch(`/api/admin/comments/${comment.id}`, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' }
+			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
 				onError(data.message ?? 'Failed to delete.');

@@ -6,24 +6,18 @@ import { getClientIp, hashIp } from '$lib/server/ip';
 import { createCommentSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { isValidPageUrl } from '$lib/server/valid-urls';
-import { convexErrorToResponse } from '$lib/server/api';
+import { runConvex } from '$lib/server/api';
 import { ADMIN_SECRET } from '$env/static/private';
 import bcrypt from 'bcryptjs';
 
 export const GET: RequestHandler = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
-
 	const ipHash = hashIp(getClientIp(request));
-
-	try {
-		const comments = await convex.query(api.comments.list, { url: pageUrl, ipHash });
-		return json({ comments });
-	} catch (err) {
-		const mapped = convexErrorToResponse(err);
-		if (mapped instanceof Response) return mapped;
-		throw mapped;
-	}
+	return runConvex(
+		() => convex.query(api.comments.list, { url: pageUrl, ipHash }),
+		(comments) => json({ comments })
+	);
 };
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -37,29 +31,23 @@ export const POST: RequestHandler = async ({ request }) => {
 		throw error(400, 'Invalid request body');
 	}
 	const parsed = createCommentSchema.safeParse(raw);
-	if (!parsed.success) {
-		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
-	}
+	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 	const { url: pageUrl, username, password, text, parentId } = parsed.data;
 
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
 	const passwordHash = await bcrypt.hash(password, 10);
-
-	try {
-		const comment = await convex.mutation(api.comments.create, {
-			url: pageUrl,
-			username: username ?? 'Anonymous',
-			passwordHash,
-			text,
-			parentId,
-			ipHash,
-			adminSecret: admin ? ADMIN_SECRET : undefined
-		});
-		return json({ comment }, { status: 201 });
-	} catch (err) {
-		const mapped = convexErrorToResponse(err);
-		if (mapped instanceof Response) return mapped;
-		throw mapped;
-	}
+	return runConvex(
+		() =>
+			convex.mutation(api.comments.create, {
+				url: pageUrl,
+				username: username ?? 'Anonymous',
+				passwordHash,
+				text,
+				parentId,
+				ipHash,
+				adminSecret: admin ? ADMIN_SECRET : undefined
+			}),
+		(comment) => json({ comment }, { status: 201 })
+	);
 };

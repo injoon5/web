@@ -6,21 +6,13 @@
 	import { api } from '$convex/_generated/api';
 	import Heart from '@lucide/svelte/icons/heart';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
-
-	// Pages are prerendered, so any ipHash baked in at build time never matches a
-	// real visitor. We fetch the visitor's real hash at runtime; until that
-	// resolves we must NOT trust the `liked` flag — the query would report
-	// `liked: false` for a page the visitor has actually liked, and clicking the
-	// button would then silently remove that like (the count drops).
-	let clientIpHash = $state('');
-	let hashReal = $state(false);
-	let hashAttempted = $state(false);
+	import { clientIpHash, hashReal, hashAttempted, resolveIpHash } from '$lib/ipHash.js';
 
 	const query = useQuery(
 		api.likes.get,
 		() => ({
 			url: $page.url.pathname,
-			ipHash: clientIpHash
+			ipHash: $clientIpHash
 		}),
 		// Keep the prior result so the count doesn't flash to the skeleton when
 		// the ipHash re-subscription fires. `isStale` (below) tells us when the
@@ -29,22 +21,7 @@
 		{ keepPreviousData: true }
 	);
 
-	onMount(async () => {
-		try {
-			const res = await fetch('/api/ip-hash');
-			if (res.ok) {
-				const data = await res.json();
-				if (data.ipHash) {
-					clientIpHash = data.ipHash;
-					hashReal = true;
-				}
-			}
-		} catch {
-			// keep the empty hash; liked state stays unknown
-		} finally {
-			hashAttempted = true;
-		}
-	});
+	onMount(resolveIpHash);
 
 	let toggling = $state(false);
 	let likeError = $state('');
@@ -66,7 +43,7 @@
 	const countApplies = $derived(!query.isStale || dataUrl === path);
 	// `liked` is per-visitor: trust it only once the real hash is in use and the
 	// subscription holds fresh data for the current page.
-	const likedReady = $derived(hashReal && !query.isStale && !!query.data && dataUrl === path);
+	const likedReady = $derived($hashReal && !query.isStale && !!query.data && dataUrl === path);
 
 	const likeCount = $derived(countApplies ? (query.data?.count ?? 0) : 0);
 	const isLiked = $derived(likedReady ? query.data.liked : false);
@@ -76,7 +53,7 @@
 	// forever — the toggle itself is computed from the real IP server-side).
 	const interactive = $derived(
 		countApplies &&
-			(likedReady || (hashAttempted && !hashReal && !query.isStale && !!query.data))
+			(likedReady || ($hashAttempted && !$hashReal && !query.isStale && !!query.data))
 	);
 	const busy = $derived(!interactive || toggling);
 

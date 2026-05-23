@@ -1,14 +1,10 @@
 import { redirect, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { ADMIN_SECRET } from '$env/static/private';
-import { timingSafeEqual } from 'crypto';
+import { secretsMatch } from '$lib/server/admin';
 
 function tokenValid(token: string | undefined): boolean {
-	if (!token || !ADMIN_SECRET) return false;
-	const a = Buffer.from(token);
-	const b = Buffer.from(ADMIN_SECRET);
-	if (a.length !== b.length) return false;
-	return timingSafeEqual(a, b);
+	return !!token && secretsMatch(token);
 }
 
 export const load: PageServerLoad = async ({ cookies }) => {

@@ -1,6 +1,7 @@
 <script>
 	import { enhance } from '$app/forms';
 	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
+	import { buildTree } from '$lib/comments/buildTree.js';
 
 	let { data, form } = $props();
 
@@ -97,27 +98,6 @@
 		comments: urlList.reduce((sum, u) => sum + u.count, 0),
 		bans: bans.length
 	});
-
-	// Build nested tree. Comments whose parent was hard-deleted become stray roots.
-	function buildTree(flat) {
-		const map = new Map();
-		for (const c of flat) map.set(c.id, { ...c, children: [] });
-
-		const roots = [];
-		for (const node of map.values()) {
-			if (node.parentId && map.has(node.parentId)) {
-				map.get(node.parentId).children.push(node);
-			} else if (!node.parentId) {
-				roots.push(node);
-			} else {
-				roots.push({ ...node, stray: true });
-			}
-		}
-		for (const node of map.values()) {
-			node.children.sort((a, b) => a.createdAt - b.createdAt);
-		}
-		return roots;
-	}
 
 	const commentTree = $derived(buildTree(selectedComments));
 
