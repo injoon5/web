@@ -21,7 +21,31 @@
 			: ''
 	);
 
-	function formatDate(date) {
+	/** @type {Array<{ unit: Intl.RelativeTimeFormatUnit, secs: number }>} */
+	const RELATIVE_UNITS = [
+		{ unit: 'year', secs: 60 * 60 * 24 * 365 },
+		{ unit: 'month', secs: 60 * 60 * 24 * 30 },
+		{ unit: 'week', secs: 60 * 60 * 24 * 7 },
+		{ unit: 'day', secs: 60 * 60 * 24 },
+		{ unit: 'hour', secs: 60 * 60 },
+		{ unit: 'minute', secs: 60 },
+		{ unit: 'second', secs: 1 }
+	];
+	const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+	/** @param {Date} date */
+	function formatRelative(date) {
+		const diff = Math.round((date.getTime() - Date.now()) / 1000);
+		const abs = Math.abs(diff);
+		for (const { unit, secs } of RELATIVE_UNITS) {
+			if (abs >= secs || unit === 'second') {
+				return rtf.format(Math.round(diff / secs), unit);
+			}
+		}
+		return rtf.format(diff, 'second');
+	}
+
+	/** @param {Date} date */
+	function formatFull(date) {
 		return new Intl.DateTimeFormat('en', {
 			month: 'long',
 			day: 'numeric',
@@ -83,14 +107,19 @@
 		Now
 	</h1>
 {#if !nowQuery.isLoading && updatedAt}
-		<p class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500">Last updated {formatDate(updatedAt)}.</p>
+		<p
+			class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500"
+			title={formatFull(updatedAt)}
+		>
+			Updated {formatRelative(updatedAt)}.
+		</p>
 	{/if}
 
 	<div class="my-12">
 		{#if nowQuery.isLoading}
 			<div class="space-y-3">
 				{#each [75, 55, 90, 40, 70, 50] as w}
-					<div class="h-4 animate-pulse rounded bg-neutral-100 dark:bg-neutral-900" style="width: {w}%"></div>
+					<div class="shimmer h-4 rounded" style="width: {w}%"></div>
 				{/each}
 			</div>
 		{:else if editing}
@@ -132,7 +161,7 @@
 			{#if !editing}
 				<button
 					onclick={startEdit}
-					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-95 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 				>
 					Edit
 				</button>
@@ -140,14 +169,14 @@
 				<button
 					onclick={save}
 					disabled={saving}
-					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 				>
 					{saving ? 'Saving…' : 'Save'}
 				</button>
 				<button
 					onclick={cancelEdit}
 					disabled={saving}
-					class="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition-all duration-150 hover:bg-neutral-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+					class="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
 				>
 					Cancel
 				</button>

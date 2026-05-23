@@ -8,6 +8,22 @@
 	import { setupConvex } from 'convex-svelte';
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
 	import { theme } from '$lib/theme.js';
+	import { env as publicEnv } from '$env/dynamic/public';
+
+	const commit = publicEnv.PUBLIC_GIT_COMMIT ?? '';
+	const commitDate = (() => {
+		const raw = publicEnv.PUBLIC_GIT_COMMIT_DATE;
+		if (!raw) return '';
+		try {
+			return new Intl.DateTimeFormat('en', {
+				month: 'short',
+				day: 'numeric',
+				year: 'numeric'
+			}).format(new Date(raw));
+		} catch {
+			return '';
+		}
+	})();
 
 	setupConvex(PUBLIC_CONVEX_URL);
 
@@ -35,6 +51,11 @@
 	}
 
 	let cleanupTheme;
+	let scrolled = false;
+
+	function onScroll() {
+		scrolled = window.scrollY > 8;
+	}
 
 	onMount(async () => {
 		configure({
@@ -42,20 +63,37 @@
 			autocollect: true
 		});
 		cleanupTheme = theme.syncWithOS();
+		onScroll();
+		window.addEventListener('scroll', onScroll, { passive: true });
 	});
 
-	onDestroy(() => cleanupTheme?.());
+	onDestroy(() => {
+		cleanupTheme?.();
+		if (typeof window !== 'undefined') window.removeEventListener('scroll', onScroll);
+	});
 </script>
 
 <svelte:head>
 	<link rel="canonical" href="https://www.injoon5.com{$page.url.pathname}" />
 </svelte:head>
 
-<nav
-	class="sticky top-0 z-30 mx-auto max-w-6xl bg-white px-4 py-3 text-sm sm:px-12 dark:bg-neutral-950"
->
-	<NavBar />
-</nav>
+<div class="sticky top-0 z-30 transition-colors duration-200">
+	<div
+		aria-hidden="true"
+		class="absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
+		{scrolled
+			? 'bg-white/70 dark:bg-neutral-950/70'
+			: 'bg-white/0 dark:bg-neutral-950/0'}"
+	></div>
+	<div
+		aria-hidden="true"
+		class="absolute inset-x-0 bottom-0 h-px transition-opacity duration-200
+		{scrolled ? 'opacity-100' : 'opacity-0'} bg-neutral-200/70 dark:bg-neutral-800/70"
+	></div>
+	<nav class="mx-auto max-w-6xl px-4 py-3 text-sm sm:px-12">
+		<NavBar />
+	</nav>
+</div>
 
 <div class="mx-auto max-w-6xl px-4 pt-4 pb-4 text-sm sm:px-12">
 	<slot />
@@ -103,7 +141,17 @@
 			</div>
 			<div class="col-span-12 lg:mt-10">
 				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
-			</div>
+				{#if commit}
+					<p class="mt-1 text-[11px] font-normal text-neutral-400 dark:text-neutral-600 tabular">
+						Built from
+						<a
+							href="https://github.com/injoon5/web/commit/{commit}"
+							class="font-mono hover:text-neutral-700 dark:hover:text-neutral-300"
+							rel="noopener noreferrer"
+							target="_blank">{commit}</a
+						>{#if commitDate}<span> · {commitDate}</span>{/if}
+					</p>
+				{/if}
 		</div>
 	</div>
 </footer>

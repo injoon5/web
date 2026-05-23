@@ -64,10 +64,12 @@
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
 		{#each groupedPosts as group}
 			{#if group.type === 'series'}
-				<div
-					class="py-2 text-base font-semibold text-neutral-600 sm:text-base dark:text-neutral-400"
-				>
-					Series: {group.name}
+				<div class="py-2">
+					<span
+						class="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold tracking-widest uppercase text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400"
+					>
+						Series · {group.name}
+					</span>
 				</div>
 				{#each group.posts as seriesPost}
 					<div class="py-2">
@@ -75,18 +77,24 @@
 							href={`/blog/${seriesPost.slug}`}
 							class="group ml-6 flex flex-row items-center justify-between gap-2"
 						>
-							<span
-								class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline sm:text-base dark:text-neutral-100 dark:group-hover:text-neutral-400"
-							>
-								{seriesPost.title}
-							</span>
-							<span class="ml-4 flex shrink-0 items-center gap-2">
-								{#if seriesPost.hasEn}
-									<span class="text-xs font-semibold text-neutral-400 dark:text-neutral-600">English</span>
-								{/if}
-								<span class="text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500">
-									{seriesPost.date || seriesPost.year}
+							<span class="flex min-w-0 items-center gap-2">
+								<span
+									class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline dark:text-neutral-100 dark:group-hover:text-neutral-400"
+								>
+									{seriesPost.title}
 								</span>
+								{#if seriesPost.hasEn}
+									<span
+										class="inline-flex shrink-0 items-center rounded-full border border-neutral-200 px-1.5 py-px text-[10px] font-medium tracking-wide uppercase text-neutral-500 dark:border-neutral-800 dark:text-neutral-500"
+									>
+										EN
+									</span>
+								{/if}
+							</span>
+							<span
+								class="ml-4 shrink-0 text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 tabular dark:text-neutral-400 dark:group-hover:text-neutral-500"
+							>
+								{seriesPost.date || seriesPost.year}
 							</span>
 						</a>
 					</div>
@@ -97,18 +105,24 @@
 						href={`/blog/${group.post.slug}`}
 						class="group flex flex-row items-center justify-between gap-2"
 					>
-						<span
-							class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline sm:text-base dark:text-neutral-100 dark:group-hover:text-neutral-400"
-						>
-							{group.post.title}
-						</span>
-						<span class="ml-4 flex shrink-0 items-center gap-2">
-							{#if group.post.hasEn}
-								<span class="text-xs font-semibold text-neutral-400 dark:text-neutral-600">English</span>
-							{/if}
-							<span class="text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500">
-								{group.post.date || group.post.year}
+						<span class="flex min-w-0 items-center gap-2">
+							<span
+								class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline dark:text-neutral-100 dark:group-hover:text-neutral-400"
+							>
+								{group.post.title}
 							</span>
+							{#if group.post.hasEn}
+								<span
+									class="inline-flex shrink-0 items-center rounded-full border border-neutral-200 px-1.5 py-px text-[10px] font-medium tracking-wide uppercase text-neutral-500 dark:border-neutral-800 dark:text-neutral-500"
+								>
+									EN
+								</span>
+							{/if}
+						</span>
+						<span
+							class="ml-4 shrink-0 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 tabular dark:text-neutral-400 dark:group-hover:text-neutral-500"
+						>
+							{group.post.date || group.post.year}
 						</span>
 					</a>
 				</div>

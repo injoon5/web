@@ -211,18 +211,18 @@
 			</form>
 		</div>
 
-		<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+		<div class="mb-6 grid grid-cols-2 gap-3">
 			<div
 				class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>
 				<p class="text-xs font-medium tracking-wider text-neutral-400 uppercase">Comments</p>
-				<p class="mt-1 text-3xl font-semibold">{statsTotal.comments}</p>
+				<p class="mt-1 text-3xl font-semibold tabular">{statsTotal.comments}</p>
 			</div>
 			<div
 				class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>
 				<p class="text-xs font-medium tracking-wider text-neutral-400 uppercase">Bans</p>
-				<p class="mt-1 text-3xl font-semibold">{statsTotal.bans}</p>
+				<p class="mt-1 text-3xl font-semibold tabular">{statsTotal.bans}</p>
 			</div>
 		</div>
 
@@ -268,7 +268,7 @@
 							>
 								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300">{item.url}</span>
 								<span
-									class="ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+									class="ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 tabular dark:bg-neutral-800 dark:text-neutral-400"
 								>
 									{item.count}
 								</span>
@@ -326,7 +326,7 @@
 							{#if ban.reason}
 								<p class="mt-0.5 text-xs text-neutral-500">{ban.reason}</p>
 							{/if}
-							<p class="mt-0.5 text-xs text-neutral-400">{formatDate(ban.createdAt)}</p>
+							<p class="mt-0.5 text-xs text-neutral-400 tabular">{formatDate(ban.createdAt)}</p>
 						</div>
 						<button
 							onclick={() => unban(ban.id)}
@@ -343,7 +343,8 @@
 
 {#if errorMessage}
 	<div
-		class="fixed right-4 bottom-4 z-50 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow-lg dark:border-red-900 dark:bg-red-950/80 dark:text-red-400"
+		class="toast-in fixed right-4 bottom-4 z-50 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 shadow-lg dark:border-red-900 dark:bg-red-950/80 dark:text-red-400"
+		role="alert"
 	>
 		{errorMessage}
 	</div>

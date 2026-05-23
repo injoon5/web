@@ -1,5 +1,6 @@
 <script>
 	import { lightboxStore } from './lightbox.js';
+	import { onDestroy } from 'svelte';
 
 	let visible = false;
 	let src = '';
@@ -9,12 +10,29 @@
 	let zoomed = false;
 	let imgEl;
 	let backdropEl;
+	let closeBtn;
 	let closing = false;
 	let swipeDismissing = false;
-	// For touch swipe-to-close
+
+	// Touch swipe-to-close (single finger)
 	let touchStartY = 0;
 	let dragY = 0;
 	let dragging = false;
+
+	// Pinch-zoom state
+	let pinching = false;
+	let pinchScale = 1; // scale during active pinch
+	let committedScale = 1; // scale we keep after pinch ends
+	let pinchStartDist = 0;
+	let pinchOriginX = 0;
+	let pinchOriginY = 0;
+	let panX = 0;
+	let panY = 0;
+	let lastPanX = 0;
+	let lastPanY = 0;
+
+	// Focus trap bookkeeping
+	let previouslyFocused = null;
 
 	$: {
 		const val = $lightboxStore;
@@ -28,12 +46,29 @@
 			dragging = false;
 			closing = false;
 			swipeDismissing = false;
+			pinching = false;
+			pinchScale = 1;
+			committedScale = 1;
+			panX = 0;
+			panY = 0;
+			lastPanX = 0;
+			lastPanY = 0;
 			visible = true;
 		} else {
 			visible = false;
 			closing = false;
 			swipeDismissing = false;
 		}
+	}
+
+	// When the lightbox becomes visible, capture focus and move it inside.
+	$: if (visible && typeof document !== 'undefined') {
+		previouslyFocused = document.activeElement;
+		queueMicrotask(() => closeBtn?.focus());
+	} else if (!visible && previouslyFocused && typeof document !== 'undefined') {
+		// Restore focus when closing
+		try { previouslyFocused.focus(); } catch {}
+		previouslyFocused = null;
 	}
 
 	function close() {
@@ -50,31 +85,96 @@
 
 	function handleKeydown(e) {
 		if (!visible) return;
-		if (e.key === 'Escape') close();
+		if (e.key === 'Escape') {
+			close();
+			return;
+		}
+		if (e.key === 'Tab') {
+			// Single focusable element → keep focus on it, regardless of direction.
+			e.preventDefault();
+			closeBtn?.focus();
+		}
 	}
 
 	function toggleZoom() {
+		if (pinching) return;
+		if (committedScale > 1) {
+			// pinch-zoom in effect → reset on tap
+			committedScale = 1;
+			panX = panY = lastPanX = lastPanY = 0;
+			zoomed = false;
+			return;
+		}
 		zoomed = !zoomed;
 	}
 
-	// Touch drag-to-dismiss
+	// --- Touch handlers (single finger = swipe, two fingers = pinch) ---
 	function onTouchStart(e) {
 		if (closing || swipeDismissing) return;
-		touchStartY = e.touches[0].clientY;
-		dragY = 0;
-		dragging = true;
+		if (e.touches.length === 2) {
+			// begin pinch
+			pinching = true;
+			dragging = false;
+			const [a, b] = e.touches;
+			pinchStartDist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+			pinchOriginX = (a.clientX + b.clientX) / 2;
+			pinchOriginY = (a.clientY + b.clientY) / 2;
+			pinchScale = committedScale;
+			return;
+		}
+		if (e.touches.length === 1 && !pinching) {
+			if (committedScale > 1) {
+				// pan instead of swipe-dismiss
+				dragging = true;
+				touchStartY = e.touches[0].clientY;
+				lastPanX = panX;
+				lastPanY = panY;
+				return;
+			}
+			touchStartY = e.touches[0].clientY;
+			dragY = 0;
+			dragging = true;
+		}
 	}
 
 	function onTouchMove(e) {
+		if (pinching && e.touches.length === 2) {
+			e.preventDefault();
+			const [a, b] = e.touches;
+			const dist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+			const ratio = dist / (pinchStartDist || 1);
+			pinchScale = Math.max(1, Math.min(4, committedScale * ratio));
+			return;
+		}
 		if (!dragging) return;
+		if (committedScale > 1 && e.touches.length === 1) {
+			// pan
+			e.preventDefault();
+			const t = e.touches[0];
+			panX = lastPanX + (t.clientX - pinchOriginX);
+			panY = lastPanY + (t.clientY - touchStartY);
+			return;
+		}
+		// single-finger swipe-to-dismiss
 		e.preventDefault();
 		dragY = e.touches[0].clientY - touchStartY;
 	}
 
-	function onTouchEnd() {
+	function onTouchEnd(e) {
+		if (pinching) {
+			// Pinch finished — commit scale, keep pan offsets.
+			committedScale = pinchScale;
+			if (committedScale <= 1.02) {
+				committedScale = 1;
+				panX = panY = lastPanX = lastPanY = 0;
+			}
+			pinching = false;
+			pinchStartDist = 0;
+			return;
+		}
 		dragging = false;
+		if (committedScale > 1) return; // we were panning, not dismissing
 		if (Math.abs(dragY) > 80) {
-			// Fly image off screen while fading the backdrop — both over 320ms
 			swipeDismissing = true;
 			dragY = dragY > 0 ? window.innerHeight : -window.innerHeight;
 			setTimeout(() => lightboxStore.set(null), 320);
@@ -85,8 +185,27 @@
 
 	function onTouchCancel() {
 		dragging = false;
+		pinching = false;
 		dragY = 0;
 	}
+
+	// Wheel-zoom on desktop while holding ctrl/cmd or just scrolling on the image.
+	function onWheel(e) {
+		if (!visible) return;
+		if (!e.ctrlKey && !e.metaKey) return;
+		e.preventDefault();
+		const next = Math.max(1, Math.min(4, committedScale - e.deltaY * 0.0025));
+		committedScale = next;
+		if (committedScale === 1) {
+			panX = panY = lastPanX = lastPanY = 0;
+		}
+	}
+
+	onDestroy(() => {
+		previouslyFocused = null;
+	});
+
+	$: liveScale = pinching ? pinchScale : committedScale;
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -98,24 +217,41 @@
 		class="lb-backdrop"
 		class:closing
 		class:swipe-dismissing={swipeDismissing}
+		role="dialog"
+		aria-modal="true"
+		aria-label={alt || 'Image preview'}
 		on:click={handleBackdropClick}
 		on:touchstart={onTouchStart}
 		on:touchmove={onTouchMove}
 		on:touchend={onTouchEnd}
 		on:touchcancel={onTouchCancel}
+		on:wheel={onWheel}
 	>
 		<!-- Close button -->
-		<button class="lb-close" on:click={close} aria-label="Close image">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<line x1="18" y1="6" x2="6" y2="18"/>
-				<line x1="6" y1="6" x2="18" y2="18"/>
+		<button
+			bind:this={closeBtn}
+			class="lb-close"
+			on:click={close}
+			aria-label="Close image"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<line x1="18" y1="6" x2="6" y2="18" />
+				<line x1="6" y1="6" x2="18" y2="18" />
 			</svg>
 		</button>
 
 		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
 		<div
 			class="lb-drag-wrapper"
-			style="transform: translateY({dragY}px); transition: {dragging ? 'none' : 'transform 0.32s cubic-bezier(0.16,1,0.3,1)'};"
+			style="transform: translate({panX}px, {dragY + panY}px); transition: {dragging || pinching ? 'none' : 'transform 0.32s cubic-bezier(0.16,1,0.3,1)'};"
 		>
 			<!-- Image wrapper -->
 			<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -130,7 +266,7 @@
 					{alt}
 					class="lb-img"
 					class:zoomed
-					style={!zoomed && naturalWidth ? `max-width: min(100%, ${naturalWidth}px); max-height: min(calc(100dvh - 6rem), ${naturalHeight}px);` : ''}
+					style="{!zoomed && naturalWidth ? `max-width: min(100%, ${naturalWidth}px); max-height: min(calc(100dvh - 6rem), ${naturalHeight}px);` : ''} transform: scale({liveScale}); transition: {pinching ? 'none' : ''};"
 					on:click={toggleZoom}
 					draggable="false"
 				/>
@@ -156,6 +292,7 @@
 		padding: 1rem;
 		animation: lb-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
 		cursor: zoom-out;
+		touch-action: none;
 	}
 
 	.lb-backdrop.closing {
@@ -191,14 +328,19 @@
 		border: none;
 		cursor: pointer;
 		transition:
-			background 0.15s ease,
+			background-color 0.15s ease,
 			transform 0.15s ease;
 		z-index: 10000;
 	}
 
 	.lb-close:hover {
 		background: rgba(255, 255, 255, 0.22);
-		transform: scale(1.1);
+		transform: scale(1.05);
+	}
+
+	.lb-close:focus-visible {
+		outline: 2px solid rgba(255, 255, 255, 0.65);
+		outline-offset: 2px;
 	}
 
 	.lb-close svg {
@@ -230,7 +372,6 @@
 	.lb-img-wrap.zoomed {
 		cursor: zoom-out;
 		overflow: auto;
-		/* allow scrolling when zoomed */
 	}
 
 	@keyframes lb-img-in {
@@ -271,6 +412,7 @@
 			max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 		user-select: none;
 		cursor: zoom-in;
+		transform-origin: center center;
 	}
 
 	.lb-img.zoomed {

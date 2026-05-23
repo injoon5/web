@@ -1,5 +1,10 @@
 <script>
 	import NumberFlow from '@number-flow/svelte';
+	import ArrowUp from '@lucide/svelte/icons/arrow-up';
+	import ArrowDown from '@lucide/svelte/icons/arrow-down';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import Self from './CommentNode.svelte';
 
 	const MAX_LENGTH = 200;
@@ -177,56 +182,36 @@
 <div>
 {#snippet card()}
 <div
-	class="rounded-lg border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
+	class="rounded-xl p-4 transition-colors duration-150 {isDeleted
+		? 'border border-dashed border-neutral-300/80 bg-transparent dark:border-neutral-700/80'
+		: 'border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900'}"
 >
 	<!-- Header: username + vote/edit/delete -->
 	<div class="flex flex-row items-start justify-between">
-		<p class="font-semibold {isDeleted ? 'text-neutral-400 dark:text-neutral-600' : ''}">
+		<p class="font-semibold {isDeleted ? 'text-neutral-400 italic dark:text-neutral-600' : ''}">
 			{comment.username}
 		</p>
-		<div class="flex items-center space-x-2">
-			<NumberFlow value={comment.score} trend={0} class="font-medium" />
-
+		<div class="flex items-center space-x-1.5">
 			{#if !isDeleted}
+				<span class="tabular text-sm font-medium text-neutral-700 dark:text-neutral-300">
+					<NumberFlow value={comment.score} trend={0} />
+				</span>
+
 				<button
 					onclick={() => handleVote('up')}
 					disabled={isVoting}
 					aria-label="Upvote"
-					class="rounded-full p-1 transition-all duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					aria-pressed={comment.myVote === 'up'}
+					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
 						{comment.myVote === 'up'
-						? 'bg-green-500 text-white'
-						: 'bg-neutral-200 text-neutral-600 hover:bg-green-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-green-800'}"
+						? 'text-emerald-600 dark:text-emerald-400'
+						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
 				>
 					{#if isVoting && votingAnim.side === 'up'}
-						<svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"
-							/>
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							/>
-						</svg>
+						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 					{:else}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-5 w-5"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z"
-								clip-rule="evenodd"
-							/>
-						</svg>
+						<ArrowUp size="16" strokeWidth="2.25" aria-hidden="true" />
 					{/if}
 				</button>
 
@@ -234,78 +219,34 @@
 					onclick={() => handleVote('down')}
 					disabled={isVoting}
 					aria-label="Downvote"
-					class="rounded-full p-1 transition-all duration-200 active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					aria-pressed={comment.myVote === 'down'}
+					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
 						{comment.myVote === 'down'
-						? 'bg-red-500 text-white'
-						: 'bg-neutral-200 text-neutral-600 hover:bg-red-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-red-800'}"
+						? 'text-rose-600 dark:text-rose-400'
+						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
 				>
 					{#if isVoting && votingAnim.side === 'down'}
-						<svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-							<circle
-								class="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								stroke-width="4"
-							/>
-							<path
-								class="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							/>
-						</svg>
+						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 					{:else}
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="h-5 w-5"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z"
-								clip-rule="evenodd"
-							/>
-						</svg>
+						<ArrowDown size="16" strokeWidth="2.25" aria-hidden="true" />
 					{/if}
 				</button>
 
 				<button
 					onclick={openEdit}
 					aria-label="Edit comment"
-					class="rounded-full bg-neutral-200 p-1 text-neutral-600 transition-all duration-200 hover:bg-neutral-300 active:scale-90 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
+					class="rounded-full p-1.5 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-neutral-900 active:scale-90 dark:text-neutral-400 dark:hover:text-neutral-100"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-4 w-4"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-					>
-						<path
-							d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
-						/>
-					</svg>
+					<Pencil size="14" strokeWidth="2" aria-hidden="true" />
 				</button>
 
 				<button
 					onclick={openDelete}
 					aria-label="Delete comment"
-					class="rounded-full bg-neutral-200 p-1 text-neutral-600 transition-all duration-200 hover:bg-red-100 hover:text-red-600 active:scale-90 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+					class="rounded-full p-1.5 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-rose-600 active:scale-90 dark:text-neutral-400 dark:hover:text-rose-400"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-4 w-4"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-							clip-rule="evenodd"
-						/>
-					</svg>
+					<Trash2 size="14" strokeWidth="2" aria-hidden="true" />
 				</button>
 			{/if}
 		</div>
@@ -334,13 +275,13 @@
 				<button
 					onclick={saveEdit}
 					disabled={editSubmitting}
-					class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+					class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-95 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 				>
 					{editSubmitting ? 'Saving…' : 'Save'}
 				</button>
 				<button
 					onclick={closeForm}
-					class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-all duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+					class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 				>
 					Cancel
 				</button>
@@ -374,13 +315,13 @@
 				<button
 					onclick={confirmDelete}
 					disabled={deleteSubmitting || deletePassword.length < 4}
-					class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-all duration-150 hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+					class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{deleteSubmitting ? 'Deleting…' : 'Delete'}
 				</button>
 				<button
 					onclick={closeForm}
-					class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-all duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+					class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 				>
 					Cancel
 				</button>
@@ -389,7 +330,7 @@
 	{/if}
 
 	<!-- Timestamp -->
-	<p class="mt-1 text-sm font-medium text-neutral-500">
+	<p class="mt-1 text-sm font-medium text-neutral-500 tabular">
 		{new Date(comment.createdAt).toLocaleString()}
 		{#if comment.updatedAt && comment.updatedAt !== comment.createdAt}
 			<span class="ml-1 text-xs">(edited)</span>
@@ -423,7 +364,7 @@
 					class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
 				></textarea>
 				{#if showReplyCharsLeft}
-					<p class="mt-0.5 text-xs text-neutral-500">Characters left: {replyCharsLeft}</p>
+					<p class="mt-0.5 text-xs text-neutral-500 tabular">Characters left: {replyCharsLeft}</p>
 				{/if}
 			</div>
 			<input
@@ -440,13 +381,13 @@
 				<button
 					onclick={submitReply}
 					disabled={replyDisabled}
-					class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+					class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 				>
 					{replySubmitting ? 'Replying…' : 'Reply'}
 				</button>
 				<button
 					onclick={closeForm}
-					class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-all duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+					class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 				>
 					Cancel
 				</button>
@@ -488,7 +429,7 @@
 {#if comment.stray}
 	<!-- Ghost placeholder for the deleted parent (renders at comment.depth - 1) -->
 	<div
-		class="rounded-lg border border-neutral-200 bg-neutral-100 p-4 opacity-70 dark:border-neutral-800 dark:bg-neutral-900"
+		class="rounded-xl border border-dashed border-neutral-300/80 p-4 opacity-80 dark:border-neutral-700/80"
 	>
 		<p class="font-semibold text-neutral-400 italic dark:text-neutral-600">[deleted]</p>
 		<p class="mt-1 text-sm text-neutral-400 italic dark:text-neutral-600">[deleted]</p>

@@ -7,8 +7,10 @@
 	import Lightbox from '$lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import TableOfContents from '$lib/TableOfContents.svelte';
+	import Clock from '@lucide/svelte/icons/clock';
+	import Languages from '@lucide/svelte/icons/languages';
 
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	export let data;
 
@@ -29,6 +31,29 @@
 	$: currentReadingTime = (lang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
 	$: currentSeries = lang === 'ko' ? data.koSeries : data.enSeries;
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
+
+	// Animated language toggle — measure each button's rect to slide a pill behind the active one.
+	/** @type {Record<string, HTMLButtonElement>} */
+	let langButtons = {};
+	let pillStyle = '';
+	async function updatePill() {
+		await tick();
+		const el = langButtons[lang];
+		if (!el) return;
+		const parent = el.parentElement;
+		if (!parent) return;
+		const parentRect = parent.getBoundingClientRect();
+		const rect = el.getBoundingClientRect();
+		pillStyle = `transform: translateX(${rect.left - parentRect.left}px); width: ${rect.width}px; opacity: 1;`;
+	}
+	$: lang, updatePill();
+	onMount(() => {
+		updatePill();
+		const ro = new ResizeObserver(updatePill);
+		const container = Object.values(langButtons)[0]?.parentElement;
+		if (container) ro.observe(container);
+		return () => ro.disconnect();
+	});
 </script>
 
 <!-- SEO -->
@@ -55,18 +80,29 @@
 			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
 				{currentMeta.title}
 			</h1>
-			<div class="mt-1 flex flex-row text-xl font-medium text-neutral-600 dark:text-neutral-400">
-				<p>{formatDate(currentMeta.date)}</p>
+			<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
+				<p class="tabular">{formatDate(currentMeta.date)}</p>
 				<p class="mx-1">·</p>
-				<p>{currentReadingTime}</p>
+				<span class="inline-flex items-center gap-1.5">
+					<Clock size="14" strokeWidth="2" aria-hidden="true" />
+					<span class="tabular">{currentReadingTime}</span>
+				</span>
 			</div>
 			{#if data.availableLangs.length > 1}
-				<div class="mt-2 flex items-center gap-1">
+				<div
+					class="relative mt-3 inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-100/60 p-1 dark:border-neutral-800 dark:bg-neutral-900/60"
+				>
+					<span
+						class="nav-indicator pointer-events-none absolute top-1 bottom-1 left-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
+						style={pillStyle || 'opacity:0;'}
+						aria-hidden="true"
+					></span>
 					{#each data.availableLangs as l}
 						<button
+							bind:this={langButtons[l]}
 							on:click={() => setLang(l)}
-							class="rounded px-2 py-0.5 text-sm font-semibold transition-colors {lang === l
-								? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+							class="relative z-10 rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-150 {lang === l
+								? 'text-white dark:text-neutral-900'
 								: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
 						>
 							{l === 'en' ? 'English' : '한국어'}
@@ -86,19 +122,33 @@
 
 		<!-- Post -->
 		{#if currentMeta?.aiTranslated}
-			<div class="mt-10 bg-neutral-100 px-4 py-3 dark:bg-neutral-900">
-				{#if lang === 'ko'}
-					<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
-					<p class="text-sm text-neutral-500 dark:text-neutral-500">이 글은 AI의 도움을 받아 번역되었습니다. 일부 뉘앙스가 달라질 수 있습니다.</p>
-				{:else}
-					<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI Translation</p>
-					<p class="text-sm text-neutral-500 dark:text-neutral-500">This post was translated from Korean with the help of AI. Some nuance may be lost.</p>
-				{/if}
+			<div
+				class="mt-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-50/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
+			>
+				<Languages
+					size="16"
+					strokeWidth="2"
+					class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+					aria-hidden="true"
+				/>
+				<div>
+					{#if lang === 'ko'}
+						<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
+						<p class="text-sm text-neutral-500 dark:text-neutral-500">
+							이 글은 AI의 도움을 받아 번역되었습니다. 일부 뉘앙스가 달라질 수 있습니다.
+						</p>
+					{:else}
+						<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI Translation</p>
+						<p class="text-sm text-neutral-500 dark:text-neutral-500">
+							This post was translated from Korean with the help of AI. Some nuance may be lost.
+						</p>
+					{/if}
+				</div>
 			</div>
 		{/if}
 		<div
 			use:lightboxAction
-			class="prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-h3:tracking-tight prose-h4:tracking-tight prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1 hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300 prose-img:mx-auto prose-img:cursor-zoom-in mt-10 mx-auto max-w-[68ch]"
+			class="prose-post mt-10 max-w-[68ch]"
 		>
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />

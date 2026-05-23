@@ -1,5 +1,7 @@
 <script>
 	import Self from './AdminCommentNode.svelte';
+	import ArrowUp from '@lucide/svelte/icons/arrow-up';
+	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 
 	let {
 		comment,
@@ -123,37 +125,15 @@
 			<p class="font-semibold">{comment.username}</p>
 			<div class="flex shrink-0 items-center gap-1.5">
 				<span
-					class="inline-flex items-center gap-0.5 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950/40 dark:text-green-400"
+					class="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 tabular dark:bg-emerald-950/40 dark:text-emerald-400"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-3 w-3"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z"
-							clip-rule="evenodd"
-						/>
-					</svg>
+					<ArrowUp size="12" strokeWidth="2.25" aria-hidden="true" />
 					{comment.upvotes}
 				</span>
 				<span
-					class="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950/40 dark:text-red-400"
+					class="inline-flex items-center gap-0.5 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 tabular dark:bg-rose-950/40 dark:text-rose-400"
 				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-3 w-3"
-						viewBox="0 0 20 20"
-						fill="currentColor"
-					>
-						<path
-							fill-rule="evenodd"
-							d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z"
-							clip-rule="evenodd"
-						/>
-					</svg>
+					<ArrowDown size="12" strokeWidth="2.25" aria-hidden="true" />
 					{comment.downvotes}
 				</span>
 			</div>
