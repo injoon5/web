@@ -129,7 +129,12 @@
 			onclick={toggleLike}
 			disabled={loading || toggling}
 			aria-pressed={isLiked}
-			class="inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform] duration-200 ease-out active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-60
+			/* 
+			   transition-[background-color,border-color,color,transform,width] enables width, see next line
+			   ease-out and duration-200 for animation
+			   will-change-[width,background-color,border-color,color,transform] for hinting 
+			*/
+			class="inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform,width] duration-200 ease-out active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-60 will-change-[width,background-color,border-color,color,transform]
 			{isLiked
 				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'
 				: 'border-neutral-200 bg-transparent text-neutral-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-rose-900/50 dark:hover:bg-rose-950/30 dark:hover:text-rose-300'}"
@@ -144,7 +149,10 @@
 					aria-hidden="true"
 				/>
 			{/if}
-			<span class="like-label">
+			<span
+				class="like-label inline-block whitespace-nowrap transition-[width] duration-200 ease-out will-change-[width]"
+				style="width: {isLiked ? '40px' : '30px'}"
+			>
 				{isLiked ? 'Liked' : 'Like'}
 			</span>
 		</button>
@@ -153,10 +161,3 @@
 {#if likeError}
 	<p class="mt-2 text-sm text-red-500">{likeError}</p>
 {/if}
-
-<style>
-	.like-label {
-		display: inline-block;
-		white-space: nowrap;
-	}
-</style>
