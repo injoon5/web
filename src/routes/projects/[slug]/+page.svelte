@@ -2,7 +2,7 @@
 	import LikeButton from '$lib/LikeButton.svelte';
 	import { page } from '$app/stores';
 	import { lightboxAction } from '$lib/lightbox.js';
-	import Lightbox from '$lib/Lightbox.svelte';
+	import Lightbox from '../../../lib/Lightbox.svelte';
 
 	import { onMount, tick } from 'svelte';
 
@@ -50,9 +50,8 @@
 
 <Lightbox />
 
-<div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-	<article class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
-		<div class="tracking-tight">
+<div class="grid grid-cols-1 gap-4 md:grid-cols-12">
+	<article class="col-span-1 justify-center pt-10 md:col-span-10 md:col-start-2 lg:col-span-8 lg:col-start-3">		<div class="tracking-tight">
 			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
 				{currentMeta.title}
 			</h1>
@@ -104,7 +103,7 @@
 		</div>
 		<div
 			use:lightboxAction
-			class="prose-post prose-img:w-4/5 mt-10 max-w-[68ch]"
+			class="prose-post mt-10"
 		>
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />

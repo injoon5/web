@@ -100,7 +100,7 @@
 	<slot />
 </div>
 
-<footer class="mt-10 mb-20 w-full tracking-tight">
+<footer class="mt-10 pt-24 mb-20 w-full tracking-tight">
 	<div class="text-xs">
 		<div
 			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-500 sm:px-12 dark:text-neutral-500"

@@ -4,7 +4,7 @@
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import { page } from '$app/stores';
-	import Lightbox from '$lib/Lightbox.svelte';
+	import Lightbox from '../../../lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import TableOfContents from '$lib/TableOfContents.svelte';
 	import Languages from '@lucide/svelte/icons/languages';
@@ -67,8 +67,8 @@
 
 <Lightbox />
 
-<div class="grid grid-cols-1 gap-4 lg:grid-cols-12">
-	<article class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
+<div class="grid grid-cols-1 gap-4 md:grid-cols-12">
+	<article class="col-span-1 justify-center pt-10 md:col-span-10 md:col-start-2 lg:col-span-8 lg:col-start-3">
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if currentSeries?.[0]?.series}
@@ -144,7 +144,7 @@
 		{/if}
 		<div
 			use:lightboxAction
-			class="prose-post mt-10 max-w-[68ch]"
+			class="prose-post mt-10"
 		>
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />
@@ -155,9 +155,4 @@
 			<CommentsSection />
 		</div>
 	</article>
-
-	<!-- TOC sidebar: only visible at xl+ in the right margin columns -->
-	<aside class="hidden xl:block xl:col-span-2 xl:col-start-1 xl:row-start-1 xl:pt-14">
-		<TableOfContents />
-	</aside>
 </div>

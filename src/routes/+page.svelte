@@ -88,7 +88,7 @@
 
 <div
 	id="introduction"
-	class="mt-20 mb-12 grid grid-cols-3 text-base font-[450] tracking-normal sm:grid-cols-5 sm:text-normal md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-base font-[450] tracking-normal sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div style="height: max-content;">
@@ -126,7 +126,7 @@ Injoon Oh
 </div>
 <div
 	id="blog"
-	class="mt-20 mb-12 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	class="mt-30 mb-12 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
@@ -147,7 +147,7 @@ Injoon Oh
 					href="/blog/{post.slug}"
 				>
 					<h3
-						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
+						class="text-neutral-900 dark:text-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
 					>
 						{post.title}
 					</h3>
@@ -428,7 +428,7 @@ Injoon Oh
 			{/if}
 		</div>
 
-		<div class="mt-2 mb-4 flex justify-end">
+		<div class="mt-2 flex justify-end">
 			<a
 				class="group relative inline-flex items-center text-base font-medium -tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="https://photos.injoon5.com"
