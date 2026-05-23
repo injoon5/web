@@ -7,7 +7,6 @@
 	import Lightbox from '$lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import TableOfContents from '$lib/TableOfContents.svelte';
-	import Clock from '@lucide/svelte/icons/clock';
 	import Languages from '@lucide/svelte/icons/languages';
 
 	import { onMount, tick } from 'svelte';
@@ -83,10 +82,7 @@
 			<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
 				<p class="tabular">{formatDate(currentMeta.date)}</p>
 				<p class="mx-1">·</p>
-				<span class="inline-flex items-center gap-1.5">
-					<Clock size="14" strokeWidth="2" aria-hidden="true" />
-					<span class="tabular">{currentReadingTime}</span>
-				</span>
+				<span class="tabular">{currentReadingTime}</span>
 			</div>
 			{#if data.availableLangs.length > 1}
 				<div
