@@ -3,7 +3,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createWebHaptics } from 'web-haptics/svelte';
-	import { useQuery } from 'convex-svelte';
+	import { useQuery, useConvexClient } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import CommentNode from './CommentNode.svelte';
 
@@ -55,7 +55,6 @@
 	// then silently remove that vote (the score drops).
 	let clientIpHash = $state('');
 	let hashReal = $state(false);
-	let hashAttempted = $state(false);
 
 	onMount(async () => {
 		try {
@@ -69,10 +68,10 @@
 			}
 		} catch {
 			// keep the empty hash; vote state stays unknown
-		} finally {
-			hashAttempted = true;
 		}
 	});
+
+	const client = useConvexClient();
 
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(
@@ -105,6 +104,16 @@
 		voteErrorTimer = setTimeout(() => (voteError = ''), 3000);
 	}
 
+	function voteErrorMessage(err) {
+		const data = err && typeof err === 'object' ? err.data : undefined;
+		if (data && typeof data === 'object') {
+			if (data.kind === 'Banned') return 'You have been banned.';
+			if (data.kind === 'RateLimited') return 'Too many requests. Please slow down.';
+			if (typeof data.message === 'string') return data.message;
+		}
+		return 'Could not register vote.';
+	}
+
 	async function vote(commentId, voteType) {
 		if (!canVote) return;
 		if (votingIds.has(commentId)) return;
@@ -116,19 +125,42 @@
 			votingAnimTimer = null;
 		}, 300);
 
+		// Args of the active comments.list subscription, so the optimistic update
+		// targets the exact same cache entry.
+		const url = $page.url.pathname;
+		const ipHash = clientIpHash;
+
 		votingIds.add(commentId);
 		try {
-			const res = await fetch(`/api/comments/${commentId}/vote`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ voteType })
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				showVoteError(data.message ?? 'Could not register vote.');
-			}
-		} catch {
-			showVoteError('Something went wrong.');
+			// Vote through the Convex client (not the HTTP route) so the optimistic
+			// update flips the cached list instantly; Convex reconciles and rolls
+			// back automatically on error.
+			await client.mutation(
+				api.comments.vote,
+				{ commentId, voteType, ipHash },
+				{
+					optimisticUpdate: (localStore) => {
+						const list = localStore.getQuery(api.comments.list, { url, ipHash });
+						if (!list) return;
+						const next = list.map((c) => {
+							if (c.id !== commentId) return c;
+							let { upvotes, downvotes, myVote } = c;
+							if (myVote === 'up') upvotes--;
+							else if (myVote === 'down') downvotes--;
+							let nextVote = null;
+							if (myVote !== voteType) {
+								nextVote = voteType;
+								if (voteType === 'up') upvotes++;
+								else downvotes++;
+							}
+							return { ...c, upvotes, downvotes, score: upvotes - downvotes, myVote: nextVote };
+						});
+						localStore.setQuery(api.comments.list, { url, ipHash }, next);
+					}
+				}
+			);
+		} catch (err) {
+			showVoteError(voteErrorMessage(err));
 		} finally {
 			votingIds.delete(commentId);
 		}
@@ -171,14 +203,11 @@
 	const commentTree = $derived(buildTree(query.data ?? []));
 
 	// `myVote` is per-visitor: trust the highlight only once the real hash is in
-	// use and the subscription holds fresh (non-stale) data. Allow clicking once
-	// trusted, or once a failed /api/ip-hash leaves us with fresh data and no
-	// real hash (the vote itself is computed from the real IP server-side, so a
-	// broken hash fetch must not lock voting forever).
+	// use and the subscription holds fresh (non-stale) data. Votes now run
+	// client-side keyed by clientIpHash, so voting also requires the real hash —
+	// otherwise we'd record a vote under the empty hash.
 	const voteKnown = $derived(hashReal && !query.isStale && !!query.data);
-	const canVote = $derived(
-		voteKnown || (hashAttempted && !hashReal && !query.isStale && !!query.data)
-	);
+	const canVote = $derived(voteKnown);
 
 	// Reset transient form state on path change
 	let currentPath = $state($page.url.pathname);
