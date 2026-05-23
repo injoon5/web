@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { onDestroy } from 'svelte';
+	import { heroNameVisible } from '$lib/heroNav.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -12,11 +13,11 @@
 		{ label: 'now', href: '/now' }
 	];
 
-	// On the home page the name lives in the hero and slides up to dock here on
-	// scroll (see the floating element in routes/+page.svelte), so the static
-	// navbar name stays hidden and only serves as the dock anchor. Every other
-	// page shows it immediately.
+	// On the home page the hero owns the name, so the navbar name stays hidden
+	// until the hero scrolls out of view (tracked by heroNameVisible). Every
+	// other page shows it immediately.
 	let isHome = $derived(page.url.pathname === '/');
+	let showName = $derived(!isHome || !$heroNameVisible);
 
 	function isActive(href) {
 		if (href === '/') return page.url.pathname === '/';
@@ -29,13 +30,12 @@
 		href="/"
 		onclick={() => trigger([{ duration: 35 }], { intensity: 1 })}
 		aria-label="Home — Injoon Oh"
-		class="group inline-flex items-center"
+		class="group inline-flex items-center {showName ? '' : 'pointer-events-none'}"
 	>
 		<span class="relative inline-block">
 			<span
-				data-nav-name
-				class="block font-sans text-2xl font-medium tracking-tight transition-[opacity,filter] duration-200 ease-out
-				{isHome ? 'opacity-0' : 'opacity-100'}
+				class="block font-sans text-2xl font-medium tracking-tight transition-[opacity,filter,transform] duration-200 ease-out
+				{showName ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}
 				group-hover:opacity-0 group-hover:blur-sm"
 			>
 				Injoon Oh

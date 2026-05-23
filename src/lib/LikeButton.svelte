@@ -1,14 +1,32 @@
 <script>
 	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import NumberFlow from '@number-flow/svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import Heart from '@lucide/svelte/icons/heart';
 
+	// Pages are prerendered, so the layout's ipHash is frozen at build time and
+	// never matches a real visitor — the liked state would always read false.
+	// Fetch the visitor's real hash at runtime and re-subscribe with it.
+	let clientIpHash = $state($page.data.ipHash ?? '');
+
 	const query = useQuery(api.likes.get, () => ({
 		url: $page.url.pathname,
-		ipHash: $page.data.ipHash ?? ''
+		ipHash: clientIpHash
 	}));
+
+	onMount(async () => {
+		try {
+			const res = await fetch('/api/ip-hash');
+			if (res.ok) {
+				const data = await res.json();
+				if (data.ipHash) clientIpHash = data.ipHash;
+			}
+		} catch {
+			// keep the fallback hash
+		}
+	});
 
 	let toggling = $state(false);
 	let likeError = $state('');
@@ -103,10 +121,10 @@
 			onclick={toggleLike}
 			disabled={loading || toggling}
 			aria-pressed={isLiked}
-			class="like-btn inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform,width] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60
+			class="inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform] duration-200 ease-out active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-60
 			{isLiked
 				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'
-				: 'border-neutral-200 bg-transparent text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'}"
+				: 'border-neutral-200 bg-transparent text-neutral-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-rose-900/50 dark:hover:bg-rose-950/30 dark:hover:text-rose-300'}"
 		>
 			<Heart
 				size="14"
@@ -129,20 +147,6 @@
 {/if}
 
 <style>
-	/*
-	 * Animate the button's intrinsic width when the label changes
-	 * (Like ↔ Liking… ↔ Liked ↔ Unliking…). Width can't normally be
-	 * transitioned to `auto`, so we use interpolate-size + a max-content
-	 * starting point.
-	 */
-	.like-btn {
-		width: max-content;
-	}
-	@supports (interpolate-size: allow-keywords) {
-		.like-btn {
-			interpolate-size: allow-keywords;
-		}
-	}
 	.like-label {
 		display: inline-block;
 		white-space: nowrap;

@@ -65,7 +65,7 @@
 		{#each groupedPosts as group}
 			{#if group.type === 'series'}
 				<div class="py-2">
-					<span class="line-clamp-1 text-base font-semibold text-neutral-950 dark:text-white">
+					<span class="line-clamp-1 text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-500">
 						{group.name}
 					</span>
 				</div>
@@ -83,7 +83,7 @@
 								</span>
 								{#if seriesPost.hasEn}
 									<span
-										class="inline-flex shrink-0 items-center rounded-full border border-neutral-200 px-1.5 py-px text-[10px] font-medium tracking-wide uppercase text-neutral-500 dark:border-neutral-800 dark:text-neutral-500"
+										class="shrink-0 text-xs font-semibold tracking-wide uppercase text-neutral-400 dark:text-neutral-600"
 									>
 										EN
 									</span>
@@ -111,7 +111,7 @@
 							</span>
 							{#if group.post.hasEn}
 								<span
-									class="inline-flex shrink-0 items-center rounded-full border border-neutral-200 px-1.5 py-px text-[10px] font-medium tracking-wide uppercase text-neutral-500 dark:border-neutral-800 dark:text-neutral-500"
+									class="shrink-0 text-xs font-semibold tracking-wide uppercase text-neutral-400 dark:text-neutral-600"
 								>
 									EN
 								</span>
