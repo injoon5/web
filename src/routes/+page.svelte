@@ -386,7 +386,7 @@ Injoon Oh
 
 
 	<div
-		class="relative col-span-10 mt-4 overflow-hidden sm:-mx-12 lg:mx-0 lg:col-span-12 lg:w-screen lg:left-1/2 lg:right-1/2 lg:-translate-x-1/2 lg:relative lg:mt-0"
+		class="relative col-span-10 mt-4 overflow-hidden sm:-mx-12 lg:mx-0 lg:col-span-12 lg:w-screen lg:left-1/2 lg:right-1/2 lg:-translate-x-1/2 lg:relative lg:mt-0 pb-4 "
 	>
 		{#if nowState === 'loading'}
 			<div class="flex gap-3">
@@ -407,7 +407,7 @@ Injoon Oh
 			>
 				{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
 					<a
-						class="group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"
+						class=" border dark:border shadow-md border-neutral-300 dark:border-neutral-800 border-opacity-50 group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-2xl mr-3"
 						href={track.url}
 					>
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
@@ -417,8 +417,8 @@ Injoon Oh
 							alt={track?.name ?? 'Album cover'}
 							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
 						/>
-						<div class="absolute inset-0 rounded-xl bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"></div>
-						<div class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0">
+						<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"></div>
+						<div class="ml-1 absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0">
 							<p class="truncate text-sm font-semibold leading-tight text-white lg:text-base">
 								{track.name}
 							</p>
@@ -469,7 +469,7 @@ Injoon Oh
 				{#each (photos?.photos ?? []).slice(0, 6) as photo}
 					<a
 						href={photo.url}
-						class="group relative block aspect-square w-full overflow-hidden bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+						class="group border rounded-xl border-neutral-300 dark:border-neutral-800 border-opacity-50 relative block aspect-square w-full overflow-hidden bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
 					>
 						<img
 							loading="lazy"
