@@ -8,6 +8,14 @@ http://scripts.sil.org/OFL
 */
 
 @font-face {
+	font-family: 'Pretendard Variable';
+	font-weight: 45 920;
+	font-style: normal;
+	font-display: swap;
+	src: url(/fonts/pretendard/PretendardVariable.woff2) format('woff2-variations');
+}
+
+@font-face {
 	font-family: 'Pretendard';
 	font-weight: 900;
 	font-display: swap;
