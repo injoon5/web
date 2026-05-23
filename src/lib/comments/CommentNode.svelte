@@ -16,6 +16,8 @@
 		setActiveForm,
 		votingIds,
 		votingAnim,
+		canVote = true,
+		voteKnown = true,
 		onVote,
 		onHaptic
 	} = $props();
@@ -42,6 +44,10 @@
 
 	const isDeleted = $derived(comment.text === '[deleted]');
 	const isVoting = $derived(votingIds.has(comment.id));
+	// Only reflect the visitor's vote once it's trustworthy (see CommentsSection);
+	// otherwise show neutral arrows so a stale/unknown state can't be mis-toggled.
+	const myVote = $derived(voteKnown ? comment.myVote : null);
+	const voteDisabled = $derived(isVoting || !canVote);
 	const replyCharsLeft = $derived(MAX_LENGTH - replyText.length);
 	const showReplyCharsLeft = $derived(replyText.length > MAX_LENGTH - CHAR_THRESHOLD);
 	const replyDisabled = $derived(
@@ -199,12 +205,12 @@
 
 				<button
 					onclick={() => handleVote('up')}
-					disabled={isVoting}
+					disabled={voteDisabled}
 					aria-label="Upvote"
-					aria-pressed={comment.myVote === 'up'}
+					aria-pressed={myVote === 'up'}
 					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
-						{comment.myVote === 'up'
+						{myVote === 'up'
 						? 'text-emerald-600 dark:text-emerald-400'
 						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
 				>
@@ -217,12 +223,12 @@
 
 				<button
 					onclick={() => handleVote('down')}
-					disabled={isVoting}
+					disabled={voteDisabled}
 					aria-label="Downvote"
-					aria-pressed={comment.myVote === 'down'}
+					aria-pressed={myVote === 'down'}
 					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
-						{comment.myVote === 'down'
+						{myVote === 'down'
 						? 'text-rose-600 dark:text-rose-400'
 						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
 				>
@@ -418,6 +424,8 @@
 					{setActiveForm}
 					{votingIds}
 					{votingAnim}
+					{canVote}
+					{voteKnown}
 					{onVote}
 					{onHaptic}
 				/>
