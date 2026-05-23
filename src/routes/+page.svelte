@@ -390,7 +390,7 @@ Injoon Oh
 	>
 		{#if nowState === 'loading'}
 			<div class="flex gap-3">
-				{#each Array(6) as _}
+				{#each Array(20) as _}
 					<div class="shimmer aspect-square w-40 shrink-0 lg:w-48 rounded-xl"></div>
 				{/each}
 			</div>
