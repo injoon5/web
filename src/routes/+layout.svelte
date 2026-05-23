@@ -77,12 +77,6 @@
 					class=" hover:text-neutral-900 dark:hover:text-neutral-100">@injoon5 (GitHub)</a
 				>
 				<br />
-
-				<a
-					href="https://x.com/injoon_oh"
-					class=" hover:text-neutral-900 dark:hover:text-neutral-100">@injoon_oh (Twitter)</a
-				>
-				<br />
 				<a href="/internal/rss.xml" class=" hover:text-neutral-900 dark:hover:text-neutral-100"
 					>RSS Feed</a
 				>

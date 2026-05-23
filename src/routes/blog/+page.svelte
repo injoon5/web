@@ -1,12 +1,24 @@
 <script>
-	import PostLink from '$lib/PostLink.svelte';
-
-	import { onMount } from 'svelte';
-	import { formatDate, sliceText } from '$lib/utils';
-
 	export let data;
 
-	let renderedSeries = [];
+	$: groupedPosts = (() => {
+		const seenSeries = new Set();
+		const result = [];
+		for (const post of data.posts) {
+			if (post.series) {
+				if (seenSeries.has(post.series)) continue;
+				seenSeries.add(post.series);
+				result.push({
+					type: 'series',
+					name: post.series,
+					posts: data.posts.filter((p) => p.series === post.series)
+				});
+			} else {
+				result.push({ type: 'post', post });
+			}
+		}
+		return result;
+	})();
 </script>
 
 <svelte:head>
@@ -50,15 +62,14 @@
 		-->
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
-		{#each data.posts as post}
-			{#if post.series && !renderedSeries.includes(post.series) && renderedSeries.push(post.series)}
-				<!-- Series group header -->
+		{#each groupedPosts as group}
+			{#if group.type === 'series'}
 				<div
 					class="py-2 text-base font-semibold text-neutral-600 sm:text-base dark:text-neutral-400"
 				>
-					Series: {post.series}
+					Series: {group.name}
 				</div>
-				{#each data.posts.filter((p) => p.series === post.series) as seriesPost}
+				{#each group.posts as seriesPost}
 					<div class="py-2">
 						<a
 							href={`/blog/${seriesPost.slug}`}
@@ -80,23 +91,23 @@
 						</a>
 					</div>
 				{/each}
-			{:else if !post.series}
+			{:else}
 				<div class="py-2">
 					<a
-						href={`/blog/${post.slug}`}
+						href={`/blog/${group.post.slug}`}
 						class="group flex flex-row items-center justify-between gap-2"
 					>
 						<span
 							class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline sm:text-base dark:text-neutral-100 dark:group-hover:text-neutral-400"
 						>
-							{post.title}
+							{group.post.title}
 						</span>
 						<span class="ml-4 flex shrink-0 items-center gap-2">
-							{#if post.hasEn}
+							{#if group.post.hasEn}
 								<span class="text-xs font-semibold text-neutral-400 dark:text-neutral-600">English</span>
 							{/if}
 							<span class="text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500">
-								{post.date || post.year}
+								{group.post.date || group.post.year}
 							</span>
 						</span>
 					</a>

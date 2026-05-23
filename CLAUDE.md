@@ -18,9 +18,11 @@
 
 ## Project Overview
 
-A SvelteKit personal site with a blog, projects section, and a full comment system including voting, admin replies, IP bans, and rate limiting.
+A SvelteKit personal site with a blog, projects section, a `/now` page, and a full comment system including voting, admin replies, IP bans, and rate limiting.
 
-**Stack:** SvelteKit · PostgreSQL (Drizzle ORM) · Upstash Redis (rate limiting) · bcryptjs (comment passwords) · Zod (validation)
+**Stack:** SvelteKit · Convex (database + functions + realtime) · bcryptjs (comment passwords) · Zod (input validation)
+
+Rate limiting lives inside Convex via `@convex-dev/rate-limiter`, not Upstash Redis. There is no separate SQL database — all persistence is Convex tables.
 
 ---
 
@@ -33,92 +35,68 @@ src/
   lib/
     server/
       admin.ts             # verifyAdminSecret(request) — checks x-admin-secret header
+      api.js               # convexErrorToResponse helper
+      convex.js            # Server-side Convex HTTP client
       ip.ts                # getClientIp(request), hashIp(ip) — SHA-256 IP hashing
-      redis.ts             # Upstash rate limiters (commentRatelimit, voteRatelimit, likeRatelimit, editRatelimit)
+      valid-urls.js        # isValidPageUrl — guards comment/like writes to known pages
       validation.ts        # Zod schemas for all inputs
-      db/
-        index.ts           # Drizzle db instance
-        schema.ts          # All table definitions + inferred types
     types.ts               # Shared frontend types
     utils.ts               # Misc utilities
     comments/
-      CommentsSection.svelte   # Public comment section (fetches, renders, handles forms)
-      CommentCard.svelte       # Individual user-facing comment
-      AdminCommentCard.svelte  # Admin dashboard comment card
+      CommentsSection.svelte   # Public comment section (Convex useQuery, forms)
+      CommentNode.svelte       # Individual user-facing comment + reply tree
+      AdminCommentNode.svelte  # Admin dashboard comment node (admin only)
   routes/
-    +page.ts               # Home
+    +page.ts               # Home (prerendered)
     blog/
-      +page.ts             # Blog listing
-      [slug]/+page.ts      # Blog post
+      +page.ts             # Blog listing (prerendered)
+      [slug]/+page.ts      # Blog post (prerendered, loads md via import.meta.glob)
     projects/
-      +page.ts             # Projects listing
-      [slug]/+page.ts      # Project detail
-    admin/
-      +page.svelte         # Admin dashboard (login, comment tree, bans)
-      +page.server.ts      # Auth: cookie-based login/logout, exposes adminSecret to page
+      +page.ts             # Projects listing (prerendered)
+      [slug]/+page.ts      # Project detail (prerendered)
+    now/+page.svelte       # /now page, Convex-backed, markdown via marked
+    admin/                 # Admin dashboard + auth
     api/
       comments/
         +server.ts                  # GET (public), POST (public, rate-limited)
-        [id]/+server.ts             # PATCH (edit, rate-limited), DELETE (admin or user)
+        [id]/+server.ts             # PATCH (edit), DELETE (admin or user)
         [id]/vote/+server.ts        # POST (vote, rate-limited)
         [id]/reply/+server.ts       # POST (admin reply — legacy, prefer admin route)
       likes/
-        +server.ts                  # GET (count + did-I-like), POST (toggle, rate-limited)
+        +server.ts                  # GET (count + did-I-like), POST (toggle)
+      now/+server.ts                # POST (admin only) — write /now page content
       admin/
-        comments/+server.ts         # GET urls list or comments for url (admin only)
-        comments/[id]/+server.ts    # POST (set reply), DELETE ?soft=1 or hard (admin only)
-        bans/+server.ts             # GET list, POST create ban from commentId (admin only)
+        comments/+server.ts         # GET urls/comments (admin only)
+        comments/[id]/+server.ts    # POST reply, DELETE soft/hard (admin only)
+        bans/+server.ts             # GET list, POST create ban (admin only)
         bans/[id]/+server.ts        # DELETE unban (admin only)
-      posts/+server.ts              # Blog post metadata API
-      projects/+server.ts           # Projects metadata API
-    internal/rss.xml/+server.ts     # RSS feed
+      posts/+server.ts              # Blog post metadata API (prerendered)
+      projects/+server.ts           # Projects metadata API (prerendered)
+    internal/rss.xml/+server.ts     # RSS feed (prerendered)
+convex/
+  schema.js                # Convex table definitions
+  comments.js              # comments.list / create / edit / softDelete / hardDelete / vote
+  likes.js                 # likes.get / toggle
+  bans.js                  # bans.list / ban / unban
+  now.js                   # now.get / set
+  admin.js                 # admin-only helpers (URL listing, etc.)
+  rateLimits.js            # Convex rate-limiter component config
+  lib/                     # Shared Convex helpers
 ```
 
 ---
 
-## Database Schema (`src/lib/server/db/schema.ts`)
+## Convex Schema (`convex/schema.js`)
 
-### `comments`
-| Column        | Type        | Notes                                      |
-|---------------|-------------|--------------------------------------------|
-| id            | uuid PK     |                                            |
-| url           | text        | Page path the comment belongs to           |
-| username      | text        | Default `'Anonymous'`, max 32 chars        |
-| passwordHash  | text        | bcryptjs hash (rounds=10)                  |
-| text          | text        | Max 200 chars                              |
-| ipHash        | text        | SHA-256 of client IP                       |
-| parentId      | uuid        | FK → comments.id ON DELETE SET NULL        |
-| depth         | int         | 0 = root, 1 = reply, 2 = sub-reply (max)  |
-| reply         | text\|null  | Admin reply text                           |
-| createdAt     | timestamptz |                                            |
-| updatedAt     | timestamptz |                                            |
-| deletedAt     | timestamptz | Hard delete marker (null = active)         |
+| Table          | Key fields                                                                  | Indexes                              |
+|----------------|------------------------------------------------------------------------------|--------------------------------------|
+| `comments`     | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt | `by_url`, `by_parent`                |
+| `commentVotes` | commentId, ipHash, voteType (`'up'`\|`'down'`)                              | `by_comment`, `by_comment_ip`        |
+| `likes`        | url, ipHash                                                                 | `by_url`, `by_url_ip`                |
+| `bannedIps`    | ipHash, reason                                                              | `by_ip`                              |
+| `nowPage`      | content, updatedAt                                                          | —                                    |
 
-### `comment_votes`
-| Column    | Type            | Notes                          |
-|-----------|-----------------|--------------------------------|
-| id        | uuid PK         |                                |
-| commentId | uuid FK cascade | → comments.id                  |
-| ipHash    | text            |                                |
-| voteType  | enum            | `'up'` \| `'down'`             |
-
-Unique index on `(commentId, ipHash)`.
-
-### `likes`
-| Column    | Type | Notes                    |
-|-----------|------|--------------------------|
-| url       | text | Page path                |
-| ipHash    | text |                          |
-
-Unique index on `(url, ipHash)`.
-
-### `banned_ips`
-| Column    | Type        | Notes                       |
-|-----------|-------------|-----------------------------|
-| id        | uuid PK     |                             |
-| ipHash    | text unique | SHA-256 of banned IP        |
-| reason    | text\|null  |                             |
-| createdAt | timestamptz |                             |
+`createdAt` is Convex's built-in `_creationTime` on every doc.
 
 ---
 
@@ -126,23 +104,19 @@ Unique index on `(url, ipHash)`.
 
 - **Admin secret** stored in env var `ADMIN_SECRET`.
 - **API auth:** `verifyAdminSecret(request)` checks the `x-admin-secret` request header (`src/lib/server/admin.ts`).
-- **Page auth:** `+page.server.ts` compares the `admin_token` cookie to `ADMIN_SECRET`; sets an httpOnly cookie for 24 h on login. Exposes `adminSecret` to the page so the Svelte client can attach it to API calls.
+- **Page auth:** `src/routes/admin/+page.server.ts` compares the `admin_token` cookie to `ADMIN_SECRET`; sets an httpOnly cookie for 24 h on login. Exposes `adminSecret` to the page so the Svelte client can attach it to API calls.
 - All `/api/admin/*` routes require the header; they return 401 otherwise.
+- Convex mutations also accept an optional `adminSecret` argument; when present and valid, they bypass rate limits and per-IP checks.
 
 ---
 
-## Rate Limiting (`src/lib/server/redis.ts`)
+## Rate Limiting
 
-Upstash Redis sliding-window limiters, keyed by IP hash. **Admin requests (valid `x-admin-secret`) bypass all rate limits.**
+Rate limiting is implemented inside Convex via `@convex-dev/rate-limiter` (see `convex/rateLimits.js`). Limiters key on `ipHash`. **Admin requests with a valid `adminSecret` bypass all limits.**
 
-| Limiter           | Limit            | Applied to                         |
-|-------------------|------------------|------------------------------------|
-| `commentRatelimit`| 3 / 10 min       | `POST /api/comments`               |
-| `voteRatelimit`   | 30 / 1 min       | `POST /api/comments/[id]/vote`     |
-| `likeRatelimit`   | 10 / 1 min       | `POST /api/likes`                  |
-| `editRatelimit`   | 5 / 10 min       | `PATCH /api/comments/[id]`, `DELETE /api/comments/[id]` (user path) |
+Limits live in Convex so they survive across SvelteKit cold starts and apply consistently to direct Convex mutations as well as HTTP route calls.
 
-Rate-limited routes return HTTP 429 with a `Retry-After` header (seconds).
+When a limiter rejects, mutations throw; `convexErrorToResponse` in `src/lib/server/api.js` maps that to an HTTP 429 with a `Retry-After` header.
 
 ---
 
@@ -150,16 +124,17 @@ Rate-limited routes return HTTP 429 with a `Retry-After` header (seconds).
 
 ### Public
 
-| Method | Route                        | Auth     | Rate limit      | Description                                  |
-|--------|------------------------------|----------|-----------------|----------------------------------------------|
-| GET    | `/api/comments?url=`         | —        | —               | Fetch comments + vote counts for a page      |
-| POST   | `/api/comments`              | —        | comment         | Create comment (ban check first)             |
-| PATCH  | `/api/comments/[id]`         | password | edit            | Edit own comment (bcrypt password check)     |
-| DELETE | `/api/comments/[id]`         | password | edit (user path)| Soft-delete: sets text+username to `[deleted]`|
-| DELETE | `/api/comments/[id]`         | admin    | —               | Hard-delete: sets `deletedAt`                |
-| POST   | `/api/comments/[id]/vote`    | —        | vote            | Toggle up/down vote (ban check first)        |
-| GET    | `/api/likes?url=`            | —        | —               | Get like count + whether current IP liked    |
-| POST   | `/api/likes`                 | —        | like            | Toggle like (ban check first)                |
+| Method | Route                        | Auth     | Description                                      |
+|--------|------------------------------|----------|--------------------------------------------------|
+| GET    | `/api/comments?url=`         | —        | Fetch comments + vote counts for a page          |
+| POST   | `/api/comments`              | —        | Create comment (ban check, rate-limited)         |
+| PATCH  | `/api/comments/[id]`         | password | Edit own comment (bcrypt password check)         |
+| DELETE | `/api/comments/[id]`         | password | Soft-delete: sets text+username to `[deleted]`   |
+| DELETE | `/api/comments/[id]`         | admin    | Hard-delete: sets `deletedAt`                    |
+| POST   | `/api/comments/[id]/vote`    | —        | Toggle up/down vote (ban check, rate-limited)    |
+| GET    | `/api/likes?url=`            | —        | Get like count + whether current IP liked        |
+| POST   | `/api/likes`                 | —        | Toggle like (ban check, rate-limited)            |
+| POST   | `/api/now`                   | admin    | Update `/now` page content                       |
 
 ### Admin (`x-admin-secret` header required)
 
@@ -176,18 +151,22 @@ Rate-limited routes return HTTP 429 with a `Retry-After` header (seconds).
 
 ---
 
+## Realtime Queries
+
+Public surfaces (CommentsSection, LikeButton, /now) subscribe to Convex via `convex-svelte`'s `useQuery`. Updates push over WebSocket, so no manual polling. `setupConvex(PUBLIC_CONVEX_URL)` runs once in the root layout.
+
+---
+
 ## Comment Deletion Semantics
 
-- **Soft delete** — sets `text = '[deleted]'` and `username = '[deleted]'`. Row stays in DB; thread nesting is preserved. Shown to public as `[deleted]`.
-- **Hard delete** — sets `deletedAt`. Filtered out of all public queries (`WHERE deletedAt IS NULL`). Children with `parentId` pointing to this comment get `parentId = NULL` (FK `ON DELETE SET NULL`). Those orphaned children are "stray comments."
+- **Soft delete** — sets `text = '[deleted]'` and `username = '[deleted]'`. Row stays in the table; thread nesting is preserved. Shown to public as `[deleted]`.
+- **Hard delete** — sets `deletedAt` to a timestamp. Filtered out of all public queries. Children of a hard-deleted comment keep their `parentId` referencing the now-hidden row, which is surfaced as "stray" in the admin tree.
 
 ---
 
 ## Stray Comments (Admin Page)
 
-When a parent comment is hard-deleted, its children have `parentId` set to `NULL` (due to FK `ON DELETE SET NULL`). Wait — actually the FK is `ON DELETE SET NULL`, so `parentId` becomes NULL and children are not stray by parentId alone.
-
-However if a comment was hard-deleted *before* the FK cascade ran (or via `deletedAt` soft mechanism), children may still have a `parentId` that is absent from the fetched results. The admin page's `buildTree()` function handles this: comments with a `parentId` that doesn't exist in the fetched set are surfaced as root-level nodes with `stray: true` and rendered with an amber "orphaned reply — parent deleted" badge.
+When a parent comment is hard-deleted, its children still carry the original `parentId` but the parent is filtered out of public queries. The admin page's `buildTree()` function surfaces those children as root-level nodes with `stray: true` and renders them with an amber "orphaned reply — parent deleted" badge.
 
 ---
 
@@ -200,30 +179,23 @@ However if a comment was hard-deleted *before* the FK cascade ran (or via `delet
 | `voteSchema`          | voteType: `'up'`\|`'down'`                                      |
 | `likeSchema`          | url                                                             |
 | `replySchema`         | reply (max 1000)                                                |
-| `banSchema`           | commentId (uuid), reason? (max 500)                             |
+| `banSchema`           | commentId (Convex id), reason? (max 500)                        |
 
 ---
 
-## Database Migrations
+## Schema Changes
 
-- **Never write migration files by hand.** Drizzle migrations are generated — always use the CLI:
-  ```
-  npx drizzle-kit generate   # generate migration from schema changes
-  npx drizzle-kit migrate    # apply pending migrations
-  ```
-- Only edit `src/lib/server/db/schema.ts` to change the schema, then run the generator.
-- Do not create or modify files under `drizzle/` manually.
+Edit `convex/schema.js` and run `npx convex dev` (or `npx convex deploy` for prod). Convex generates indexes and types automatically — there are no SQL migration files to write or commit.
 
 ---
 
 ## Environment Variables
 
-| Variable                  | Used in                    |
-|---------------------------|----------------------------|
-| `DATABASE_URL`            | Drizzle db connection      |
-| `ADMIN_SECRET`            | Admin auth (header + cookie)|
-| `UPSTASH_REDIS_REST_URL`  | Rate limiting              |
-| `UPSTASH_REDIS_REST_TOKEN`| Rate limiting              |
+| Variable              | Used in                                                                 |
+|-----------------------|-------------------------------------------------------------------------|
+| `PUBLIC_CONVEX_URL`   | Convex client — both browser (root layout) and server-side HTTP client  |
+| `ADMIN_SECRET`        | Admin auth (header + cookie + Convex bypass) — must match Convex env    |
+| `CONVEX_DEPLOY_KEY`   | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically. |
 
 <!-- convex-ai-start -->
 

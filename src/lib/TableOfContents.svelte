@@ -18,22 +18,33 @@
 
 		if (headings.length === 0) return;
 
-		// Track the last heading that crossed the top of the viewport
-		const onScroll = () => {
-			let current = headings[0].id;
-			for (const h of headings) {
-				const el = document.getElementById(h.id);
-				if (!el) continue;
-				if (el.getBoundingClientRect().top <= 120) {
-					current = h.id;
+		// Pick the heading nearest to the top of the viewport (but not below it)
+		// by tracking each heading's intersection with a top sliver of the viewport.
+		const visible = new Map();
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) visible.set(entry.target.id, entry.boundingClientRect.top);
+					else visible.delete(entry.target.id);
 				}
-			}
-			activeId = current;
-		};
+				if (visible.size > 0) {
+					let bestId = headings[0].id;
+					let bestTop = -Infinity;
+					for (const [id, top] of visible) {
+						if (top <= 120 && top > bestTop) {
+							bestTop = top;
+							bestId = id;
+						}
+					}
+					activeId = bestId;
+				}
+			},
+			{ rootMargin: '0px 0px -85% 0px', threshold: 0 }
+		);
+		for (const el of els) observer.observe(el);
+		activeId = headings[0].id;
 
-		onScroll();
-		window.addEventListener('scroll', onScroll, { passive: true });
-		return () => window.removeEventListener('scroll', onScroll);
+		return () => observer.disconnect();
 	});
 
 	function scrollTo(id) {

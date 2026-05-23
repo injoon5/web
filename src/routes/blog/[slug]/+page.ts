@@ -5,55 +5,68 @@ import { error } from "@sveltejs/kit";
 const enModules = import.meta.glob("../posts/en/*.md");
 const koModules = import.meta.glob("../posts/ko/*.md");
 
-export async function load({ params, fetch }) {
+const slugFromPath = (p) => p.split("/").at(-1)?.replace(".md", "") ?? "";
+
+export async function load({ params }) {
 	const enKey = `../posts/en/${params.slug}.md`;
 	const koKey = `../posts/ko/${params.slug}.md`;
 
-	let enPost = null;
-	let koPost = null;
+	const [enMod, koMod] = await Promise.all([
+		enModules[enKey] ? enModules[enKey]() : Promise.resolve(null),
+		koModules[koKey] ? koModules[koKey]() : Promise.resolve(null)
+	]);
 
-	if (enModules[enKey]) {
-		const mod = await enModules[enKey]();
-		if (mod.metadata?.published) enPost = mod;
-	}
-	if (koModules[koKey]) {
-		const mod = await koModules[koKey]();
-		if (mod.metadata?.published) koPost = mod;
-	}
+	const enPost = enMod?.metadata?.published ? enMod : null;
+	const koPost = koMod?.metadata?.published ? koMod : null;
 
 	const primaryPost = enPost || koPost;
 	if (!primaryPost) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
-	const response = await fetch("/api/posts");
-	const posts = await response.json();
-
 	const seriesNames = new Set(
 		[enPost?.metadata?.series, koPost?.metadata?.series].filter(Boolean)
 	);
-	const seriesSlugs = posts
-		.filter((p) => p.series && seriesNames.has(p.series))
-		.map((p) => p.slug);
 
-	const enSeries = [];
-	const koSeries = [];
+	let enSeries = [];
+	let koSeries = [];
 
-	for (const slug of seriesSlugs) {
-		const eKey = `../posts/en/${slug}.md`;
-		const kKey = `../posts/ko/${slug}.md`;
-		let eMeta = null;
-		let kMeta = null;
-		if (enModules[eKey]) {
-			const mod = await enModules[eKey]();
-			if (mod.metadata?.published) eMeta = { ...mod.metadata, slug };
+	if (seriesNames.size > 0) {
+		// Walk both globs once, load only modules that might belong to the series
+		// in parallel.
+		const candidateSlugs = new Set();
+		for (const path in enModules) candidateSlugs.add(slugFromPath(path));
+		for (const path in koModules) candidateSlugs.add(slugFromPath(path));
+
+		const entries = await Promise.all(
+			[...candidateSlugs].map(async (slug) => {
+				const eKey = `../posts/en/${slug}.md`;
+				const kKey = `../posts/ko/${slug}.md`;
+				const [eMod, kMod] = await Promise.all([
+					enModules[eKey] ? enModules[eKey]() : Promise.resolve(null),
+					koModules[kKey] ? koModules[kKey]() : Promise.resolve(null)
+				]);
+				const eMeta = eMod?.metadata?.published ? { ...eMod.metadata, slug } : null;
+				const kMeta = kMod?.metadata?.published ? { ...kMod.metadata, slug } : null;
+				return { slug, eMeta, kMeta };
+			})
+		);
+
+		const matched = entries.filter(({ eMeta, kMeta }) => {
+			const series = eMeta?.series ?? kMeta?.series;
+			return series && seriesNames.has(series);
+		});
+
+		const dateOf = (m) => (m ? new Date(m.date).getTime() : 0);
+		matched.sort(
+			(a, b) =>
+				dateOf(b.eMeta ?? b.kMeta) - dateOf(a.eMeta ?? a.kMeta)
+		);
+
+		for (const { eMeta, kMeta } of matched) {
+			enSeries.push(eMeta ?? kMeta);
+			koSeries.push(kMeta ?? eMeta);
 		}
-		if (koModules[kKey]) {
-			const mod = await koModules[kKey]();
-			if (mod.metadata?.published) kMeta = { ...mod.metadata, slug };
-		}
-		enSeries.push(eMeta ?? kMeta);
-		koSeries.push(kMeta ?? eMeta);
 	}
 
 	const availableLangs = [
