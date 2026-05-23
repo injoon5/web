@@ -478,7 +478,7 @@
 						<div
 							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
 						>
-							<p class="truncate text-sm font-medium text-white/60 tabular">
+							<p class="truncate text-sm font-medium text-white/40 tabular">
 								{photo.takenAtNaive}
 							</p>
 						</div>
