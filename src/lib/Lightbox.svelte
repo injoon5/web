@@ -16,7 +16,8 @@
 	let dragY = 0;
 	let dragging = false;
 
-	lightboxStore.subscribe((val) => {
+	$: {
+		const val = $lightboxStore;
 		if (val) {
 			src = val.src;
 			alt = val.alt;
@@ -33,7 +34,7 @@
 			closing = false;
 			swipeDismissing = false;
 		}
-	});
+	}
 
 	function close() {
 		if (closing) return;

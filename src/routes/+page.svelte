@@ -1,5 +1,4 @@
 <script>
-	import { sliceText } from '$lib/utils';
 	import { onMount } from 'svelte';
 
 	// LoadState: 'loading' | 'ready' | 'error'
@@ -11,6 +10,19 @@
 
 	let nowError = null;
 	let photosError = null;
+
+	let marqueeEl;
+
+	function marqueePauseWhenOffscreen(node) {
+		const io = new IntersectionObserver(
+			([entry]) => {
+				node.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
+			},
+			{ threshold: 0 }
+		);
+		io.observe(node);
+		return { destroy: () => io.disconnect() };
+	}
 
 	onMount(async () => {
 		nowState = 'loading';
@@ -329,7 +341,7 @@
 			</div>
 		{:else}
 			{#if (nowlistening?.recenttracks?.track ?? []).length > 0}
-				<div class="now-marquee flex" style="--track-count:{(nowlistening?.recenttracks?.track ?? []).length};">
+				<div use:marqueePauseWhenOffscreen class="now-marquee flex" style="--track-count:{(nowlistening?.recenttracks?.track ?? []).length};">
 					{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
 						<a
 							class="group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"
