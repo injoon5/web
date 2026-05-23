@@ -13,6 +13,14 @@ export const editCommentSchema = z.object({
 	password: z.string().min(4, 'Password must be at least 4 characters')
 });
 
+export const voteSchema = z.object({
+	voteType: z.enum(['up', 'down'])
+});
+
+export const likeSchema = z.object({
+	url: z.string().min(1)
+});
+
 export const replySchema = z.object({
 	reply: z.string().max(1000)
 });

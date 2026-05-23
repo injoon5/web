@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import NumberFlow from '@number-flow/svelte';
-	import { useQuery, useConvexClient } from 'convex-svelte';
+	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import Heart from '@lucide/svelte/icons/heart';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -15,8 +15,6 @@
 	let clientIpHash = $state('');
 	let hashReal = $state(false);
 	let hashAttempted = $state(false);
-
-	const client = useConvexClient();
 
 	const query = useQuery(
 		api.likes.get,
@@ -73,14 +71,14 @@
 	const likeCount = $derived(countApplies ? (query.data?.count ?? 0) : 0);
 	const isLiked = $derived(likedReady ? query.data.liked : false);
 	const showCount = $derived(countApplies && !!query.data);
-	// The toggle now runs client-side and is keyed by clientIpHash, so we can only
-	// like once the real hash has resolved — otherwise we'd write a like under the
-	// empty hash. Allow clicks only when the liked state is trustworthy.
-	const interactive = $derived(likedReady);
+	// Allow clicks once liked is trustworthy, or once we've attempted the hash
+	// fetch and it failed (so a broken /api/ip-hash doesn't disable the button
+	// forever — the toggle itself is computed from the real IP server-side).
+	const interactive = $derived(
+		countApplies &&
+			(likedReady || (hashAttempted && !hashReal && !query.isStale && !!query.data))
+	);
 	const busy = $derived(!interactive || toggling);
-	// Spinner while we're still resolving identity/data. After a failed hash fetch
-	// we stop spinning and leave the button disabled (the count still shows).
-	const resolving = $derived(!hashAttempted || (hashReal && !likedReady));
 
 	function showLikeError(message) {
 		likeError = message;
@@ -112,46 +110,23 @@
 		}, 900);
 	}
 
-	function errorMessage(err) {
-		const data = err && typeof err === 'object' ? err.data : undefined;
-		if (data && typeof data === 'object') {
-			if (data.kind === 'Banned') return 'You have been banned.';
-			if (data.kind === 'RateLimited') return 'Too many requests. Please slow down.';
-			if (typeof data.message === 'string') return data.message;
-		}
-		return 'Could not save like.';
-	}
-
 	async function toggleLike() {
-		if (busy) return;
-		if (isLiked === false) spawnHearts();
 		toggling = true;
-		likeError = '';
 		try {
-			// The toggle runs through the Convex client (not the HTTP route) so the
-			// optimistic update can flip the cached `get` result instantly; Convex
-			// reconciles with the real result and rolls back automatically on error.
-			await client.mutation(
-				api.likes.toggle,
-				{ url: $page.url.pathname, ipHash: clientIpHash },
-				{
-					optimisticUpdate: (localStore, args) => {
-						const current = localStore.getQuery(api.likes.get, {
-							url: args.url,
-							ipHash: args.ipHash
-						});
-						if (current === undefined) return;
-						const liked = !current.liked;
-						localStore.setQuery(
-							api.likes.get,
-							{ url: args.url, ipHash: args.ipHash },
-							{ count: current.count + (liked ? 1 : -1), liked }
-						);
-					}
-				}
-			);
-		} catch (err) {
-			showLikeError(errorMessage(err));
+			const res = await fetch('/api/likes', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ url: $page.url.pathname })
+			});
+			if (res.ok) {
+				const data = await res.json();
+				if (data.liked) spawnHearts();
+			} else {
+				const data = await res.json().catch(() => ({}));
+				showLikeError(data.message ?? 'Could not save like.');
+			}
+		} catch {
+			showLikeError('Something went wrong.');
 		} finally {
 			toggling = false;
 		}
@@ -191,7 +166,7 @@
 				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'
 				: 'border-neutral-200 bg-transparent text-neutral-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-rose-900/50 dark:hover:bg-rose-950/30 dark:hover:text-rose-300'}"
 		>
-			{#if resolving}
+			{#if busy}
 				<LoaderCircle size="14" strokeWidth="2" class="animate-spin" aria-hidden="true" />
 			{:else}
 				<Heart
