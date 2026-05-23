@@ -65,10 +65,8 @@
 		{#each groupedPosts as group}
 			{#if group.type === 'series'}
 				<div class="py-2">
-					<span
-						class="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-semibold tracking-widest uppercase text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400"
-					>
-						Series · {group.name}
+					<span class="line-clamp-1 text-base font-semibold text-neutral-950 dark:text-white">
+						{group.name}
 					</span>
 				</div>
 				{#each group.posts as seriesPost}
