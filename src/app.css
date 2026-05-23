@@ -1,4 +1,4 @@
-@import url('/fonts/pretendard/pretendard-subset.css');
+@import url('/fonts/pretendard/pretendardvariable-dynamic-subset.css');
 @import 'tailwindcss';
 
 @plugin '@tailwindcss/typography';
@@ -11,9 +11,9 @@
 @theme {
 	--font-*: initial;
 	--font-sans:
-		-apple-system, BlinkMacSystemFont, 'Pretendard Variable', Pretendard, ui-sans-serif,
-		system-ui, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji,
-		Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+		-apple-system, BlinkMacSystemFont, 'Pretendard Variable', ui-sans-serif, system-ui, Segoe UI,
+		Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji,
+		Segoe UI Symbol, Noto Color Emoji;
 	--font-serif: ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
 	--font-mono:
 		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
