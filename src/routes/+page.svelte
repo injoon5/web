@@ -135,10 +135,15 @@
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div style="height: max-content;">
 			<h2
+			class="text-2xl -mb-1 font-semibold font-sans tracking-tight text-neutral-400 dark:text-neutral-500 text-balance"
+		>
+			오인준
+		</h2>
+			<h2
 				bind:this={heroNameEl}
 				class="text-2xl font-medium font-sans tracking-tight text-neutral-900 dark:text-neutral-100 text-balance"
 			>
-				Injoon Oh
+Injoon Oh
 			</h2>
 		</div>
 	</div>
@@ -197,7 +202,7 @@
 					<div class="flex items-center gap-2 text-sm font-medium text-neutral-500 dark:text-neutral-500">
 						<span class="whitespace-nowrap">{post.date || post.year}</span>
 						{#if post.hasEn}
-							<span class="text-xs font-semibold text-neutral-400 dark:text-neutral-600">English</span>
+							<span class="text-sm font-semibold text-neutral-400 dark:text-neutral-600">English</span>
 						{/if}
 					</div>
 				</a>
@@ -205,7 +210,7 @@
 		</div>
 		<div class="mt-2 mb-4 flex justify-end">
 			<a
-				class="group relative inline-flex items-center text-base font-normal tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+				class="group relative inline-flex items-center text-base font-medium tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="/blog"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
@@ -263,11 +268,11 @@
 		</div>
 		<div class="mt-2 mb-4 flex justify-end">
 			<a
-				class="group relative inline-flex items-center text-base font-normal tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+				class="group relative inline-flex items-center text-base font-medium tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="/projects"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
-					>View all Projects</span
+					>All Projects</span
 				>
 				<span
 					class="absolute right-0 mr-1 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
