@@ -1,9 +1,11 @@
 <script>
-	import { formatDate } from '$lib/utils';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import { page } from '$app/stores';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Lightbox from '$lib/Lightbox.svelte';
+	import Clock from '@lucide/svelte/icons/clock';
+
+	import { onMount, tick } from 'svelte';
 
 	export let data;
 
@@ -13,6 +15,29 @@
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
 	$: currentReadingTime = (lang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
+
+	// Animated language toggle pill
+	/** @type {Record<string, HTMLButtonElement>} */
+	let langButtons = {};
+	let pillStyle = '';
+	async function updatePill() {
+		await tick();
+		const el = langButtons[lang];
+		if (!el) return;
+		const parent = el.parentElement;
+		if (!parent) return;
+		const parentRect = parent.getBoundingClientRect();
+		const rect = el.getBoundingClientRect();
+		pillStyle = `transform: translateX(${rect.left - parentRect.left}px); width: ${rect.width}px; opacity: 1;`;
+	}
+	$: lang, updatePill();
+	onMount(() => {
+		updatePill();
+		const ro = new ResizeObserver(updatePill);
+		const container = Object.values(langButtons)[0]?.parentElement;
+		if (container) ro.observe(container);
+		return () => ro.disconnect();
+	});
 </script>
 
 <svelte:head>
@@ -32,34 +57,49 @@
 			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
 				{currentMeta.title}
 			</h1>
-			<div class="mt-1 flex flex-row text-2xl font-medium text-neutral-600 dark:text-neutral-400">
-				<p>{currentMeta.year}</p>
+			<div class="mt-1 flex flex-row items-center text-2xl font-medium text-neutral-600 dark:text-neutral-400">
+				<p class="tabular">{currentMeta.year}</p>
 				<p class="mx-1">·</p>
-				<p>{currentReadingTime}</p>
+				<span class="inline-flex items-center gap-1.5">
+					<Clock size="16" strokeWidth="2" aria-hidden="true" />
+					<span class="tabular">{currentReadingTime}</span>
+				</span>
 			</div>
 			{#if data.availableLangs.length > 1}
-				<div class="mt-2 flex items-center gap-1">
+				<div
+					class="relative mt-3 inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-100/60 p-1 dark:border-neutral-800 dark:bg-neutral-900/60"
+				>
+					<span
+						class="nav-indicator pointer-events-none absolute top-1 bottom-1 left-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
+						style={pillStyle || 'opacity:0;'}
+						aria-hidden="true"
+					></span>
 					{#each data.availableLangs as l}
 						<button
-							on:click={() => lang = l}
-							class="rounded px-2 py-0.5 text-sm font-semibold transition-colors {lang === l
-								? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+							bind:this={langButtons[l]}
+							on:click={() => (lang = l)}
+							class="relative z-10 rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-150 {lang === l
+								? 'text-white dark:text-neutral-900'
 								: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
 						>
-							{l === 'en' ? 'EN' : '한국어'}
+							{l === 'en' ? 'English' : '한국어'}
 						</button>
 					{/each}
 				</div>
 			{/if}
-			<p class="text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500">
+			<p class="mt-3 text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500">
 				{currentMeta.description}
 			</p>
-			<div
-				class="tags mb-2 space-x-1.5 text-2xl font-medium text-neutral-400 dark:text-neutral-600"
-			>
-				<span class="mr-1">Stack:</span>
+			<div class="mt-3 flex flex-wrap items-center gap-1.5">
+				<span class="text-xs font-medium tracking-widest uppercase text-neutral-400 dark:text-neutral-600">
+					Stack
+				</span>
 				{#each currentMeta.tags as tag}
-					<span>{tag}</span>
+					<span
+						class="inline-flex items-center rounded-full border border-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300"
+					>
+						{tag}
+					</span>
 				{/each}
 			</div>
 			<div class="my-4">
@@ -68,7 +108,7 @@
 		</div>
 		<div
 			use:lightboxAction
-			class="prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-h1:text-3xl prose-h1:font-semibold prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-h3:tracking-tight prose-h4:tracking-tight prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1 hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300 prose-img:mx-auto prose-img:w-4/5 prose-img:cursor-zoom-in mt-10 mx-auto max-w-[68ch]"
+			class="prose-post prose-img:w-4/5 mt-10 max-w-[68ch]"
 		>
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />

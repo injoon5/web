@@ -1,5 +1,23 @@
 <script>
 import { page } from "$app/stores";
+
+$: status = $page.status;
+$: pathname = $page.url.pathname;
+
+$: heading = (() => {
+	if (status === 404) {
+		if (pathname.startsWith('/blog/')) return "Couldn't find that post";
+		if (pathname.startsWith('/projects/')) return "Couldn't find that project";
+		if (pathname.startsWith('/blog')) return "Couldn't find the blog";
+		if (pathname.startsWith('/projects')) return "Couldn't find that project";
+		if (pathname.startsWith('/now')) return "Couldn't find the /now page";
+		return "Couldn't find that page";
+	}
+	if (status === 403) return "You don't have access to that";
+	if (status === 401) return "You need to sign in to see that";
+	if (status >= 500) return "The server tripped over itself";
+	return "Something went wrong";
+})();
 </script>
 
 <svelte:head>
@@ -14,7 +32,7 @@ import { page } from "$app/stores";
 			{$page.status}
 		</p>
 		<h1 class="mt-3 text-3xl font-bold tracking-tight text-neutral-500 dark:text-neutral-500">
-			Something went wrong
+			{heading}
 		</h1>
 		{#if $page.error?.message}
 			<p

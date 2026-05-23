@@ -42,6 +42,7 @@
 	"type": "module",
 	"dependencies": {
 		"@convex-dev/rate-limiter": "^0.3.2",
+		"@lucide/svelte": "^1.16.0",
 		"@number-flow/svelte": "^0.4.0",
 		"@remark-embedder/core": "^3.0.3",
 		"@remark-embedder/transformer-oembed": "^5.0.0",

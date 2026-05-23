@@ -25,6 +25,29 @@
 	let submitting = $state(false);
 	let submitError = $state('');
 
+	// Generate a Linear-style anonymous handle for the placeholder
+	// (e.g. "stranger-7sl", "wanderer-k2x"). Stable per session.
+	const handleAdjectives = [
+		'stranger',
+		'wanderer',
+		'visitor',
+		'passerby',
+		'guest',
+		'reader',
+		'cosmonaut',
+		'rambler',
+		'drifter',
+		'lurker',
+		'tinkerer',
+		'pilgrim'
+	];
+	function makeHandle() {
+		const adj = handleAdjectives[Math.floor(Math.random() * handleAdjectives.length)];
+		const suffix = Math.random().toString(36).slice(2, 5);
+		return `${adj}-${suffix}`;
+	}
+	const fallbackHandle = makeHandle();
+
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(api.comments.list, () => ({
 		url: $page.url.pathname,
@@ -142,7 +165,7 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					url: $page.url.pathname,
-					username: username.trim() || undefined,
+					username: username.trim() || fallbackHandle,
 					password,
 					text: commentText.trim()
 				})
@@ -172,20 +195,20 @@
 		<input
 			bind:value={username}
 			type="text"
-			placeholder="Name (optional)"
+			placeholder={`Name (optional — defaults to ${fallbackHandle})`}
 			maxlength="32"
 			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 		/>
 		<div>
 			<textarea
 				bind:value={commentText}
-				placeholder="Show me what you got.. (max {MAX_LENGTH} characters)"
+				placeholder="Say something… (max {MAX_LENGTH} characters)"
 				maxlength={MAX_LENGTH}
 				rows="3"
 				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			></textarea>
 			{#if showCharsLeft}
-				<p class="mt-1 text-sm text-neutral-500">Characters left: {charsLeft}</p>
+				<p class="mt-1 text-sm text-neutral-500 tabular">Characters left: {charsLeft}</p>
 			{/if}
 		</div>
 		<div>
@@ -209,7 +232,7 @@
 				submitComment();
 			}}
 			disabled={isSubmitDisabled}
-			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 		>
 			{submitting ? 'Submitting…' : 'Submit'}
 		</button>
@@ -224,12 +247,12 @@
 	{#if query.isLoading}
 		{#each [1, 2, 3] as _}
 			<div
-				class="mb-4 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
+				class="mb-4 rounded-xl border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>
-				<div class="mb-3 h-4 w-24 rounded bg-neutral-300 dark:bg-neutral-700"></div>
-				<div class="h-3 w-full rounded bg-neutral-200 dark:bg-neutral-800"></div>
-				<div class="mt-2 h-3 w-3/4 rounded bg-neutral-200 dark:bg-neutral-800"></div>
-				<div class="mt-3 h-3 w-20 rounded bg-neutral-200 dark:bg-neutral-800"></div>
+				<div class="shimmer mb-3 h-4 w-24 rounded"></div>
+				<div class="shimmer h-3 w-full rounded"></div>
+				<div class="shimmer mt-2 h-3 w-3/4 rounded"></div>
+				<div class="shimmer mt-3 h-3 w-20 rounded"></div>
 			</div>
 		{/each}
 	{:else if query.error != null}

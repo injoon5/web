@@ -3,6 +3,7 @@
 	import NumberFlow from '@number-flow/svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
+	import Heart from '@lucide/svelte/icons/heart';
 
 	const query = useQuery(api.likes.get, () => ({
 		url: $page.url.pathname,
@@ -14,6 +15,7 @@
 	let likeErrorTimer = null;
 	let particles = $state([]);
 	let particleId = 0;
+	let buttonEl;
 
 	const likeCount = $derived(query.data?.count ?? 0);
 	const isLiked = $derived(query.data?.liked ?? false);
@@ -39,7 +41,7 @@
 				ty: Math.sin(rad) * distance,
 				rotate: Math.random() * 50 - 25,
 				scale: 0.7 + Math.random() * 0.6,
-				delay: Math.floor(Math.random() * 60)
+				delay: Math.floor(Math.random() * 100)
 			};
 		});
 		particles = [...particles, ...batch];
@@ -74,11 +76,10 @@
 
 <div class="flex items-center justify-between">
 	{#if loading}
-		<span class="mr-2 h-6 w-16 animate-pulse rounded bg-neutral-300 dark:bg-neutral-700"></span>
+		<span class="shimmer mr-2 inline-block h-6 w-16 rounded"></span>
 	{:else}
 		<span
-			class="mr-2 text-lg text-neutral-900 dark:text-neutral-100"
-			style="display: inline-flex; align-items: baseline;"
+			class="mr-2 inline-flex items-baseline text-lg text-neutral-900 dark:text-neutral-100 tabular"
 		>
 			<NumberFlow value={likeCount} trend={0} />
 			<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
@@ -89,25 +90,61 @@
 		<!-- Heart confetti particles -->
 		{#each particles as p (p.id)}
 			<span
-				class="heart-particle pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-rose-500 select-none"
+				class="heart-particle pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none text-rose-500"
 				style="--tx: {p.tx}px; --ty: {p.ty}px; --r: {p.rotate}deg; --s: {p.scale}; animation-delay: {p.delay}ms;"
-				aria-hidden="true">❤</span
+				aria-hidden="true"
 			>
+				<Heart size="14" fill="currentColor" strokeWidth="0" />
+			</span>
 		{/each}
 
 		<button
+			bind:this={buttonEl}
 			onclick={toggleLike}
 			disabled={loading || toggling}
-			class="rounded-lg bg-black p-2 px-4 font-medium text-neutral-100 transition-all duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+			aria-pressed={isLiked}
+			class="like-btn inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform,width] duration-200 ease-out active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60
+			{isLiked
+				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'
+				: 'border-neutral-200 bg-transparent text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'}"
 		>
-			{#if toggling}
-				{isLiked ? 'Unliking…' : 'Liking…'}
-			{:else}
-				{isLiked ? 'Unlike' : 'Like'}
-			{/if}
+			<Heart
+				size="14"
+				strokeWidth="2"
+				fill={isLiked ? 'currentColor' : 'none'}
+				aria-hidden="true"
+			/>
+			<span class="like-label">
+				{#if toggling}
+					{isLiked ? 'Unliking…' : 'Liking…'}
+				{:else}
+					{isLiked ? 'Liked' : 'Like'}
+				{/if}
+			</span>
 		</button>
 	</div>
 </div>
 {#if likeError}
 	<p class="mt-2 text-sm text-red-500">{likeError}</p>
 {/if}
+
+<style>
+	/*
+	 * Animate the button's intrinsic width when the label changes
+	 * (Like ↔ Liking… ↔ Liked ↔ Unliking…). Width can't normally be
+	 * transitioned to `auto`, so we use interpolate-size + a max-content
+	 * starting point.
+	 */
+	.like-btn {
+		width: max-content;
+	}
+	@supports (interpolate-size: allow-keywords) {
+		.like-btn {
+			interpolate-size: allow-keywords;
+		}
+	}
+	.like-label {
+		display: inline-block;
+		white-space: nowrap;
+	}
+</style>

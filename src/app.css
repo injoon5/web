@@ -20,33 +20,22 @@
 }
 
 /* =========================
-   Neutral Palette (OKLCH)
+   Motion tokens
    ========================= */
 @theme {
-	/* light mode (neutral-900 = #171717) */
-	--color-neutral-50: oklch(0.985 0 0);
-	--color-neutral-100: oklch(0.97 0 0);
-	--color-neutral-200: oklch(0.922 0 0);
-	--color-neutral-300: oklch(0.87 0 0);
-	--color-neutral-400: oklch(0.715 0 0);
-	--color-neutral-500: oklch(0.556 0 0);
-	--color-neutral-600: oklch(0.439 0 0);
-	--color-neutral-700: oklch(0.371 0 0);
-	--color-neutral-800: oklch(0.269 0 0);
-	--color-neutral-900: oklch(0.205 0 0); /* #171717 */
-	--color-neutral-950: oklch(0.145 0 0);
-
-	/* your custom breakpoint */
 	--breakpoint-xs: 20rem;
+
+	--ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-out-fast: cubic-bezier(0.16, 1, 0.3, 1);
+
+	--motion-fast: 120ms;
+	--motion-base: 180ms;
+	--motion-slow: 320ms;
 }
 
 /*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
+  Tailwind v4 changed default border color to `currentcolor`. Fall back
+  to the neutral-200 token so existing `border` utilities keep working.
 */
 @layer base {
 	*,
@@ -54,12 +43,25 @@
 	::before,
 	::backdrop,
 	::file-selector-button {
-		border-color: var(--color-gray-200, currentcolor);
+		border-color: var(--color-neutral-200, currentcolor);
 	}
 
 	html {
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+	}
+
+	::selection {
+		background-color: rgba(120, 120, 120, 0.25);
+	}
+
+	/* Reserve room for the mobile floating dock (rendered by NavBar) so
+	   nothing — including the footer — hides behind it. Disabled at sm+
+	   where the dock is replaced by the in-nav links. */
+	@media (max-width: 639.98px) {
+		body {
+			padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
+		}
 	}
 }
 
@@ -83,9 +85,97 @@
 }
 
 .heart-particle {
-	animation: heart-particle 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-	font-size: 0.85rem;
+	animation: heart-particle 0.75s var(--ease-out-soft) forwards;
 	line-height: 1;
+	display: inline-flex;
+}
+
+/* Shimmer for skeletons / marquee tracks */
+@keyframes shimmer {
+	0%   { background-position: -200% 0; }
+	100% { background-position: 200% 0; }
+}
+
+.shimmer {
+	background-image: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.06) 50%,
+		transparent 100%
+	),
+	linear-gradient(var(--color-neutral-200), var(--color-neutral-200));
+	background-size: 200% 100%, 100% 100%;
+	background-repeat: no-repeat;
+	animation: shimmer 1.6s var(--ease-out-soft) infinite;
+}
+
+.dark .shimmer {
+	background-image: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.05) 50%,
+		transparent 100%
+	),
+	linear-gradient(var(--color-neutral-800), var(--color-neutral-800));
+}
+
+/* Tabular numerals for metrics, dates, counters */
+.tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Honor reduced-motion globally for our keyframe utilities */
+@media (prefers-reduced-motion: reduce) {
+	.shimmer,
+	.heart-particle,
+	.vote-pop,
+	.marquee-track {
+		animation: none !important;
+	}
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms !important;
+		transition-duration: 0.001ms !important;
+	}
+}
+
+/* Toast slide-in (used by admin error toast) */
+@keyframes toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.toast-in {
+	animation: toast-in 0.22s var(--ease-out-soft) both;
+}
+
+/* Animated underline for active nav indicator (sliding pill) */
+.nav-indicator {
+	transition: transform var(--motion-base) var(--ease-out-soft),
+		width var(--motion-base) var(--ease-out-soft),
+		opacity var(--motion-fast) ease;
+}
+
+/*
+  Shared post / project prose styling.
+  Extracted from blog/[slug] and projects/[slug] so both stay in sync.
+*/
+@utility prose-post {
+	@apply prose prose-neutral dark:prose-invert max-w-none mx-auto;
+	@apply prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed;
+	@apply prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight;
+	@apply prose-h2:font-semibold prose-h2:tracking-tight;
+	@apply prose-h3:tracking-tight prose-h4:tracking-tight;
+	@apply prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1;
+	@apply hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300;
+	@apply prose-img:mx-auto prose-img:cursor-zoom-in;
 }
 
 

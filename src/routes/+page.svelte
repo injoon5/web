@@ -11,8 +11,6 @@
 	let nowError = null;
 	let photosError = null;
 
-	let marqueeEl;
-
 	function marqueePauseWhenOffscreen(node) {
 		const io = new IntersectionObserver(
 			([entry]) => {
@@ -22,6 +20,38 @@
 		);
 		io.observe(node);
 		return { destroy: () => io.disconnect() };
+	}
+
+	// Drive marquee duration by scroll-distance, not track count, so it always
+	// moves at ~40px/s regardless of how many albums are loaded.
+	function marqueeConstantSpeed(node) {
+		const PX_PER_SECOND = 40;
+		function tune() {
+			// Track list is duplicated; we translate by -50%, so the distance
+			// travelled equals half the full scrollWidth.
+			const distance = node.scrollWidth / 2;
+			if (distance <= 0) return;
+			const seconds = distance / PX_PER_SECOND;
+			node.style.animationDuration = `${seconds}s`;
+		}
+		// Wait for images to settle so scrollWidth is final.
+		const imgs = node.querySelectorAll('img');
+		let pending = imgs.length;
+		const done = () => {
+			pending--;
+			if (pending <= 0) tune();
+		};
+		imgs.forEach((img) => {
+			if (img.complete) done();
+			else {
+				img.addEventListener('load', done, { once: true });
+				img.addEventListener('error', done, { once: true });
+			}
+		});
+		tune();
+		const ro = new ResizeObserver(tune);
+		ro.observe(node);
+		return { destroy: () => ro.disconnect() };
 	}
 
 	onMount(async () => {
@@ -270,7 +300,7 @@
 		width: max-content;
 		will-change: transform;
 		animation: now-scroll linear infinite;
-		animation-duration: calc(var(--track-count, 10) * 5s);
+		animation-duration: 60s; /* overridden by marqueeConstantSpeed action */
 	}
 	.now-marquee:hover {
 		animation-play-state: paused;
@@ -278,6 +308,24 @@
 	@keyframes now-scroll {
 		from { transform: translateX(0); }
 		to   { transform: translateX(-50%); }
+	}
+
+	/* Fade tracks at the wrap's left/right edge for a softer entry/exit */
+	.now-marquee-wrap {
+		-webkit-mask-image: linear-gradient(
+			to right,
+			transparent 0,
+			black 2rem,
+			black calc(100% - 2rem),
+			transparent 100%
+		);
+		mask-image: linear-gradient(
+			to right,
+			transparent 0,
+			black 2rem,
+			black calc(100% - 2rem),
+			transparent 100%
+		);
 	}
 </style>
 
@@ -305,16 +353,16 @@
 	id="now-listening"
 	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:relative lg:grid-cols-12"
 >
-	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:absolute lg:z-10 lg:top-0 lg:left-0">
-		<div class="md:sticky md:top-24 lg:static" style="height: max-content;">
-			<h2 class="lg:mt-1 text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 lg:text-white text-balance" style="text-shadow: 0 1px 4px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.9), 0 4px 48px rgba(0,0,0,0.8);">
+	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
+		<div class="md:sticky md:top-24" style="height: max-content;">
+			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 text-balance">
 				Now Listening
 			</h2>
-			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500 lg:text-white dark:lg:text-white lg:opacity-70 dark:lg:opacity-70" style="text-shadow: 0 1px 4px rgba(0,0,0,1), 0 2px 16px rgba(0,0,0,0.9), 0 4px 48px rgba(0,0,0,0.8);">
+			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500">
 				Last updated on
-				<span class="inline lg:block">
+				<span class="inline lg:block tabular">
 					{#if nowState === 'loading'}
-						<span class="inline-flex items-center gap-2"> Loading… </span>
+						<span class="inline-flex items-center gap-2">Loading…</span>
 					{:else if nowState === 'error'}
 						<span class="text-neutral-400 dark:text-neutral-600">—</span>
 					{:else}
@@ -327,11 +375,13 @@
 		</div>
 	</div>
 
-	<div class="col-span-10 mt-4 lg:col-span-12 lg:mt-0 overflow-hidden -mx-4 sm:-mx-12 lg:-mx-4">
+	<div
+		class="now-marquee-wrap relative col-span-10 mt-4 lg:col-span-10 lg:mt-0 overflow-hidden -mx-4 sm:-mx-12 lg:-mx-4"
+	>
 		{#if nowState === 'loading'}
-			<div class="flex">
+			<div class="flex gap-3">
 				{#each Array(6) as _}
-					<div class="aspect-square w-40 shrink-0 lg:w-48 mr-3 animate-pulse rounded-xl bg-neutral-200 dark:bg-neutral-800"></div>
+					<div class="shimmer aspect-square w-40 shrink-0 lg:w-48 rounded-xl"></div>
 				{/each}
 			</div>
 		{:else if nowState === 'error'}
@@ -339,32 +389,36 @@
 				<p>Couldn't load Now Listening</p>
 				<div class="mt-1 text-neutral-500">{nowError ?? 'Unknown error'}</div>
 			</div>
-		{:else}
-			{#if (nowlistening?.recenttracks?.track ?? []).length > 0}
-				<div use:marqueePauseWhenOffscreen class="now-marquee flex" style="--track-count:{(nowlistening?.recenttracks?.track ?? []).length};">
-					{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
-						<a
-							class="group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"
-							href={track.url}
-						>
-							<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
-							<img
-								loading="lazy"
-								src={track?.image?.[2]?.['#text'] ?? ''}
-								alt={track?.name ?? 'Album cover'}
-								class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-							/>
-							<div class="absolute inset-0 rounded-xl bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"></div>
-							<div class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0">
-								<p class="truncate text-sm font-semibold leading-tight text-white lg:text-base">{track.name}</p>
-								<p class="tracking-normal truncate text-sm font-normal text-white/60 lg:text-bas ">
-									{track?.artist?.['#text'] === 'Lany' ? 'LANY' : track?.artist?.['#text']}
-								</p>
-							</div>
-						</a>
-					{/each}
-				</div>
-			{/if}
+		{:else if (nowlistening?.recenttracks?.track ?? []).length > 0}
+			<div
+				use:marqueePauseWhenOffscreen
+				use:marqueeConstantSpeed
+				class="now-marquee marquee-track flex"
+			>
+				{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
+					<a
+						class="group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]"
+						href={track.url}
+					>
+						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
+						<img
+							loading="lazy"
+							src={track?.image?.[2]?.['#text'] ?? ''}
+							alt={track?.name ?? 'Album cover'}
+							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+						/>
+						<div class="absolute inset-0 rounded-xl bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"></div>
+						<div class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0">
+							<p class="truncate text-sm font-semibold leading-tight text-white lg:text-base">
+								{track.name}
+							</p>
+							<p class="truncate text-sm font-normal text-white/60 lg:text-base">
+								{track?.artist?.['#text'] === 'Lany' ? 'LANY' : track?.artist?.['#text']}
+							</p>
+						</div>
+					</a>
+				{/each}
+			</div>
 		{/if}
 	</div>
 </div>
@@ -390,16 +444,11 @@
 		<div class="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-3">
 			{#if photosState === 'loading'}
 				{#each Array(6) as _}
-					<div
-						class="relative flex aspect-square w-full items-center justify-center overflow-hidden"
-					>
-						<div class="absolute inset-0 animate-pulse bg-neutral-100 dark:bg-neutral-900"></div>
-						<div class="z-10 h-2/3 w-2/3 animate-pulse bg-neutral-200 dark:bg-neutral-800"></div>
-					</div>
+					<div class="shimmer aspect-square w-full rounded-xl"></div>
 				{/each}
 			{:else if photosState === 'error'}
 				<div class="col-span-2 sm:col-span-3">
-					<div class=" text-neutral-700 dark:border-neutral-800 dark:text-neutral-300">
+					<div class="text-neutral-700 dark:text-neutral-300">
 						<p>Couldn't load Photos</p>
 						<div class="mt-1 text-neutral-500 dark:text-neutral-500">
 							{photosError ?? 'Unknown error'}
@@ -408,40 +457,27 @@
 				</div>
 			{:else}
 				{#each (photos?.photos ?? []).slice(0, 6) as photo}
-					<div
-						class="group relative flex aspect-square w-full items-center justify-center overflow-hidden"
+					<a
+						href={photo.url}
+						class="group relative block aspect-square w-full overflow-hidden rounded-xl bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
 					>
+						<img
+							loading="lazy"
+							src={photo?.src?.medium?.url ?? ''}
+							alt={photo?.title || 'Photo'}
+							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+						/>
 						<div
-							class="absolute inset-0 bg-neutral-100 group-hover:bg-neutral-200 dark:bg-neutral-900 dark:group-hover:bg-neutral-800"
+							class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"
 						></div>
-
-						<a
-							href={photo.url}
-							class="photo-item relative flex h-full w-full items-center justify-center"
+						<div
+							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
 						>
-							<img
-								loading="lazy"
-								src={photo?.src?.medium?.url ?? ''}
-								alt={photo?.title || 'Photo'}
-								class="z-10 max-h-[80%] max-w-[80%] object-contain shadow-lg transition-transform duration-300 group-hover:scale-105"
-							/>
-
-							{#if (photo?.src?.medium?.width ?? 0) >= (photo?.src?.medium?.height ?? 0)}
-								<span
-									class="absolute bottom-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
-								>
-									{photo.takenAtNaive}
-								</span>
-							{:else}
-								<span
-									class="absolute right-1 z-20 px-1 py-1 text-xs font-normal text-neutral-300 opacity-0 md:opacity-100 dark:text-neutral-700"
-									style="writing-mode: vertical-rl; transform: rotate(180deg);"
-								>
-									{photo.takenAtNaive}
-								</span>
-							{/if}
-						</a>
-					</div>
+							<p class="truncate text-sm font-medium text-white/90 tabular">
+								{photo.takenAtNaive}
+							</p>
+						</div>
+					</a>
 				{/each}
 			{/if}
 		</div>
