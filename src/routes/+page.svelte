@@ -272,7 +272,7 @@ Injoon Oh
 				href="/projects"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
-					>All Projects</span
+					>View all Projects</span
 				>
 				<span
 					class="absolute right-0 mr-1 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
