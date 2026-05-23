@@ -41,7 +41,6 @@
 	let likeErrorTimer = null;
 	let particles = $state([]);
 	let particleId = 0;
-	let buttonEl;
 
 	const likeCount = $derived(query.data?.count ?? 0);
 	const isLiked = $derived(query.data?.liked ?? false);
@@ -125,7 +124,6 @@
 		{/each}
 
 		<button
-			bind:this={buttonEl}
 			onclick={toggleLike}
 			disabled={loading || toggling}
 			aria-pressed={isLiked}
