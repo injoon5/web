@@ -4,6 +4,7 @@
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import Heart from '@lucide/svelte/icons/heart';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 
 	const query = useQuery(api.likes.get, () => ({
 		url: $page.url.pathname,
@@ -108,19 +109,17 @@
 				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'
 				: 'border-neutral-200 bg-transparent text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-900 dark:hover:text-neutral-100'}"
 		>
-			<Heart
-				size="14"
-				strokeWidth="2"
-				fill={isLiked ? 'currentColor' : 'none'}
-				aria-hidden="true"
-			/>
-			<span class="like-label">
-				{#if toggling}
-					{isLiked ? 'Unliking…' : 'Liking…'}
-				{:else}
-					{isLiked ? 'Liked' : 'Like'}
-				{/if}
-			</span>
+			{#if toggling}
+				<LoaderCircle size="14" strokeWidth="2" class="animate-spin" aria-hidden="true" />
+			{:else}
+				<Heart
+					size="14"
+					strokeWidth="2"
+					fill={isLiked ? 'currentColor' : 'none'}
+					aria-hidden="true"
+				/>
+			{/if}
+			<span class="like-label">{isLiked ? 'Liked' : 'Like'}</span>
 		</button>
 	</div>
 </div>
@@ -131,9 +130,8 @@
 <style>
 	/*
 	 * Animate the button's intrinsic width when the label changes
-	 * (Like ↔ Liking… ↔ Liked ↔ Unliking…). Width can't normally be
-	 * transitioned to `auto`, so we use interpolate-size + a max-content
-	 * starting point.
+	 * (Like ↔ Liked). Width can't normally be transitioned to `auto`, so we
+	 * use interpolate-size + a max-content starting point.
 	 */
 	.like-btn {
 		width: max-content;
