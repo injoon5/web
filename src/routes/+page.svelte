@@ -1,42 +1,12 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
+	import { heroNameVisible } from '$lib/heroNav.js';
 
-	// Hero name -> navbar slide. The big "Injoon Oh" in the hero is a hidden
-	// layout anchor; a position:fixed clone (nameFloat) is driven by scroll so it
-	// slides straight up and docks into the navbar's name slot.
+	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
+	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
+	// there's no per-frame scroll math.
 	let heroNameEl;
-	let enhanced = false;
-	let floatReady = false;
-	let floatTransform = '';
-	let rafId = 0;
-
-	function updateFloat() {
-		rafId = 0;
-		const navEl = typeof document !== 'undefined' && document.querySelector('[data-nav-name]');
-		if (!heroNameEl || !navEl) return;
-
-		const heroRect = heroNameEl.getBoundingClientRect();
-		const navRect = navEl.getBoundingClientRect();
-		const s = window.scrollY;
-
-		const heroDocTop = heroRect.top + s;
-		const dockDistance = Math.max(heroDocTop - navRect.top, 1);
-		const p = Math.min(Math.max(s / dockDistance, 0), 1);
-
-		const top = Math.max(heroDocTop - s, navRect.top);
-		const left = heroRect.left + (navRect.left - heroRect.left) * p;
-
-		const heroFs = parseFloat(getComputedStyle(heroNameEl).fontSize) || 24;
-		const navFs = parseFloat(getComputedStyle(navEl).fontSize) || 24;
-		const scale = 1 + (navFs / heroFs - 1) * p;
-
-		floatTransform = `translate3d(${left}px, ${top}px, 0) scale(${scale})`;
-		floatReady = true;
-	}
-
-	function scheduleFloat() {
-		if (!rafId) rafId = requestAnimationFrame(updateFloat);
-	}
+	let heroObserver;
 
 	// LoadState: 'loading' | 'ready' | 'error'
 	let nowlistening = null;
@@ -92,11 +62,13 @@
 	}
 
 	onMount(async () => {
-		enhanced = true;
-		updateFloat();
-		window.addEventListener('scroll', scheduleFloat, { passive: true });
-		window.addEventListener('resize', scheduleFloat);
-		if (document.fonts?.ready) document.fonts.ready.then(updateFloat);
+		// Flip once the hero name passes behind the ~64px-tall sticky nav, so the
+		// navbar name fades in right as the hero tucks away.
+		heroObserver = new IntersectionObserver(
+			([entry]) => heroNameVisible.set(entry.isIntersecting),
+			{ rootMargin: '-64px 0px 0px 0px', threshold: 0 }
+		);
+		if (heroNameEl) heroObserver.observe(heroNameEl);
 
 		nowState = 'loading';
 		photosState = 'loading';
@@ -135,10 +107,8 @@
 	});
 
 	onDestroy(() => {
-		if (typeof window === 'undefined') return;
-		window.removeEventListener('scroll', scheduleFloat);
-		window.removeEventListener('resize', scheduleFloat);
-		if (rafId) cancelAnimationFrame(rafId);
+		heroObserver?.disconnect();
+		heroNameVisible.set(true);
 	});
 
 	export let data;
@@ -166,9 +136,7 @@
 		<div style="height: max-content;">
 			<h2
 				bind:this={heroNameEl}
-				class="text-2xl font-medium font-sans tracking-tight text-neutral-900 dark:text-neutral-100 text-balance {enhanced
-					? 'invisible'
-					: ''}"
+				class="text-2xl font-medium font-sans tracking-tight text-neutral-900 dark:text-neutral-100 text-balance"
 			>
 				Injoon Oh
 			</h2>
@@ -193,30 +161,6 @@
 		</p>
 	</div>
 </div>
-{#if enhanced}
-	<a
-		href="/"
-		aria-label="Home — Injoon Oh"
-		class="group fixed top-0 left-0 z-40 origin-top-left will-change-transform {floatReady
-			? ''
-			: 'opacity-0'}"
-		style="transform: {floatTransform};"
-	>
-		<span class="relative inline-block">
-			<span
-				class="block font-sans text-2xl font-medium tracking-tight whitespace-nowrap text-neutral-900 transition-[opacity,filter] duration-200 ease-out group-hover:opacity-0 group-hover:blur-sm dark:text-neutral-100"
-			>
-				Injoon Oh
-			</span>
-			<span
-				class="pointer-events-none absolute inset-0 block font-sans text-2xl font-semibold tracking-tight whitespace-nowrap text-neutral-900 opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out group-hover:opacity-100 group-hover:blur-none dark:text-neutral-100"
-			>
-				오인준
-			</span>
-		</span>
-	</a>
-{/if}
-
 <div
 	id="blog"
 	class="mt-20 mb-12 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
