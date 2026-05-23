@@ -98,7 +98,7 @@
 		{/if}
 		<div
 			use:lightboxAction
-			class="prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-normal prose-li:leading-normal prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1 hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300 prose-img:mx-auto prose-img:cursor-zoom-in mt-10 max-w-none"
+			class="prose-img:-pt-10 prose-em:-pt-20 prose prose-neutral dark:prose-invert prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight prose-h2:font-semibold prose-h2:tracking-tight prose-h3:tracking-tight prose-h4:tracking-tight prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1 hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300 prose-img:mx-auto prose-img:cursor-zoom-in mt-10 mx-auto max-w-[68ch]"
 		>
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />
