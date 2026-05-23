@@ -105,3 +105,14 @@ export async function runConvex(fn, build = (data) => json(data)) {
 		throw mapped;
 	}
 }
+
+/**
+ * One-liner catch handler for intermediate Convex calls in multi-step handlers
+ * where the raw result is needed before building a final response.
+ * Usage: `} catch (err) { return handleConvexErr(err); }`
+ */
+export function handleConvexErr(err) {
+	const mapped = convexErrorToResponse(err);
+	if (mapped instanceof Response) return mapped;
+	throw mapped;
+}

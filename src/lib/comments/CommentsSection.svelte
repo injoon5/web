@@ -6,6 +6,8 @@
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import CommentNode from './CommentNode.svelte';
+	import { buildTree } from './buildTree.js';
+	import { clientIpHash, hashReal, hashAttempted, resolveIpHash } from '$lib/ipHash.js';
 
 	const MAX_LENGTH = 200;
 	const CHAR_THRESHOLD = 10;
@@ -48,29 +50,14 @@
 	}
 	const fallbackHandle = makeHandle();
 
-	// Pages are prerendered, so the layout's ipHash is frozen at build time and
-	// never matches a real visitor — per-user vote state would always read wrong.
-	// Fetch the visitor's real hash at runtime and re-subscribe with it.
-	let clientIpHash = $state($page.data.ipHash ?? '');
-
-	onMount(async () => {
-		try {
-			const res = await fetch('/api/ip-hash');
-			if (res.ok) {
-				const data = await res.json();
-				if (data.ipHash) clientIpHash = data.ipHash;
-			}
-		} catch {
-			// keep the fallback hash
-		}
-	});
+	onMount(resolveIpHash);
 
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(
 		api.comments.list,
 		() => ({
 			url: $page.url.pathname,
-			ipHash: clientIpHash
+			ipHash: $clientIpHash
 		}),
 		// The runtime ipHash re-subscription swaps the query args on every visit.
 		// Keep the prior result so the comments don't flash back to loading.
@@ -97,6 +84,7 @@
 	}
 
 	async function vote(commentId, voteType) {
+		if (!canVote) return;
 		if (votingIds.has(commentId)) return;
 
 		if (votingAnimTimer) clearTimeout(votingAnimTimer);
@@ -134,31 +122,17 @@
 			commentText.length > MAX_LENGTH
 	);
 
-	// Build nested tree. Replies whose parent was hard-deleted are surfaced as
-	// stray roots (rendered with an "orphaned reply" badge).
-	function buildTree(flat) {
-		const map = new Map();
-		for (const c of flat) map.set(c.id, { ...c, children: [] });
-
-		const roots = [];
-		for (const node of map.values()) {
-			if (node.parentId && map.has(node.parentId)) {
-				map.get(node.parentId).children.push(node);
-			} else if (!node.parentId) {
-				roots.push(node);
-			} else {
-				roots.push({ ...node, stray: true });
-			}
-		}
-
-		for (const node of map.values()) {
-			node.children.sort((a, b) => a.createdAt - b.createdAt);
-		}
-
-		return roots;
-	}
-
 	const commentTree = $derived(buildTree(query.data ?? []));
+
+	// `myVote` is per-visitor: trust the highlight only once the real hash is in
+	// use and the subscription holds fresh (non-stale) data. Allow clicking once
+	// trusted, or once a failed /api/ip-hash leaves us with fresh data and no
+	// real hash (the vote itself is computed from the real IP server-side, so a
+	// broken hash fetch must not lock voting forever).
+	const voteKnown = $derived($hashReal && !query.isStale && !!query.data);
+	const canVote = $derived(
+		voteKnown || ($hashAttempted && !$hashReal && !query.isStale && !!query.data)
+	);
 
 	// Reset transient form state on path change
 	let currentPath = $state($page.url.pathname);
@@ -291,6 +265,8 @@
 					{setActiveForm}
 					{votingIds}
 					{votingAnim}
+					{canVote}
+					{voteKnown}
 					onVote={vote}
 					onHaptic={haptic}
 				/>

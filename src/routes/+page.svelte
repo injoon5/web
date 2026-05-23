@@ -1,6 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { heroNameVisible } from '$lib/heroNav.js';
+	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 
 	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
 	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
@@ -17,49 +18,6 @@
 
 	let nowError = null;
 	let photosError = null;
-
-	function marqueePauseWhenOffscreen(node) {
-		const io = new IntersectionObserver(
-			([entry]) => {
-				node.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
-			},
-			{ threshold: 0 }
-		);
-		io.observe(node);
-		return { destroy: () => io.disconnect() };
-	}
-
-	// Drive marquee duration by scroll-distance, not track count, so it always
-	// moves at ~40px/s regardless of how many albums are loaded.
-	function marqueeConstantSpeed(node) {
-		const PX_PER_SECOND = 40;
-		function tune() {
-			// Track list is duplicated; we translate by -50%, so the distance
-			// travelled equals half the full scrollWidth.
-			const distance = node.scrollWidth / 2;
-			if (distance <= 0) return;
-			const seconds = distance / PX_PER_SECOND;
-			node.style.animationDuration = `${seconds}s`;
-		}
-		// Wait for images to settle so scrollWidth is final.
-		const imgs = node.querySelectorAll('img');
-		let pending = imgs.length;
-		const done = () => {
-			pending--;
-			if (pending <= 0) tune();
-		};
-		imgs.forEach((img) => {
-			if (img.complete) done();
-			else {
-				img.addEventListener('load', done, { once: true });
-				img.addEventListener('error', done, { once: true });
-			}
-		});
-		tune();
-		const ro = new ResizeObserver(tune);
-		ro.observe(node);
-		return { destroy: () => ro.disconnect() };
-	}
 
 	onMount(async () => {
 		// Flip once the hero name passes behind the ~64px-tall sticky nav, so the
@@ -336,26 +294,6 @@ Injoon Oh
 		to   { transform: translateX(-50%); }
 	}
 </style>
-
-<!-- <div id="tech-stack" class="mb-12">
-	<h2 class="flex justify-between text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100">
-		Tech Stack
-	</h2>
-	<div class="mt-4">
-		<div class="flex flex-wrap gap-2">
-			{#each data.techstack as stack}
-				<div class="text-neutral-900 dark:text-neutral-400 flex items-center justify-center">
-					<p class="font-light text-lg">{stack.name}</p>
-				</div>
-				{#each stack.technologies as technology}
-					<a href={technology.link} target="_blank" rel="noopener noreferrer" class="rounded-xl bg-neutral-50 px-3 py-2 dark:bg-neutral-950 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors duration-200">
-						<p class="text-sm">{technology.name}</p>
-					</a>
-				{/each}
-			{/each}
-		</div>
-	</div>
-</div> -->
 
 
 <div
