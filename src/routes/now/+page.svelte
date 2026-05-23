@@ -111,9 +111,18 @@
 			class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500"
 			title={formatFull(updatedAt)}
 		>
-			Updated {formatRelative(updatedAt)}.
+				Updated {formatRelative(updatedAt)}
+
 		</p>
-	{/if}
+		{:else}
+		<p
+			class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500"
+		>
+				Loading...
+
+		</p>		
+		
+		{/if}
 
 	<div class="my-12">
 		{#if nowQuery.isLoading}
@@ -148,7 +157,7 @@
 				{@html html}
 			</div>
 		{:else if data.isAdmin}
-			<p class="text-sm text-neutral-400 dark:text-neutral-600">
+			<p class="text-base text-neutral-400 dark:text-neutral-600">
 				Nothing here yet. Click Edit to write something.
 			</p>
 		{:else}

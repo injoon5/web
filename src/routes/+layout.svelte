@@ -10,6 +10,7 @@
 	import { theme } from '$lib/theme.js';
 	import { env as publicEnv } from '$env/dynamic/public';
 
+
 	const commit = publicEnv.PUBLIC_GIT_COMMIT ?? '';
 	const commitDate = (() => {
 		const raw = publicEnv.PUBLIC_GIT_COMMIT_DATE;
@@ -102,7 +103,7 @@
 <footer class="mt-10 mb-20 w-full tracking-tight">
 	<div class="text-xs">
 		<div
-			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-600 sm:px-12 dark:text-neutral-500"
+			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-500 sm:px-12 dark:text-neutral-500"
 		>
 			<div class="col-span-12 sm:col-span-6 lg:col-span-2">
 				<p class="text-neutral-900 dark:text-neutral-100">Injoon Oh</p>
@@ -112,7 +113,7 @@
 				<br />
 				<a
 					href="https://github.com/injoon5"
-					class=" hover:text-neutral-900 dark:hover:text-neutral-100">@injoon5 (GitHub)</a
+					class=" hover:text-neutral-900 dark:hover:text-neutral-100">injoon5 (GitHub)</a
 				>
 				<br />
 				<a href="/internal/rss.xml" class=" hover:text-neutral-900 dark:hover:text-neutral-100"
@@ -142,7 +143,7 @@
 			<div class="col-span-12 lg:mt-10">
 				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
 				{#if commit}
-					<p class="mt-1 text-[11px] font-normal text-neutral-400 dark:text-neutral-600 tabular">
+					<p class="mt- text-xs font-normal text-neutral-400 dark:text-neutral-600 tabular">
 						Built from
 						<a
 							href="https://github.com/injoon5/web/commit/{commit}"

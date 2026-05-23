@@ -65,7 +65,7 @@
 		{#each groupedPosts as group}
 			{#if group.type === 'series'}
 				<div class="py-2">
-					<span class="line-clamp-1 text-sm font-medium tracking-wide text-neutral-500 dark:text-neutral-500">
+					<span class="line-clamp-1 text-base font-medium tracking-wide text-neutral-500 dark:text-neutral-500">
 						{group.name}
 					</span>
 				</div>
@@ -90,7 +90,7 @@
 								{/if}
 							</span>
 							<span
-								class="ml-4 shrink-0 text-base font-semibold whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 tabular dark:text-neutral-400 dark:group-hover:text-neutral-500"
+								class="ml-4 shrink-0 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 tabular dark:text-neutral-400 dark:group-hover:text-neutral-500"
 							>
 								{seriesPost.date || seriesPost.year}
 							</span>

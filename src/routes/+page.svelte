@@ -130,7 +130,7 @@
 
 <div
 	id="introduction"
-	class="mt-20 mb-12 grid grid-cols-3 text-base font-normal tracking-normal sm:grid-cols-5 sm:text-normal md:grid-cols-10 lg:grid-cols-12"
+	class="mt-20 mb-12 grid grid-cols-3 text-base font-[450] tracking-normal sm:grid-cols-5 sm:text-normal md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div style="height: max-content;">
@@ -205,7 +205,7 @@
 		</div>
 		<div class="mt-2 mb-4 flex justify-end">
 			<a
-				class="group relative inline-flex items-center text-base font-medium tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+				class="group relative inline-flex items-center text-base font-normal tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="/blog"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
@@ -263,7 +263,7 @@
 		</div>
 		<div class="mt-2 mb-4 flex justify-end">
 			<a
-				class="group relative inline-flex items-center text-base font-medium -tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+				class="group relative inline-flex items-center text-base font-normal tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="/projects"
 			>
 				<span class="transition-transform duration-200 group-hover:-translate-x-5"
@@ -300,7 +300,7 @@
 						<div class="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-12">
 							{#each stacks.technologies as technology}
 								<div class="col-span-4 mt-2">
-									<p class="tracking-normal text-base leading-normal font-normal text-neutral-900 dark:text-neutral-100">
+									<p class="tracking-tight text-sm leading-normal font-medium text-neutral-900 dark:text-neutral-100">
 										{technology.name}
 									</p>
 									<p
@@ -324,9 +324,7 @@
 		will-change: transform;
 		animation: now-scroll linear infinite;
 		animation-duration: 60s; /* overridden by marqueeConstantSpeed action */
-	}
-	.now-marquee:hover {
-		animation-play-state: paused;
+		animation-play-state: var(--marquee-play-state, running);
 	}
 	@keyframes now-scroll {
 		from { transform: translateX(0); }
@@ -354,20 +352,21 @@
 	</div>
 </div> -->
 
+
 <div
 	id="now-listening"
 	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:relative lg:grid-cols-12"
 >
-	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
-		<div class="md:sticky md:top-24" style="height: max-content;">
-			<h2 class="text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 text-balance">
+	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:absolute lg:z-10 lg:top-0 lg:left-0">
+		<div class="md:sticky md:top-24 lg:static" style="height: max-content;">
+			<h2 class="lg:mt-1 text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 lg:text-white text-balance lg:[text-shadow:0_1px_4px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,0.9),0_4px_48px_rgba(0,0,0,0.8)]">
 				Now Listening
 			</h2>
-			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500">
+			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500 lg:text-white dark:lg:text-white lg:opacity-70 dark:lg:opacity-70 lg:[text-shadow:0_1px_4px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,0.9),0_4px_48px_rgba(0,0,0,0.8)]">
 				Last updated on
-				<span class="inline lg:block tabular">
+				<span class="inline lg:block">
 					{#if nowState === 'loading'}
-						<span class="inline-flex items-center gap-2">Loading…</span>
+						<span class="inline-flex items-center gap-2"> Loading… </span>
 					{:else if nowState === 'error'}
 						<span class="text-neutral-400 dark:text-neutral-600">—</span>
 					{:else}
@@ -380,8 +379,9 @@
 		</div>
 	</div>
 
+
 	<div
-		class="now-marquee-wrap relative col-span-10 mt-4 lg:col-span-10 lg:mt-0 overflow-hidden -mx-4 sm:-mx-12 lg:-mx-4"
+		class="relative col-span-10 mt-4 overflow-hidden sm:-mx-12 lg:mx-0 lg:col-span-12 lg:w-screen lg:left-1/2 lg:right-1/2 lg:-translate-x-1/2 lg:relative lg:mt-0"
 	>
 		{#if nowState === 'loading'}
 			<div class="flex gap-3">
@@ -472,13 +472,11 @@
 							alt={photo?.title || 'Photo'}
 							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
 						/>
-						<div
-							class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"
-						></div>
+
 						<div
 							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
 						>
-							<p class="truncate text-sm font-medium text-white/60 tabular">
+							<p class="truncate text-sm font-medium text-white/30 tabular">
 								{photo.takenAtNaive}
 							</p>
 						</div>

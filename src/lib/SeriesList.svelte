@@ -7,7 +7,7 @@ export let series;
 	class="rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
 >
 	<h2
-		class="line-clamp-1 select-none px-3 pb-2 pt-2 text-xl font-medium text-neutral-900 dark:text-neutral-100"
+		class="line-clamp-1 select-none px-3 pb-2 pt-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100"
 	>
 		Series: {series[0].series}
 	</h2>
@@ -22,11 +22,11 @@ export let series;
 				: ''}"
 		>
 			<div class="mr-2 mt-1 flex h-10 w-10 items-center justify-center rounded-full">
-				<p class="text-xl font-medium text-neutral-900 dark:text-neutral-100">{index + 1}</p>
+				<p class="text-xl font-medium text-neutral-900 dark:text-neutral-100 tabular-nums">{index + 1}</p>
 			</div>
 			<div class="block">
-				<h2 class="-mb-1 line-clamp-1 text-lg font-semibold">{post.title}</h2>
-				<p class="text-base font-normal text-neutral-500 dark:text-neutral-400">{post.date}</p>
+				<h2 class="-mb-1 line-clamp-1 text-lg font-medium">{post.title}</h2>
+				<p class="text-sm font-normal text-neutral-500 dark:text-neutral-400">{post.date}</p>
 			</div>
 		</a>
 	{/each}

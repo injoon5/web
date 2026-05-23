@@ -97,7 +97,7 @@
 						<button
 							bind:this={langButtons[l]}
 							on:click={() => setLang(l)}
-							class="relative z-10 rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-150 {lang === l
+							class="relative z-10 rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold transition-colors duration-150 {lang === l
 								? 'text-white dark:text-neutral-900'
 								: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
 						>
@@ -119,7 +119,7 @@
 		<!-- Post -->
 		{#if currentMeta?.aiTranslated}
 			<div
-				class="mt-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-50/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
+				class="mt-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
 			>
 				<Languages
 					size="16"
@@ -131,7 +131,7 @@
 					{#if lang === 'ko'}
 						<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
 						<p class="text-sm text-neutral-500 dark:text-neutral-500">
-							이 글은 AI의 도움을 받아 번역되었습니다. 일부 뉘앙스가 달라질 수 있습니다.
+							이 글은 AI의 도움을 받아 번역되었습니다. 일부 내용에 오류가 있을 수 있습니다. 
 						</p>
 					{:else}
 						<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI Translation</p>
