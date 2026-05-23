@@ -1,5 +1,42 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+
+	// Hero name -> navbar slide. The big "Injoon Oh" in the hero is a hidden
+	// layout anchor; a position:fixed clone (nameFloat) is driven by scroll so it
+	// slides straight up and docks into the navbar's name slot.
+	let heroNameEl;
+	let enhanced = false;
+	let floatReady = false;
+	let floatTransform = '';
+	let rafId = 0;
+
+	function updateFloat() {
+		rafId = 0;
+		const navEl = typeof document !== 'undefined' && document.querySelector('[data-nav-name]');
+		if (!heroNameEl || !navEl) return;
+
+		const heroRect = heroNameEl.getBoundingClientRect();
+		const navRect = navEl.getBoundingClientRect();
+		const s = window.scrollY;
+
+		const heroDocTop = heroRect.top + s;
+		const dockDistance = Math.max(heroDocTop - navRect.top, 1);
+		const p = Math.min(Math.max(s / dockDistance, 0), 1);
+
+		const top = Math.max(heroDocTop - s, navRect.top);
+		const left = heroRect.left + (navRect.left - heroRect.left) * p;
+
+		const heroFs = parseFloat(getComputedStyle(heroNameEl).fontSize) || 24;
+		const navFs = parseFloat(getComputedStyle(navEl).fontSize) || 24;
+		const scale = 1 + (navFs / heroFs - 1) * p;
+
+		floatTransform = `translate3d(${left}px, ${top}px, 0) scale(${scale})`;
+		floatReady = true;
+	}
+
+	function scheduleFloat() {
+		if (!rafId) rafId = requestAnimationFrame(updateFloat);
+	}
 
 	// LoadState: 'loading' | 'ready' | 'error'
 	let nowlistening = null;
@@ -55,6 +92,12 @@
 	}
 
 	onMount(async () => {
+		enhanced = true;
+		updateFloat();
+		window.addEventListener('scroll', scheduleFloat, { passive: true });
+		window.addEventListener('resize', scheduleFloat);
+		if (document.fonts?.ready) document.fonts.ready.then(updateFloat);
+
 		nowState = 'loading';
 		photosState = 'loading';
 		nowError = null;
@@ -91,6 +134,13 @@
 		await Promise.allSettled([loadPhotos, loadNow]);
 	});
 
+	onDestroy(() => {
+		if (typeof window === 'undefined') return;
+		window.removeEventListener('scroll', scheduleFloat);
+		window.removeEventListener('resize', scheduleFloat);
+		if (rafId) cancelAnimationFrame(rafId);
+	});
+
 	export let data;
 </script>
 
@@ -113,9 +163,14 @@
 	class="mt-20 mb-12 grid grid-cols-3 text-base font-normal tracking-normal sm:grid-cols-5 sm:text-normal md:grid-cols-10 lg:grid-cols-12"
 >
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
-		<div class="md:sticky md:top-28" style="height: max-content;">
-			<h2 class="text-xl font-medium font-mono tracking-tight text-neutral-900 dark:text-neutral-100 text-balance">
-				Hello World
+		<div style="height: max-content;">
+			<h2
+				bind:this={heroNameEl}
+				class="text-2xl font-medium font-sans tracking-tight text-neutral-900 dark:text-neutral-100 text-balance {enhanced
+					? 'invisible'
+					: ''}"
+			>
+				Injoon Oh
 			</h2>
 		</div>
 	</div>
@@ -138,6 +193,30 @@
 		</p>
 	</div>
 </div>
+{#if enhanced}
+	<a
+		href="/"
+		aria-label="Home — Injoon Oh"
+		class="group fixed top-0 left-0 z-40 origin-top-left will-change-transform {floatReady
+			? ''
+			: 'opacity-0'}"
+		style="transform: {floatTransform};"
+	>
+		<span class="relative inline-block">
+			<span
+				class="block font-sans text-2xl font-medium tracking-tight whitespace-nowrap text-neutral-900 transition-[opacity,filter] duration-200 ease-out group-hover:opacity-0 group-hover:blur-sm dark:text-neutral-100"
+			>
+				Injoon Oh
+			</span>
+			<span
+				class="pointer-events-none absolute inset-0 block font-sans text-2xl font-semibold tracking-tight whitespace-nowrap text-neutral-900 opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out group-hover:opacity-100 group-hover:blur-none dark:text-neutral-100"
+			>
+				오인준
+			</span>
+		</span>
+	</a>
+{/if}
+
 <div
 	id="blog"
 	class="mt-20 mb-12 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
@@ -309,24 +388,6 @@
 		from { transform: translateX(0); }
 		to   { transform: translateX(-50%); }
 	}
-
-	/* Fade tracks at the wrap's left/right edge for a softer entry/exit */
-	.now-marquee-wrap {
-		-webkit-mask-image: linear-gradient(
-			to right,
-			transparent 0,
-			black 2rem,
-			black calc(100% - 2rem),
-			transparent 100%
-		);
-		mask-image: linear-gradient(
-			to right,
-			transparent 0,
-			black 2rem,
-			black calc(100% - 2rem),
-			transparent 100%
-		);
-	}
 </style>
 
 <!-- <div id="tech-stack" class="mb-12">
@@ -444,7 +505,7 @@
 		<div class="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-3">
 			{#if photosState === 'loading'}
 				{#each Array(6) as _}
-					<div class="shimmer aspect-square w-full rounded-xl"></div>
+					<div class="shimmer aspect-square w-full"></div>
 				{/each}
 			{:else if photosState === 'error'}
 				<div class="col-span-2 sm:col-span-3">
@@ -459,7 +520,7 @@
 				{#each (photos?.photos ?? []).slice(0, 6) as photo}
 					<a
 						href={photo.url}
-						class="group relative block aspect-square w-full overflow-hidden rounded-xl bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+						class="group relative block aspect-square w-full overflow-hidden bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
 					>
 						<img
 							loading="lazy"
@@ -473,7 +534,7 @@
 						<div
 							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
 						>
-							<p class="truncate text-sm font-medium text-white/90 tabular">
+							<p class="truncate text-sm font-medium text-white/60 tabular">
 								{photo.takenAtNaive}
 							</p>
 						</div>
