@@ -345,7 +345,7 @@ Injoon Oh
 			>
 				{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
 					<a
-						class=" border dark:border shadow-md border-neutral-300 dark:border-neutral-800 border-opacity-50 group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-2xl mr-3"
+						class=" border dark:border shadow-md border-neutral-300 dark:border-neutral-800 border-opacity-50 group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3"
 						href={track.url}
 					>
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
