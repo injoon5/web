@@ -331,6 +331,7 @@
 		-webkit-backdrop-filter: blur(6px);
 		padding: 1rem;
 		animation: lb-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+		will-change: opacity;
 		cursor: zoom-out;
 		touch-action: none;
 	}
@@ -400,6 +401,7 @@
 		display: flex;
 		max-width: 100%;
 		max-height: 100%;
+		will-change: transform;
 	}
 
 	.lb-img-wrap {
@@ -410,6 +412,7 @@
 		max-width: 100%;
 		max-height: 100%;
 		animation: lb-img-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+		will-change: transform, opacity;
 		cursor: zoom-in;
 	}
 
@@ -450,6 +453,7 @@
 		width: auto;
 		height: auto;
 		object-fit: contain;
+		will-change: transform;
 		border-radius: 0.375rem;
 		box-shadow:
 			0 25px 60px rgba(0, 0, 0, 0.5),
