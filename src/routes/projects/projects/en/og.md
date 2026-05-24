@@ -10,18 +10,28 @@ published: true
 
 ## What it is
 
-[og](https://github.com/injoon5/og) is a small API that generates social preview images from query parameters — title, subheading, that kind of thing. Live at [og.ij5.dev](https://og.ij5.dev).
-
-Example:
+[og](https://github.com/injoon5/og) is a standalone API that generates social preview images from URL query params. Live at [og.ij5.dev](https://og.ij5.dev).
 
 ```
 https://og.ij5.dev/api/og/?title=Generate%20Images%20on%20the%20Fly!&subheading=Hello%2C%20World!
 ```
 
-This site uses it for project and blog cards (you can see the pattern in the OG meta tags on those pages).
+Hit that URL and you get a 2400×1260 PNG — title on top, subheading below, dark background.
 
 ## How it's built
 
-It's basically the [Vercel OG + Next.js example](https://github.com/vercel/examples/tree/main/edge-functions/og-image-generation) with my typography and layout tweaks. `@vercel/og` renders JSX to PNG at the edge; no image files to maintain.
+Single Next.js API route at `pages/api/og.tsx`, running on the **Edge runtime**. Uses `@vercel/og`'s `ImageResponse` to render JSX to PNG.
 
-I forked it because I got tired of hand-designing every preview in Figma. Now I change a URL and redeploy nothing.
+On each request it fetches three font files in parallel from a CDN:
+
+- **Pretendard SemiBold** — Korean/Latin body text
+- **Noto Sans SC Bold** — simplified Chinese fallback
+- **Noto Sans TC Bold** — traditional Chinese fallback
+
+Query params `title` and `subheading` are sliced to 150 chars max. Defaults to `"Generate Images on the Fly :)"` / `"Hello, World!"` if missing.
+
+## vs. this site's built-in OG
+
+injoon5.com also generates OG images internally via `src/lib/og/templates.js` — satori templates at 1200×630 with a dot-grid background, different layouts for blog posts vs. projects vs. the homepage. Those hit `/api/og?template=...` on this domain.
+
+The external `og.ij5.dev` service is the simpler, generic version — useful when I just need a title + subtitle image without redeploying the main site. I forked it from the [Vercel OG example](https://github.com/vercel/examples/tree/main/edge-functions/og-image-generation) and stopped hand-designing previews in Figma.

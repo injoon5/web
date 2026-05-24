@@ -11,19 +11,42 @@ published: true
 
 ## What you're looking at
 
-You're reading this on it. [injoon5/web](https://github.com/injoon5/web) is my personal site — the place for writing, project writeups, and the assorted experiments I don't want to lose to a Notion tab.
+You're reading this on it. [injoon5/web](https://github.com/injoon5/web) is my personal site — blog, project writeups, comments, likes, and the `/now` page. Prerendered where possible, realtime where it matters.
 
-## Stack
+## Frontend
 
-- **SvelteKit** for pages and prerendering where it makes sense (blog posts, project listings).
-- **Convex** for anything that needs to be live: comments with voting, page likes, the editable `/now` page.
-- **Vercel** for hosting; OG images via my [OG API](/projects/og).
-- **"Now listening"** via [Last.fm + GitHub Actions](/projects/now-playing) because Apple won't give high schoolers a developer account.
+**SvelteKit** with mdsvex for Markdown content. Blog posts and project pages live as `.md` files with frontmatter; reading time gets computed at build time by a Remark plugin that counts words (English) or characters (Korean).
 
-The comment system is probably the most complex part — bcrypt passwords for edits, IP hashing, rate limits in Convex, admin dashboard for bans and replies. I migrated it off a SQL + Redis setup specifically so realtime subscriptions would Just Work™.
+Multilingual support: blog posts and projects can exist in both `en/` and `ko/` directories. The slug page loads whichever languages are published and shows a pill toggle.
+
+The homepage fetches two external JSON files client-side on mount — [now-playing.json](https://raw.githubusercontent.com/injoon5/data/main/now-playing.json) and photos data from the same repo. No server needed; raw GitHub URLs have no CORS restrictions.
+
+## Convex backend
+
+Anything live goes through Convex (`convex-svelte` subscriptions on the client):
+
+| Table | Purpose |
+| ----- | ------- |
+| `comments` | Threaded comments per page URL, max depth 2 |
+| `commentVotes` | Up/down votes keyed on SHA-256 IP hash |
+| `likes` | Page-level like toggles |
+| `bannedIps` | IP ban list |
+| `nowPage` | Editable `/now` page content |
+
+Comments are sorted by **score** (upvotes − downvotes), then recency. Passwords are bcrypt-hashed for edit/delete. Rate limiting runs inside Convex via `@convex-dev/rate-limiter` — survives cold starts, applies to both HTTP routes and direct mutations. Admin requests with a valid `ADMIN_SECRET` bypass everything.
+
+The admin dashboard (`/admin`) uses cookie auth + `x-admin-secret` header for API calls. Can reply to comments, soft/hard delete, ban IPs, view IP hashes.
+
+## API layer
+
+SvelteKit API routes (`/api/comments`, `/api/likes`, `/api/admin/*`) sit between the browser and Convex. They handle IP hashing, Zod validation, bcrypt checks, and map Convex errors to HTTP status codes (429 with `Retry-After` for rate limits).
+
+## OG images
+
+Built-in OG generation at `/api/og` — satori templates in `src/lib/og/templates.js` at 1200×630 with a dark dot-grid background. Separate layouts for blog posts, projects, and listing pages. Also use my standalone [OG API](/projects/og) for simpler title + subtitle cards.
 
 ## Why I keep rebuilding it
 
-This is version… many. There was Raster, Next.js iterations, Ghost themes, the whole [oij-web](https://github.com/injoon5/oij-web) era. I finally settled on owning the whole stack again instead of fighting a CMS.
+This is version… many. Raster, Next.js iterations, Ghost themes, the whole oij-web era. I migrated comments off SQL + Redis specifically because I wanted Convex realtime subscriptions without managing infrastructure.
 
 It's never done. But it's mine, and that's the point.
