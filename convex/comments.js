@@ -217,15 +217,31 @@ export const hardDelete = mutation({
 	handler: async (ctx, { commentId, adminSecret }) => {
 		assertAdmin(adminSecret);
 
-		const votes = await ctx.db
-			.query('commentVotes')
-			.withIndex('by_comment', (q) => q.eq('commentId', commentId))
-			.collect();
-		for (const vote of votes) {
-			await ctx.db.delete(vote._id);
+		// Recursively collect all descendant comment IDs
+		const toDelete = [commentId];
+		for (let i = 0; i < toDelete.length; i++) {
+			const children = await ctx.db
+				.query('comments')
+				.withIndex('by_parent', (q) => q.eq('parentId', toDelete[i]))
+				.collect();
+			for (const child of children) {
+				toDelete.push(child._id);
+			}
 		}
 
-		await ctx.db.patch(commentId, { deletedAt: Date.now() });
+		const now = Date.now();
+		for (const id of toDelete) {
+			// Delete all votes for this comment
+			const votes = await ctx.db
+				.query('commentVotes')
+				.withIndex('by_comment', (q) => q.eq('commentId', id))
+				.collect();
+			for (const vote of votes) {
+				await ctx.db.delete(vote._id);
+			}
+			// Set deletedAt
+			await ctx.db.patch(id, { deletedAt: now });
+		}
 	}
 });
 
