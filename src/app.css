@@ -200,7 +200,6 @@
 	@apply prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1;
 	@apply hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300;
 	@apply prose-img:mx-auto prose-img:max-w-full prose-img:h-auto prose-img:cursor-zoom-in;
-	@apply prose-pre:max-w-full prose-pre:overflow-x-auto;
 }
 
 @utility prose {
@@ -213,29 +212,23 @@
    Prose / Code Styling
    ========================= */
 
-/* Keep long inline code, media, and tables inside the column */
-:is(.prose, .prose-post) {
-	@apply max-w-full min-w-0;
+/* Mdsvex content is nested: .prose-post > .prose */
+.prose-post > :where(.prose) {
+	@apply min-w-0;
 }
 
-:is(.prose, .prose-post) :where(figure) {
-	@apply max-w-full;
+/* Fenced blocks — scroll on the figure so title + code move together */
+:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure]) {
+	@apply max-w-full overflow-x-auto;
 }
 
-:is(.prose, .prose-post) :where(img, video, iframe, svg) {
-	@apply h-auto max-w-full;
+:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure] pre) {
+	@apply max-w-none overflow-x-visible;
 }
 
-:is(.prose, .prose-post) :where(pre, table) {
-	@apply max-w-full;
-}
-
-:is(.prose, .prose-post) :where(pre) {
-	@apply overflow-x-auto;
-}
-
-:is(.prose, .prose-post) :where(table) {
-	@apply block overflow-x-auto;
+/* Plain ``` fences if not wrapped in a figure */
+:is(.prose, .prose-post) :where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre)) {
+	@apply max-w-full overflow-x-auto;
 }
 
 .prose code[data-line-numbers] {
