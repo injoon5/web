@@ -51,16 +51,15 @@
 			class="ts-panel"
 		>
 			{#each activeCategory.technologies as tech, i}
-				<a
-					href={tech.link}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="ts-item"
-					style="--i: {i}"
-				>
-					<span class="ts-name">{tech.name}</span>
-					<span class="ts-desc text-pretty">{tech.description}</span>
-				</a>
+				<div class="ts-item" style="--i: {i}">
+					<a
+						href={tech.link}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="ts-name"
+					>{tech.name}</a>
+					<p class="ts-desc text-pretty">{tech.description}</p>
+				</div>
 			{/each}
 		</div>
 	{/key}
@@ -128,7 +127,7 @@
 	.ts-panel {
 		display: grid;
 		grid-template-columns: 1fr;
-		gap: 0.35rem;
+		gap: 1rem;
 		animation: ts-panel-in var(--motion-slow) var(--ease-out-soft) both;
 	}
 
@@ -147,16 +146,7 @@
 	.ts-item {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
-		padding: 0.75rem 1rem;
-		background: var(--color-neutral-100);
-		color: inherit;
-		text-decoration: none;
-		transition: background-color 120ms ease;
-	}
-
-	:global(.dark) .ts-item {
-		background: var(--color-neutral-900);
+		gap: 0.15rem;
 	}
 
 	/* Staggered reveal when section enters viewport */
@@ -166,7 +156,7 @@
 	}
 
 	@keyframes ts-item-in {
-		from { opacity: 0; transform: translateY(8px); }
+		from { opacity: 0; transform: translateY(6px); }
 		to   { opacity: 1; transform: translateY(0); }
 	}
 
@@ -175,10 +165,17 @@
 		font-weight: 500;
 		color: var(--color-neutral-900);
 		line-height: 1.3;
+		text-decoration: none;
 	}
 
 	:global(.dark) .ts-name {
 		color: var(--color-neutral-100);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.ts-name:hover {
+			text-decoration: underline;
+		}
 	}
 
 	.ts-desc {
@@ -190,16 +187,6 @@
 
 	:global(.dark) .ts-desc {
 		color: var(--color-neutral-400);
-	}
-
-	@media (hover: hover) and (pointer: fine) {
-		.ts-item:hover {
-			background: var(--color-neutral-200);
-		}
-
-		:global(.dark) .ts-item:hover {
-			background: var(--color-neutral-800);
-		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
