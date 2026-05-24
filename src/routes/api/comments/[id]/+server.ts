@@ -73,7 +73,8 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	}
 
 	return runConvex(
-		() => convex.mutation(api.comments.hardDelete, { commentId: params.id, adminSecret: ADMIN_SECRET }),
+		() =>
+			convex.mutation(api.comments.hardDelete, { commentId: params.id, adminSecret: ADMIN_SECRET }),
 		() => json({ success: true })
 	);
 };

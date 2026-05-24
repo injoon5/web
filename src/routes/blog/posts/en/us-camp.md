@@ -214,7 +214,7 @@ Classes again. Our classroom had moved to a building farther from the entrance, 
 
 Mediterranean climate really is something.
 
-As I mentioned, this camp values ideas over technical execution — which means a video demonstrating how your product would be used matters more than a working prototype. I intellectually agreed with the reasoning, but it still felt a bit off. *(Writing this in July 2025, though, watching various Silicon Valley startups put so much effort into their product videos, I've come around more — effectively communicating your idea to a wide range of people is genuinely important.)*
+As I mentioned, this camp values ideas over technical execution — which means a video demonstrating how your product would be used matters more than a working prototype. I intellectually agreed with the reasoning, but it still felt a bit off. _(Writing this in July 2025, though, watching various Silicon Valley startups put so much effort into their product videos, I've come around more — effectively communicating your idea to a wide range of people is genuinely important.)_
 
 We filmed our scenario: someone gets pulled over for speeding and uses our product to help with their defense. Actually acting it out was more useful than just thinking through it — we caught awkward moments and rough edges that only showed up in practice. We filmed driving scenes (rolling down a slope in a wheeled chair), answering a call, making a case — it was fun.
 

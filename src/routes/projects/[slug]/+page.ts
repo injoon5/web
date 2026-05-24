@@ -1,9 +1,9 @@
 export const prerender = true;
 
-import { error } from "@sveltejs/kit";
+import { error } from '@sveltejs/kit';
 
-const enModules = import.meta.glob("../projects/en/*.md");
-const koModules = import.meta.glob("../projects/ko/*.md");
+const enModules = import.meta.glob('../projects/en/*.md');
+const koModules = import.meta.glob('../projects/ko/*.md');
 
 export async function load({ params }) {
 	const enKey = `../projects/en/${params.slug}.md`;
@@ -22,10 +22,7 @@ export async function load({ params }) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
-	const availableLangs = [
-		...(enProject ? ["en"] : []),
-		...(koProject ? ["ko"] : []),
-	];
+	const availableLangs = [...(enProject ? ['en'] : []), ...(koProject ? ['ko'] : [])];
 
 	return {
 		enContent: enProject?.default ?? null,
@@ -35,6 +32,6 @@ export async function load({ params }) {
 		meta: primaryProject.metadata,
 		availableLangs,
 		enReadingTime: enProject?.metadata?.readingTime ?? null,
-		koReadingTime: koProject?.metadata?.readingTime ?? null,
+		koReadingTime: koProject?.metadata?.readingTime ?? null
 	};
 }

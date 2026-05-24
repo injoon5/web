@@ -202,8 +202,7 @@ export function homeTemplate() {
 								maxWidth: 800,
 								letterSpacing: '-0.015em'
 							},
-							children:
-								'A student interested in math, science, and computers.'
+							children: 'A student interested in math, science, and computers.'
 						}
 					}
 				]
@@ -251,8 +250,7 @@ export function blogListTemplate() {
 								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
-							children:
-								'Stuff that just barely made it online.'
+							children: 'Stuff that just barely made it online.'
 						}
 					}
 				]
@@ -371,8 +369,7 @@ export function projectsListTemplate() {
 								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
-							children:
-								'Some of the stuff I did to escape from a boring day.'
+							children: 'Some of the stuff I did to escape from a boring day.'
 						}
 					}
 				]
@@ -531,7 +528,7 @@ export function nowTemplate() {
 								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
-							children: 'What I\'m doing now.'
+							children: "What I'm doing now."
 						}
 					}
 				]

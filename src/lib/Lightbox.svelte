@@ -24,8 +24,7 @@
 	let pinchScale = 1; // scale during active pinch
 	let committedScale = 1; // scale we keep after pinch ends
 	let pinchStartDist = 0;
-	let pinchOriginX = 0;
-	let pinchOriginY = 0;
+	let touchStartX = 0;
 	let panX = 0;
 	let panY = 0;
 	let lastPanX = 0;
@@ -82,7 +81,11 @@
 		queueMicrotask(() => closeBtn?.focus());
 	} else if (!visible && previouslyFocused && typeof document !== 'undefined') {
 		// Restore focus when closing
-		try { previouslyFocused.focus(); } catch {}
+		try {
+			previouslyFocused.focus();
+		} catch {
+			// Element may have been removed from the DOM.
+		}
 		previouslyFocused = null;
 	}
 
@@ -92,8 +95,20 @@
 		setTimeout(() => lightboxStore.set(null), 230);
 	}
 
+	function isBackdropTarget(target) {
+		return target === backdropEl || target?.classList?.contains('lb-backdrop');
+	}
+
 	function handleBackdropClick(e) {
-		if (e.target === backdropEl || e.target.classList.contains('lb-backdrop')) {
+		if (isBackdropTarget(e.target)) {
+			close();
+		}
+	}
+
+	function handleBackdropKeydown(e) {
+		if (e.key !== 'Enter' && e.key !== ' ') return;
+		if (isBackdropTarget(e.target)) {
+			e.preventDefault();
 			close();
 		}
 	}
@@ -108,6 +123,13 @@
 			// Single focusable element → keep focus on it, regardless of direction.
 			e.preventDefault();
 			closeBtn?.focus();
+		}
+	}
+
+	function handleImageKeydown(e) {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			toggleZoom();
 		}
 	}
 
@@ -132,8 +154,6 @@
 			dragging = false;
 			const [a, b] = e.touches;
 			pinchStartDist = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
-			pinchOriginX = (a.clientX + b.clientX) / 2;
-			pinchOriginY = (a.clientY + b.clientY) / 2;
 			pinchScale = committedScale;
 			return;
 		}
@@ -141,11 +161,13 @@
 			if (committedScale > 1) {
 				// pan instead of swipe-dismiss
 				dragging = true;
+				touchStartX = e.touches[0].clientX;
 				touchStartY = e.touches[0].clientY;
 				lastPanX = panX;
 				lastPanY = panY;
 				return;
 			}
+			touchStartX = e.touches[0].clientX;
 			touchStartY = e.touches[0].clientY;
 			dragY = 0;
 			dragging = true;
@@ -166,7 +188,7 @@
 			// pan
 			e.preventDefault();
 			const t = e.touches[0];
-			panX = lastPanX + (t.clientX - pinchOriginX);
+			panX = lastPanX + (t.clientX - touchStartX);
 			panY = lastPanY + (t.clientY - touchStartY);
 			return;
 		}
@@ -175,7 +197,7 @@
 		dragY = e.touches[0].clientY - touchStartY;
 	}
 
-	function onTouchEnd(e) {
+	function onTouchEnd() {
 		if (pinching) {
 			// Pinch finished — commit scale, keep pan offsets.
 			committedScale = pinchScale;
@@ -226,7 +248,6 @@
 <svelte:window on:keydown={handleKeydown} bind:innerWidth={winW} bind:innerHeight={winH} />
 
 {#if visible}
-	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 	<div
 		bind:this={backdropEl}
 		class="lb-backdrop"
@@ -235,7 +256,9 @@
 		role="dialog"
 		aria-modal="true"
 		aria-label={alt || 'Image preview'}
+		tabindex="-1"
 		on:click={handleBackdropClick}
+		on:keydown={handleBackdropKeydown}
 		on:touchstart={onTouchStart}
 		on:touchmove={onTouchMove}
 		on:touchend={onTouchEnd}
@@ -243,12 +266,7 @@
 		on:wheel={onWheel}
 	>
 		<!-- Close button -->
-		<button
-			bind:this={closeBtn}
-			class="lb-close"
-			on:click={close}
-			aria-label="Close image"
-		>
+		<button bind:this={closeBtn} class="lb-close" on:click={close} aria-label="Close image">
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
 				viewBox="0 0 24 24"
@@ -266,14 +284,20 @@
 		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
 		<div
 			class="lb-drag-wrapper"
-			style="transform: translate({panX}px, {dragY + panY}px); transition: {dragging || pinching ? 'none' : 'transform 0.32s cubic-bezier(0.16,1,0.3,1)'};"
+			style="transform: translate({panX}px, {dragY + panY}px); transition: {dragging || pinching
+				? 'none'
+				: 'transform 0.32s cubic-bezier(0.16,1,0.3,1)'};"
 		>
 			<!-- Image wrapper -->
-			<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 			<div
 				class="lb-img-wrap"
 				class:zoomed
 				class:closing
+				role="button"
+				tabindex="0"
+				aria-label={zoomed ? 'Zoom out image' : 'Zoom in image'}
+				on:click={toggleZoom}
+				on:keydown={handleImageKeydown}
 			>
 				<img
 					bind:this={imgEl}
@@ -281,8 +305,9 @@
 					{alt}
 					class="lb-img"
 					class:zoomed
-					style="{!zoomed && fit ? `width: ${fit.w}px; height: ${fit.h}px;` : ''} transform: scale({liveScale}); transition: {pinching ? 'none' : ''};"
-					on:click={toggleZoom}
+					style="{!zoomed && fit
+						? `width: ${fit.w}px; height: ${fit.h}px;`
+						: ''} transform: scale({liveScale}); transition: {pinching ? 'none' : ''};"
 					draggable="false"
 				/>
 				{#if alt}
@@ -319,13 +344,21 @@
 	}
 
 	@keyframes lb-fade-in {
-		from { opacity: 0; }
-		to { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	@keyframes lb-fade-out {
-		from { opacity: 1; }
-		to { opacity: 0; }
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+		}
 	}
 
 	.lb-close {

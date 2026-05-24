@@ -36,12 +36,12 @@
 			<span
 				class="block font-sans text-2xl font-medium tracking-tight transition-[opacity,filter,transform] duration-200 ease-out
 				{showName ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}
-				group-hover:opacity-0 group-hover:blur-sm will-change-auto"
+				will-change-auto group-hover:opacity-0 group-hover:blur-sm"
 			>
 				Injoon Oh
 			</span>
 			<span
-				class="pointer-events-none absolute inset-0 will-change-auto block font-sans text-2xl font-semibold tracking-tight opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out group-hover:opacity-100 group-hover:blur-none"
+				class="pointer-events-none absolute inset-0 block font-sans text-2xl font-semibold tracking-tight opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out will-change-auto group-hover:opacity-100 group-hover:blur-none"
 			>
 				오인준
 			</span>

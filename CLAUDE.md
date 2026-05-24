@@ -88,13 +88,13 @@ convex/
 
 ## Convex Schema (`convex/schema.js`)
 
-| Table          | Key fields                                                                  | Indexes                              |
-|----------------|------------------------------------------------------------------------------|--------------------------------------|
-| `comments`     | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt | `by_url`, `by_parent`                |
-| `commentVotes` | commentId, ipHash, voteType (`'up'`\|`'down'`)                              | `by_comment`, `by_comment_ip`        |
-| `likes`        | url, ipHash                                                                 | `by_url`, `by_url_ip`                |
-| `bannedIps`    | ipHash, reason                                                              | `by_ip`                              |
-| `nowPage`      | content, updatedAt                                                          | —                                    |
+| Table          | Key fields                                                                                         | Indexes                       |
+| -------------- | -------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `comments`     | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt | `by_url`, `by_parent`         |
+| `commentVotes` | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                     | `by_comment`, `by_comment_ip` |
+| `likes`        | url, ipHash                                                                                        | `by_url`, `by_url_ip`         |
+| `bannedIps`    | ipHash, reason                                                                                     | `by_ip`                       |
+| `nowPage`      | content, updatedAt                                                                                 | —                             |
 
 `createdAt` is Convex's built-in `_creationTime` on every doc.
 
@@ -124,30 +124,30 @@ When a limiter rejects, mutations throw; `convexErrorToResponse` in `src/lib/ser
 
 ### Public
 
-| Method | Route                        | Auth     | Description                                      |
-|--------|------------------------------|----------|--------------------------------------------------|
-| GET    | `/api/comments?url=`         | —        | Fetch comments + vote counts for a page          |
-| POST   | `/api/comments`              | —        | Create comment (ban check, rate-limited)         |
-| PATCH  | `/api/comments/[id]`         | password | Edit own comment (bcrypt password check)         |
-| DELETE | `/api/comments/[id]`         | password | Soft-delete: sets text+username to `[deleted]`   |
-| DELETE | `/api/comments/[id]`         | admin    | Hard-delete: sets `deletedAt`                    |
-| POST   | `/api/comments/[id]/vote`    | —        | Toggle up/down vote (ban check, rate-limited)    |
-| GET    | `/api/likes?url=`            | —        | Get like count + whether current IP liked        |
-| POST   | `/api/likes`                 | —        | Toggle like (ban check, rate-limited)            |
-| POST   | `/api/now`                   | admin    | Update `/now` page content                       |
+| Method | Route                     | Auth     | Description                                    |
+| ------ | ------------------------- | -------- | ---------------------------------------------- |
+| GET    | `/api/comments?url=`      | —        | Fetch comments + vote counts for a page        |
+| POST   | `/api/comments`           | —        | Create comment (ban check, rate-limited)       |
+| PATCH  | `/api/comments/[id]`      | password | Edit own comment (bcrypt password check)       |
+| DELETE | `/api/comments/[id]`      | password | Soft-delete: sets text+username to `[deleted]` |
+| DELETE | `/api/comments/[id]`      | admin    | Hard-delete: sets `deletedAt`                  |
+| POST   | `/api/comments/[id]/vote` | —        | Toggle up/down vote (ban check, rate-limited)  |
+| GET    | `/api/likes?url=`         | —        | Get like count + whether current IP liked      |
+| POST   | `/api/likes`              | —        | Toggle like (ban check, rate-limited)          |
+| POST   | `/api/now`                | admin    | Update `/now` page content                     |
 
 ### Admin (`x-admin-secret` header required)
 
-| Method | Route                           | Description                                    |
-|--------|---------------------------------|------------------------------------------------|
-| GET    | `/api/admin/comments`           | List URLs with comment counts                  |
-| GET    | `/api/admin/comments?url=`      | Fetch full comment list for a URL (incl. ipHash)|
-| POST   | `/api/admin/comments/[id]`      | Set/clear admin reply (`{ reply: string }`)    |
-| DELETE | `/api/admin/comments/[id]`      | Hard-delete (sets `deletedAt`)                 |
-| DELETE | `/api/admin/comments/[id]?soft=1`| Soft-delete (sets text+username to `[deleted]`)|
-| GET    | `/api/admin/bans`               | List all banned IPs                            |
-| POST   | `/api/admin/bans`               | Ban IP of a comment (`{ commentId, reason? }`) |
-| DELETE | `/api/admin/bans/[id]`          | Remove ban                                     |
+| Method | Route                             | Description                                      |
+| ------ | --------------------------------- | ------------------------------------------------ |
+| GET    | `/api/admin/comments`             | List URLs with comment counts                    |
+| GET    | `/api/admin/comments?url=`        | Fetch full comment list for a URL (incl. ipHash) |
+| POST   | `/api/admin/comments/[id]`        | Set/clear admin reply (`{ reply: string }`)      |
+| DELETE | `/api/admin/comments/[id]`        | Hard-delete (sets `deletedAt`)                   |
+| DELETE | `/api/admin/comments/[id]?soft=1` | Soft-delete (sets text+username to `[deleted]`)  |
+| GET    | `/api/admin/bans`                 | List all banned IPs                              |
+| POST   | `/api/admin/bans`                 | Ban IP of a comment (`{ commentId, reason? }`)   |
+| DELETE | `/api/admin/bans/[id]`            | Remove ban                                       |
 
 ---
 
@@ -172,14 +172,14 @@ When a parent comment is hard-deleted, its children still carry the original `pa
 
 ## Input Validation (`src/lib/server/validation.ts`)
 
-| Schema                | Key fields                                                      |
-|-----------------------|-----------------------------------------------------------------|
+| Schema                | Key fields                                                        |
+| --------------------- | ----------------------------------------------------------------- |
 | `createCommentSchema` | url, username (max 32), password (min 4), text (1–200), parentId? |
-| `editCommentSchema`   | text (1–200), password (min 1)                                  |
-| `voteSchema`          | voteType: `'up'`\|`'down'`                                      |
-| `likeSchema`          | url                                                             |
-| `replySchema`         | reply (max 1000)                                                |
-| `banSchema`           | commentId (Convex id), reason? (max 500)                        |
+| `editCommentSchema`   | text (1–200), password (min 1)                                    |
+| `voteSchema`          | voteType: `'up'`\|`'down'`                                        |
+| `likeSchema`          | url                                                               |
+| `replySchema`         | reply (max 1000)                                                  |
+| `banSchema`           | commentId (Convex id), reason? (max 500)                          |
 
 ---
 
@@ -191,11 +191,11 @@ Edit `convex/schema.js` and run `npx convex dev` (or `npx convex deploy` for pro
 
 ## Environment Variables
 
-| Variable              | Used in                                                                 |
-|-----------------------|-------------------------------------------------------------------------|
-| `PUBLIC_CONVEX_URL`   | Convex client — both browser (root layout) and server-side HTTP client  |
-| `ADMIN_SECRET`        | Admin auth (header + cookie + Convex bypass) — must match Convex env    |
-| `CONVEX_DEPLOY_KEY`   | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically. |
+| Variable            | Used in                                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `PUBLIC_CONVEX_URL` | Convex client — both browser (root layout) and server-side HTTP client                         |
+| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                           |
+| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically. |
 
 <!-- convex-ai-start -->
 

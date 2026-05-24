@@ -67,10 +67,18 @@
 
 /* Vote button pop */
 @keyframes vote-pop {
-	0%   { transform: scale(1); }
-	40%  { transform: scale(1.25); }
-	70%  { transform: scale(0.9); }
-	100% { transform: scale(1); }
+	0% {
+		transform: scale(1);
+	}
+	40% {
+		transform: scale(1.25);
+	}
+	70% {
+		transform: scale(0.9);
+	}
+	100% {
+		transform: scale(1);
+	}
 }
 
 .vote-pop {
@@ -79,9 +87,17 @@
 
 /* Like button heart confetti */
 @keyframes heart-particle {
-	0%   { transform: translate(0, 0) scale(0) rotate(var(--r)); opacity: 1; }
-	20%  { opacity: 1; }
-	100% { transform: translate(var(--tx), var(--ty)) scale(var(--s)) rotate(var(--r)); opacity: 0; }
+	0% {
+		transform: translate(0, 0) scale(0) rotate(var(--r));
+		opacity: 1;
+	}
+	20% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate(var(--tx), var(--ty)) scale(var(--s)) rotate(var(--r));
+		opacity: 0;
+	}
 }
 
 .heart-particle {
@@ -92,31 +108,29 @@
 
 /* Shimmer for skeletons / marquee tracks */
 @keyframes shimmer {
-	0%   { background-position: -200% 0; }
-	100% { background-position: 200% 0; }
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
 }
 
 .shimmer {
-	background-image: linear-gradient(
-		90deg,
-		transparent 0%,
-		rgba(255, 255, 255, 0.06) 50%,
-		transparent 100%
-	),
-	linear-gradient(var(--color-neutral-200), var(--color-neutral-200));
-	background-size: 200% 100%, 100% 100%;
+	background-image:
+		linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.06) 50%, transparent 100%),
+		linear-gradient(var(--color-neutral-200), var(--color-neutral-200));
+	background-size:
+		200% 100%,
+		100% 100%;
 	background-repeat: no-repeat;
 	animation: shimmer 1.6s var(--ease-out-soft) infinite;
 }
 
 .dark .shimmer {
-	background-image: linear-gradient(
-		90deg,
-		transparent 0%,
-		rgba(255, 255, 255, 0.05) 50%,
-		transparent 100%
-	),
-	linear-gradient(var(--color-neutral-800), var(--color-neutral-800));
+	background-image:
+		linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%),
+		linear-gradient(var(--color-neutral-800), var(--color-neutral-800));
 }
 
 /* Tabular numerals for metrics, dates, counters */
@@ -160,14 +174,16 @@
    Transition only after first positioning (.nav-animate) so it doesn't
    blink in from its empty initial state on load. */
 .nav-indicator.nav-animate {
-	transition: transform var(--motion-base) var(--ease-out-soft),
+	transition:
+		transform var(--motion-base) var(--ease-out-soft),
 		width var(--motion-base) var(--ease-out-soft),
 		opacity var(--motion-fast) ease;
 }
 
 /* Active-colored label layer clipped to the sliding pill (slides in sync). */
 .nav-clip.nav-animate {
-	transition: clip-path var(--motion-base) var(--ease-out-soft),
+	transition:
+		clip-path var(--motion-base) var(--ease-out-soft),
 		opacity var(--motion-fast) ease;
 }
 
@@ -176,7 +192,7 @@
   Extracted from blog/[slug] and projects/[slug] so both stay in sync.
 */
 @utility prose-post {
-	@apply prose prose-neutral dark:prose-invert max-w-none mx-auto;
+	@apply prose prose-neutral dark:prose-invert mx-auto max-w-none;
 	@apply prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed prose-p:font-normal;
 	@apply prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight;
 	@apply prose-h2:font-semibold prose-h2:tracking-tight;
@@ -185,7 +201,6 @@
 	@apply hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300;
 	@apply prose-img:mx-auto prose-img:cursor-zoom-in;
 }
-
 
 @utility prose {
 	& :where(iframe):not(:where([class~='not-prose'] *)) {

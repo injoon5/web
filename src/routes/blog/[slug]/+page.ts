@@ -2,12 +2,12 @@
 // is applied on the server — the first byte is the right language, no flash.
 export const prerender = false;
 
-import { error } from "@sveltejs/kit";
+import { error } from '@sveltejs/kit';
 
-const enModules = import.meta.glob("../posts/en/*.md");
-const koModules = import.meta.glob("../posts/ko/*.md");
+const enModules = import.meta.glob('../posts/en/*.md');
+const koModules = import.meta.glob('../posts/ko/*.md');
 
-const slugFromPath = (p) => p.split("/").at(-1)?.replace(".md", "") ?? "";
+const slugFromPath = (p) => p.split('/').at(-1)?.replace('.md', '') ?? '';
 
 export async function load({ params, data }) {
 	const enKey = `../posts/en/${params.slug}.md`;
@@ -26,12 +26,10 @@ export async function load({ params, data }) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
-	const seriesNames = new Set(
-		[enPost?.metadata?.series, koPost?.metadata?.series].filter(Boolean)
-	);
+	const seriesNames = new Set([enPost?.metadata?.series, koPost?.metadata?.series].filter(Boolean));
 
-	let enSeries = [];
-	let koSeries = [];
+	const enSeries = [];
+	const koSeries = [];
 
 	if (seriesNames.size > 0) {
 		// Walk both globs once, load only modules that might belong to the series
@@ -60,10 +58,7 @@ export async function load({ params, data }) {
 		});
 
 		const dateOf = (m) => (m ? new Date(m.date).getTime() : 0);
-		matched.sort(
-			(a, b) =>
-				dateOf(b.eMeta ?? b.kMeta) - dateOf(a.eMeta ?? a.kMeta)
-		);
+		matched.sort((a, b) => dateOf(b.eMeta ?? b.kMeta) - dateOf(a.eMeta ?? a.kMeta));
 
 		for (const { eMeta, kMeta } of matched) {
 			enSeries.push(eMeta ?? kMeta);
@@ -71,10 +66,7 @@ export async function load({ params, data }) {
 		}
 	}
 
-	const availableLangs = [
-		...(koPost ? ["ko"] : []),
-		...(enPost ? ["en"] : []),
-	];
+	const availableLangs = [...(koPost ? ['ko'] : []), ...(enPost ? ['en'] : [])];
 
 	return {
 		enContent: enPost?.default ?? null,
@@ -87,6 +79,6 @@ export async function load({ params, data }) {
 		availableLangs,
 		enReadingTime: enPost?.metadata?.readingTime ?? null,
 		koReadingTime: koPost?.metadata?.readingTime ?? null,
-		prefLang: data?.prefLang ?? null,
+		prefLang: data?.prefLang ?? null
 	};
 }
