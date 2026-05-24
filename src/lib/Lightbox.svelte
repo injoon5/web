@@ -34,6 +34,21 @@
 	// Focus trap bookkeeping
 	let previouslyFocused = null;
 
+	// Viewport size — used to reserve the image box before the src loads,
+	// which prevents a layout shift when the image arrives after the open.
+	let winW = typeof window !== 'undefined' ? window.innerWidth : 0;
+	let winH = typeof window !== 'undefined' ? window.innerHeight : 0;
+
+	// Displayed size, computed the same way object-fit: contain would, but
+	// from the known natural dimensions so the box has its final size up front.
+	$: fit = (() => {
+		if (!naturalWidth || !naturalHeight || !winW || !winH) return null;
+		const availW = winW - 32; // 1rem padding each side
+		const availH = winH - 96; // matches max-height: calc(100dvh - 6rem)
+		const scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
+		return { w: Math.round(naturalWidth * scale), h: Math.round(naturalHeight * scale) };
+	})();
+
 	$: {
 		const val = $lightboxStore;
 		if (val) {
@@ -208,7 +223,7 @@
 	$: liveScale = pinching ? pinchScale : committedScale;
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window on:keydown={handleKeydown} bind:innerWidth={winW} bind:innerHeight={winH} />
 
 {#if visible}
 	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -266,7 +281,7 @@
 					{alt}
 					class="lb-img"
 					class:zoomed
-					style="{!zoomed && naturalWidth ? `max-width: min(100%, ${naturalWidth}px); max-height: min(calc(100dvh - 6rem), ${naturalHeight}px);` : ''} transform: scale({liveScale}); transition: {pinching ? 'none' : ''};"
+					style="{!zoomed && fit ? `width: ${fit.w}px; height: ${fit.h}px;` : ''} transform: scale({liveScale}); transition: {pinching ? 'none' : ''};"
 					on:click={toggleZoom}
 					draggable="false"
 				/>
@@ -408,6 +423,8 @@
 			0 0 0 1px rgba(255, 255, 255, 0.06);
 		transition:
 			transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+			width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+			height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
 			max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1),
 			max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 		user-select: none;
