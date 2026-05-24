@@ -178,11 +178,7 @@
 				{/key}
 			</div>
 			<div class="mt-3 flex flex-wrap items-center gap-2">
-				<span
-					class="text-sm font-medium tracking-widest text-neutral-400 uppercase dark:text-neutral-600"
-				>
-					Stack
-				</span>
+				<span class="text-sm text-neutral-600 dark:text-neutral-400">Stack</span>
 				{#each currentMeta.tags as tag}
 					<span
 						class="inline-flex items-center rounded-full border border-neutral-200 px-2.5 py-1 text-sm font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300"
