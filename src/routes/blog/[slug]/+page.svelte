@@ -129,7 +129,7 @@
 				</div>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<span class="tabular"><NumberFlow value={readingMinutes} /> min read</span>
+					<NumberFlow value={readingMinutes} suffix=" min read" />
 				{/if}
 			</div>
 			{#if data.availableLangs.length > 1}
