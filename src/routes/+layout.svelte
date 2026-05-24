@@ -76,6 +76,7 @@
 
 <svelte:head>
 	<link rel="canonical" href="https://www.injoon5.com{$page.url.pathname}" />
+	<meta property="og:site_name" content="Injoon Oh" />
 </svelte:head>
 
 <div class="sticky top-0 z-30 transition-colors duration-200">

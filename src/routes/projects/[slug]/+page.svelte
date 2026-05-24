@@ -13,7 +13,7 @@
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
 	$: currentReadingTime = (lang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
-	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
+	$: ogImageUrl = `https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(data.meta.title)}&description=${encodeURIComponent(data.meta.description || '')}&year=${encodeURIComponent(data.meta.year || '')}&tags=${encodeURIComponent((data.meta.tags || []).join(','))}`;
 
 	// Animated language toggle pill
 	/** @type {Record<string, HTMLButtonElement>} */
@@ -49,6 +49,8 @@
 	<meta property="og:title" content={data.meta.title} />
 	<meta property="og:description" content={currentMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:image" content={ogImageUrl} />
 	<meta property="og:url" content="https://www.injoon5.com/projects/{$page.params.slug}" />
 </svelte:head>
 
