@@ -112,7 +112,7 @@
 	$: currentReadingTime = (displayLang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
 	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
 	$: currentSeries = displayLang === 'ko' ? data.koSeries : data.enSeries;
-	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
+	$: ogImageUrl = `https://www.injoon5.com/api/og?template=blog-post&title=${encodeURIComponent(data.meta.title)}&description=${encodeURIComponent(data.meta.description || '')}&date=${encodeURIComponent(data.meta.date || '')}`;
 
 	// Animated language toggle — measure each button's rect to slide a pill behind the active one.
 	/** @type {Record<string, HTMLButtonElement>} */
@@ -149,6 +149,8 @@
 	<meta property="og:title" content={data.meta.title} />
 	<meta property="og:description" content={data.meta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:image" content={ogImageUrl} />
 	<meta property="og:url" content="https://www.injoon5.com/blog/{$page.params.slug}" />
 </svelte:head>
 

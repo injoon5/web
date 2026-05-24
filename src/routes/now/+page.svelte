@@ -100,6 +100,12 @@
 <svelte:head>
 	<title>Now — Injoon Oh</title>
 	<meta name="description" content="What Injoon Oh is doing now." />
+	<meta property="og:title" content="Now — Injoon Oh" />
+	<meta property="og:description" content="What Injoon Oh is doing now." />
+	<meta property="og:image" content="https://www.injoon5.com/api/og?template=now" />
+	<meta property="og:url" content="https://www.injoon5.com/now" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=now" />
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">

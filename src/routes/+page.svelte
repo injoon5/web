@@ -78,10 +78,9 @@
 	<meta property="og:title" content="Injoon Oh" />
 	<meta name="description" content="A student who is interested in math, science, and computers." />
 	<meta property="og:description" content="A student who is interested in math, science, and computers." />
-	<meta
-		property="og:image"
-		content="https://og.ij5.dev/api/og/?title=injoon5.com&subheading=Injoon+Oh"
-	/>
+	<meta property="og:image" content="https://www.injoon5.com/api/og?template=home" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=home" />
 
 	<meta property="og:url" content="https://www.injoon5.com/" />
 </svelte:head>
