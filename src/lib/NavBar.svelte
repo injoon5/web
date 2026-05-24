@@ -1,11 +1,14 @@
 <script>
 	import { page } from '$app/state';
 	import { createWebHaptics } from 'web-haptics/svelte';
-	import { onDestroy } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { heroNameVisible } from '$lib/heroNav.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
+
+	let mounted = $state(false);
+	onMount(() => { mounted = true; });
 
 	const navItems = [
 		{ label: 'projects', href: '/projects' },
@@ -34,9 +37,9 @@
 	>
 		<span class="relative inline-block">
 			<span
-				class="block font-sans text-2xl font-medium tracking-tight transition-[opacity,filter,transform] duration-200 ease-out
-				{showName ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}
-				will-change-auto group-hover:opacity-0 group-hover:blur-sm"
+				class="block font-sans text-2xl font-medium tracking-tight will-change-auto group-hover:opacity-0 group-hover:blur-sm
+				{mounted ? 'transition-[opacity,filter,transform] duration-200 ease-out' : ''}
+				{showName ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}"
 			>
 				Injoon Oh
 			</span>

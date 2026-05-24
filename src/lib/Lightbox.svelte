@@ -1,5 +1,5 @@
 <script>
-	import { lightboxStore } from './lightbox.js';
+	import { lightboxStore, MAX_LIGHTBOX_HEIGHT } from './lightbox.js';
 	import { onDestroy } from 'svelte';
 
 	let visible = false;
@@ -43,7 +43,7 @@
 	$: fit = (() => {
 		if (!naturalWidth || !naturalHeight || !winW || !winH) return null;
 		const availW = winW - 32; // 1rem padding each side
-		const availH = winH - 96; // matches max-height: calc(100dvh - 6rem)
+		const availH = Math.min(winH - 96, MAX_LIGHTBOX_HEIGHT); // viewport cap + max vertical size
 		const scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
 		return { w: Math.round(naturalWidth * scale), h: Math.round(naturalHeight * scale) };
 	})();
@@ -253,6 +253,7 @@
 		class="lb-backdrop"
 		class:closing
 		class:swipe-dismissing={swipeDismissing}
+		style="--lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
 		role="dialog"
 		aria-modal="true"
 		aria-label={alt || 'Image preview'}
@@ -265,22 +266,6 @@
 		on:touchcancel={onTouchCancel}
 		on:wheel={onWheel}
 	>
-		<!-- Close button -->
-		<button bind:this={closeBtn} class="lb-close" on:click={close} aria-label="Close image">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<line x1="18" y1="6" x2="6" y2="18" />
-				<line x1="6" y1="6" x2="18" y2="18" />
-			</svg>
-		</button>
-
 		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
 		<div
 			class="lb-drag-wrapper"
@@ -315,6 +300,24 @@
 				{/if}
 			</div>
 		</div>
+
+		<!-- Chrome layer — stays above transformed image content -->
+		<div class="lb-chrome">
+			<button bind:this={closeBtn} class="lb-close" on:click={close} aria-label="Close image">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<line x1="18" y1="6" x2="6" y2="18" />
+					<line x1="6" y1="6" x2="18" y2="18" />
+				</svg>
+			</button>
+		</div>
 	</div>
 {/if}
 
@@ -331,6 +334,7 @@
 		-webkit-backdrop-filter: blur(6px);
 		padding: 1rem;
 		animation: lb-fade-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+		will-change: opacity;
 		cursor: zoom-out;
 		touch-action: none;
 	}
@@ -361,6 +365,22 @@
 		}
 	}
 
+	.lb-drag-wrapper {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		max-width: 100%;
+		max-height: 100%;
+		will-change: transform;
+	}
+
+	.lb-chrome {
+		position: fixed;
+		inset: 0;
+		z-index: 2;
+		pointer-events: none;
+	}
+
 	.lb-close {
 		position: fixed;
 		top: 1rem;
@@ -371,18 +391,21 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 9999px;
-		background: rgba(255, 255, 255, 0.12);
+		background: rgba(0, 0, 0, 0.55);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
 		color: white;
 		border: none;
 		cursor: pointer;
+		pointer-events: auto;
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 		transition:
 			background-color 0.15s ease,
 			transform 0.15s ease;
-		z-index: 10000;
 	}
 
 	.lb-close:hover {
-		background: rgba(255, 255, 255, 0.22);
+		background: rgba(0, 0, 0, 0.72);
 		transform: scale(1.05);
 	}
 
@@ -400,6 +423,7 @@
 		display: flex;
 		max-width: 100%;
 		max-height: 100%;
+		will-change: transform;
 	}
 
 	.lb-img-wrap {
@@ -410,6 +434,7 @@
 		max-width: 100%;
 		max-height: 100%;
 		animation: lb-img-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+		will-change: transform, opacity;
 		cursor: zoom-in;
 	}
 
@@ -446,10 +471,11 @@
 
 	.lb-img {
 		max-width: 100%;
-		max-height: calc(100dvh - 6rem);
+		max-height: min(calc(100dvh - 6rem), var(--lb-max-height));
 		width: auto;
 		height: auto;
 		object-fit: contain;
+		will-change: transform;
 		border-radius: 0.375rem;
 		box-shadow:
 			0 25px 60px rgba(0, 0, 0, 0.5),

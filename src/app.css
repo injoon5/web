@@ -192,14 +192,14 @@
   Extracted from blog/[slug] and projects/[slug] so both stay in sync.
 */
 @utility prose-post {
-	@apply prose prose-neutral dark:prose-invert mx-auto max-w-none;
+	@apply prose prose-neutral dark:prose-invert mx-auto max-w-none min-w-0;
 	@apply prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed prose-p:font-normal;
 	@apply prose-h1:font-semibold prose-h1:text-3xl prose-h1:tracking-tight;
 	@apply prose-h2:font-semibold prose-h2:tracking-tight;
 	@apply prose-h3:tracking-tight prose-h4:tracking-tight;
 	@apply prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1;
 	@apply hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300;
-	@apply prose-img:mx-auto prose-img:h-auto prose-img:max-w-full prose-img:cursor-zoom-in;
+	@apply prose-img:mx-auto prose-img:h-auto prose-img:w-auto prose-img:max-w-full prose-img:max-h-[min(70vh,900px)] prose-img:cursor-zoom-in;
 }
 
 @utility prose {
@@ -211,6 +211,31 @@
 /* =========================
    Prose / Code Styling
    ========================= */
+
+/* Mdsvex content is nested: .prose-post > .prose */
+.prose-post > :where(.prose) {
+	@apply min-w-0;
+}
+
+/* Fenced blocks — bounded width + scroll wide content inside */
+:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure]) {
+	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
+}
+
+:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure] pre) {
+	@apply w-max max-w-none min-w-full;
+}
+
+/* Plain ``` fences if not wrapped in a figure */
+:is(.prose, .prose-post) :where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre)) {
+	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
+}
+
+:is(.prose, .prose-post)
+	:where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre))
+	> :where(code) {
+	@apply block w-max min-w-full;
+}
 
 .prose code[data-line-numbers] {
 	counter-reset: line;
@@ -275,7 +300,7 @@
 }
 
 :is(.prose, .prose-post) :not(pre) > code {
-	@apply rounded-md border border-neutral-200/80 bg-neutral-100/90 box-decoration-clone px-[0.4em] py-px font-mono text-[0.85em] leading-snug font-normal text-neutral-800 [-webkit-box-decoration-break:clone] dark:border-neutral-700/60 dark:bg-neutral-800/90 dark:text-neutral-200;
+	@apply rounded-md border border-neutral-200/80 bg-neutral-100/90 box-decoration-clone px-[0.4em] py-px font-mono text-[0.85em] leading-snug font-normal wrap-anywhere text-neutral-800 [-webkit-box-decoration-break:clone] dark:border-neutral-700/60 dark:bg-neutral-800/90 dark:text-neutral-200;
 }
 
 :is(.prose, .prose-post) a:has(> code) {
