@@ -156,15 +156,17 @@
 	animation: toast-in 0.22s var(--ease-out-soft) both;
 }
 
-/* Animated underline for active nav indicator (sliding pill) */
-.nav-indicator {
+/* Animated underline for active nav indicator (sliding pill).
+   Transition only after first positioning (.nav-animate) so it doesn't
+   blink in from its empty initial state on load. */
+.nav-indicator.nav-animate {
 	transition: transform var(--motion-base) var(--ease-out-soft),
 		width var(--motion-base) var(--ease-out-soft),
 		opacity var(--motion-fast) ease;
 }
 
 /* Active-colored label layer clipped to the sliding pill (slides in sync). */
-.nav-clip {
+.nav-clip.nav-animate {
 	transition: clip-path var(--motion-base) var(--ease-out-soft),
 		opacity var(--motion-fast) ease;
 }

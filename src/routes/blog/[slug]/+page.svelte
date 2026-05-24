@@ -21,11 +21,16 @@
 	// Direction of the language swap, used to slide content the right way.
 	let dir = 1;
 	let reduceMotion = false;
+	// Stays false until after the initial (possibly localStorage-restored) language
+	// is applied, so that first paint and that restore don't animate.
+	let mounted = false;
 
-	onMount(() => {
+	onMount(async () => {
 		const saved = localStorage.getItem('preferred-lang');
 		if (saved && data.availableLangs.includes(saved)) lang = saved;
 		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		await tick();
+		mounted = true;
 	});
 
 	function setLang(l) {
@@ -37,10 +42,11 @@
 
 	let bodyWidth = 0;
 
-	$: titleBlur = { amount: 8, opacity: 0, duration: reduceMotion ? 0 : 420, easing: cubicOut };
+	$: animate = mounted && !reduceMotion;
+	$: titleBlur = { amount: 8, opacity: 0, duration: animate ? 420 : 0, easing: cubicOut };
 	// Both directions share duration + easing so the panels stay a constant gap apart while sliding.
-	$: bodyIn = { x: dir * (bodyWidth + 32), opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
-	$: bodyOut = { x: -dir * (bodyWidth + 32), opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
+	$: bodyIn = { x: dir * (bodyWidth + 32), opacity: 1, duration: animate ? 440 : 0, easing: cubicOut };
+	$: bodyOut = { x: -dir * (bodyWidth + 32), opacity: 1, duration: animate ? 440 : 0, easing: cubicOut };
 
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
@@ -138,6 +144,7 @@
 				>
 					<span
 						class="nav-indicator pointer-events-none absolute top-1 bottom-1 left-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
+						class:nav-animate={mounted}
 						style={pillStyle || 'opacity:0;'}
 						aria-hidden="true"
 					></span>
@@ -152,6 +159,7 @@
 					{/each}
 					<div
 						class="nav-clip pointer-events-none absolute inset-0 z-20 flex items-center gap-1 p-1"
+						class:nav-animate={mounted}
 						style={clipStyle || 'clip-path: inset(4px 100% 4px 0 round 9999px);'}
 						aria-hidden="true"
 					>

@@ -2,14 +2,17 @@
 import { page } from "$app/stores";
 import { blur } from 'svelte/transition';
 import { cubicOut } from 'svelte/easing';
-import { onMount } from 'svelte';
+import { onMount, tick } from 'svelte';
 export let series;
 
 let reduceMotion = false;
-onMount(() => {
+let mounted = false;
+onMount(async () => {
 	reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	await tick();
+	mounted = true;
 });
-$: bf = { amount: 8, opacity: 0, duration: reduceMotion ? 0 : 420, easing: cubicOut };
+$: bf = { amount: 8, opacity: 0, duration: mounted && !reduceMotion ? 420 : 0, easing: cubicOut };
 </script>
 
 <div
