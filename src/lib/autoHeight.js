@@ -50,7 +50,7 @@ export function autoHeight(node, params = {}) {
 		node.style.transition = 'none';
 		node.style.height = `${from}px`;
 		node.offsetHeight;
-		node.style.transition = `height ${duration}ms cubic-bezier(0, 0, 0.58, 1)`;
+		node.style.transition = `height ${duration}ms cubic-bezier(0.215, 0.61, 0.355, 1)`;
 		node.style.height = `${next}px`;
 		initialized = true;
 	}
