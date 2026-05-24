@@ -168,22 +168,9 @@
 		scrollbar-width: none;
 		gap: 0;
 		margin-bottom: 0.75rem;
-		/* Bleed-fade on the right so truncation is obvious */
-		-webkit-mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent 100%);
-		mask-image: linear-gradient(to right, black calc(100% - 2rem), transparent 100%);
 	}
 
 	.ts-tabs::-webkit-scrollbar { display: none; }
-
-	/* Remove fade when all tabs fit */
-	@media (min-width: 640px) {
-		.ts-tabs {
-			flex-wrap: wrap;
-			overflow-x: visible;
-			-webkit-mask-image: none;
-			mask-image: none;
-		}
-	}
 
 	.ts-tab {
 		flex-shrink: 0;
