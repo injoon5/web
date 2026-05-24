@@ -3,11 +3,25 @@ import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin';
-import { editCommentSchema } from '$lib/server/validation';
+import { editCommentSchema, deleteCommentSchema } from '$lib/server/validation';
 import { getClientIp, hashIp } from '$lib/server/ip';
 import { runConvex, handleConvexErr } from '$lib/server/api';
 import { ADMIN_SECRET } from '$env/static/private';
-import bcrypt from 'bcryptjs';
+
+async function requireCommentPassword(commentId: string, password: string) {
+	let result;
+	try {
+		result = await convex.action(api.commentActions.verifyCommentPassword, {
+			commentId,
+			password
+		});
+	} catch (err) {
+		return handleConvexErr(err);
+	}
+	if (result.reason === 'not_found') throw error(404, 'Comment not found');
+	if (!result.valid) throw error(401, 'Incorrect password');
+	return null;
+}
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	const ipHash = hashIp(getClientIp(request));
@@ -23,16 +37,10 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 	const { text, password } = parsed.data;
 
-	let auth;
-	try {
-		auth = await convex.query(api.comments.getForAuth, { commentId: params.id });
-	} catch (err) {
-		return handleConvexErr(err);
+	if (!admin) {
+		const authErr = await requireCommentPassword(params.id, password);
+		if (authErr) return authErr;
 	}
-	if (!auth || auth.deletedAt !== null) throw error(404, 'Comment not found');
-
-	const passwordMatch = await bcrypt.compare(password, auth.passwordHash);
-	if (!passwordMatch) throw error(401, 'Incorrect password');
 
 	return runConvex(
 		() =>
@@ -51,26 +59,17 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	const admin = verifyAdminSecret(request);
 
 	if (!admin) {
-		let raw: { password?: unknown };
+		let raw;
 		try {
 			raw = await request.json();
 		} catch {
 			throw error(400, 'Invalid request body');
 		}
-		const password = typeof raw?.password === 'string' ? raw.password : null;
-		if (!password || password.length < 4)
-			throw error(400, 'Password must be at least 4 characters');
+		const parsed = deleteCommentSchema.safeParse(raw);
+		if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 
-		let auth;
-		try {
-			auth = await convex.query(api.comments.getForAuth, { commentId: params.id });
-		} catch (err) {
-			return handleConvexErr(err);
-		}
-		if (!auth || auth.deletedAt !== null) throw error(404, 'Comment not found');
-
-		const passwordMatch = await bcrypt.compare(password, auth.passwordHash);
-		if (!passwordMatch) throw error(401, 'Incorrect password');
+		const authErr = await requireCommentPassword(params.id, parsed.data.password);
+		if (authErr) return authErr;
 	}
 
 	if (admin) {

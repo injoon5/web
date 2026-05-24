@@ -2,14 +2,7 @@ import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
 import { isAdmin } from './lib/auth.js';
-
-async function isBanned(ctx, ipHash) {
-	const ban = await ctx.db
-		.query('bannedIps')
-		.withIndex('by_ip', (q) => q.eq('ipHash', ipHash))
-		.unique();
-	return ban !== null;
-}
+import { isBanned } from './lib/bans.js';
 
 async function aggregate(ctx, url, ipHash) {
 	const rows = await ctx.db

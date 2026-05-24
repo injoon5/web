@@ -1,4 +1,5 @@
 import { redirect, fail } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import type { Actions, PageServerLoad } from './$types';
 import { ADMIN_SECRET } from '$env/static/private';
 import { secretsMatch } from '$lib/server/admin';
@@ -25,6 +26,7 @@ export const actions = {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'strict',
+			secure: !dev,
 			maxAge: 60 * 60 * 24
 		});
 

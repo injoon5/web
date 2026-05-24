@@ -21,6 +21,10 @@ export const editCommentSchema = z.object({
 	password: z.string().min(4, 'Password must be at least 4 characters')
 });
 
+export const deleteCommentSchema = z.object({
+	password: z.string().min(4, 'Password must be at least 4 characters')
+});
+
 export const voteSchema = z.object({
 	voteType: z.enum(['up', 'down'])
 });

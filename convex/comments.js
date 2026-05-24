@@ -1,19 +1,12 @@
 import { ConvexError, v } from 'convex/values';
-import { mutation, query } from './_generated/server.js';
+import { internalQuery, mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
 import { assertAdmin, isAdmin } from './lib/auth.js';
+import { isBanned } from './lib/bans.js';
 import { publicComment } from './lib/serialize.js';
 
 const MAX_DEPTH = 2;
 const MAX_COMMENTS = 200;
-
-async function isBanned(ctx, ipHash) {
-	const ban = await ctx.db
-		.query('bannedIps')
-		.withIndex('by_ip', (q) => q.eq('ipHash', ipHash))
-		.unique();
-	return ban !== null;
-}
 
 async function consumeRateLimit(ctx, name, ipHash) {
 	await limiter.limit(ctx, name, { key: ipHash, throws: true });
@@ -62,12 +55,12 @@ export const list = query({
 	}
 });
 
-export const getForAuth = query({
+export const getCommentAuth = internalQuery({
 	args: { commentId: v.id('comments') },
 	handler: async (ctx, { commentId }) => {
 		const doc = await ctx.db.get(commentId);
 		if (!doc) return null;
-		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt };
+		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt, ipHash: doc.ipHash };
 	}
 });
 
@@ -183,6 +176,10 @@ export const applyEdit = mutation({
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
+		if (!admin && comment.ipHash !== args.ipHash) {
+			throw new ConvexError({ kind: 'Unauthorized', message: 'Not allowed to edit this comment' });
+		}
+
 		const updatedAt = Date.now();
 		await ctx.db.patch(args.commentId, { text: args.text, updatedAt });
 		return { id: args.commentId, text: args.text, updatedAt };
@@ -202,6 +199,13 @@ export const softDelete = mutation({
 		const comment = await ctx.db.get(args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+		}
+
+		if (!admin && comment.ipHash !== args.ipHash) {
+			throw new ConvexError({
+				kind: 'Unauthorized',
+				message: 'Not allowed to delete this comment'
+			});
 		}
 
 		await ctx.db.patch(args.commentId, {

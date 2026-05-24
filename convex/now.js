@@ -5,8 +5,7 @@ import { assertAdmin } from './lib/auth.js';
 export const get = query({
 	args: {},
 	handler: async (ctx) => {
-		const docs = await ctx.db.query('nowPage').take(1);
-		return docs[0] ?? null;
+		return await ctx.db.query('nowPage').first();
 	}
 });
 
@@ -17,9 +16,9 @@ export const update = mutation({
 	},
 	handler: async (ctx, args) => {
 		assertAdmin(args.adminSecret);
-		const docs = await ctx.db.query('nowPage').take(1);
-		if (docs.length > 0) {
-			await ctx.db.patch(docs[0]._id, {
+		const existing = await ctx.db.query('nowPage').first();
+		if (existing) {
+			await ctx.db.patch(existing._id, {
 				content: args.content,
 				updatedAt: Date.now()
 			});

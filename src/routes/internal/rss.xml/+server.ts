@@ -3,6 +3,7 @@ export const prerender = true;
 import { create } from 'xmlbuilder2';
 import fs from 'fs';
 import path from 'path';
+import { parseFrontmatter } from '$lib/server/frontmatter.js';
 
 // Define the path to your blog posts directory
 const postsDir = path.resolve('src/routes/blog/posts/');
@@ -26,23 +27,14 @@ const getPosts = () => {
 			const content = fs.readFileSync(file, 'utf-8');
 			const match = /---\s*([\s\S]+?)\s*---/.exec(content);
 			if (match) {
-				const frontmatter = match[1];
-				const meta = Object.fromEntries(
-					frontmatter
-						.split('\n')
-						.filter((line) => line.includes(':'))
-						.map((line) => {
-							const [key, value] = line.split(':');
-							return [key.trim(), value.replace(/['"]/g, '').trim()];
-						})
-				);
+				const meta = parseFrontmatter(match[1]);
 
 				meta.slug = path.basename(file, '.md');
 				meta.content = content.replace(/---[\s\S]+?---/, ''); // Remove frontmatter
 				return meta;
 			}
 		})
-		.filter((post) => post && post.published === 'true');
+		.filter((post) => post && post.published === true);
 };
 
 // Function to clean up content by stripping non-text elements (e.g., images, embeds)

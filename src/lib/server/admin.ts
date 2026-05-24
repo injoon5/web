@@ -1,11 +1,10 @@
-import { timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { ADMIN_SECRET } from '$env/static/private';
 
 export function secretsMatch(candidate: string): boolean {
 	if (!ADMIN_SECRET) return false;
-	const a = Buffer.from(candidate);
-	const b = Buffer.from(ADMIN_SECRET);
-	if (a.length !== b.length) return false;
+	const a = createHmac('sha256', ADMIN_SECRET).update(candidate).digest();
+	const b = createHmac('sha256', ADMIN_SECRET).update(ADMIN_SECRET).digest();
 	return timingSafeEqual(a, b);
 }
 
