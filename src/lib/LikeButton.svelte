@@ -28,6 +28,7 @@
 	let likeErrorTimer = null;
 	let particles = $state([]);
 	let particleId = 0;
+	let mutationResult = $state(null);
 
 	// Pathname of the most recent fresh (non-stale) result, so we can tell
 	// whether retained stale data still applies to the current page (an ipHash
@@ -38,6 +39,21 @@
 	});
 
 	const path = $derived($page.url.pathname);
+	$effect(() => {
+		if (mutationResult && mutationResult.url !== path) mutationResult = null;
+	});
+	$effect(() => {
+		if (
+			mutationResult &&
+			mutationResult.url === path &&
+			query.data &&
+			!query.isStale &&
+			dataUrl === path &&
+			query.data.liked === mutationResult.liked
+		) {
+			mutationResult = null;
+		}
+	});
 	// The count is independent of the visitor's hash, so retained same-URL data
 	// is still correct; only data carried over from another URL must be hidden.
 	const countApplies = $derived(!query.isStale || dataUrl === path);
@@ -45,15 +61,23 @@
 	// subscription holds fresh data for the current page.
 	const likedReady = $derived($hashReal && !query.isStale && !!query.data && dataUrl === path);
 
-	const likeCount = $derived(countApplies ? (query.data?.count ?? 0) : 0);
-	const isLiked = $derived(likedReady ? query.data.liked : false);
-	const showCount = $derived(countApplies && !!query.data);
+	const currentMutationResult = $derived(mutationResult?.url === path ? mutationResult : null);
+	const likeCount = $derived(
+		currentMutationResult
+			? currentMutationResult.count
+			: countApplies
+				? (query.data?.count ?? 0)
+				: 0
+	);
+	const isLiked = $derived(
+		currentMutationResult ? currentMutationResult.liked : likedReady ? query.data.liked : false
+	);
+	const showCount = $derived(!!currentMutationResult || (countApplies && !!query.data));
 	// Allow clicks once liked is trustworthy, or once we've attempted the hash
 	// fetch and it failed (so a broken /api/ip-hash doesn't disable the button
 	// forever — the toggle itself is computed from the real IP server-side).
 	const interactive = $derived(
-		countApplies &&
-			(likedReady || ($hashAttempted && !$hashReal && !query.isStale && !!query.data))
+		countApplies && (likedReady || ($hashAttempted && !$hashReal && !query.isStale && !!query.data))
 	);
 	const busy = $derived(!interactive || toggling);
 
@@ -97,6 +121,11 @@
 			});
 			if (res.ok) {
 				const data = await res.json();
+				mutationResult = {
+					url: $page.url.pathname,
+					count: data.count,
+					liked: data.liked
+				};
 				if (data.liked) spawnHearts();
 			} else {
 				const data = await res.json().catch(() => ({}));
@@ -115,7 +144,7 @@
 		<span class="shimmer mr-2 inline-block h-6 w-16 rounded"></span>
 	{:else}
 		<span
-			class="mr-2 inline-flex items-baseline text-lg text-neutral-900 dark:text-neutral-100 tabular"
+			class="tabular mr-2 inline-flex items-baseline text-lg text-neutral-900 dark:text-neutral-100"
 		>
 			<NumberFlow value={likeCount} trend={0} />
 			<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
@@ -126,7 +155,7 @@
 		<!-- Heart confetti particles -->
 		{#each particles as p (p.id)}
 			<span
-				class="heart-particle pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none text-rose-500"
+				class="heart-particle pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-rose-500 select-none"
 				style="--tx: {p.tx}px; --ty: {p.ty}px; --r: {p.rotate}deg; --s: {p.scale}; animation-delay: {p.delay}ms;"
 				aria-hidden="true"
 			>
@@ -143,7 +172,7 @@
 			   ease-out and duration-200 for animation
 			   will-change-[width,background-color,border-color,color,transform] for hinting 
 			*/
-			class="inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform,width] duration-200 ease-out active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-60 will-change-[width,background-color,border-color,color,transform]
+			class="inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform,width] duration-200 ease-out will-change-[width,background-color,border-color,color,transform] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60
 			{isLiked
 				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'
 				: 'border-neutral-200 bg-transparent text-neutral-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-rose-900/50 dark:hover:bg-rose-950/30 dark:hover:text-rose-300'}"
