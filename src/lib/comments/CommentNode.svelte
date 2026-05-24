@@ -228,25 +228,25 @@
 					disabled={voteDisabled}
 					aria-label="Downvote"
 					aria-pressed={myVote === 'down'}
-					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
 						{myVote === 'down'
 						? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
 						: 'bg-rose-100 text-rose-700 hover:bg-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/60'}"
 				>
 					{#if isVoting && votingAnim.side === 'down'}
-						<LoaderCircle size="14" class="animate-spin" aria-hidden="true" />
+						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 					{:else}
-						<ArrowDown size="14" strokeWidth="2.25" aria-hidden="true" />
+						<ArrowDown size="16" strokeWidth="2.25" aria-hidden="true" />
 					{/if}
 				</button>
 
 				<button
 					onclick={openEdit}
 					aria-label="Edit comment"
-					class="rounded-full p-1.5 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-neutral-900 active:scale-90 dark:text-neutral-400 dark:hover:text-neutral-100"
+					class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-neutral-900 active:scale-90 dark:text-neutral-400 dark:hover:text-neutral-100"
 				>
-					<Pencil size="14" strokeWidth="2" aria-hidden="true" />
+					<Pencil size="16" strokeWidth="2" aria-hidden="true" />
 				</button>
 
 				<button
