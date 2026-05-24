@@ -203,6 +203,45 @@
 					</div>
 				</div>
 			{/if}
+			{#if currentMeta.description}
+				<div class="mt-3 grid">
+					{#key displayLang}
+						<p
+							style="grid-area: 1 / 1;"
+							in:blurT={titleBlur}
+							out:blurT={titleBlur}
+							class="text-lg leading-snug font-medium text-balance text-neutral-500 dark:text-neutral-500"
+						>
+							{currentMeta.description}
+						</p>
+					{/key}
+				</div>
+			{/if}
+			{#if currentMeta.tags?.length}
+				<div class="mt-3 grid">
+					{#key displayLang}
+						<div
+							style="grid-area: 1 / 1;"
+							in:blurT={titleBlur}
+							out:blurT={titleBlur}
+							class="flex flex-wrap items-center gap-1.5"
+						>
+							<span
+								class="text-xs font-medium tracking-widest text-neutral-400 uppercase dark:text-neutral-600"
+							>
+								Stack
+							</span>
+							{#each currentMeta.tags as tag}
+								<span
+									class="inline-flex items-center rounded-full border border-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300"
+								>
+									{tag}
+								</span>
+							{/each}
+						</div>
+					{/key}
+				</div>
+			{/if}
 			<div class="my-4">
 				<LikeButton />
 			</div>
