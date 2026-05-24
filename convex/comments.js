@@ -4,29 +4,14 @@ import { limiter } from './rateLimits.js';
 import { assertAdmin, isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
 import { publicComment } from './lib/serialize.js';
+import { applyVoteChange, getVoteCounts } from './lib/votes.js';
+import { decrementUrlCount, incrementUrlCount } from './lib/urlCounts.js';
 
 const MAX_DEPTH = 2;
 const MAX_COMMENTS = 200;
 
 async function consumeRateLimit(ctx, name, ipHash) {
 	await limiter.limit(ctx, name, { key: ipHash, throws: true });
-}
-
-async function aggregateVotes(ctx, commentId, ipHash) {
-	const votes = await ctx.db
-		.query('commentVotes')
-		.withIndex('by_comment', (q) => q.eq('commentId', commentId))
-		.collect();
-
-	let upvotes = 0;
-	let downvotes = 0;
-	let myVote = null;
-	for (const v of votes) {
-		if (v.voteType === 'up') upvotes++;
-		else downvotes++;
-		if (ipHash && v.ipHash === ipHash) myVote = v.voteType;
-	}
-	return { upvotes, downvotes, myVote };
 }
 
 export const list = query({
@@ -41,7 +26,7 @@ export const list = query({
 
 		const enriched = await Promise.all(
 			active.map(async (doc) => {
-				const counts = await aggregateVotes(ctx, doc._id, ipHash);
+				const counts = await getVoteCounts(ctx, doc, ipHash);
 				return publicComment(doc, counts);
 			})
 		);
@@ -107,8 +92,12 @@ export const create = mutation({
 			depth,
 			reply: null,
 			updatedAt: null,
-			deletedAt: null
+			deletedAt: null,
+			upvotes: 0,
+			downvotes: 0
 		});
+
+		await incrementUrlCount(ctx, args.url);
 
 		const doc = await ctx.db.get(id);
 		return publicComment(doc, { upvotes: 0, downvotes: 0, myVote: null });
@@ -143,19 +132,21 @@ export const vote = mutation({
 			)
 			.unique();
 
+		const { upvotes, downvotes } = await applyVoteChange(
+			ctx,
+			comment,
+			existing,
+			args.voteType,
+			args.ipHash
+		);
+
+		let myVote = null;
 		if (existing && existing.voteType === args.voteType) {
-			await ctx.db.delete(existing._id);
-		} else if (existing) {
-			await ctx.db.patch(existing._id, { voteType: args.voteType });
+			myVote = null;
 		} else {
-			await ctx.db.insert('commentVotes', {
-				commentId: args.commentId,
-				ipHash: args.ipHash,
-				voteType: args.voteType
-			});
+			myVote = args.voteType;
 		}
 
-		const { upvotes, downvotes, myVote } = await aggregateVotes(ctx, args.commentId, args.ipHash);
 		return { upvotes, downvotes, myVote };
 	}
 });
@@ -235,7 +226,11 @@ export const hardDelete = mutation({
 
 		const now = Date.now();
 		for (const id of toDelete) {
-			// Delete all votes for this comment
+			const doc = await ctx.db.get(id);
+			if (doc?.deletedAt === null) {
+				await decrementUrlCount(ctx, doc.url);
+			}
+
 			const votes = await ctx.db
 				.query('commentVotes')
 				.withIndex('by_comment', (q) => q.eq('commentId', id))

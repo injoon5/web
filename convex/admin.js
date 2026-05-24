@@ -2,18 +2,32 @@ import { v } from 'convex/values';
 import { query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
 import { adminComment } from './lib/serialize.js';
+import { getVoteCounts } from './lib/votes.js';
 
 export const listUrls = query({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
 		assertAdmin(adminSecret);
 
-		const all = await ctx.db.query('comments').collect();
-		const counts = new Map();
-		for (const c of all) {
-			if (c.deletedAt !== null) continue;
-			counts.set(c.url, (counts.get(c.url) ?? 0) + 1);
+		const rows = await ctx.db.query('commentUrlCounts').collect();
+		if (rows.length > 0) {
+			return rows.map(({ url, count }) => ({ url, count })).sort((a, b) => b.count - a.count);
 		}
+
+		// Fallback until backfill populates commentUrlCounts (pre-migration data).
+		const counts = new Map();
+		let cursor = null;
+		do {
+			const batch = await ctx.db.query('comments').paginate({
+				numItems: 500,
+				cursor
+			});
+			for (const comment of batch.page) {
+				if (comment.deletedAt !== null) continue;
+				counts.set(comment.url, (counts.get(comment.url) ?? 0) + 1);
+			}
+			cursor = batch.isDone ? null : batch.continueCursor;
+		} while (cursor);
 
 		return Array.from(counts.entries())
 			.map(([url, count]) => ({ url, count }))
@@ -35,16 +49,7 @@ export const listForUrl = query({
 
 		const enriched = await Promise.all(
 			active.map(async (doc) => {
-				const votes = await ctx.db
-					.query('commentVotes')
-					.withIndex('by_comment', (q) => q.eq('commentId', doc._id))
-					.collect();
-				let upvotes = 0;
-				let downvotes = 0;
-				for (const v of votes) {
-					if (v.voteType === 'up') upvotes++;
-					else downvotes++;
-				}
+				const { upvotes, downvotes } = await getVoteCounts(ctx, doc, '');
 				return adminComment(doc, { upvotes, downvotes });
 			})
 		);

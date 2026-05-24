@@ -12,10 +12,17 @@ export default defineSchema({
 		depth: v.number(),
 		reply: v.union(v.string(), v.null()),
 		updatedAt: v.union(v.number(), v.null()),
-		deletedAt: v.union(v.number(), v.null())
+		deletedAt: v.union(v.number(), v.null()),
+		upvotes: v.optional(v.number()),
+		downvotes: v.optional(v.number())
 	})
 		.index('by_url', ['url'])
 		.index('by_parent', ['parentId']),
+
+	commentUrlCounts: defineTable({
+		url: v.string(),
+		count: v.number()
+	}).index('by_url', ['url']),
 
 	commentVotes: defineTable({
 		commentId: v.id('comments'),
