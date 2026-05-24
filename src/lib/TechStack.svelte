@@ -168,6 +168,7 @@
 				aria-controls="ts-panel"
 				tabindex={activeIndex === 'favorites' ? 0 : -1}
 				class="ts-tab"
+				style="font-size: 1rem;"
 				onclick={() => selectTab('favorites')}
 				onkeydown={(e) => onTabKeydown(e, -1, true)}
 			>
@@ -183,6 +184,7 @@
 					aria-controls="ts-panel"
 					tabindex={activeIndex === index ? 0 : -1}
 					class="ts-tab"
+					style="font-size: 1rem;"
 					onclick={() => selectTab(index)}
 					onkeydown={(e) => onTabKeydown(e, index, false)}
 				>
@@ -196,9 +198,9 @@
 				style:opacity={clipVisible ? 1 : 0}
 				aria-hidden="true"
 			>
-				<span class="ts-clip-item">Favorites</span>
+				<span class="ts-clip-item" style="font-size: 1rem;">Favorites</span>
 				{#each techstack as category}
-					<span class="ts-clip-item">{category.name}</span>
+					<span class="ts-clip-item" style="font-size: 1rem;">{category.name}</span>
 				{/each}
 			</div>
 		</div>
