@@ -193,13 +193,15 @@
 		: 'border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900'}"
 >
 	<!-- Header: username + vote/edit/delete -->
-	<div class="flex flex-row items-start justify-between">
-		<p class="font-semibold {isDeleted ? 'text-neutral-400 italic dark:text-neutral-600' : ''}">
+	<div class="flex flex-row items-center justify-between gap-2">
+		<p class="font-semibold leading-none {isDeleted ? 'text-neutral-400 italic dark:text-neutral-600' : ''}">
 			{comment.username}
 		</p>
-		<div class="flex items-center space-x-1.5">
+		<div class="flex shrink-0 items-center gap-1.5">
 			{#if !isDeleted}
-				<span class="tabular text-sm font-medium text-neutral-700 dark:text-neutral-300">
+				<span
+					class="min-w-[1.25rem] text-center text-sm leading-none font-medium text-neutral-700 tabular dark:text-neutral-300"
+				>
 					<NumberFlow value={comment.score} trend={0} />
 				</span>
 
@@ -208,11 +210,11 @@
 					disabled={voteDisabled}
 					aria-label="Upvote"
 					aria-pressed={myVote === 'up'}
-					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
 						{myVote === 'up'
-						? 'text-emerald-600 dark:text-emerald-400'
-						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
+						? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
+						: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
 				>
 					{#if isVoting && votingAnim.side === 'up'}
 						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
@@ -226,11 +228,11 @@
 					disabled={voteDisabled}
 					aria-label="Downvote"
 					aria-pressed={myVote === 'down'}
-					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
 						{myVote === 'down'
-						? 'text-rose-600 dark:text-rose-400'
-						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
+						? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
+						: 'bg-rose-100 text-rose-700 hover:bg-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/60'}"
 				>
 					{#if isVoting && votingAnim.side === 'down'}
 						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
@@ -242,17 +244,17 @@
 				<button
 					onclick={openEdit}
 					aria-label="Edit comment"
-					class="rounded-full p-1.5 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-neutral-900 active:scale-90 dark:text-neutral-400 dark:hover:text-neutral-100"
+					class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-neutral-900 active:scale-90 dark:text-neutral-400 dark:hover:text-neutral-100"
 				>
-					<Pencil size="14" strokeWidth="2" aria-hidden="true" />
+					<Pencil size="16" strokeWidth="2" aria-hidden="true" />
 				</button>
 
 				<button
 					onclick={openDelete}
 					aria-label="Delete comment"
-					class="rounded-full p-1.5 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-rose-600 active:scale-90 dark:text-neutral-400 dark:hover:text-rose-400"
+					class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-rose-600 active:scale-90 dark:text-neutral-400 dark:hover:text-rose-400"
 				>
-					<Trash2 size="14" strokeWidth="2" aria-hidden="true" />
+					<Trash2 size="16" strokeWidth="2" aria-hidden="true" />
 				</button>
 			{/if}
 		</div>
