@@ -10,20 +10,32 @@
 	import Languages from '@lucide/svelte/icons/languages';
 
 	import { onMount, tick } from 'svelte';
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 
 	export let data;
 
 	let lang = data.availableLangs[0] ?? 'ko';
 
+	// Direction of the language swap, used to slide content the right way.
+	let dir = 1;
+	let reduceMotion = false;
+
 	onMount(() => {
 		const saved = localStorage.getItem('preferred-lang');
 		if (saved && data.availableLangs.includes(saved)) lang = saved;
+		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 	});
 
 	function setLang(l) {
+		if (l === lang) return;
+		dir = data.availableLangs.indexOf(l) >= data.availableLangs.indexOf(lang) ? 1 : -1;
 		lang = l;
 		localStorage.setItem('preferred-lang', l);
 	}
+
+	$: inFly = { x: dir * 18, duration: reduceMotion ? 0 : 260, opacity: 0, easing: cubicOut };
+	$: outFly = { x: -dir * 18, duration: reduceMotion ? 0 : 190, opacity: 0, easing: cubicOut };
 
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
@@ -80,13 +92,19 @@
 					{currentSeries[0].series}
 				</h2>
 			{/if}
-			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
-				{currentMeta.title}
-			</h1>
-			<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
-				<p class="tabular">{formatDate(currentMeta.date)}</p>
-				<p class="mx-1">·</p>
-				<span class="tabular">{currentReadingTime}</span>
+			<div class="grid">
+				{#key lang}
+					<div style="grid-area: 1 / 1;" in:fly={inFly} out:fly={outFly}>
+						<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
+							{currentMeta.title}
+						</h1>
+						<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
+							<p class="tabular">{formatDate(currentMeta.date)}</p>
+							<p class="mx-1">·</p>
+							<span class="tabular">{currentReadingTime}</span>
+						</div>
+					</div>
+				{/key}
 			</div>
 			{#if data.availableLangs.length > 1}
 				<div
@@ -157,13 +175,14 @@
 				</div>
 			</div>
 		{/if}
-		<div
-			use:lightboxAction
-			class="prose-post mt-10"
-		>
-			{#if currentContent}
-				<svelte:component this={currentContent} class="prose" />
-			{/if}
+		<div class="mt-10 grid">
+			{#key lang}
+				<div style="grid-area: 1 / 1;" use:lightboxAction class="prose-post" in:fly={inFly} out:fly={outFly}>
+					{#if currentContent}
+						<svelte:component this={currentContent} class="prose" />
+					{/if}
+				</div>
+			{/key}
 		</div>
 
 		<div class="my-10">
