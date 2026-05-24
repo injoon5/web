@@ -1,4 +1,4 @@
-import { json, error } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
@@ -12,12 +12,12 @@ import { ADMIN_SECRET } from '$env/static/private';
 export const GET: RequestHandler = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
-	const ipHash = hashIp(getClientIp(request));
+	const ipHash = getRequestIpHash(request);
 	return runConvex(() => convex.query(api.likes.get, { url: pageUrl, ipHash }));
 };
 
 export const POST: RequestHandler = async ({ request }) => {
-	const ipHash = hashIp(getClientIp(request));
+	const ipHash = getRequestIpHash(request);
 	const admin = verifyAdminSecret(request);
 
 	let raw;
@@ -40,3 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		})
 	);
 };
+
+function getRequestIpHash(request: Request) {
+	return hashIp(getClientIp(request));
+}
