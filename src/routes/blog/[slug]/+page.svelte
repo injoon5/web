@@ -36,6 +36,7 @@
 
 	let bodyWidth = 0;
 
+	$: bannerFly = { y: -16, opacity: 0, duration: reduceMotion ? 0 : 360, easing: cubicOut };
 	$: titleBlur = { amount: 8, opacity: 0, duration: reduceMotion ? 0 : 420, easing: cubicOut };
 	// Both directions share duration + easing so the two panels stay edge-to-edge while sliding.
 	$: bodyIn = { x: dir * bodyWidth, opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
@@ -156,6 +157,7 @@
 		<!-- Post -->
 		{#if currentMeta?.aiTranslated}
 			<div
+				transition:fly={bannerFly}
 				class="mt-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
 			>
 				<Languages
