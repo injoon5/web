@@ -17,7 +17,7 @@ The original target was a native **Swift** app with a **Python** backend for scr
 
 ## The web prototype
 
-Built on StackBlitz, exported to GitHub. The homepage is a simple grid layout:
+I built it on StackBlitz and exported it to GitHub. The homepage is about as simple as a grid layout gets:
 
 - Header: **Sirius** + tagline
 - Profile card (avatar, name, school — hardcoded to 이대부속초등학교 in the demo)

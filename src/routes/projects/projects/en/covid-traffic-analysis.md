@@ -21,7 +21,7 @@ Two sources:
 - **Highway tollgate traffic volume** — from [Korea's Public Data Portal](https://www.data.go.kr)
 - **Daily COVID case counts** — from Corona Live (코로나라이브)
 
-I pulled both into CSV, cleaned them in **Python with Pandas**, and plotted scatter charts and bar graphs to look for patterns.
+I pulled both into CSV, cleaned them up in **Python with Pandas**, and started plotting scatter charts and bar graphs to see if any pattern jumped out.
 
 ## What I found
 

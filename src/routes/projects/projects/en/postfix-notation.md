@@ -15,18 +15,18 @@ I wanted to know *why* computers prefer it, not just that they do.
 
 ## What I found
 
-Postfix maps cleanly onto a **stack** data structure. Read left to right: push numbers, when you hit an operator pop two values, compute, push result. No parentheses, no order-of-operations ambiguity. That's why it's used in bytecode, calculators, and expression parsers.
+It turns out postfix maps cleanly onto a **stack**. Read left to right: push numbers, and when you hit an operator pop two values, compute, push the result. No parentheses, no order-of-operations ambiguity. That's exactly why it shows up in bytecode, calculators, and expression parsers.
 
-Infix is what humans prefer because it matches how we speak. Postfix is what machines prefer because it's unambiguous and easy to evaluate in one pass.
+Infix is what humans like because it matches how we speak. Postfix is what machines like because it's unambiguous and you can evaluate it in a single pass.
 
 ## What I built
 
 Python scripts that:
 
 1. **Convert postfix → infix** using a stack
-2. **Evaluate postfix expressions** by pushing/popping operands
+2. **Evaluate postfix expressions** by pushing and popping operands
 
-Both use the stack pattern — push numbers, on operator pop two, apply, push result.
+Both lean on that same stack pattern — it's the whole trick, really.
 
 ![Research overview](/images/projects/postfix-notation/main.png)
 
@@ -40,4 +40,4 @@ Both use the stack pattern — push numbers, on operator pop two, apply, push re
 
 ## Context
 
-This was a research project from around 2020 — early middle school, before I was building web apps. But understanding stacks and expression parsing showed up again later when I actually needed to parse things in real projects.
+This was a research project from around 2020 — early middle school, well before I was building web apps. At the time it felt like a detour, but stacks and expression parsing kept showing up later whenever I actually needed to parse something in a real project.

@@ -39,7 +39,7 @@ The admin dashboard (`/admin`) uses cookie auth + `x-admin-secret` header for AP
 
 ## API layer
 
-SvelteKit API routes (`/api/comments`, `/api/likes`, `/api/admin/*`) sit between the browser and Convex. They handle IP hashing, Zod validation, bcrypt checks, and map Convex errors to HTTP status codes (429 with `Retry-After` for rate limits).
+SvelteKit API routes (`/api/comments`, `/api/likes`, `/api/admin/*`) sit between the browser and Convex and do the unglamorous middle-layer work: IP hashing, Zod validation, bcrypt checks, and translating Convex errors into proper HTTP status codes (a 429 with `Retry-After` when you hit a rate limit).
 
 ## OG images
 
