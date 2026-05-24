@@ -61,7 +61,3 @@ Argued for expanding **solar power** as a renewable energy source, with projecti
 ![Solar energy 2](/images/uploads/projects/science-debates/solar-energy-2.jpg)
 
 ![Solar energy 3](/images/uploads/projects/science-debates/solar-energy-3.jpg)
-
----
-
-Materials from [injoon5/old-stuff](https://github.com/injoon5/old-stuff).

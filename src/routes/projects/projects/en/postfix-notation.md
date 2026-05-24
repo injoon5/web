@@ -41,5 +41,3 @@ Both use the stack pattern — push numbers, on operator pop two, apply, push re
 ## Context
 
 This was a research project from around 2020 — early middle school, before I was building web apps. But understanding stacks and expression parsing showed up again later when I actually needed to parse things in real projects.
-
-Materials from [injoon5/old-stuff](https://github.com/injoon5/old-stuff).

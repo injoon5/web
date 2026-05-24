@@ -53,4 +53,4 @@ Sirius didn't ship as a standalone app, but the idea clearly stuck — years lat
 
 The Sirius name, grid-dashboard concept, and "school info at a glance" pitch are basically the ancestor of everything school-related on this site.
 
-Made at Gifted Education Center, 2022. Materials from [injoon5/old-stuff](https://github.com/injoon5/old-stuff).
+Made at Gifted Education Center, 2022.

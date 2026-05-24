@@ -44,5 +44,3 @@ More importantly, this was my **first real data analysis project** — collectin
 ![Slide 9](/images/uploads/projects/covid-traffic/slide-9.png)
 
 ![Slide 11](/images/uploads/projects/covid-traffic/slide-11.png)
-
-Materials from [injoon5/old-stuff](https://github.com/injoon5/old-stuff).
