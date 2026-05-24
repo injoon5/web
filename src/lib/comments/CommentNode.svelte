@@ -218,11 +218,8 @@
 						{/if}
 					</button>
 
-					<span class="text-xs leading-none font-medium text-emerald-700 tabular dark:text-emerald-400">
-						<NumberFlow value={comment.upvotes} trend={0} />
-					</span>
-					<span class="text-xs leading-none font-medium text-rose-700 tabular dark:text-rose-400">
-						{comment.downvotes}
+					<span class="text-xs leading-none font-medium text-neutral-700 tabular dark:text-neutral-300">
+						<NumberFlow value={comment.score} trend={0} />
 					</span>
 
 					<button
