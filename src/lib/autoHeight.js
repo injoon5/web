@@ -67,7 +67,11 @@ export function autoHeight(node, params = {}) {
 
 		lockedUntil = performance.now() + duration;
 		cancelAnimationFrame(raf);
-		apply(el.offsetHeight);
+		// Use scrollHeight (natural content height) rather than offsetHeight, which
+		// can be inflated by CSS Grid's align-self:stretch when a taller sibling
+		// sets the row height. That made height-decrease transitions start only
+		// after the outgoing element left the DOM instead of with the blur.
+		apply(el.scrollHeight);
 	}
 
 	function syncFromObserver() {
