@@ -354,7 +354,7 @@ export function projectsListTemplate() {
 								letterSpacing: '-0.04em',
 								lineHeight: 1.1
 							},
-							children: '프로젝트'
+							children: 'Projects'
 						}
 					},
 					{
@@ -369,7 +369,7 @@ export function projectsListTemplate() {
 								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
-							children: '지루한 하루를 피하기 위해 했던 것들.'
+							children: 'Some of the stuff I did to escape from a boring day.'
 						}
 					}
 				]

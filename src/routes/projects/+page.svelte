@@ -3,15 +3,15 @@
 </script>
 
 <svelte:head>
-	<title>프로젝트 - Injoon Oh</title>
+	<title>Projects - Injoon Oh</title>
 	<meta
 		name="description"
-		content="지루한 하루를 피하기 위해 했던 것들. 학교 과제부터 개인 프로젝트까지."
+		content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects."
 	/>
-	<meta property="og:title" content="프로젝트 - Injoon Oh" />
+	<meta property="og:title" content="Projects - Injoon Oh" />
 	<meta
 		property="og:description"
-		content="지루한 하루를 피하기 위해 했던 것들. 학교 과제부터 개인 프로젝트까지."
+		content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects."
 	/>
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=projects" />
 	<meta name="twitter:card" content="summary_large_image" />
