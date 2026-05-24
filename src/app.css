@@ -124,6 +124,11 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/* Home page album / photo tiles — soft glow from image color, no neutral border */
+.media-card {
+	box-shadow: 0 10px 28px -10px rgb(var(--accent, 115 115 115) / 0.45);
+}
+
 /* Honor reduced-motion globally for our keyframe utilities */
 @media (prefers-reduced-motion: reduce) {
 	.shimmer,

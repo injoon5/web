@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
+	import { imageAccent } from '$lib/actions/imageAccent.js';
 
 	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
 	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
@@ -344,7 +345,8 @@ Injoon Oh
 			>
 				{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
 					<a
-						class=" border dark:border shadow-md border-neutral-300 dark:border-neutral-800 border-opacity-50 group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3"
+						use:imageAccent
+						class="media-card group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3"
 						href={track.url}
 					>
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
@@ -405,8 +407,9 @@ Injoon Oh
 			{:else}
 				{#each (photos?.photos ?? []).slice(0, 6) as photo}
 					<a
+						use:imageAccent
 						href={photo.url}
-						class="group border rounded-xl border-neutral-300 dark:border-neutral-800 border-opacity-50 relative block aspect-square w-full overflow-hidden bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+						class="media-card group relative block aspect-square w-full overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-900"
 					>
 						<img
 							loading="lazy"
