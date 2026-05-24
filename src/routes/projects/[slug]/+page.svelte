@@ -4,11 +4,13 @@
 	import Lightbox from '../../../lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Languages from '@lucide/svelte/icons/languages';
+	import NumberFlow from '@number-flow/svelte';
 
 	import { onMount, tick } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fly, blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
+	const blurT = (node, params) => (params.duration ? blur(node, params) : {});
 	const flyT = (node, params) => (params.duration ? fly(node, params) : {});
 
 	export let data;
@@ -75,6 +77,7 @@
 	let bodyWidth = 0;
 
 	$: animate = mounted && !reduceMotion;
+	$: titleBlur = { amount: 8, opacity: 0, duration: animate ? 420 : 0, easing: cubicOut };
 	$: bodyIn = {
 		x: dir * (bodyWidth + 32),
 		opacity: 1,
@@ -88,11 +91,11 @@
 		easing: cubicOut
 	};
 
-	$: headerMeta = lang === 'ko' && data.koMeta ? data.koMeta : (data.enMeta ?? data.meta);
-	$: headerReadingTime =
-		lang === 'ko' && data.koReadingTime ? data.koReadingTime : data.enReadingTime;
 	$: currentMeta = displayLang === 'ko' && data.koMeta ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = displayLang === 'ko' && data.koContent ? data.koContent : data.enContent;
+	$: currentReadingTime =
+		displayLang === 'ko' && data.koReadingTime ? data.koReadingTime : data.enReadingTime;
+	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
 	$: ogMeta = data.koMeta ?? data.enMeta ?? data.meta;
 	$: ogImageUrl = `https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(ogMeta.title)}&description=${encodeURIComponent(ogMeta.description || '')}&year=${encodeURIComponent(ogMeta.year || '')}&tags=${encodeURIComponent((ogMeta.tags || []).join(','))}`;
 
@@ -141,22 +144,69 @@
 		class="col-span-1 justify-center pt-10 md:col-span-10 md:col-start-2 lg:col-span-8 lg:col-start-3"
 	>
 		<div class="tracking-tight">
-			<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
-				{headerMeta.title}
-			</h1>
+			<div class="grid">
+				{#key displayLang}
+					<h1
+						style="grid-area: 1 / 1;"
+						in:blurT={titleBlur}
+						out:blurT={titleBlur}
+						class="text-3xl font-semibold tracking-tight md:font-semibold"
+					>
+						{currentMeta.title}
+					</h1>
+				{/key}
+			</div>
 			<div
 				class="mt-1 flex flex-row items-center text-2xl font-medium text-neutral-600 dark:text-neutral-400"
 			>
-				<p class="tabular">{headerMeta.year}</p>
-				<p class="mx-1">·</p>
-				<span class="tabular">{headerReadingTime}</span>
+				<p class="tabular">{currentMeta.year}</p>
+				{#if !isNaN(readingMinutes)}
+					<p class="mx-1">·</p>
+					<NumberFlow value={readingMinutes} suffix=" min read" />
+				{/if}
+			</div>
+			<div class="grid">
+				{#key displayLang}
+					<p
+						style="grid-area: 1 / 1;"
+						in:blurT={titleBlur}
+						out:blurT={titleBlur}
+						class="mt-3 text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500"
+					>
+						{currentMeta.description}
+					</p>
+				{/key}
+			</div>
+			<div class="grid">
+				{#key displayLang}
+					<div
+						style="grid-area: 1 / 1;"
+						in:blurT={titleBlur}
+						out:blurT={titleBlur}
+						class="mt-3 flex flex-wrap items-center gap-1.5"
+					>
+						<span
+							class="text-xs font-medium tracking-widest text-neutral-400 uppercase dark:text-neutral-600"
+						>
+							Stack
+						</span>
+						{#each currentMeta.tags as tag}
+							<span
+								class="inline-flex items-center rounded-full border border-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300"
+							>
+								{tag}
+							</span>
+						{/each}
+					</div>
+				{/key}
 			</div>
 			{#if data.availableLangs.length > 1}
 				<div
-					class="relative mt-3 inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-100/60 p-1 dark:border-neutral-800 dark:bg-neutral-900/60"
+					class="relative mt-3 inline-flex items-center gap-1 rounded-full border border-neutral-200/70 bg-neutral-100/60 p-1 dark:border-neutral-800/70 dark:bg-neutral-900/60"
 				>
 					<span
 						class="nav-indicator pointer-events-none absolute top-1 bottom-1 left-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
+						class:nav-animate={mounted}
 						style={pillStyle || 'opacity:0;'}
 						aria-hidden="true"
 					></span>
@@ -171,6 +221,7 @@
 					{/each}
 					<div
 						class="nav-clip pointer-events-none absolute inset-0 z-20 flex items-center gap-1 p-1"
+						class:nav-animate={mounted}
 						style={clipStyle || 'clip-path: inset(4px 100% 4px 0 round 9999px);'}
 						aria-hidden="true"
 					>
@@ -184,23 +235,6 @@
 					</div>
 				</div>
 			{/if}
-			<p class="mt-3 text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500">
-				{headerMeta.description}
-			</p>
-			<div class="mt-3 flex flex-wrap items-center gap-1.5">
-				<span
-					class="text-xs font-medium tracking-widest text-neutral-400 uppercase dark:text-neutral-600"
-				>
-					Stack
-				</span>
-				{#each headerMeta.tags as tag}
-					<span
-						class="inline-flex items-center rounded-full border border-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300"
-					>
-						{tag}
-					</span>
-				{/each}
-			</div>
 			<div class="my-4">
 				<LikeButton />
 			</div>
