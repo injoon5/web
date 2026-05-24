@@ -16,10 +16,10 @@ Convex agent skills for common tasks can be installed by running
 
 ### Services
 
-| Service | Command | Notes |
-|---------|---------|-------|
-| SvelteKit dev server | `npm run dev` | Vite on port 5173. Starts without Convex but realtime features (comments, likes, /now) need a live Convex deployment. |
-| Convex backend | `npx convex dev` | Requires Convex auth (`npx convex login`). Syncs functions & sets `PUBLIC_CONVEX_URL` in `.env`. |
+| Service              | Command          | Notes                                                                                                                 |
+| -------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| SvelteKit dev server | `npm run dev`    | Vite on port 5173. Starts without Convex but realtime features (comments, likes, /now) need a live Convex deployment. |
+| Convex backend       | `npx convex dev` | Requires Convex auth (`npx convex login`). Syncs functions & sets `PUBLIC_CONVEX_URL` in `.env`.                      |
 
 ### Quick reference
 
@@ -27,6 +27,8 @@ Convex agent skills for common tasks can be installed by running
 - **Lint:** `npm run lint` (prettier + eslint). Pre-existing warnings exist in the repo.
 - **Type check:** `npm run check` (svelte-kit sync + svelte-check). Pre-existing type errors exist.
 - **Build:** `npm run build` (adapter-vercel output)
+- **Optimize images:** `npm run optimize-images` (sharp; mozjpeg/png; max width 2400, JPEG q88). Runs automatically in Vercel `buildCommand` and `npm run deploy`.
+- **Deploy:** `npm run deploy` (optimize images, then `npx convex deploy --cmd 'npm run build'`)
 - **Format:** `npm run format` (prettier --write)
 
 ### Gotchas

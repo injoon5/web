@@ -9,7 +9,7 @@ async function getProjects() {
 
 	const bySlug: Record<string, Project> = {};
 
-	for (const [paths, lang] of [
+	for (const [paths] of [
 		[koPaths, 'ko'],
 		[enPaths, 'en']
 	] as const) {

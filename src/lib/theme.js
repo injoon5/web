@@ -3,7 +3,9 @@ import { browser } from '$app/environment';
 
 function createTheme() {
 	const initial = browser
-		? document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+		? document.documentElement.classList.contains('dark')
+			? 'dark'
+			: 'light'
 		: 'light';
 
 	const { subscribe, set } = writable(initial);

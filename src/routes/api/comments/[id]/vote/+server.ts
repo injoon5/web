@@ -1,4 +1,4 @@
-import { json, error } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';

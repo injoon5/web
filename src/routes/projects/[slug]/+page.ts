@@ -1,11 +1,13 @@
-export const prerender = true;
+// Server-rendered (not prerendered) so the cookie/?lang= preferred language
+// is applied on the server — the first byte is the right language, no flash.
+export const prerender = false;
 
-import { error } from "@sveltejs/kit";
+import { error } from '@sveltejs/kit';
 
-const enModules = import.meta.glob("../projects/en/*.md");
-const koModules = import.meta.glob("../projects/ko/*.md");
+const enModules = import.meta.glob('../projects/en/*.md');
+const koModules = import.meta.glob('../projects/ko/*.md');
 
-export async function load({ params }) {
+export async function load({ params, data }) {
 	const enKey = `../projects/en/${params.slug}.md`;
 	const koKey = `../projects/ko/${params.slug}.md`;
 
@@ -22,10 +24,7 @@ export async function load({ params }) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
-	const availableLangs = [
-		...(enProject ? ["en"] : []),
-		...(koProject ? ["ko"] : []),
-	];
+	const availableLangs = [...(koProject ? ['ko'] : []), ...(enProject ? ['en'] : [])];
 
 	return {
 		enContent: enProject?.default ?? null,
@@ -36,5 +35,6 @@ export async function load({ params }) {
 		availableLangs,
 		enReadingTime: enProject?.metadata?.readingTime ?? null,
 		koReadingTime: koProject?.metadata?.readingTime ?? null,
+		prefLang: data?.prefLang ?? null
 	};
 }

@@ -29,7 +29,7 @@ function formatDate(dateStr) {
 	if (!dateStr) return '';
 	try {
 		const d = new Date(dateStr);
-		return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+		return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', year: 'numeric' });
 	} catch {
 		return dateStr;
 	}
@@ -202,8 +202,7 @@ export function homeTemplate() {
 								maxWidth: 800,
 								letterSpacing: '-0.015em'
 							},
-							children:
-								'A student interested in math, science, and computers.'
+							children: 'A student interested in math, science, and computers.'
 						}
 					}
 				]
@@ -236,7 +235,7 @@ export function blogListTemplate() {
 								letterSpacing: '-0.04em',
 								lineHeight: 1.1
 							},
-							children: 'Blog'
+							children: '블로그'
 						}
 					},
 					{
@@ -251,8 +250,7 @@ export function blogListTemplate() {
 								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
-							children:
-								'Stuff that just barely made it online.'
+							children: '겨우 온라인에 올린 글들.'
 						}
 					}
 				]
@@ -275,7 +273,7 @@ export function blogPostTemplate({ title, description, date }) {
 					justifyContent: 'center'
 				},
 				children: [
-					label('Blog'),
+					label('블로그'),
 					{
 						type: 'span',
 						props: {
@@ -287,7 +285,7 @@ export function blogPostTemplate({ title, description, date }) {
 								lineHeight: 1.15,
 								maxWidth: 1000
 							},
-							children: truncate(title || 'Untitled', 80)
+							children: truncate(title || '제목 없음', 80)
 						}
 					},
 					...(description
@@ -371,8 +369,7 @@ export function projectsListTemplate() {
 								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
-							children:
-								'Some of the stuff I did to escape from a boring day.'
+							children: 'Some of the stuff I did to escape from a boring day.'
 						}
 					}
 				]
@@ -395,7 +392,7 @@ export function projectTemplate({ title, description, year, tags }) {
 					justifyContent: 'center'
 				},
 				children: [
-					label('Project'),
+					label('프로젝트'),
 					{
 						type: 'span',
 						props: {
@@ -407,7 +404,7 @@ export function projectTemplate({ title, description, year, tags }) {
 								lineHeight: 1.15,
 								maxWidth: 1000
 							},
-							children: truncate(title || 'Untitled', 80)
+							children: truncate(title || '제목 없음', 80)
 						}
 					},
 					...(description
@@ -531,7 +528,7 @@ export function nowTemplate() {
 								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
-							children: 'What I\'m doing now.'
+							children: "What I'm doing now."
 						}
 					}
 				]

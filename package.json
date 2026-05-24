@@ -5,6 +5,8 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
+		"optimize-images": "node scripts/optimize-images.mjs",
+		"deploy": "bash scripts/deploy.sh",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -32,6 +34,7 @@
 		"rehype-katex-svelte": "^1.2.0",
 		"rehype-slug": "^6.0.0",
 		"remark-math": "^3.0.1",
+		"sharp": "^0.34.5",
 		"svelte": "^5",
 		"svelte-check": "^3.6.0",
 		"tailwindcss": "^4.1.18",

@@ -10,7 +10,6 @@
 	import { theme } from '$lib/theme.js';
 	import { env as publicEnv } from '$env/dynamic/public';
 
-
 	const commit = publicEnv.PUBLIC_GIT_COMMIT ?? '';
 	const commitDate = (() => {
 		const raw = publicEnv.PUBLIC_GIT_COMMIT_DATE;
@@ -83,9 +82,7 @@
 	<div
 		aria-hidden="true"
 		class="absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
-		{scrolled
-			? 'bg-white/70 dark:bg-neutral-950/70'
-			: 'bg-white/0 dark:bg-neutral-950/0'}"
+		{scrolled ? 'bg-white/70 dark:bg-neutral-950/70' : 'bg-white/0 dark:bg-neutral-950/0'}"
 	></div>
 	<div
 		aria-hidden="true"
@@ -101,7 +98,7 @@
 	<slot />
 </div>
 
-<footer class="mt-10 pt-24 mb-20 w-full tracking-tight">
+<footer class="mt-10 mb-20 w-full pt-24 tracking-tight">
 	<div class="text-xs">
 		<div
 			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-500 sm:px-12 dark:text-neutral-500"
@@ -144,7 +141,7 @@
 			<div class="col-span-12 lg:mt-10">
 				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
 				{#if commit}
-					<p class="mt- text-xs font-normal text-neutral-400 dark:text-neutral-600 tabular">
+					<p class="mt- tabular text-xs font-normal text-neutral-400 dark:text-neutral-600">
 						Built from
 						<a
 							href="https://github.com/injoon5/web/commit/{commit}"
@@ -154,6 +151,7 @@
 						>{#if commitDate}<span> · {commitDate}</span>{/if}
 					</p>
 				{/if}
+			</div>
 		</div>
 	</div>
 </footer>

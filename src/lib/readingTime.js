@@ -9,14 +9,14 @@ const KO_CHARS_PER_MINUTE = 500;
  * @returns {string}
  */
 function stripMarkdown(markdown) {
-	let text = markdown.replace(/^---[\s\S]*?---\s*\n/, '');  // YAML frontmatter
-	text = text.replace(/```[\s\S]*?```/g, '');               // fenced code blocks
-	text = text.replace(/`[^`]+`/g, '');                      // inline code
-	text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, '');         // images
-	text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');      // links → label
-	text = text.replace(/^#{1,6}\s+/gm, '');                  // heading markers
-	text = text.replace(/[*_~]+/g, '');                       // bold/italic/strikethrough
-	text = text.replace(/<[^>]+>/g, '');                      // HTML tags
+	let text = markdown.replace(/^---[\s\S]*?---\s*\n/, ''); // YAML frontmatter
+	text = text.replace(/```[\s\S]*?```/g, ''); // fenced code blocks
+	text = text.replace(/`[^`]+`/g, ''); // inline code
+	text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, ''); // images
+	text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1'); // links → label
+	text = text.replace(/^#{1,6}\s+/gm, ''); // heading markers
+	text = text.replace(/[*_~]+/g, ''); // bold/italic/strikethrough
+	text = text.replace(/<[^>]+>/g, ''); // HTML tags
 	return text.trim();
 }
 

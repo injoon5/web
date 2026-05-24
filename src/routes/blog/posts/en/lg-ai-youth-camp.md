@@ -36,7 +36,7 @@ The process went roughly like this:
 - February: SNU camp for team formation and planning
 - May: Final presentation, where 12 participants are selected for the US trip
 
-*I also thought this might be a good chance to break my habit of obsessively learning new tech without ever actually building anything with it.*
+_I also thought this might be a good chance to break my habit of obsessively learning new tech without ever actually building anything with it._
 
 ## First Round Application
 
