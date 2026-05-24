@@ -192,6 +192,7 @@
 		<input
 			bind:value={username}
 			type="text"
+			aria-label="Name"
 			placeholder={`Name (optional — defaults to ${fallbackHandle})`}
 			maxlength="32"
 			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
@@ -199,19 +200,21 @@
 		<div>
 			<textarea
 				bind:value={commentText}
+				aria-label="Comment"
 				placeholder="Say something… (max {MAX_LENGTH} characters)"
 				maxlength={MAX_LENGTH}
 				rows="3"
 				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			></textarea>
 			{#if showCharsLeft}
-				<p class="mt-1 text-sm text-neutral-500 tabular">Characters left: {charsLeft}</p>
+				<p class="tabular mt-1 text-sm text-neutral-500">Characters left: {charsLeft}</p>
 			{/if}
 		</div>
 		<div>
 			<input
 				bind:value={password}
 				type="password"
+				aria-label="Comment password"
 				placeholder="Password (save this to edit your comment later)"
 				autocomplete="off"
 				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
@@ -229,7 +232,7 @@
 				submitComment();
 			}}
 			disabled={isSubmitDisabled}
-			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 		>
 			{submitting ? 'Submitting…' : 'Submit'}
 		</button>
@@ -242,7 +245,7 @@
 
 <div class="mt-8">
 	{#if query.isLoading}
-		{#each [1, 2, 3] as _}
+		{#each [1, 2, 3] as skeleton (skeleton)}
 			<div
 				class="mb-4 rounded-xl border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>

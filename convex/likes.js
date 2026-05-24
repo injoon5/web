@@ -1,7 +1,7 @@
 import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
-import { isAdmin } from './lib/auth.js';
+import { assertServer, isAdmin } from './lib/auth.js';
 
 async function isBanned(ctx, ipHash) {
 	const ban = await ctx.db
@@ -31,12 +31,14 @@ export const toggle = mutation({
 	args: {
 		url: v.string(),
 		ipHash: v.string(),
+		serverSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		assertServer(args.serverSecret);
 		const admin = isAdmin(args.adminSecret);
 
-		if (await isBanned(ctx, args.ipHash)) {
+		if (!admin && (await isBanned(ctx, args.ipHash))) {
 			throw new ConvexError({ kind: 'Banned' });
 		}
 

@@ -160,11 +160,6 @@
 			onclick={toggleLike}
 			disabled={busy}
 			aria-pressed={isLiked}
-			/* 
-			   transition-[background-color,border-color,color,transform,width] enables width, see next line
-			   ease-out and duration-200 for animation
-			   will-change-[width,background-color,border-color,color,transform] for hinting 
-			*/
 			class="inline-flex items-center justify-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,transform,width] duration-200 ease-out will-change-[width,background-color,border-color,color,transform] active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60
 			{isLiked
 				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'

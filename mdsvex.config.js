@@ -17,7 +17,10 @@ const config = {
 	highlight: {
 		highlighter: createHighlighter({
 			// keepBackground: false,
-			theme: 'github-dark'
+			theme: {
+				light: 'github-light',
+				dark: 'github-dark'
+			}
 		})
 	},
 	smartypants: {
@@ -28,13 +31,16 @@ const config = {
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,
-		[remarkEmbedder.default, {
-			transformers: [oembedTransformer.default],
-			handleError: ({ error, url }) => {
-				console.error(`Failed to embed ${url}:`, error);
-				return `<a href="${url}">${url}</a>`;
+		[
+			remarkEmbedder.default,
+			{
+				transformers: [oembedTransformer.default],
+				handleError: ({ error, url }) => {
+					console.error(`Failed to embed ${url}:`, error);
+					return `<a href="${url}">${url}</a>`;
+				}
 			}
-		}]
+		]
 		// [enhancedImage, { attributes: { loading: 'lazy', fetchpriority: 'low' } }]
 	],
 	rehypePlugins: [

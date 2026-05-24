@@ -6,7 +6,6 @@
 	import { page } from '$app/stores';
 	import Lightbox from '../../../lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
-	import TableOfContents from '$lib/TableOfContents.svelte';
 	import Languages from '@lucide/svelte/icons/languages';
 	import NumberFlow from '@number-flow/svelte';
 
@@ -37,7 +36,9 @@
 		try {
 			localStorage.setItem('preferred-lang', l);
 			document.cookie = `preferred-lang=${l}; path=/; max-age=31536000; samesite=lax`;
-		} catch (e) {}
+		} catch {
+			// Ignore storage/cookie failures; the selected language still changes in memory.
+		}
 	}
 
 	// Direction of the language swap, used to slide content the right way.
@@ -104,12 +105,23 @@
 	$: animate = mounted && !reduceMotion;
 	$: titleBlur = { amount: 8, opacity: 0, duration: animate ? 420 : 0, easing: cubicOut };
 	// Both directions share duration + easing so the panels stay a constant gap apart while sliding.
-	$: bodyIn = { x: dir * (bodyWidth + 32), opacity: 1, duration: animate ? 440 : 0, easing: cubicOut };
-	$: bodyOut = { x: -dir * (bodyWidth + 32), opacity: 1, duration: animate ? 440 : 0, easing: cubicOut };
+	$: bodyIn = {
+		x: dir * (bodyWidth + 32),
+		opacity: 1,
+		duration: animate ? 440 : 0,
+		easing: cubicOut
+	};
+	$: bodyOut = {
+		x: -dir * (bodyWidth + 32),
+		opacity: 1,
+		duration: animate ? 440 : 0,
+		easing: cubicOut
+	};
 
-	$: currentMeta = (displayLang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
-	$: currentContent = (displayLang === 'ko' && data.koContent) ? data.koContent : data.enContent;
-	$: currentReadingTime = (displayLang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
+	$: currentMeta = displayLang === 'ko' && data.koMeta ? data.koMeta : (data.enMeta ?? data.meta);
+	$: currentContent = displayLang === 'ko' && data.koContent ? data.koContent : data.enContent;
+	$: currentReadingTime =
+		displayLang === 'ko' && data.koReadingTime ? data.koReadingTime : data.enReadingTime;
 	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
 	$: currentSeries = displayLang === 'ko' ? data.koSeries : data.enSeries;
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
@@ -132,7 +144,7 @@
 		pillStyle = `transform: translateX(${left}px); width: ${rect.width}px; opacity: 1;`;
 		clipStyle = `clip-path: inset(4px ${right}px 4px ${left}px round 9999px); opacity: 1;`;
 	}
-	$: lang, updatePill();
+	$: (lang, updatePill());
 	onMount(() => {
 		updatePill();
 		const ro = new ResizeObserver(updatePill);
@@ -155,7 +167,9 @@
 <Lightbox />
 
 <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
-	<article class="col-span-1 justify-center pt-10 md:col-span-10 md:col-start-2 lg:col-span-8 lg:col-start-3">
+	<article
+		class="col-span-1 justify-center pt-10 md:col-span-10 md:col-start-2 lg:col-span-8 lg:col-start-3"
+	>
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if currentSeries?.[0]?.series}
@@ -184,7 +198,9 @@
 					</h1>
 				{/key}
 			</div>
-			<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
+			<div
+				class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400"
+			>
 				<p class="tabular">{formatDate(currentMeta.date)}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
@@ -194,6 +210,8 @@
 			{#if data.availableLangs.length > 1}
 				<div
 					class="relative mt-3 inline-flex items-center gap-1 rounded-full border border-neutral-200/70 bg-neutral-100/60 p-1 dark:border-neutral-800/70 dark:bg-neutral-900/60"
+					role="group"
+					aria-label="Post language"
 				>
 					<span
 						class="nav-indicator pointer-events-none absolute top-1 bottom-1 left-0 rounded-full bg-neutral-900 dark:bg-neutral-100"
@@ -205,7 +223,11 @@
 						<button
 							bind:this={langButtons[l]}
 							on:click={() => setLang(l)}
-							class="relative z-10 rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold text-neutral-500 transition-colors duration-150 hover:text-neutral-900 dark:hover:text-neutral-100"
+							type="button"
+							aria-pressed={lang === l}
+							class="relative z-10 rounded-full px-3 {l === 'en'
+								? 'mr-0.5'
+								: ''} py-1 text-sm font-semibold text-neutral-500 transition-colors duration-150 hover:text-neutral-900 dark:hover:text-neutral-100"
 						>
 							{l === 'en' ? 'English' : '한국어'}
 						</button>
@@ -218,7 +240,9 @@
 					>
 						{#each data.availableLangs as l}
 							<span
-								class="rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold text-white dark:text-neutral-900"
+								class="rounded-full px-3 {l === 'en'
+									? 'mr-0.5'
+									: ''} py-1 text-sm font-semibold text-white dark:text-neutral-900"
 							>
 								{l === 'en' ? 'English' : '한국어'}
 							</span>
@@ -257,9 +281,12 @@
 										이 글은 AI의 도움을 받아 번역되었습니다. 일부 내용에 오류가 있을 수 있습니다.
 									</p>
 								{:else}
-									<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI Translation</p>
+									<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+										AI Translation
+									</p>
 									<p class="text-sm text-neutral-500 dark:text-neutral-500">
-										This post was translated from Korean with the help of AI. Some nuance may be lost.
+										This post was translated from Korean with the help of AI. Some nuance may be
+										lost.
 									</p>
 								{/if}
 							</div>

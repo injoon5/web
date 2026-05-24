@@ -10,8 +10,8 @@
 	import { theme } from '$lib/theme.js';
 	import { env as publicEnv } from '$env/dynamic/public';
 
-
 	const commit = publicEnv.PUBLIC_GIT_COMMIT ?? '';
+	const currentYear = new Date().getFullYear();
 	const commitDate = (() => {
 		const raw = publicEnv.PUBLIC_GIT_COMMIT_DATE;
 		if (!raw) return '';
@@ -34,6 +34,11 @@
 	const SCROLL_DURATION = 500;
 
 	function scrollToTop() {
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			window.scrollTo(0, 0);
+			return;
+		}
+
 		const start = window.scrollY;
 		const startTime = performance.now();
 
@@ -82,9 +87,7 @@
 	<div
 		aria-hidden="true"
 		class="absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
-		{scrolled
-			? 'bg-white/70 dark:bg-neutral-950/70'
-			: 'bg-white/0 dark:bg-neutral-950/0'}"
+		{scrolled ? 'bg-white/70 dark:bg-neutral-950/70' : 'bg-white/0 dark:bg-neutral-950/0'}"
 	></div>
 	<div
 		aria-hidden="true"
@@ -100,7 +103,7 @@
 	<slot />
 </div>
 
-<footer class="mt-10 pt-24 mb-20 w-full tracking-tight">
+<footer class="mt-10 mb-20 w-full pt-24 tracking-tight">
 	<div class="text-xs">
 		<div
 			class="mx-auto grid max-w-6xl grid-cols-12 items-start gap-4 px-4 text-base font-semibold text-neutral-500 sm:px-12 dark:text-neutral-500"
@@ -131,7 +134,7 @@
 				class="col-span-12 mt-10 flex hover:text-neutral-900 md:col-span-6 lg:col-span-5 lg:mt-0 lg:justify-end dark:hover:text-neutral-100"
 			>
 				<button
-					on:click={() => {
+					onclick={() => {
 						trigger([{ duration: SCROLL_DURATION }], { intensity: 1 });
 						scrollToTop();
 					}}
@@ -141,9 +144,9 @@
 				</button>
 			</div>
 			<div class="col-span-12 lg:mt-10">
-				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
+				<p class="text-neutral-900 dark:text-neutral-100">Copyright © {currentYear} Injoon Oh</p>
 				{#if commit}
-					<p class="mt- text-xs font-normal text-neutral-400 dark:text-neutral-600 tabular">
+					<p class="tabular mt-1 text-xs font-normal text-neutral-400 dark:text-neutral-600">
 						Built from
 						<a
 							href="https://github.com/injoon5/web/commit/{commit}"
@@ -153,6 +156,7 @@
 						>{#if commitDate}<span> · {commitDate}</span>{/if}
 					</p>
 				{/if}
+			</div>
 		</div>
 	</div>
 </footer>

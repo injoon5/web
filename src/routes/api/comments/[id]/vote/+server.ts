@@ -1,4 +1,4 @@
-import { json, error } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
@@ -26,6 +26,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 			commentId: params.id,
 			voteType: parsed.data.voteType,
 			ipHash,
+			serverSecret: ADMIN_SECRET,
 			adminSecret: admin ? ADMIN_SECRET : undefined
 		})
 	);

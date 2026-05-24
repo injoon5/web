@@ -13,6 +13,7 @@ import bcrypt from 'bcryptjs';
 export const GET: RequestHandler = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
+	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 	const ipHash = hashIp(getClientIp(request));
 	return runConvex(
 		() => convex.query(api.comments.list, { url: pageUrl, ipHash }),
@@ -46,6 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				text,
 				parentId,
 				ipHash,
+				serverSecret: ADMIN_SECRET,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
 		(comment) => json({ comment }, { status: 201 })

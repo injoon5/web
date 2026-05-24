@@ -12,6 +12,7 @@ import { ADMIN_SECRET } from '$env/static/private';
 export const GET: RequestHandler = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
+	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 	const ipHash = getRequestIpHash(request);
 	return runConvex(() => convex.query(api.likes.get, { url: pageUrl, ipHash }));
 };
@@ -36,6 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		convex.mutation(api.likes.toggle, {
 			url: pageUrl,
 			ipHash,
+			serverSecret: ADMIN_SECRET,
 			adminSecret: admin ? ADMIN_SECRET : undefined
 		})
 	);

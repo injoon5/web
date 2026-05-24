@@ -1,11 +1,13 @@
 import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
-import { assertAdmin, isAdmin } from './lib/auth.js';
+import { assertAdmin, assertServer, isAdmin } from './lib/auth.js';
 import { publicComment } from './lib/serialize.js';
 
 const MAX_DEPTH = 2;
 const MAX_COMMENTS = 200;
+const MAX_USERNAME_LENGTH = 32;
+const MAX_TEXT_LENGTH = 200;
 
 async function isBanned(ctx, ipHash) {
 	const ban = await ctx.db
@@ -63,8 +65,9 @@ export const list = query({
 });
 
 export const getForAuth = query({
-	args: { commentId: v.id('comments') },
-	handler: async (ctx, { commentId }) => {
+	args: { commentId: v.id('comments'), serverSecret: v.string() },
+	handler: async (ctx, { commentId, serverSecret }) => {
+		assertServer(serverSecret);
 		const doc = await ctx.db.get(commentId);
 		if (!doc) return null;
 		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt };
@@ -79,12 +82,24 @@ export const create = mutation({
 		text: v.string(),
 		parentId: v.optional(v.id('comments')),
 		ipHash: v.string(),
+		serverSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		assertServer(args.serverSecret);
 		const admin = isAdmin(args.adminSecret);
+		const username = args.username.trim() || 'Anonymous';
+		const text = args.text.trim();
 
-		if (await isBanned(ctx, args.ipHash)) {
+		if (
+			username.length > MAX_USERNAME_LENGTH ||
+			text.length === 0 ||
+			text.length > MAX_TEXT_LENGTH
+		) {
+			throw new ConvexError({ kind: 'BadRequest', message: 'Invalid comment' });
+		}
+
+		if (!admin && (await isBanned(ctx, args.ipHash))) {
 			throw new ConvexError({ kind: 'Banned' });
 		}
 
@@ -100,15 +115,21 @@ export const create = mutation({
 			if (parent.depth >= MAX_DEPTH) {
 				throw new ConvexError({ kind: 'BadRequest', message: 'Maximum reply depth reached' });
 			}
+			if (parent.url !== args.url) {
+				throw new ConvexError({
+					kind: 'BadRequest',
+					message: 'Parent comment belongs to another page'
+				});
+			}
 			depth = parent.depth + 1;
 			parentId = args.parentId;
 		}
 
 		const id = await ctx.db.insert('comments', {
 			url: args.url,
-			username: args.username.trim() || 'Anonymous',
+			username,
 			passwordHash: args.passwordHash,
-			text: args.text,
+			text,
 			ipHash: args.ipHash,
 			parentId,
 			depth,
@@ -127,12 +148,14 @@ export const vote = mutation({
 		commentId: v.id('comments'),
 		voteType: v.union(v.literal('up'), v.literal('down')),
 		ipHash: v.string(),
+		serverSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		assertServer(args.serverSecret);
 		const admin = isAdmin(args.adminSecret);
 
-		if (await isBanned(ctx, args.ipHash)) {
+		if (!admin && (await isBanned(ctx, args.ipHash))) {
 			throw new ConvexError({ kind: 'Banned' });
 		}
 
@@ -172,10 +195,20 @@ export const applyEdit = mutation({
 		commentId: v.id('comments'),
 		text: v.string(),
 		ipHash: v.string(),
+		serverSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		assertServer(args.serverSecret);
 		const admin = isAdmin(args.adminSecret);
+		const text = args.text.trim();
+
+		if (text.length === 0 || text.length > MAX_TEXT_LENGTH) {
+			throw new ConvexError({ kind: 'BadRequest', message: 'Invalid comment' });
+		}
+		if (!admin && (await isBanned(ctx, args.ipHash))) {
+			throw new ConvexError({ kind: 'Banned' });
+		}
 		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
 
 		const comment = await ctx.db.get(args.commentId);
@@ -184,8 +217,28 @@ export const applyEdit = mutation({
 		}
 
 		const updatedAt = Date.now();
-		await ctx.db.patch(args.commentId, { text: args.text, updatedAt });
-		return { id: args.commentId, text: args.text, updatedAt };
+		await ctx.db.patch(args.commentId, { text, updatedAt });
+		return { id: args.commentId, text, updatedAt };
+	}
+});
+
+export const softDelete = mutation({
+	args: {
+		commentId: v.id('comments'),
+		serverSecret: v.string()
+	},
+	handler: async (ctx, { commentId, serverSecret }) => {
+		assertServer(serverSecret);
+		const comment = await ctx.db.get(commentId);
+		if (!comment || comment.deletedAt !== null) {
+			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+		}
+
+		await ctx.db.patch(commentId, {
+			username: '[deleted]',
+			text: '[deleted]',
+			updatedAt: Date.now()
+		});
 	}
 });
 

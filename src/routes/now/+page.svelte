@@ -16,9 +16,7 @@
 	const content = $derived(doc?.content ?? '');
 	const updatedAt = $derived(doc?.updatedAt ? new Date(doc.updatedAt) : null);
 	const html = $derived(
-		content
-			? marked.parse(content, { gfm: true, breaks: false })
-			: ''
+		content ? sanitizeHtml(marked.parse(content, { gfm: true, breaks: false })) : ''
 	);
 
 	/** @type {Array<{ unit: Intl.RelativeTimeFormatUnit, secs: number }>} */
@@ -95,6 +93,79 @@
 		resize();
 		return { destroy: () => node.removeEventListener('input', resize) };
 	}
+
+	const ALLOWED_TAGS = new Set([
+		'a',
+		'blockquote',
+		'br',
+		'code',
+		'em',
+		'h1',
+		'h2',
+		'h3',
+		'h4',
+		'h5',
+		'h6',
+		'hr',
+		'li',
+		'ol',
+		'p',
+		'pre',
+		'strong',
+		'ul'
+	]);
+	const ALLOWED_ATTRS = new Map([
+		['a', new Set(['href', 'title'])],
+		['code', new Set(['class'])]
+	]);
+
+	function sanitizeHtml(input) {
+		if (typeof document === 'undefined') return '';
+
+		const template = document.createElement('template');
+		template.innerHTML = input;
+		cleanNode(template.content);
+		return template.innerHTML;
+	}
+
+	function cleanNode(node) {
+		for (const child of [...node.childNodes]) {
+			if (child.nodeType === Node.TEXT_NODE) continue;
+			if (child.nodeType !== Node.ELEMENT_NODE) {
+				child.remove();
+				continue;
+			}
+
+			const tag = child.tagName.toLowerCase();
+			if (!ALLOWED_TAGS.has(tag)) {
+				child.replaceWith(document.createTextNode(child.textContent ?? ''));
+				continue;
+			}
+
+			const allowedAttrs = ALLOWED_ATTRS.get(tag) ?? new Set();
+			for (const attr of [...child.attributes]) {
+				if (!allowedAttrs.has(attr.name) || attr.name.startsWith('on')) {
+					child.removeAttribute(attr.name);
+				}
+			}
+
+			if (tag === 'a') {
+				const href = child.getAttribute('href') ?? '';
+				if (!isSafeHref(href)) {
+					child.removeAttribute('href');
+				} else if (/^https?:\/\//i.test(href)) {
+					child.setAttribute('target', '_blank');
+					child.setAttribute('rel', 'noopener noreferrer');
+				}
+			}
+
+			cleanNode(child);
+		}
+	}
+
+	function isSafeHref(href) {
+		return /^(https?:|mailto:|\/|#)/i.test(href);
+	}
 </script>
 
 <svelte:head>
@@ -103,26 +174,23 @@
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
-	<h1 class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-2xl dark:text-neutral-100">
+	<h1
+		class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-2xl dark:text-neutral-100"
+	>
 		Now
 	</h1>
-{#if !nowQuery.isLoading && updatedAt}
+	{#if !nowQuery.isLoading && updatedAt}
 		<p
 			class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500"
 			title={formatFull(updatedAt)}
 		>
-				Updated {formatRelative(updatedAt)}
-
+			Updated {formatRelative(updatedAt)}
 		</p>
-		{:else}
-		<p
-			class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500"
-		>
-				Loading...
-
-		</p>		
-		
-		{/if}
+	{:else}
+		<p class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500">
+			Loading...
+		</p>
+	{/if}
 
 	<div class="my-12">
 		{#if nowQuery.isLoading}
@@ -136,24 +204,26 @@
 				use:autoResize
 				bind:value={editContent}
 				disabled={saving}
-				class="w-full min-h-[320px] resize-none rounded-none border-0 bg-neutral-50 dark:bg-neutral-900 px-4 py-3 font-mono text-sm text-neutral-900 dark:text-neutral-100 leading-relaxed outline-none focus:ring-1 focus:ring-neutral-300 dark:focus:ring-neutral-700 disabled:opacity-50 transition-colors"
+				aria-label="Now page markdown"
+				class="min-h-[320px] w-full resize-none rounded-none border-0 bg-neutral-50 px-4 py-3 font-mono text-sm leading-relaxed text-neutral-900 transition-colors outline-none focus:ring-1 focus:ring-neutral-300 disabled:opacity-50 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:ring-neutral-700"
 				placeholder="Write in markdown…"
 				spellcheck="false"
 				autocomplete="off"
 			></textarea>
 		{:else if html}
 			<div
-				class="prose prose-neutral dark:prose-invert max-w-none
-					prose-p:text-neutral-900 dark:prose-p:text-neutral-100
-					prose-headings:font-semibold prose-headings:tracking-tight
-					prose-h1:text-2xl prose-h1:mt-8 prose-h1:mb-2
-					prose-h2:text-xl prose-h2:mt-8 prose-h2:mb-2
-					prose-h3:text-lg prose-h3:mt-6 prose-h3:mb-1
-					prose-a:no-underline prose-a:hover:underline
-					prose-li:text-neutral-900 dark:prose-li:text-neutral-100
-					prose-ul:my-2 prose-li:my-0.5
+				class="prose prose-neutral dark:prose-invert prose-p:text-neutral-900
+					dark:prose-p:text-neutral-100 prose-headings:font-semibold
+					prose-headings:tracking-tight prose-h1:text-2xl
+					prose-h1:mt-8 prose-h1:mb-2 prose-h2:text-xl
+					prose-h2:mt-8 prose-h2:mb-2 prose-h3:text-lg
+					prose-h3:mt-6 prose-h3:mb-1 prose-a:no-underline
+					prose-a:hover:underline prose-li:text-neutral-900
+					dark:prose-li:text-neutral-100 prose-ul:my-2
+					prose-li:my-0.5 max-w-none
 					text-base leading-relaxed"
 			>
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- sanitized by sanitizeHtml() above -->
 				{@html html}
 			</div>
 		{:else if data.isAdmin}
@@ -170,7 +240,7 @@
 			{#if !editing}
 				<button
 					onclick={startEdit}
-					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-95 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-[0.96] dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 				>
 					Edit
 				</button>
@@ -178,14 +248,14 @@
 				<button
 					onclick={save}
 					disabled={saving}
-					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+					class="rounded-lg bg-black px-4 py-2 text-sm font-medium text-neutral-100 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 				>
 					{saving ? 'Saving…' : 'Save'}
 				</button>
 				<button
 					onclick={cancelEdit}
 					disabled={saving}
-					class="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
+					class="rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700"
 				>
 					Cancel
 				</button>

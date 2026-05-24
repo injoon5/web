@@ -25,7 +25,10 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 	let auth;
 	try {
-		auth = await convex.query(api.comments.getForAuth, { commentId: params.id });
+		auth = await convex.query(api.comments.getForAuth, {
+			commentId: params.id,
+			serverSecret: ADMIN_SECRET
+		});
 	} catch (err) {
 		return handleConvexErr(err);
 	}
@@ -40,6 +43,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 				commentId: params.id,
 				text,
 				ipHash,
+				serverSecret: ADMIN_SECRET,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
 		(updated) => json({ comment: updated })
@@ -62,7 +66,10 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 
 		let auth;
 		try {
-			auth = await convex.query(api.comments.getForAuth, { commentId: params.id });
+			auth = await convex.query(api.comments.getForAuth, {
+				commentId: params.id,
+				serverSecret: ADMIN_SECRET
+			});
 		} catch (err) {
 			return handleConvexErr(err);
 		}
@@ -73,7 +80,16 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	}
 
 	return runConvex(
-		() => convex.mutation(api.comments.hardDelete, { commentId: params.id, adminSecret: ADMIN_SECRET }),
+		() =>
+			admin
+				? convex.mutation(api.comments.hardDelete, {
+						commentId: params.id,
+						adminSecret: ADMIN_SECRET
+					})
+				: convex.mutation(api.comments.softDelete, {
+						commentId: params.id,
+						serverSecret: ADMIN_SECRET
+					}),
 		() => json({ success: true })
 	);
 };
