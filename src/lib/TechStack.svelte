@@ -1,6 +1,4 @@
 <script>
-	import { inViewOnce } from '$lib/actions/inViewOnce.js';
-
 	let { techstack = [] } = $props();
 
 	const FAVORITES = ['SvelteKit', 'SwiftUI', 'Convex', 'Figma', 'Obsidian', 'MacBook Pro'];
@@ -13,6 +11,7 @@
 
 	// 'favorites' | number (category index)
 	let activeIndex = $state('favorites');
+	let animated = $state(false);
 
 	const panelId = $derived(String(activeIndex));
 
@@ -23,6 +22,7 @@
 	);
 
 	function selectTab(index) {
+		animated = true;
 		activeIndex = index;
 	}
 
@@ -96,7 +96,7 @@
 	}
 </script>
 
-<div use:inViewOnce class="ts-root">
+<div class="ts-root">
 	<div role="tablist" aria-label="Tech stack categories" class="ts-tabs">
 		<button
 			type="button"
@@ -142,6 +142,7 @@
 					role="tabpanel"
 					aria-label={activeIndex === 'favorites' ? 'Favorites' : techstack[activeIndex]?.name}
 					class="ts-panel"
+				class:ts-panel-animate={animated}
 				>
 					{#each items as tech, i}
 						<div class="ts-item" style="--i: {i}">
@@ -240,6 +241,9 @@
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 1rem;
+	}
+
+	.ts-panel-animate {
 		animation: ts-panel-in var(--motion-slow) var(--ease-out-soft) both;
 	}
 
@@ -259,7 +263,7 @@
 		gap: 0.15rem;
 	}
 
-	:global(.ts-root[data-in-view='true']) .ts-item {
+	.ts-panel-animate .ts-item {
 		animation: ts-item-in 300ms var(--ease-out-soft) both;
 		animation-delay: calc(var(--i) * 45ms);
 	}
@@ -294,6 +298,6 @@
 
 	@media (prefers-reduced-motion: reduce) {
 		.ts-height-outer { transition: none; }
-		.ts-panel, :global(.ts-root[data-in-view='true']) .ts-item { animation: none; }
+		.ts-panel-animate, .ts-panel-animate .ts-item { animation: none; }
 	}
 </style>
