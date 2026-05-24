@@ -37,6 +37,25 @@
 			?.focus();
 	}
 
+	// Leaving panel: snap to absolute (so it doesn't hold layout height) then fade out.
+	// Entering panel: fade + subtle rise in normal flow.
+	function panelOut(node) {
+		const { offsetTop, offsetLeft, offsetWidth } = node;
+		node.style.position = 'absolute';
+		node.style.top = offsetTop + 'px';
+		node.style.left = offsetLeft + 'px';
+		node.style.width = offsetWidth + 'px';
+		node.style.pointerEvents = 'none';
+		return { duration: 160, css: (t) => `opacity: ${t}` };
+	}
+
+	function panelIn(node) {
+		return {
+			duration: 200,
+			css: (t, u) => `opacity: ${t}; transform: translateY(${u * 5}px)`
+		};
+	}
+
 	// Animates the wrapper height to match its inner content whenever it resizes.
 	// First measurement skips the transition so there's no flash on mount.
 	function animateHeight(node) {
@@ -89,6 +108,8 @@
 		<div class="ts-height-inner">
 			{#key panelId}
 				<div
+					in:panelIn
+					out:panelOut
 					id="ts-panel"
 					role="tabpanel"
 					aria-label={activeIndex === null ? 'Highlights' : techstack[activeIndex]?.name}
@@ -182,9 +203,8 @@
 		transition: height 260ms var(--ease-out-soft);
 	}
 
-	/* Inner holds the {#key} panel so ResizeObserver can track it */
 	.ts-height-inner {
-		/* no styles needed — just a measurement target */
+		position: relative;
 	}
 
 	/* --- Panel --- */
