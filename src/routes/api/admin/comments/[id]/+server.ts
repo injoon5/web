@@ -10,7 +10,8 @@ import { ADMIN_SECRET } from '$env/static/private';
 export const DELETE: RequestHandler = async ({ params, request }) => {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 	return runConvex(
-		() => convex.mutation(api.comments.hardDelete, { commentId: params.id, adminSecret: ADMIN_SECRET }),
+		() =>
+			convex.mutation(api.comments.hardDelete, { commentId: params.id, adminSecret: ADMIN_SECRET }),
 		() => json({ success: true })
 	);
 };

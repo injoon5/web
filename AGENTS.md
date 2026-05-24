@@ -16,10 +16,10 @@ Convex agent skills for common tasks can be installed by running
 
 ### Services
 
-| Service | Command | Notes |
-|---------|---------|-------|
-| SvelteKit dev server | `npm run dev` | Vite on port 5173. Starts without Convex but realtime features (comments, likes, /now) need a live Convex deployment. |
-| Convex backend | `npx convex dev` | Requires Convex auth (`npx convex login`). Syncs functions & sets `PUBLIC_CONVEX_URL` in `.env`. |
+| Service              | Command          | Notes                                                                                                                 |
+| -------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| SvelteKit dev server | `npm run dev`    | Vite on port 5173. Starts without Convex but realtime features (comments, likes, /now) need a live Convex deployment. |
+| Convex backend       | `npx convex dev` | Requires Convex auth (`npx convex login`). Syncs functions & sets `PUBLIC_CONVEX_URL` in `.env`.                      |
 
 ### Quick reference
 

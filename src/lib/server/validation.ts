@@ -4,12 +4,20 @@ export const createCommentSchema = z.object({
 	url: z.string().min(1),
 	username: z.string().max(32).optional().default('Anonymous'),
 	password: z.string().min(4, 'Password must be at least 4 characters'),
-	text: z.string().min(1, 'Comment cannot be empty').max(200, 'Comment must be 200 characters or less').trim(),
+	text: z
+		.string()
+		.min(1, 'Comment cannot be empty')
+		.max(200, 'Comment must be 200 characters or less')
+		.trim(),
 	parentId: z.string().min(1).optional()
 });
 
 export const editCommentSchema = z.object({
-	text: z.string().min(1, 'Comment cannot be empty').max(200, 'Comment must be 200 characters or less').trim(),
+	text: z
+		.string()
+		.min(1, 'Comment cannot be empty')
+		.max(200, 'Comment must be 200 characters or less')
+		.trim(),
 	password: z.string().min(4, 'Password must be at least 4 characters')
 });
 

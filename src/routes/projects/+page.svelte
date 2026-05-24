@@ -4,9 +4,15 @@
 
 <svelte:head>
 	<title>Projects - Injoon Oh</title>
-	<meta name="description" content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects." />
+	<meta
+		name="description"
+		content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects."
+	/>
 	<meta property="og:title" content="Projects - Injoon Oh" />
-	<meta property="og:description" content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects." />
+	<meta
+		property="og:description"
+		content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects."
+	/>
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=projects" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=projects" />
@@ -22,8 +28,8 @@
 	<h2
 		class="text-md text-xl font-medium tracking-tight text-neutral-500 sm:text-xl dark:text-neutral-500"
 	>
-		Some of the stuff I did to escape from a boring day. <br>Everything from school projects to personal
-		projects. (WIP)
+		Some of the stuff I did to escape from a boring day. <br />Everything from school projects to
+		personal projects. (WIP)
 	</h2>
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">

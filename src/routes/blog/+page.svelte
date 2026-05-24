@@ -23,9 +23,15 @@
 
 <svelte:head>
 	<title>Blog - Injoon Oh</title>
-	<meta name="description" content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about." />
+	<meta
+		name="description"
+		content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about."
+	/>
 	<meta property="og:title" content="Blog - Injoon Oh" />
-	<meta property="og:description" content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about." />
+	<meta
+		property="og:description"
+		content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about."
+	/>
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=blog" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=blog" />
@@ -41,8 +47,8 @@
 	<h2
 		class="text-md text-xl font-medium tracking-tight text-neutral-500 sm:text-xl dark:text-neutral-500"
 	>
-		Stuff that just barely made it online. <br>Take a look at what I've done, experienced, and wrote
-		about.
+		Stuff that just barely made it online. <br />Take a look at what I've done, experienced, and
+		wrote about.
 	</h2>
 	<!--
 		<div class="my-6 text-base">
@@ -67,7 +73,9 @@
 		{#each groupedPosts as group}
 			{#if group.type === 'series'}
 				<div class="py-2">
-					<span class="line-clamp-1 text-base font-medium tracking-wide text-neutral-500 dark:text-neutral-500">
+					<span
+						class="line-clamp-1 text-base font-medium tracking-wide text-neutral-500 dark:text-neutral-500"
+					>
 						{group.name}
 					</span>
 				</div>
@@ -85,14 +93,14 @@
 								</span>
 								{#if seriesPost.hasEn}
 									<span
-										class="shrink-0 text-xs font-semibold tracking-wide uppercase text-neutral-400 dark:text-neutral-600"
+										class="shrink-0 text-xs font-semibold tracking-wide text-neutral-400 uppercase dark:text-neutral-600"
 									>
 										EN
 									</span>
 								{/if}
 							</span>
 							<span
-								class="ml-4 shrink-0 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 tabular dark:text-neutral-400 dark:group-hover:text-neutral-500"
+								class="tabular ml-4 shrink-0 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 dark:text-neutral-400 dark:group-hover:text-neutral-500"
 							>
 								{seriesPost.date || seriesPost.year}
 							</span>
@@ -113,14 +121,14 @@
 							</span>
 							{#if group.post.hasEn}
 								<span
-									class="shrink-0 text-xs font-semibold tracking-wide uppercase text-neutral-400 dark:text-neutral-600"
+									class="shrink-0 text-xs font-semibold tracking-wide text-neutral-400 uppercase dark:text-neutral-600"
 								>
 									EN
 								</span>
 							{/if}
 						</span>
 						<span
-							class="ml-4 shrink-0 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 tabular dark:text-neutral-400 dark:group-hover:text-neutral-500"
+							class="tabular ml-4 shrink-0 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 dark:text-neutral-400 dark:group-hover:text-neutral-500"
 						>
 							{group.post.date || group.post.year}
 						</span>

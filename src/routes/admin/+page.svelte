@@ -196,13 +196,13 @@
 				class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>
 				<p class="text-xs font-medium tracking-wider text-neutral-400 uppercase">Comments</p>
-				<p class="mt-1 text-3xl font-semibold tabular">{statsTotal.comments}</p>
+				<p class="tabular mt-1 text-3xl font-semibold">{statsTotal.comments}</p>
 			</div>
 			<div
 				class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>
 				<p class="text-xs font-medium tracking-wider text-neutral-400 uppercase">Bans</p>
-				<p class="mt-1 text-3xl font-semibold tabular">{statsTotal.bans}</p>
+				<p class="tabular mt-1 text-3xl font-semibold">{statsTotal.bans}</p>
 			</div>
 		</div>
 
@@ -246,9 +246,11 @@
 								onclick={() => selectUrl(item.url)}
 								class="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900"
 							>
-								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300">{item.url}</span>
+								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300"
+									>{item.url}</span
+								>
 								<span
-									class="ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 tabular dark:bg-neutral-800 dark:text-neutral-400"
+									class="tabular ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
 								>
 									{item.count}
 								</span>
@@ -306,7 +308,7 @@
 							{#if ban.reason}
 								<p class="mt-0.5 text-xs text-neutral-500">{ban.reason}</p>
 							{/if}
-							<p class="mt-0.5 text-xs text-neutral-400 tabular">{formatDate(ban.createdAt)}</p>
+							<p class="tabular mt-0.5 text-xs text-neutral-400">{formatDate(ban.createdAt)}</p>
 						</div>
 						<button
 							onclick={() => unban(ban.id)}

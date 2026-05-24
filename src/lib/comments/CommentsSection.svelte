@@ -205,7 +205,7 @@
 				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			></textarea>
 			{#if showCharsLeft}
-				<p class="mt-1 text-sm text-neutral-500 tabular">Characters left: {charsLeft}</p>
+				<p class="tabular mt-1 text-sm text-neutral-500">Characters left: {charsLeft}</p>
 			{/if}
 		</div>
 		<div>
@@ -242,7 +242,7 @@
 
 <div class="mt-8">
 	{#if query.isLoading}
-		{#each [1, 2, 3] as _}
+		{#each [1, 2, 3] as skeleton (skeleton)}
 			<div
 				class="mb-4 rounded-xl border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 			>

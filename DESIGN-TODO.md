@@ -6,7 +6,7 @@ shipped on `claude/codebase-design-review-w329m` are intentionally not listed.
 
 ---
 
-## Font / typography overhaul *(deferred — revisit first next time)*
+## Font / typography overhaul _(deferred — revisit first next time)_
 
 All of this was held back to avoid stacked changes; let's tackle it as a
 single pass so the type system stays coherent.
@@ -36,7 +36,7 @@ single pass so the type system stays coherent.
 
 ---
 
-## Off-black / off-white text *(maybe next time)*
+## Off-black / off-white text _(maybe next time)_
 
 `src/app.html:36` uses `text-black` on `bg-white` and `text-white` on
 `bg-neutral-950`. Pure `#000` on `#fff` is harsh. Switch globally to
@@ -45,10 +45,11 @@ contrast.
 
 ---
 
-## Spacing rhythm *(deferred)*
+## Spacing rhythm _(deferred)_
 
 Every major section on `+page.svelte` uses the same `mt-20 mb-12`.
 Introduce a 3-tier rhythm:
+
 - intro → first section: `mt-24`
 - section → section: `mt-32`
 - within a section: `mt-12`
@@ -58,19 +59,19 @@ gives it room to breathe.
 
 ---
 
-## Dead / typo'd Tailwind classes *(deferred — touching these can shift layout)*
+## Dead / typo'd Tailwind classes _(deferred — touching these can shift layout)_
 
 These currently silently no-op. Removing them shouldn't change anything
 visually, but it could expose hidden assumptions, so do them in a single
 sweep with eyes on the affected pages:
 
-| File:line | Class | What it should be / do |
-| --- | --- | --- |
-| `src/routes/+page.svelte:83` | `sm:text-normal` | not a class — delete |
+| File:line                          | Class                                       | What it should be / do         |
+| ---------------------------------- | ------------------------------------------- | ------------------------------ |
+| `src/routes/+page.svelte:83`       | `sm:text-normal`                            | not a class — delete           |
 | `src/routes/+page.svelte:134, 192` | `font-neutral-900`, `dark:font-neutral-100` | meant `text-…` — fix or delete |
-| `src/routes/+page.svelte:360` | `lg:text-bas` | typo — `lg:text-base` |
-| `src/routes/blog/+page.svelte:40` | `text-md` | not a class — delete |
-| `src/routes/+page.svelte:213` | `-tracking-normal` | no-op — delete |
+| `src/routes/+page.svelte:360`      | `lg:text-bas`                               | typo — `lg:text-base`          |
+| `src/routes/blog/+page.svelte:40`  | `text-md`                                   | not a class — delete           |
+| `src/routes/+page.svelte:213`      | `-tracking-normal`                          | no-op — delete                 |
 
 Plus the giant commented-out blocks at `+page.svelte:283-302` and
 `blog/+page.svelte:45-62` — confirm dead, delete.
@@ -112,7 +113,7 @@ Not blocking; queue them for a future pass.
 
 ---
 
-## What we explicitly ship-decided *not* to do
+## What we explicitly ship-decided _not_ to do
 
 Keeping a record so we don't re-litigate.
 

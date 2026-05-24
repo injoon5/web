@@ -77,7 +77,10 @@
 	<meta charset="UTF-8" />
 	<meta property="og:title" content="Injoon Oh" />
 	<meta name="description" content="A student who is interested in math, science, and computers." />
-	<meta property="og:description" content="A student who is interested in math, science, and computers." />
+	<meta
+		property="og:description"
+		content="A student who is interested in math, science, and computers."
+	/>
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=home" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=home" />
@@ -92,30 +95,30 @@
 	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
 		<div style="height: max-content;">
 			<h2
-			class="text-2xl -mb-1 font-semibold font-sans tracking-tight text-neutral-400 dark:text-neutral-500 text-balance"
-		>
-			오인준
-		</h2>
+				class="-mb-1 font-sans text-2xl font-semibold tracking-tight text-balance text-neutral-400 dark:text-neutral-500"
+			>
+				오인준
+			</h2>
 			<h2
 				bind:this={heroNameEl}
-				class="text-2xl font-medium font-sans tracking-tight text-neutral-900 dark:text-neutral-100 text-balance"
+				class="font-sans text-2xl font-medium tracking-tight text-balance text-neutral-900 dark:text-neutral-100"
 			>
-Injoon Oh
+				Injoon Oh
 			</h2>
 		</div>
 	</div>
 	<div class="col-span-5 mt-4 justify-center md:mr-2 lg:mt-0">
-		<p class="mb-4 text-neutral-900 dark:text-neutral-100 text-pretty">
+		<p class="mb-4 text-pretty text-neutral-900 dark:text-neutral-100">
 			I am a student who is interested in math, science, and computers.
 		</p>
-		<p class="text-neutral-900 dark:text-neutral-100 text-pretty">
+		<p class="text-pretty text-neutral-900 dark:text-neutral-100">
 			I love exploring new concepts and getting to know cool new things. Whether it's tackling
 			complex equations, researching about scientific stuff, or trying the latest tech, I'm always
 			eager to learn.
 		</p>
 	</div>
 	<div class="col-span-5 mt-4 justify-center md:ml-2 lg:mt-0">
-		<p class="mb-2 text-neutral-900 dark:text-neutral-100 text-pretty">
+		<p class="mb-2 text-pretty text-neutral-900 dark:text-neutral-100">
 			Although I haven't decided the specific domain due to the industry evolving so rapidly, I want
 			to be a computer programmer when I grow up. <s class="text-neutral-500"
 				>(Nowadays I'm thinking about AI, but who knows?)</s
@@ -131,7 +134,7 @@ Injoon Oh
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
 			<a href="/blog" class="group">
 				<h2
-					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400 text-balance"
+					class="mb-4 text-xl font-medium tracking-tight text-balance text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
 				>
 					Blog
 				</h2>
@@ -146,7 +149,7 @@ Injoon Oh
 					href="/blog/{post.slug}"
 				>
 					<h3
-						class="text-neutral-900 dark:text-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
+						class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:underline dark:text-neutral-100"
 					>
 						{post.title}
 					</h3>
@@ -156,10 +159,14 @@ Injoon Oh
 						{post.description ||
 							'Some amazing post that I forgot or failed to write a description for. '}
 					</p>
-					<div class="flex items-center gap-2 text-sm font-medium text-neutral-500 dark:text-neutral-500">
+					<div
+						class="flex items-center gap-2 text-sm font-medium text-neutral-500 dark:text-neutral-500"
+					>
 						<span class="whitespace-nowrap">{post.date || post.year}</span>
 						{#if post.hasEn}
-							<span class="text-sm font-semibold text-neutral-400 dark:text-neutral-600">English</span>
+							<span class="text-sm font-semibold text-neutral-400 dark:text-neutral-600"
+								>English</span
+							>
 						{/if}
 					</div>
 				</a>
@@ -190,7 +197,7 @@ Injoon Oh
 		<div class="top-20 md:sticky md:top-24" style="height: max-content;">
 			<a href="/projects" class="group">
 				<h2
-					class="mb-4 text-xl font-medium tracking-tight text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400 text-balance"
+					class="mb-4 text-xl font-medium tracking-tight text-balance text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
 				>
 					Projects
 				</h2>
@@ -215,9 +222,7 @@ Injoon Oh
 						{post.description ||
 							'Some amazing project that I forgot or failed to write a description for. '}
 					</p>
-					<div
-						class="whitespace-nowrap text-sm font-medium text-neutral-500 dark:text-neutral-500"
-					>
+					<div class="text-sm font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-500">
 						{post.date || post.year}
 					</div>
 				</a>
@@ -256,17 +261,21 @@ Injoon Oh
 			<div class="space-y-10">
 				{#each data.techstack as stacks}
 					<div>
-						<h3 class="text-base font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mt-0.5">
+						<h3
+							class="mt-0.5 text-base font-medium tracking-tight text-neutral-900 dark:text-neutral-100"
+						>
 							{stacks.name}
 						</h3>
 						<div class="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-12">
 							{#each stacks.technologies as technology}
 								<div class="col-span-4 mt-2">
-									<p class="tracking-tight text-sm leading-normal font-medium text-neutral-900 dark:text-neutral-100">
+									<p
+										class="text-sm leading-normal font-medium tracking-tight text-neutral-900 dark:text-neutral-100"
+									>
 										{technology.name}
 									</p>
 									<p
-										class="tracking-tight text-sm leading-normal font-medium text-neutral-600 dark:text-neutral-400"
+										class="text-sm leading-normal font-medium tracking-tight text-neutral-600 dark:text-neutral-400"
 									>
 										{technology.description}
 									</p>
@@ -280,31 +289,22 @@ Injoon Oh
 	</div>
 </div>
 
-<style>
-	.now-marquee {
-		width: max-content;
-		will-change: transform;
-		animation: now-scroll linear infinite;
-		animation-duration: 60s; /* overridden by marqueeConstantSpeed action */
-		animation-play-state: var(--marquee-play-state, running);
-	}
-	@keyframes now-scroll {
-		from { transform: translateX(0); }
-		to   { transform: translateX(-50%); }
-	}
-</style>
-
-
 <div
 	id="now-listening"
 	class="mt-20 mb-12 grid grid-cols-3 text-lg font-medium tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:relative lg:grid-cols-12"
 >
-	<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:absolute lg:z-10 lg:top-0 lg:left-0">
+	<div
+		class="col-span-3 flex flex-col justify-start md:col-span-10 lg:absolute lg:top-0 lg:left-0 lg:z-10"
+	>
 		<div class="md:sticky md:top-24 lg:static" style="height: max-content;">
-			<h2 class="lg:mt-1 text-xl font-medium tracking-tight text-neutral-900 dark:text-neutral-100 lg:text-white text-balance lg:[text-shadow:0_1px_4px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,0.9),0_4px_48px_rgba(0,0,0,0.8)]">
+			<h2
+				class="text-xl font-medium tracking-tight text-balance text-neutral-900 lg:mt-1 lg:text-white lg:[text-shadow:0_1px_4px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,0.9),0_4px_48px_rgba(0,0,0,0.8)] dark:text-neutral-100"
+			>
 				Now Listening
 			</h2>
-			<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500 lg:text-white dark:lg:text-white lg:opacity-70 dark:lg:opacity-70 lg:[text-shadow:0_1px_4px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,0.9),0_4px_48px_rgba(0,0,0,0.8)]">
+			<p
+				class="text-sm leading-tight font-medium text-neutral-500 lg:text-white lg:opacity-70 lg:[text-shadow:0_1px_4px_rgba(0,0,0,1),0_2px_16px_rgba(0,0,0,0.9),0_4px_48px_rgba(0,0,0,0.8)] dark:text-neutral-500 dark:lg:text-white dark:lg:opacity-70"
+			>
 				Last updated on
 				<span class="inline lg:block">
 					{#if nowState === 'loading'}
@@ -321,14 +321,13 @@ Injoon Oh
 		</div>
 	</div>
 
-
 	<div
-		class="relative col-span-full mt-4 overflow-hidden w-screen left-1/2 -translate-x-1/2 lg:col-span-12 lg:mt-0 pb-4"
+		class="relative left-1/2 col-span-full mt-4 w-screen -translate-x-1/2 overflow-hidden pb-4 lg:col-span-12 lg:mt-0"
 	>
 		{#if nowState === 'loading'}
 			<div class="flex gap-3">
-				{#each Array(20) as _}
-					<div class="shimmer aspect-square w-40 shrink-0 lg:w-48 rounded-xl"></div>
+				{#each Array.from({ length: 20 }, (_, index) => index) as index (index)}
+					<div class="shimmer aspect-square w-40 shrink-0 rounded-xl lg:w-48"></div>
 				{/each}
 			</div>
 		{:else if nowState === 'error'}
@@ -344,7 +343,7 @@ Injoon Oh
 			>
 				{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
 					<a
-						class=" border dark:border shadow-md border-neutral-300 dark:border-neutral-800 border-opacity-50 group relative aspect-square w-40 shrink-0 lg:w-48 overflow-hidden rounded-xl mr-3"
+						class=" border-opacity-50 group relative mr-3 aspect-square w-40 shrink-0 overflow-hidden rounded-xl border border-neutral-300 shadow-md lg:w-48 dark:border dark:border-neutral-800"
 						href={track.url}
 					>
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
@@ -354,9 +353,13 @@ Injoon Oh
 							alt={track?.name ?? 'Album cover'}
 							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
 						/>
-						<div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"></div>
-						<div class="ml-1 absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0">
-							<p class="truncate text-sm font-semibold leading-tight text-white lg:text-base">
+						<div
+							class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"
+						></div>
+						<div
+							class="absolute inset-x-0 bottom-0 ml-1 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
+						>
+							<p class="truncate text-sm leading-tight font-semibold text-white lg:text-base">
 								{track.name}
 							</p>
 							<p class="truncate text-sm font-normal text-white/60 lg:text-base">
@@ -390,7 +393,7 @@ Injoon Oh
 	<div class="col-span-10 mt-4 justify-center lg:mt-0">
 		<div class="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-3">
 			{#if photosState === 'loading'}
-				{#each Array(6) as _}
+				{#each Array.from({ length: 6 }, (_, index) => index) as index (index)}
 					<div class="shimmer aspect-square w-full"></div>
 				{/each}
 			{:else if photosState === 'error'}
@@ -406,7 +409,7 @@ Injoon Oh
 				{#each (photos?.photos ?? []).slice(0, 6) as photo}
 					<a
 						href={photo.url}
-						class="group border rounded-xl border-neutral-300 dark:border-neutral-800 border-opacity-50 relative block aspect-square w-full overflow-hidden bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+						class="group border-opacity-50 relative block aspect-square w-full overflow-hidden rounded-xl border border-neutral-300 bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
 					>
 						<img
 							loading="lazy"
@@ -418,7 +421,7 @@ Injoon Oh
 						<div
 							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
 						>
-							<p class="truncate text-sm font-medium text-white/30 tabular">
+							<p class="tabular truncate text-sm font-medium text-white/30">
 								{photo.takenAtNaive}
 							</p>
 						</div>
@@ -446,3 +449,21 @@ Injoon Oh
 		</div>
 	</div>
 </div>
+
+<style>
+	.now-marquee {
+		width: max-content;
+		will-change: transform;
+		animation: now-scroll linear infinite;
+		animation-duration: 60s; /* overridden by marqueeConstantSpeed action */
+		animation-play-state: var(--marquee-play-state, running);
+	}
+	@keyframes now-scroll {
+		from {
+			transform: translateX(0);
+		}
+		to {
+			transform: translateX(-50%);
+		}
+	}
+</style>
