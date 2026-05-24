@@ -13,6 +13,8 @@ onMount(async () => {
 	mounted = true;
 });
 $: bf = { amount: 8, opacity: 0, duration: mounted && !reduceMotion ? 420 : 0, easing: cubicOut };
+// Reverse a copy — mutating the prop in place flipped the order on every render.
+$: ordered = [...series].reverse();
 </script>
 
 <div
@@ -30,13 +32,13 @@ $: bf = { amount: 8, opacity: 0, duration: mounted && !reduceMotion ? 420 : 0, e
 			</h2>
 		{/key}
 	</div>
-	{#each series.reverse() as post, index}
+	{#each ordered as post, index (post.slug)}
 		<a
 			href={post.slug === $page.params.slug ? '' : post.slug}
 			class=" border-t border-neutral-200 dark:border-neutral-800 {post.slug === $page.params.slug
 				? 'cursor-default opacity-50'
 				: 'hover:bg-neutral-200  dark:hover:bg-neutral-800 '}  flex flex-row px-3 py-2 {index ===
-			series.length - 1
+			ordered.length - 1
 				? 'rounded-b-xl'
 				: ''}"
 		>

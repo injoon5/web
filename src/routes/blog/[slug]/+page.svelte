@@ -16,7 +16,11 @@
 
 	export let data;
 
+	// `lang` is the selected language (drives the selector pill instantly).
+	// `displayLang` is the content currently shown; it catches up to `lang`
+	// one animation at a time so rapid switches can't stack transitions.
 	let lang = data.availableLangs[0] ?? 'ko';
+	let displayLang = lang;
 
 	// Direction of the language swap, used to slide content the right way.
 	let dir = 1;
@@ -24,10 +28,14 @@
 	// Stays false until after the initial (possibly localStorage-restored) language
 	// is applied, so that first paint and that restore don't animate.
 	let mounted = false;
+	let animating = false;
 
 	onMount(async () => {
 		const saved = localStorage.getItem('preferred-lang');
-		if (saved && data.availableLangs.includes(saved)) lang = saved;
+		if (saved && data.availableLangs.includes(saved)) {
+			lang = saved;
+			displayLang = saved;
+		}
 		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		await tick();
 		mounted = true;
@@ -35,9 +43,24 @@
 
 	function setLang(l) {
 		if (l === lang) return;
-		dir = data.availableLangs.indexOf(l) >= data.availableLangs.indexOf(lang) ? 1 : -1;
 		lang = l;
 		localStorage.setItem('preferred-lang', l);
+		advanceDisplay();
+	}
+
+	// Step the displayed content toward the selected language. Only one
+	// transition runs at a time; if the selection changed mid-animation we
+	// re-run on completion to settle on the latest choice.
+	function advanceDisplay() {
+		if (animating || displayLang === lang) return;
+		dir = data.availableLangs.indexOf(lang) >= data.availableLangs.indexOf(displayLang) ? 1 : -1;
+		displayLang = lang;
+		if (!animate) return;
+		animating = true;
+		setTimeout(() => {
+			animating = false;
+			advanceDisplay();
+		}, 470);
 	}
 
 	let bodyWidth = 0;
@@ -48,11 +71,11 @@
 	$: bodyIn = { x: dir * (bodyWidth + 32), opacity: 1, duration: animate ? 440 : 0, easing: cubicOut };
 	$: bodyOut = { x: -dir * (bodyWidth + 32), opacity: 1, duration: animate ? 440 : 0, easing: cubicOut };
 
-	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
-	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
-	$: currentReadingTime = (lang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
+	$: currentMeta = (displayLang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
+	$: currentContent = (displayLang === 'ko' && data.koContent) ? data.koContent : data.enContent;
+	$: currentReadingTime = (displayLang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
 	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
-	$: currentSeries = lang === 'ko' ? data.koSeries : data.enSeries;
+	$: currentSeries = displayLang === 'ko' ? data.koSeries : data.enSeries;
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
 
 	// Animated language toggle — measure each button's rect to slide a pill behind the active one.
@@ -101,7 +124,7 @@
 		<div class="tracking-tight">
 			{#if currentSeries?.[0]?.series}
 				<div class="grid">
-					{#key lang}
+					{#key displayLang}
 						<h2
 							style="grid-area: 1 / 1;"
 							in:blur={titleBlur}
@@ -114,7 +137,7 @@
 				</div>
 			{/if}
 			<div class="grid">
-				{#key lang}
+				{#key displayLang}
 					<h1
 						style="grid-area: 1 / 1;"
 						in:blur={titleBlur}
@@ -126,13 +149,7 @@
 				{/key}
 			</div>
 			<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
-				<div class="grid">
-					{#key lang}
-						<p style="grid-area: 1 / 1;" in:blur={titleBlur} out:blur={titleBlur} class="tabular">
-							{formatDate(currentMeta.date)}
-						</p>
-					{/key}
-				</div>
+				<p class="tabular">{formatDate(currentMeta.date)}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
 					<NumberFlow value={readingMinutes} suffix=" min read" />
@@ -185,7 +202,7 @@
 
 		<!-- Post -->
 		<div class="mt-10 grid overflow-hidden" bind:clientWidth={bodyWidth}>
-			{#key lang}
+			{#key displayLang}
 				<div style="grid-area: 1 / 1;" in:fly={bodyIn} out:fly={bodyOut}>
 					{#if currentMeta?.aiTranslated}
 						<div
@@ -198,7 +215,7 @@
 								aria-hidden="true"
 							/>
 							<div>
-								{#if lang === 'ko'}
+								{#if displayLang === 'ko'}
 									<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
 									<p class="text-sm text-neutral-500 dark:text-neutral-500">
 										이 글은 AI의 도움을 받아 번역되었습니다. 일부 내용에 오류가 있을 수 있습니다.
