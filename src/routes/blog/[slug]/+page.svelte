@@ -37,7 +37,6 @@
 
 	let bodyWidth = 0;
 
-	$: bannerFly = { y: -16, opacity: 0, duration: reduceMotion ? 0 : 360, easing: cubicOut };
 	$: titleBlur = { amount: 8, opacity: 0, duration: reduceMotion ? 0 : 420, easing: cubicOut };
 	// Both directions share duration + easing so the panels stay a constant gap apart while sliding.
 	$: bodyIn = { x: dir * (bodyWidth + 32), opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
@@ -177,38 +176,39 @@
 		</div>
 
 		<!-- Post -->
-		{#if currentMeta?.aiTranslated}
-			<div
-				transition:fly={bannerFly}
-				class="mt-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
-			>
-				<Languages
-					size="16"
-					strokeWidth="2"
-					class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
-					aria-hidden="true"
-				/>
-				<div>
-					{#if lang === 'ko'}
-						<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
-						<p class="text-sm text-neutral-500 dark:text-neutral-500">
-							이 글은 AI의 도움을 받아 번역되었습니다. 일부 내용에 오류가 있을 수 있습니다. 
-						</p>
-					{:else}
-						<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI Translation</p>
-						<p class="text-sm text-neutral-500 dark:text-neutral-500">
-							This post was translated from Korean with the help of AI. Some nuance may be lost.
-						</p>
-					{/if}
-				</div>
-			</div>
-		{/if}
 		<div class="mt-10 grid overflow-hidden" bind:clientWidth={bodyWidth}>
 			{#key lang}
-				<div style="grid-area: 1 / 1;" use:lightboxAction class="prose-post" in:fly={bodyIn} out:fly={bodyOut}>
-					{#if currentContent}
-						<svelte:component this={currentContent} class="prose" />
+				<div style="grid-area: 1 / 1;" in:fly={bodyIn} out:fly={bodyOut}>
+					{#if currentMeta?.aiTranslated}
+						<div
+							class="mb-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
+						>
+							<Languages
+								size="16"
+								strokeWidth="2"
+								class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+								aria-hidden="true"
+							/>
+							<div>
+								{#if lang === 'ko'}
+									<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
+									<p class="text-sm text-neutral-500 dark:text-neutral-500">
+										이 글은 AI의 도움을 받아 번역되었습니다. 일부 내용에 오류가 있을 수 있습니다.
+									</p>
+								{:else}
+									<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI Translation</p>
+									<p class="text-sm text-neutral-500 dark:text-neutral-500">
+										This post was translated from Korean with the help of AI. Some nuance may be lost.
+									</p>
+								{/if}
+							</div>
+						</div>
 					{/if}
+					<div use:lightboxAction class="prose-post">
+						{#if currentContent}
+							<svelte:component this={currentContent} class="prose" />
+						{/if}
+					</div>
 				</div>
 			{/key}
 		</div>
