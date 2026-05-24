@@ -217,18 +217,24 @@
 	@apply min-w-0;
 }
 
-/* Fenced blocks — scroll on the figure so title + code move together */
+/* Fenced blocks — bounded width + scroll wide content inside */
 :is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure]) {
-	@apply max-w-full overflow-x-auto;
+	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
 }
 
 :is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure] pre) {
-	@apply max-w-none overflow-x-visible;
+	@apply w-max max-w-none min-w-full;
 }
 
 /* Plain ``` fences if not wrapped in a figure */
 :is(.prose, .prose-post) :where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre)) {
-	@apply max-w-full overflow-x-auto;
+	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
+}
+
+:is(.prose, .prose-post)
+	:where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre))
+	> :where(code) {
+	@apply block w-max min-w-full;
 }
 
 .prose code[data-line-numbers] {

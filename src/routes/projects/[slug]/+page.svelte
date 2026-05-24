@@ -206,9 +206,15 @@
 			</div>
 		</div>
 
-		<div class="mt-10 grid overflow-hidden" bind:clientWidth={bodyWidth}>
+		<div class="mt-10 grid min-w-0" bind:clientWidth={bodyWidth}>
 			{#key displayLang}
-				<div style="grid-area: 1 / 1;" in:flyT={bodyIn} out:flyT={bodyOut} on:introend={onSwapEnd}>
+				<div
+					class="min-w-0 overflow-x-hidden"
+					style="grid-area: 1 / 1;"
+					in:flyT={bodyIn}
+					out:flyT={bodyOut}
+					on:introend={onSwapEnd}
+				>
 					{#if currentMeta?.aiTranslated}
 						<div
 							class="mb-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
