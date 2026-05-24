@@ -205,16 +205,16 @@
 						disabled={voteDisabled}
 						aria-label="Upvote"
 						aria-pressed={myVote === 'up'}
-						class="inline-flex items-center justify-center rounded-full p-1 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+						class="inline-flex items-center justify-center rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 							{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
 							{myVote === 'up'
 							? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
 							: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
 					>
 						{#if isVoting && votingAnim.side === 'up'}
-							<LoaderCircle size="12" class="animate-spin" aria-hidden="true" />
+							<LoaderCircle size="14" class="animate-spin" aria-hidden="true" />
 						{:else}
-							<ArrowUp size="12" strokeWidth="2.25" aria-hidden="true" />
+							<ArrowUp size="14" strokeWidth="2.25" aria-hidden="true" />
 						{/if}
 					</button>
 
