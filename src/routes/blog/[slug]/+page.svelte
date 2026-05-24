@@ -8,15 +8,15 @@
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Languages from '@lucide/svelte/icons/languages';
 	import NumberFlow from '@number-flow/svelte';
+	import BlurHeightSwap from '$lib/BlurHeightSwap.svelte';
 
 	import { onMount, tick } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
 	// When duration is 0 (initial load / reduced motion) return an empty config
-	// so NO starting style is applied — a zero-length blur/fly still paints its
+	// so NO starting style is applied — a zero-length fly still paints its
 	// opacity-0 start frame, which looked like a blink on load.
-	const blurT = (node, params) => (params.duration ? blur(node, params) : {});
 	const flyT = (node, params) => (params.duration ? fly(node, params) : {});
 
 	export let data;
@@ -176,31 +176,17 @@
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if currentSeries?.[0]?.series}
-				<div class="grid">
-					{#key displayLang}
-						<h2
-							style="grid-area: 1 / 1;"
-							in:blurT={titleBlur}
-							out:blurT={titleBlur}
-							class="text-xl font-medium text-neutral-500 dark:text-neutral-500"
-						>
-							{currentSeries[0].series}
-						</h2>
-					{/key}
-				</div>
+				<BlurHeightSwap swapKey={displayLang} blurParams={titleBlur} {animate}>
+					<h2 class="text-xl font-medium text-neutral-500 dark:text-neutral-500">
+						{currentSeries[0].series}
+					</h2>
+				</BlurHeightSwap>
 			{/if}
-			<div class="grid">
-				{#key displayLang}
-					<h1
-						style="grid-area: 1 / 1;"
-						in:blurT={titleBlur}
-						out:blurT={titleBlur}
-						class="text-3xl font-semibold tracking-tight md:font-semibold"
-					>
-						{currentMeta.title}
-					</h1>
-				{/key}
-			</div>
+			<BlurHeightSwap swapKey={displayLang} blurParams={titleBlur} {animate}>
+				<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
+					{currentMeta.title}
+				</h1>
+			</BlurHeightSwap>
 			<div
 				class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400"
 			>
