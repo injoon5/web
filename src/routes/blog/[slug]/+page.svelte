@@ -8,6 +8,7 @@
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Languages from '@lucide/svelte/icons/languages';
 	import NumberFlow from '@number-flow/svelte';
+	import { autoHeight } from '$lib/autoHeight.js';
 
 	import { onMount, tick } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -104,6 +105,7 @@
 
 	$: animate = mounted && !reduceMotion;
 	$: titleBlur = { amount: 8, opacity: 0, duration: animate ? 420 : 0, easing: cubicOut };
+	$: headerHeight = { duration: animate ? 420 : 0, enabled: animate };
 	// Both directions share duration + easing so the panels stay a constant gap apart while sliding.
 	$: bodyIn = {
 		x: dir * (bodyWidth + 32),
@@ -176,30 +178,34 @@
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if currentSeries?.[0]?.series}
-				<div class="grid">
+				<div class="overflow-hidden" use:autoHeight={headerHeight}>
+					<div class="grid" data-auto-height-inner>
+						{#key displayLang}
+							<h2
+								style="grid-area: 1 / 1;"
+								in:blurT={titleBlur}
+								out:blurT={titleBlur}
+								class="text-xl font-medium text-neutral-500 dark:text-neutral-500"
+							>
+								{currentSeries[0].series}
+							</h2>
+						{/key}
+					</div>
+				</div>
+			{/if}
+			<div class="overflow-hidden" use:autoHeight={headerHeight}>
+				<div class="grid" data-auto-height-inner>
 					{#key displayLang}
-						<h2
+						<h1
 							style="grid-area: 1 / 1;"
 							in:blurT={titleBlur}
 							out:blurT={titleBlur}
-							class="text-xl font-medium text-neutral-500 dark:text-neutral-500"
+							class="text-3xl font-semibold tracking-tight md:font-semibold"
 						>
-							{currentSeries[0].series}
-						</h2>
+							{currentMeta.title}
+						</h1>
 					{/key}
 				</div>
-			{/if}
-			<div class="grid">
-				{#key displayLang}
-					<h1
-						style="grid-area: 1 / 1;"
-						in:blurT={titleBlur}
-						out:blurT={titleBlur}
-						class="text-3xl font-semibold tracking-tight md:font-semibold"
-					>
-						{currentMeta.title}
-					</h1>
-				{/key}
 			</div>
 			<div
 				class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400"
