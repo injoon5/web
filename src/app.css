@@ -11,9 +11,9 @@
 @theme {
 	--font-*: initial;
 	--font-sans:
-		-apple-system, BlinkMacSystemFont, 'Pretendard Variable', ui-sans-serif, system-ui, Segoe UI,
-		Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji,
-		Segoe UI Symbol, Noto Color Emoji;
+		'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+		'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic',
+		'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
 	--font-serif: ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
 	--font-mono:
 		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
