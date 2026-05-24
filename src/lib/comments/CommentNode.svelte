@@ -197,27 +197,24 @@
 		<p class="font-semibold {isDeleted ? 'text-neutral-400 italic dark:text-neutral-600' : ''}">
 			{comment.username}
 		</p>
-		<div class="flex items-center space-x-1.5">
+		<div class="flex items-center gap-1">
 			{#if !isDeleted}
-				<span class="tabular text-sm font-medium text-neutral-700 dark:text-neutral-300">
-					<NumberFlow value={comment.score} trend={0} />
-				</span>
-
 				<button
 					onclick={() => handleVote('up')}
 					disabled={voteDisabled}
 					aria-label="Upvote"
 					aria-pressed={myVote === 'up'}
-					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium tabular transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
 						{myVote === 'up'
-						? 'text-emerald-600 dark:text-emerald-400'
-						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
+						? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
+						: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
 				>
 					{#if isVoting && votingAnim.side === 'up'}
-						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
+						<LoaderCircle size="12" class="animate-spin" aria-hidden="true" />
 					{:else}
-						<ArrowUp size="16" strokeWidth="2.25" aria-hidden="true" />
+						<ArrowUp size="12" strokeWidth="2.25" aria-hidden="true" />
+						<NumberFlow value={comment.upvotes} trend={0} />
 					{/if}
 				</button>
 
@@ -226,16 +223,17 @@
 					disabled={voteDisabled}
 					aria-label="Downvote"
 					aria-pressed={myVote === 'down'}
-					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium tabular transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
 						{myVote === 'down'
-						? 'text-rose-600 dark:text-rose-400'
-						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'}"
+						? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
+						: 'bg-rose-100 text-rose-700 hover:bg-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/60'}"
 				>
 					{#if isVoting && votingAnim.side === 'down'}
-						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
+						<LoaderCircle size="12" class="animate-spin" aria-hidden="true" />
 					{:else}
-						<ArrowDown size="16" strokeWidth="2.25" aria-hidden="true" />
+						<ArrowDown size="12" strokeWidth="2.25" aria-hidden="true" />
+						<span>{comment.downvotes}</span>
 					{/if}
 				</button>
 
