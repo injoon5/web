@@ -267,14 +267,23 @@
 	@apply mt-0 rounded-t-none;
 }
 
-/* Inline code */
-.prose :not(pre) > code::before,
-.prose :not(pre) > code::after {
+/* Inline code (blog uses .prose-post; /now uses .prose) */
+:is(.prose, .prose-post) :not(pre) > code::before,
+:is(.prose, .prose-post) :not(pre) > code::after {
+	content: none;
 	display: none;
 }
 
-.prose :not(pre) > code {
-	@apply rounded-sm bg-neutral-100 px-1.5 py-0.5 align-middle font-mono text-[0.9em] font-normal dark:bg-neutral-800/60;
+:is(.prose, .prose-post) :not(pre) > code {
+	@apply rounded-md border border-neutral-200/80 bg-neutral-100/90 box-decoration-clone px-[0.4em] py-px font-mono text-[0.85em] leading-snug font-normal text-neutral-800 [-webkit-box-decoration-break:clone] dark:border-neutral-700/60 dark:bg-neutral-800/90 dark:text-neutral-200;
+}
+
+:is(.prose, .prose-post) a:has(> code) {
+	@apply no-underline decoration-transparent;
+}
+
+:is(.prose, .prose-post) a:has(> code):hover :not(pre) > code {
+	@apply border-neutral-300/90 bg-neutral-200/80 dark:border-neutral-600 dark:bg-neutral-700/90;
 }
 
 /* Headings anchor links — hidden until heading is hovered */
