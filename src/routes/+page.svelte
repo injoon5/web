@@ -144,7 +144,7 @@
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			{#each data.posts.slice(0, 5) as post}
+			{#each data.posts.slice(0, 4) as post}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/blog/{post.slug}"
@@ -207,7 +207,7 @@
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			{#each data.projects.slice(0, 5) as post}
+			{#each data.projects.slice(0, 4) as post}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/projects/{post.slug}"
