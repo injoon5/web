@@ -323,7 +323,7 @@ Injoon Oh
 
 
 	<div
-		class="relative col-span-10 mt-4 overflow-hidden sm:-mx-12 lg:mx-0 lg:col-span-12 lg:w-screen lg:left-1/2 lg:right-1/2 lg:-translate-x-1/2 lg:relative lg:mt-0 pb-4 "
+		class="relative col-span-full mt-4 overflow-hidden w-screen left-1/2 -translate-x-1/2 lg:col-span-12 lg:mt-0 pb-4"
 	>
 		{#if nowState === 'loading'}
 			<div class="flex gap-3">
