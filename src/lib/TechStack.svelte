@@ -50,9 +50,8 @@
 		sel?.focus();
 	}
 
-	// Leaving panel: snap to absolute (so it doesn't hold layout height) then fade out.
-	// Entering panel: fade + subtle rise in normal flow.
-	function panelOut(node) {
+	function panelOut(node, { skip = false } = {}) {
+		if (skip) return { duration: 0 };
 		const { offsetTop, offsetLeft, offsetWidth } = node;
 		node.style.position = 'absolute';
 		node.style.top = offsetTop + 'px';
@@ -62,11 +61,9 @@
 		return { duration: 160, css: (t) => `opacity: ${t}` };
 	}
 
-	function panelIn(node) {
-		return {
-			duration: 200,
-			css: (t, u) => `opacity: ${t}; transform: translateY(${u * 5}px)`
-		};
+	function panelIn(node, { skip = false } = {}) {
+		if (skip) return { duration: 0 };
+		return { duration: 200, css: (t, u) => `opacity: ${t}; transform: translateY(${u * 5}px)` };
 	}
 
 	// Animates the wrapper height to match its inner content whenever it resizes.
@@ -136,8 +133,8 @@
 		<div class="ts-height-inner">
 			{#key panelId}
 				<div
-					in:panelIn
-					out:panelOut
+					in:panelIn={{ skip: !animated }}
+					out:panelOut={{ skip: !animated }}
 					id="ts-panel"
 					role="tabpanel"
 					aria-label={activeIndex === 'favorites' ? 'Favorites' : techstack[activeIndex]?.name}
