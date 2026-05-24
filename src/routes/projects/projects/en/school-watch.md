@@ -41,11 +41,11 @@ https://school-api-1i8w.onrender.com/timetable?grade=2&classno=6
 
 ## Timetable details
 
-`TimetableView` decodes the API's `TimetableData` shape — `day_time` (period start times), `timetable` (nested by day), `update_date`. Each `ClassSchedule` has period, subject, teacher, and a `replaced` flag. When a class was substituted, a yellow ⚠️ icon shows and the detail view displays the original subject/teacher in red.
+`TimetableView` decodes the API's `TimetableData` shape — `day_time` (period start times), `timetable` (nested by day), `update_date`. Each `ClassSchedule` carries period, subject, teacher, and a `replaced` flag. The substitute-class handling is the part I'm quietly proud of: when a class got swapped out, a yellow ⚠️ icon shows up and the detail view spells out the original subject and teacher in red.
 
 It also fetches `/schedule` for the current week and overlays school events (공휴일, 행사) — if an event hits a day, that day shows the event name instead of the class list.
 
-**Offline fallback:** timetable JSON gets cached in `UserDefaults` under `cachedTimetable`. If the network request fails, it loads from cache instead of showing a blank screen.
+**Offline fallback:** timetable JSON gets cached in `UserDefaults` under `cachedTimetable`. Watch connectivity being what it is, if the network request fails it quietly loads from cache instead of leaving you staring at a blank screen.
 
 ## Today + meals
 
@@ -55,4 +55,4 @@ It also fetches `/schedule` for the current week and overlays school events (공
 
 ## Status
 
-Built in SwiftUI for watchOS. No backend of its own — pure client hitting the [TimeforSchool API](/projects/timefor-school). More of a personal tool than a polished App Store release, but I use it daily. The source is on GitHub if you want to poke around.
+Built in SwiftUI for watchOS, with no backend of its own — it's a pure client hitting the [TimeforSchool API](/projects/timefor-school). It's more of a personal tool than a polished App Store release, but it earned its spot on my wrist and I check it daily. Source is on GitHub if you want to poke around.

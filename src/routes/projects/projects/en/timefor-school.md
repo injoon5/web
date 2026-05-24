@@ -39,7 +39,7 @@ Class Info isn't just notices. The same Convex backend caches timetable, lunch m
 - Meals this week + next week
 - Schedule window daily at 03:00 UTC
 
-So the website can show lunch and calendar stuff without hitting the API on every page load.
+That way the website can show lunch and calendar info instantly, without hammering the API on every page load.
 
 Stack: SvelteKit 5, Convex, Tailwind v4, Turborepo monorepo (`apps/web` + `packages/backend`).
 

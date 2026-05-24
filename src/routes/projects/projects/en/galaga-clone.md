@@ -35,7 +35,7 @@ Four classes in one loop:
 | `Missile` | Fly upward at 5 px/frame, delete when off screen |
 | `Button` | Hit-test for the restart image |
 
-Collision is manual — nested `while` loops deleting from lists with index decrements. No pygame sprites groups, no physics engine. Just rects and `collidepoint`.
+Collision is gloriously manual — nested `while` loops deleting from lists with index decrements. No pygame sprite groups, no physics engine. Just rects and `collidepoint`, held together by hope.
 
 The game-over state sets `gaming = False`, clears enemies, resets score to 0, and waits for a mouse click on the restart button rect at `(250, 510)`.
 

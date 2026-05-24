@@ -18,7 +18,7 @@ Our team spotted this during the [LG AI Youth Camp](https://www.lgdlab.or.kr/) i
 
 ## What we built
 
-**AutoAlt** takes a product image, runs it through a custom object detection model, then pipes the result to GPT-4 for a natural-language description. The final output is text a screen reader can actually read.
+**AutoAlt** takes a product image, runs it through a custom object detection model, then hands the result off to GPT-4 to turn into a natural-language description. What comes out the other end is text a screen reader can actually read aloud.
 
 We narrowed the scope a lot over the project. Started with "all clothing on shopping sites," ended at **shoes** — the only category we could train reliably in the time we had.
 

@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Lightbox from '../../../lib/Lightbox.svelte';
+	import Languages from '@lucide/svelte/icons/languages';
 
 	import { onMount, tick } from 'svelte';
 
@@ -127,6 +128,25 @@
 			</div>
 		</div>
 		<div use:lightboxAction class="prose-post mt-10">
+			{#if lang === 'ko' && currentMeta?.aiTranslated}
+				<div
+					class="mb-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
+				>
+					<Languages
+						size="16"
+						strokeWidth="2"
+						class="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+						aria-hidden="true"
+					/>
+					<div>
+						<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
+						<p class="text-sm text-neutral-500 dark:text-neutral-500">
+							이 글은 영어 원문을 AI의 도움을 받아 번역했습니다. 일부 내용에 오류가 있을 수
+							있습니다.
+						</p>
+					</div>
+				</div>
+			{/if}
 			{#if currentContent}
 				<svelte:component this={currentContent} class="prose" />
 			{/if}

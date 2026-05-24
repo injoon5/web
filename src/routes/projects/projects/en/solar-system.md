@@ -23,7 +23,7 @@ I'd been going through a Three.js phase — wanted something visual that wasn't 
 
 ## How it works
 
-Almost everything lives in a single `index.html` — inline `<script type="module">` with Three.js imported via Vite. `main.js` exists but the real sim is in the HTML file.
+Almost everything lives in a single `index.html` — one big inline `<script type="module">` with Three.js imported via Vite. There's a `main.js`, but don't be fooled: the real sim is all in the HTML file.
 
 ### Scene setup
 
@@ -62,6 +62,6 @@ An info panel on the right shows size, distance, orbital speed, and rotation spe
 
 ## Stack
 
-Three.js `^0.164.1`, Vite for dev/build, textures in `/public`. No backend — pure client-side WebGL.
+Three.js `^0.164.1`, Vite for dev and build, textures sitting in `/public`. No backend at all — it's pure client-side WebGL.
 
 It's not scientifically perfect (good luck spotting Mercury from the default zoom), but for clicking around between classes it does the job.

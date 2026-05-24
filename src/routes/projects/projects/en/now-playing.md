@@ -35,7 +35,7 @@ The workflow (`.github/workflows/update.yml`) runs **every 5 minutes** on a cron
 4. Commits as `github-actions[bot]` if anything changed
 5. Pushes via `ad-m/github-push-action` using a `REPO_SECRET` token
 
-Keeping this in a separate repo means the bot can commit JSON on its own schedule without redeploying the website.
+Keeping all this in a separate repo is the trick that makes it cheap: the bot commits fresh JSON on its own schedule, and the website never has to redeploy to pick up new data.
 
 ## How the site reads it
 

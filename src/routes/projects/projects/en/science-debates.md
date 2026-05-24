@@ -10,13 +10,13 @@ published: true
 
 ## Overview
 
-Between 2023 and 2025 I competed in several **science debate** competitions — Seoul city preliminaries and school-wide rounds. These aren't coding projects, but they're the research-and-argument side of the same curiosity that drives everything else on this page.
+Between 2023 and 2025 I competed in a handful of **science debate** competitions — Seoul city preliminaries and school-wide rounds. These aren't coding projects, but they scratch the same itch as everything else on this page: pick something I don't fully understand, dig into it, and try to make a case.
 
-Below is each topic, what I argued, and how it went.
+Here's each topic, what I argued, and how it went.
 
 ## 2023 — Turkey earthquake (Seoul city preliminary)
 
-Analyzed the scale and causes of the 2023 Turkey–Syria earthquake and explored what it means for earthquake preparedness in Korea.
+I dug into the scale and causes of the 2023 Turkey–Syria earthquake, then tried to draw out what it actually means for earthquake preparedness back in Korea.
 
 ![Overview 1](/images/projects/science-debates/earthquake-1.jpeg)
 
@@ -28,7 +28,7 @@ Analyzed the scale and causes of the 2023 Turkey–Syria earthquake and explored
 
 ## 2023 — Fukushima wastewater discharge
 
-When Fukushima treated water release was in the news, I researched the science and controversy and gave a presentation on it.
+This one was all over the news at the time, so I worked through the actual science behind the treated-water release — separating what the data said from the controversy around it — and presented on it.
 
 ![Fukushima 1](/images/projects/science-debates/fukushima-1.png)
 
@@ -54,7 +54,7 @@ Compared candidates (including plutonium from nuclear tests) and argued **carbon
 
 **Topic:** How to delay Earth's ecological overshoot day.
 
-Argued for expanding **solar power** as a renewable energy source, with projections on how shifting energy mix could push the overshoot date later.
+I argued for leaning harder into **solar power**, and backed it with projections on how shifting the energy mix could push the overshoot date later in the year.
 
 ![Solar energy 1](/images/projects/science-debates/solar-energy-1.jpg)
 

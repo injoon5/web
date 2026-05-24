@@ -11,9 +11,9 @@ published: true
 
 ## What it is
 
-[Pil Text Generator](https://github.com/injoon5/pil-discord-txt) (`pil-discord-txt`) takes a string and renders it as a PNG with a chosen font and color. Originally made so I could post styled text in Discord without relying on Nitro formatting.
+[Pil Text Generator](https://github.com/injoon5/pil-discord-txt) (`pil-discord-txt`) takes a string and renders it as a PNG with whatever font and color you pick. I originally made it so I could post styled text in Discord without paying for Nitro formatting.
 
-The core logic lives in `textimg.py`; `main.py` wraps it in a FastAPI server.
+The core rendering logic lives in `textimg.py`, and `main.py` wraps it in a FastAPI server.
 
 ## How it works
 
@@ -41,7 +41,7 @@ GET /{text}?font=nanum&color=original
 
 Runs on uvicorn port 8080. Managed with Poetry (`pyproject.toml`).
 
-There's also [dctxt2img-client](https://github.com/injoon5/dctxt2img-client) — a simple HTML frontend that hits the API — but the generator itself is the interesting part.
+There's also [dctxt2img-client](https://github.com/injoon5/dctxt2img-client) — a bare-bones HTML frontend that hits the API — but honestly the generator itself is the interesting part.
 
 ## Why Pillow
 
