@@ -11,19 +11,26 @@ export function autoHeight(node, params = {}) {
 	let inner = node.querySelector('[data-auto-height-inner]');
 	let initialized = false;
 	let lockedUntil = 0;
+	let activeOutros = 0;
 	let raf = 0;
 	/** @type {ResizeObserver | undefined} */
 	let ro;
 	/** @type {MutationObserver | undefined} */
 	let mo;
 
+	/** @param {Element} el */
+	function contentHeight(el) {
+		return Math.max(el.offsetHeight, el.scrollHeight);
+	}
+
 	function measure() {
 		if (!inner) return 0;
-		let max = inner.scrollHeight;
-		for (const child of inner.children) {
-			max = Math.max(max, child.scrollHeight, child.offsetHeight);
-		}
-		return max;
+		const { children } = inner;
+		if (children.length === 0) return 0;
+		// During crossfade the outgoing node stays first; incoming is last.
+		// Use incoming height so shrink doesn't read the stretched grid cell.
+		if (children.length === 1) return contentHeight(children[0]);
+		return contentHeight(children[children.length - 1]);
 	}
 
 	function apply(next, fromOverride) {
@@ -67,13 +74,30 @@ export function autoHeight(node, params = {}) {
 
 		lockedUntil = performance.now() + duration;
 		cancelAnimationFrame(raf);
-		apply(el.offsetHeight);
+		apply(contentHeight(el));
 	}
 
 	function syncFromObserver() {
-		if (performance.now() < lockedUntil) return;
+		if (performance.now() < lockedUntil || activeOutros > 0) return;
 		cancelAnimationFrame(raf);
 		raf = requestAnimationFrame(() => apply(measure()));
+	}
+
+	/** @param {Event} event */
+	function onOutroStart(event) {
+		if (!inner?.contains(/** @type {Node} */ (event.target))) return;
+		activeOutros++;
+	}
+
+	/** @param {Event} event */
+	function onOutroEnd(event) {
+		if (!inner?.contains(/** @type {Node} */ (event.target))) return;
+		activeOutros = Math.max(0, activeOutros - 1);
+		if (activeOutros === 0) {
+			lockedUntil = 0;
+			cancelAnimationFrame(raf);
+			raf = requestAnimationFrame(() => apply(measure()));
+		}
 	}
 
 	function observeChildren() {
@@ -84,7 +108,12 @@ export function autoHeight(node, params = {}) {
 	}
 
 	if (inner) {
+		// Prevent grid stretch from inflating the incoming node to the outgoing height.
+		inner.style.alignItems = 'start';
+
 		inner.addEventListener('introstart', onIntroStart, true);
+		inner.addEventListener('outrostart', onOutroStart, true);
+		inner.addEventListener('outroend', onOutroEnd, true);
 
 		ro = new ResizeObserver(syncFromObserver);
 		ro.observe(inner);
@@ -106,6 +135,8 @@ export function autoHeight(node, params = {}) {
 		destroy() {
 			cancelAnimationFrame(raf);
 			inner?.removeEventListener('introstart', onIntroStart, true);
+			inner?.removeEventListener('outrostart', onOutroStart, true);
+			inner?.removeEventListener('outroend', onOutroEnd, true);
 			ro?.disconnect();
 			mo?.disconnect();
 		}

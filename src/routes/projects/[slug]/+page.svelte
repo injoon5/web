@@ -152,7 +152,7 @@
 					<NumberFlow value={readingMinutes} suffix=" min read" />
 				{/if}
 			</div>
-			<LanguageSwitcher {lang} {mounted} availableLangs={data.availableLangs} onselect={setLang} />
+			
 			<div class="mt-3 overflow-hidden" use:autoHeight={headerHeight}>
 				<div class="grid" data-auto-height-inner>
 					{#each [displayLang] as l (l)}
@@ -177,9 +177,11 @@
 					</span>
 				{/each}
 			</div>
+			<LanguageSwitcher {lang} {mounted} availableLangs={data.availableLangs} onselect={setLang} />
 			<div class="my-4">
 				<LikeButton />
 			</div>
+			
 		</div>
 
 		<div class="mt-10 grid min-w-0 overflow-hidden" bind:clientWidth={bodyWidth}>

@@ -21,7 +21,7 @@ aiTranslated: true
 
 ## 데모
 
-<LazyVideo src="/videos/projects/watch.mp4" label="Play SchoolWatch demo" />
+<LazyVideo src="/videos/projects/schoolwatch.mp4" label="Play SchoolWatch demo" />
 
 ## 앱 구조
 

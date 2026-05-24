@@ -261,18 +261,27 @@
 
 	.ts-tab {
 		color: var(--color-neutral-400);
-		transition: color 120ms ease;
 	}
 
 	:global(.dark) .ts-tab {
 		color: var(--color-neutral-500);
 	}
 
+	/* Active color comes only from the clip layer — keep base tabs muted while it slides. */
+	.ts-tab[aria-selected='true'] {
+		color: var(--color-neutral-400);
+	}
+
+	:global(.dark) .ts-tab[aria-selected='true'] {
+		color: var(--color-neutral-500);
+	}
+
 	@media (hover: hover) and (pointer: fine) {
-		.ts-tab:hover {
+		.ts-tab:hover:not([aria-selected='true']) {
 			color: var(--color-neutral-700);
+			transition: color 120ms ease;
 		}
-		:global(.dark) .ts-tab:hover {
+		:global(.dark) .ts-tab:hover:not([aria-selected='true']) {
 			color: var(--color-neutral-300);
 		}
 	}
