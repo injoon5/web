@@ -1,5 +1,6 @@
 import { query, mutation } from './_generated/server';
 import { v } from 'convex/values';
+import { assertAdmin } from './lib/auth.js';
 
 export const get = query({
 	args: {},
@@ -11,9 +12,11 @@ export const get = query({
 
 export const update = mutation({
 	args: {
-		content: v.string()
+		content: v.string(),
+		adminSecret: v.string()
 	},
 	handler: async (ctx, args) => {
+		assertAdmin(args.adminSecret);
 		const docs = await ctx.db.query('nowPage').take(1);
 		if (docs.length > 0) {
 			await ctx.db.patch(docs[0]._id, {

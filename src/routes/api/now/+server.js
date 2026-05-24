@@ -14,6 +14,6 @@ export async function POST({ request, cookies }) {
 		throw error(400, 'Missing content');
 	}
 
-	await convex.mutation(api.now.update, { content: body.content });
+	await convex.mutation(api.now.update, { content: body.content, adminSecret: ADMIN_SECRET });
 	return json({ ok: true });
 }

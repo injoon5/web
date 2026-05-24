@@ -189,6 +189,29 @@ export const applyEdit = mutation({
 	}
 });
 
+export const softDelete = mutation({
+	args: {
+		commentId: v.id('comments'),
+		ipHash: v.string(),
+		adminSecret: v.optional(v.string())
+	},
+	handler: async (ctx, args) => {
+		const admin = isAdmin(args.adminSecret);
+		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
+
+		const comment = await ctx.db.get(args.commentId);
+		if (!comment || comment.deletedAt !== null) {
+			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+		}
+
+		await ctx.db.patch(args.commentId, {
+			text: '[deleted]',
+			username: '[deleted]',
+			updatedAt: Date.now()
+		});
+	}
+});
+
 export const hardDelete = mutation({
 	args: { commentId: v.id('comments'), adminSecret: v.string() },
 	handler: async (ctx, { commentId, adminSecret }) => {

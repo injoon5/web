@@ -47,6 +47,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
+	const ipHash = hashIp(getClientIp(request));
 	const admin = verifyAdminSecret(request);
 
 	if (!admin) {
@@ -72,9 +73,23 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		if (!passwordMatch) throw error(401, 'Incorrect password');
 	}
 
+	if (admin) {
+		return runConvex(
+			() =>
+				convex.mutation(api.comments.hardDelete, {
+					commentId: params.id,
+					adminSecret: ADMIN_SECRET
+				}),
+			() => json({ success: true })
+		);
+	}
+
 	return runConvex(
 		() =>
-			convex.mutation(api.comments.hardDelete, { commentId: params.id, adminSecret: ADMIN_SECRET }),
+			convex.mutation(api.comments.softDelete, {
+				commentId: params.id,
+				ipHash
+			}),
 		() => json({ success: true })
 	);
 };
