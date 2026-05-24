@@ -93,10 +93,18 @@
 		easing: cubicOut
 	};
 
-	$: currentMeta = displayLang === 'ko' && data.koMeta ? data.koMeta : (data.enMeta ?? data.meta);
-	$: currentContent = displayLang === 'ko' && data.koContent ? data.koContent : data.enContent;
-	$: currentReadingTime =
-		displayLang === 'ko' && data.koReadingTime ? data.koReadingTime : data.enReadingTime;
+	function metaFor(l) {
+		return l === 'ko' && data.koMeta ? data.koMeta : (data.enMeta ?? data.meta);
+	}
+	function contentFor(l) {
+		return l === 'ko' && data.koContent ? data.koContent : data.enContent;
+	}
+	function readingTimeFor(l) {
+		return l === 'ko' && data.koReadingTime ? data.koReadingTime : data.enReadingTime;
+	}
+
+	$: currentMeta = metaFor(displayLang);
+	$: currentReadingTime = readingTimeFor(displayLang);
 	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
 	$: ogMeta = data.koMeta ?? data.enMeta ?? data.meta;
 	$: ogImageUrl = `https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(ogMeta.title)}&description=${encodeURIComponent(ogMeta.description || '')}&year=${encodeURIComponent(ogMeta.year || '')}&tags=${encodeURIComponent((ogMeta.tags || []).join(','))}`;
@@ -148,16 +156,16 @@
 		<div class="tracking-tight">
 			<div class="overflow-hidden" use:autoHeight={headerHeight}>
 				<div class="grid" data-auto-height-inner>
-					{#key displayLang}
+					{#each [displayLang] as l (l)}
 						<h1
 							style="grid-area: 1 / 1;"
 							in:blurT={titleBlur}
 							out:blurT={titleBlur}
 							class="text-3xl font-semibold tracking-tight md:font-semibold"
 						>
-							{currentMeta.title}
+							{metaFor(l).title}
 						</h1>
-					{/key}
+					{/each}
 				</div>
 			</div>
 			<div
@@ -171,16 +179,16 @@
 			</div>
 			<div class="mt-3 overflow-hidden" use:autoHeight={headerHeight}>
 				<div class="grid" data-auto-height-inner>
-					{#key displayLang}
+					{#each [displayLang] as l (l)}
 						<p
 							style="grid-area: 1 / 1;"
 							in:blurT={titleBlur}
 							out:blurT={titleBlur}
 							class="text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500"
 						>
-							{currentMeta.description}
+							{metaFor(l).description}
 						</p>
-					{/key}
+					{/each}
 				</div>
 			</div>
 			<div class="mt-3 flex flex-wrap items-center gap-2">
@@ -237,8 +245,9 @@
 			</div>
 		</div>
 
-		<div class="mt-10 grid min-w-0" bind:clientWidth={bodyWidth}>
-			{#key displayLang}
+		<div class="mt-10 grid min-w-0 overflow-hidden" bind:clientWidth={bodyWidth}>
+			{#each [displayLang] as l (l)}
+				{@const content = contentFor(l)}
 				<div
 					class="min-w-0 overflow-x-hidden"
 					style="grid-area: 1 / 1;"
@@ -246,7 +255,7 @@
 					out:flyT={bodyOut}
 					on:introend={onSwapEnd}
 				>
-					{#if currentMeta?.aiTranslated}
+					{#if metaFor(l)?.aiTranslated}
 						<div
 							class="mb-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"
 						>
@@ -257,7 +266,7 @@
 								aria-hidden="true"
 							/>
 							<div>
-								{#if displayLang === 'ko'}
+								{#if l === 'ko'}
 									<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">AI 번역</p>
 									<p class="text-sm text-neutral-500 dark:text-neutral-500">
 										이 글은 AI의 도움을 받아 번역되었습니다. 일부 내용에 오류가 있을 수 있습니다.
@@ -275,12 +284,12 @@
 						</div>
 					{/if}
 					<div use:lightboxAction class="prose-post">
-						{#if currentContent}
-							<svelte:component this={currentContent} class="prose" />
+						{#if content}
+							<svelte:component this={content} class="prose" />
 						{/if}
 					</div>
 				</div>
-			{/key}
+			{/each}
 		</div>
 	</article>
 </div>
