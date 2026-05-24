@@ -18,7 +18,7 @@ I wear an Apple Watch most days. Pulling out my phone between classes to check t
 
 The repo is still fairly minimal on documentation (read: I should write a proper README), but the goal is glanceable info: schedule awareness, period timing, the kind of stuff you want in two seconds on a 45mm display.
 
-Built in Swift for watchOS. No backend of its own — it leans on the same school-data mindset as [timetable](/projects/timetable) and [Class Info](/projects/class-info), just on a different screen.
+Built in Swift for watchOS. No backend of its own — it leans on the same school-data mindset as [TimeforSchool](/projects/timefor-school), just on a different screen.
 
 ## Status
 
