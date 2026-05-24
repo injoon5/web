@@ -199,7 +199,7 @@
 		</p>
 		<div class="flex items-center gap-1.5">
 			{#if !isDeleted}
-				<div class="flex flex-col items-center gap-0.5">
+				<div class="flex items-center gap-1">
 					<button
 						onclick={() => handleVote('up')}
 						disabled={voteDisabled}
