@@ -25,8 +25,20 @@
 	// `lang` is the selected language (drives the selector pill instantly).
 	// `displayLang` is the content currently shown; it catches up to `lang`
 	// one animation at a time so rapid switches can't stack transitions.
-	let lang = data.availableLangs[0] ?? 'ko';
+	// Initialised from the server-resolved preference (cookie / ?lang=) so the
+	// server already rendered this language — no post-hydration flash.
+	let lang =
+		data.prefLang && data.availableLangs.includes(data.prefLang)
+			? data.prefLang
+			: (data.availableLangs[0] ?? 'ko');
 	let displayLang = lang;
+
+	function persistLang(l) {
+		try {
+			localStorage.setItem('preferred-lang', l);
+			document.cookie = `preferred-lang=${l}; path=/; max-age=31536000; samesite=lax`;
+		} catch (e) {}
+	}
 
 	// Direction of the language swap, used to slide content the right way.
 	let dir = 1;
@@ -38,20 +50,18 @@
 
 	onMount(async () => {
 		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		// Priority: ?lang= query string, then localStorage, then the default.
-		const fromQuery = $page.url.searchParams.get('lang');
-		const saved = localStorage.getItem('preferred-lang');
-		let pref = null;
-		if (fromQuery && data.availableLangs.includes(fromQuery)) {
-			pref = fromQuery;
-			localStorage.setItem('preferred-lang', fromQuery);
-		} else if (saved && data.availableLangs.includes(saved)) {
-			pref = saved;
+		// The server already applied ?lang=/cookie. This only covers legacy users
+		// who have a localStorage preference but no cookie yet: apply it (instant,
+		// no animation since not mounted) and write the cookie so future server
+		// renders are correct — migrating them off the flash path.
+		if (!data.prefLang) {
+			const saved = localStorage.getItem('preferred-lang');
+			if (saved && data.availableLangs.includes(saved)) {
+				lang = saved;
+				displayLang = saved;
+			}
 		}
-		if (pref) {
-			lang = pref;
-			displayLang = pref;
-		}
+		if (lang !== (data.availableLangs[0] ?? 'ko') || data.prefLang) persistLang(lang);
 		await tick();
 		// Enable animations only after the restored language and the positioned
 		// pill have actually painted. A single tick isn't a reliable barrier:
@@ -62,7 +72,7 @@
 	function setLang(l) {
 		if (l === lang) return;
 		lang = l;
-		localStorage.setItem('preferred-lang', l);
+		persistLang(l);
 		advanceDisplay();
 	}
 
