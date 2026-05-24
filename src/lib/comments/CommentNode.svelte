@@ -193,14 +193,14 @@
 		: 'border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900'}"
 >
 	<!-- Header: username + vote/edit/delete -->
-	<div class="flex flex-row items-start justify-between">
-		<p class="font-semibold {isDeleted ? 'text-neutral-400 italic dark:text-neutral-600' : ''}">
+	<div class="flex flex-row items-center justify-between gap-2">
+		<p class="font-semibold leading-none {isDeleted ? 'text-neutral-400 italic dark:text-neutral-600' : ''}">
 			{comment.username}
 		</p>
-		<div class="flex items-center gap-1.5">
+		<div class="flex shrink-0 items-center gap-1.5">
 			{#if !isDeleted}
 				<span
-					class="min-w-[1.25rem] text-center text-sm font-medium text-neutral-700 tabular dark:text-neutral-300"
+					class="min-w-[1.25rem] text-center text-sm leading-none font-medium text-neutral-700 tabular dark:text-neutral-300"
 				>
 					<NumberFlow value={comment.score} trend={0} />
 				</span>
@@ -210,16 +210,16 @@
 					disabled={voteDisabled}
 					aria-label="Upvote"
 					aria-pressed={myVote === 'up'}
-					class="rounded-full p-1.5 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+					class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
 						{myVote === 'up'
 						? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
 						: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
 				>
 					{#if isVoting && votingAnim.side === 'up'}
-						<LoaderCircle size="14" class="animate-spin" aria-hidden="true" />
+						<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 					{:else}
-						<ArrowUp size="14" strokeWidth="2.25" aria-hidden="true" />
+						<ArrowUp size="16" strokeWidth="2.25" aria-hidden="true" />
 					{/if}
 				</button>
 
@@ -252,9 +252,9 @@
 				<button
 					onclick={openDelete}
 					aria-label="Delete comment"
-					class="rounded-full p-1.5 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-rose-600 active:scale-90 dark:text-neutral-400 dark:hover:text-rose-400"
+					class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-rose-600 active:scale-90 dark:text-neutral-400 dark:hover:text-rose-400"
 				>
-					<Trash2 size="14" strokeWidth="2" aria-hidden="true" />
+					<Trash2 size="16" strokeWidth="2" aria-hidden="true" />
 				</button>
 			{/if}
 		</div>
