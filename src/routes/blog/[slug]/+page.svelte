@@ -8,6 +8,7 @@
 	import { lightboxAction } from '$lib/lightbox.js';
 	import TableOfContents from '$lib/TableOfContents.svelte';
 	import Languages from '@lucide/svelte/icons/languages';
+	import NumberFlow from '@number-flow/svelte';
 
 	import { onMount, tick } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -45,6 +46,7 @@
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
 	$: currentReadingTime = (lang === 'ko' && data.koReadingTime) ? data.koReadingTime : data.enReadingTime;
+	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
 	$: currentSeries = lang === 'ko' ? data.koSeries : data.enSeries;
 	$: ogImageUrl = `https://og.ij5.dev/api/og/?title=${encodeURIComponent(data.meta.title)}&subheading=Injoon+Oh`;
 
@@ -108,17 +110,28 @@
 			{/if}
 			<div class="grid">
 				{#key lang}
-					<div style="grid-area: 1 / 1;" in:blur={titleBlur} out:blur={titleBlur}>
-						<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
-							{currentMeta.title}
-						</h1>
-						<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
-							<p class="tabular">{formatDate(currentMeta.date)}</p>
-							<p class="mx-1">·</p>
-							<span class="tabular">{currentReadingTime}</span>
-						</div>
-					</div>
+					<h1
+						style="grid-area: 1 / 1;"
+						in:blur={titleBlur}
+						out:blur={titleBlur}
+						class="text-3xl font-semibold tracking-tight md:font-semibold"
+					>
+						{currentMeta.title}
+					</h1>
 				{/key}
+			</div>
+			<div class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400">
+				<div class="grid">
+					{#key lang}
+						<p style="grid-area: 1 / 1;" in:blur={titleBlur} out:blur={titleBlur} class="tabular">
+							{formatDate(currentMeta.date)}
+						</p>
+					{/key}
+				</div>
+				{#if !isNaN(readingMinutes)}
+					<p class="mx-1">·</p>
+					<span class="tabular"><NumberFlow value={readingMinutes} /> min read</span>
+				{/if}
 			</div>
 			{#if data.availableLangs.length > 1}
 				<div
