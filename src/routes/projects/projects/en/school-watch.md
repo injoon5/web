@@ -20,9 +20,7 @@ I wear an Apple Watch most days. Pulling out my phone between classes to check t
 
 ## Demo
 
-<LazyVideo src="/videos/projects/schoolwatch-demo.mp4" label="Play SchoolWatch demo" />
-
-The video only loads when you hit play — no upfront download on page load.
+<LazyVideo src="/videos/projects/watch.mp4" label="Play SchoolWatch demo" />
 
 ## App structure
 
