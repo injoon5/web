@@ -197,45 +197,52 @@
 		<p class="font-semibold {isDeleted ? 'text-neutral-400 italic dark:text-neutral-600' : ''}">
 			{comment.username}
 		</p>
-		<div class="flex items-center gap-1">
+		<div class="flex items-center gap-1.5">
 			{#if !isDeleted}
-				<button
-					onclick={() => handleVote('up')}
-					disabled={voteDisabled}
-					aria-label="Upvote"
-					aria-pressed={myVote === 'up'}
-					class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium tabular transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
-						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
-						{myVote === 'up'
-						? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
-						: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
-				>
-					{#if isVoting && votingAnim.side === 'up'}
-						<LoaderCircle size="12" class="animate-spin" aria-hidden="true" />
-					{:else}
-						<ArrowUp size="12" strokeWidth="2.25" aria-hidden="true" />
-						<NumberFlow value={comment.upvotes} trend={0} />
-					{/if}
-				</button>
+				<div class="flex flex-col items-center gap-0.5">
+					<button
+						onclick={() => handleVote('up')}
+						disabled={voteDisabled}
+						aria-label="Upvote"
+						aria-pressed={myVote === 'up'}
+						class="inline-flex items-center justify-center rounded-full p-1 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+							{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
+							{myVote === 'up'
+							? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
+							: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
+					>
+						{#if isVoting && votingAnim.side === 'up'}
+							<LoaderCircle size="12" class="animate-spin" aria-hidden="true" />
+						{:else}
+							<ArrowUp size="12" strokeWidth="2.25" aria-hidden="true" />
+						{/if}
+					</button>
 
-				<button
-					onclick={() => handleVote('down')}
-					disabled={voteDisabled}
-					aria-label="Downvote"
-					aria-pressed={myVote === 'down'}
-					class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-medium tabular transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
-						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
-						{myVote === 'down'
-						? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
-						: 'bg-rose-100 text-rose-700 hover:bg-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/60'}"
-				>
-					{#if isVoting && votingAnim.side === 'down'}
-						<LoaderCircle size="12" class="animate-spin" aria-hidden="true" />
-					{:else}
-						<ArrowDown size="12" strokeWidth="2.25" aria-hidden="true" />
-						<span>{comment.downvotes}</span>
-					{/if}
-				</button>
+					<span class="text-xs leading-none font-medium text-emerald-700 tabular dark:text-emerald-400">
+						<NumberFlow value={comment.upvotes} trend={0} />
+					</span>
+					<span class="text-xs leading-none font-medium text-rose-700 tabular dark:text-rose-400">
+						{comment.downvotes}
+					</span>
+
+					<button
+						onclick={() => handleVote('down')}
+						disabled={voteDisabled}
+						aria-label="Downvote"
+						aria-pressed={myVote === 'down'}
+						class="inline-flex items-center justify-center rounded-full p-1 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+							{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
+							{myVote === 'down'
+							? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
+							: 'bg-rose-100 text-rose-700 hover:bg-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/60'}"
+					>
+						{#if isVoting && votingAnim.side === 'down'}
+							<LoaderCircle size="12" class="animate-spin" aria-hidden="true" />
+						{:else}
+							<ArrowDown size="12" strokeWidth="2.25" aria-hidden="true" />
+						{/if}
+					</button>
+				</div>
 
 				<button
 					onclick={openEdit}
