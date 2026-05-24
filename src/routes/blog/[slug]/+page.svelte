@@ -31,14 +31,26 @@
 	let animating = false;
 
 	onMount(async () => {
-		const saved = localStorage.getItem('preferred-lang');
-		if (saved && data.availableLangs.includes(saved)) {
-			lang = saved;
-			displayLang = saved;
-		}
 		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		// Priority: ?lang= query string, then localStorage, then the default.
+		const fromQuery = $page.url.searchParams.get('lang');
+		const saved = localStorage.getItem('preferred-lang');
+		let pref = null;
+		if (fromQuery && data.availableLangs.includes(fromQuery)) {
+			pref = fromQuery;
+			localStorage.setItem('preferred-lang', fromQuery);
+		} else if (saved && data.availableLangs.includes(saved)) {
+			pref = saved;
+		}
+		if (pref) {
+			lang = pref;
+			displayLang = pref;
+		}
 		await tick();
-		mounted = true;
+		// Enable animations only after the restored language and the positioned
+		// pill have actually painted. A single tick isn't a reliable barrier:
+		// Svelte starts transitions on a later frame, so we wait two frames.
+		requestAnimationFrame(() => requestAnimationFrame(() => (mounted = true)));
 	});
 
 	function setLang(l) {
@@ -49,18 +61,26 @@
 	}
 
 	// Step the displayed content toward the selected language. Only one
-	// transition runs at a time; if the selection changed mid-animation we
-	// re-run on completion to settle on the latest choice.
+	// transition runs at a time; the next step fires when the current slide
+	// finishes (onSwapEnd), so rapid switching can't stack transitions. A
+	// fallback timer clears `animating` even if introend is ever missed, so
+	// the content can never get stuck/frozen.
+	let swapTimer;
 	function advanceDisplay() {
 		if (animating || displayLang === lang) return;
 		dir = data.availableLangs.indexOf(lang) >= data.availableLangs.indexOf(displayLang) ? 1 : -1;
 		displayLang = lang;
-		if (!animate) return;
-		animating = true;
-		setTimeout(() => {
-			animating = false;
-			advanceDisplay();
-		}, 470);
+		if (animate) {
+			animating = true;
+			clearTimeout(swapTimer);
+			swapTimer = setTimeout(onSwapEnd, 800);
+		}
+	}
+
+	function onSwapEnd() {
+		clearTimeout(swapTimer);
+		animating = false;
+		advanceDisplay();
 	}
 
 	let bodyWidth = 0;
@@ -203,7 +223,7 @@
 		<!-- Post -->
 		<div class="mt-10 grid overflow-hidden" bind:clientWidth={bodyWidth}>
 			{#key displayLang}
-				<div style="grid-area: 1 / 1;" in:fly={bodyIn} out:fly={bodyOut}>
+				<div style="grid-area: 1 / 1;" in:fly={bodyIn} out:fly={bodyOut} on:introend={onSwapEnd}>
 					{#if currentMeta?.aiTranslated}
 						<div
 							class="mb-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"

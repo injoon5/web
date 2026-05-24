@@ -2,15 +2,14 @@
 import { page } from "$app/stores";
 import { blur } from 'svelte/transition';
 import { cubicOut } from 'svelte/easing';
-import { onMount, tick } from 'svelte';
+import { onMount } from 'svelte';
 export let series;
 
 let reduceMotion = false;
 let mounted = false;
-onMount(async () => {
+onMount(() => {
 	reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-	await tick();
-	mounted = true;
+	requestAnimationFrame(() => requestAnimationFrame(() => (mounted = true)));
 });
 $: bf = { amount: 8, opacity: 0, duration: mounted && !reduceMotion ? 420 : 0, easing: cubicOut };
 // Reverse a copy — mutating the prop in place flipped the order on every render.
