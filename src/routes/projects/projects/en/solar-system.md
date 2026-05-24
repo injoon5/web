@@ -15,7 +15,7 @@ published: true
 
 Live at [solar-system-ten-dun.vercel.app](https://solar-system-ten-dun.vercel.app).
 
-![Development log](/images/uploads/projects/solar-system/dev-log.png)
+![Development log](/images/projects/solar-system/dev-log.png)
 
 ## Why I built it
 

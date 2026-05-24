@@ -18,23 +18,23 @@ Below is each topic, what I argued, and how it went.
 
 Analyzed the scale and causes of the 2023 Turkey–Syria earthquake and explored what it means for earthquake preparedness in Korea.
 
-![Overview 1](/images/uploads/projects/science-debates/earthquake-1.jpeg)
+![Overview 1](/images/projects/science-debates/earthquake-1.jpeg)
 
-![Overview 2](/images/uploads/projects/science-debates/earthquake-2.jpeg)
+![Overview 2](/images/projects/science-debates/earthquake-2.jpeg)
 
-![Overview 3](/images/uploads/projects/science-debates/earthquake-3.jpeg)
+![Overview 3](/images/projects/science-debates/earthquake-3.jpeg)
 
-![Overview 4](/images/uploads/projects/science-debates/earthquake-4.jpeg)
+![Overview 4](/images/projects/science-debates/earthquake-4.jpeg)
 
 ## 2023 — Fukushima wastewater discharge
 
 When Fukushima treated water release was in the news, I researched the science and controversy and gave a presentation on it.
 
-![Fukushima 1](/images/uploads/projects/science-debates/fukushima-1.png)
+![Fukushima 1](/images/projects/science-debates/fukushima-1.png)
 
-![Fukushima 2](/images/uploads/projects/science-debates/fukushima-2.png)
+![Fukushima 2](/images/projects/science-debates/fukushima-2.png)
 
-![Fukushima 3](/images/uploads/projects/science-debates/fukushima-3.png)
+![Fukushima 3](/images/projects/science-debates/fukushima-3.png)
 
 ## 2024 — AI regulation (school competition)
 
@@ -56,8 +56,8 @@ Compared candidates (including plutonium from nuclear tests) and argued **carbon
 
 Argued for expanding **solar power** as a renewable energy source, with projections on how shifting energy mix could push the overshoot date later.
 
-![Solar energy 1](/images/uploads/projects/science-debates/solar-energy-1.jpg)
+![Solar energy 1](/images/projects/science-debates/solar-energy-1.jpg)
 
-![Solar energy 2](/images/uploads/projects/science-debates/solar-energy-2.jpg)
+![Solar energy 2](/images/projects/science-debates/solar-energy-2.jpg)
 
-![Solar energy 3](/images/uploads/projects/science-debates/solar-energy-3.jpg)
+![Solar energy 3](/images/projects/science-debates/solar-energy-3.jpg)

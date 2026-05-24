@@ -35,20 +35,20 @@ I was the only developer on the team. Everyone else handled planning, design, an
 
 We won **three awards** at the final ceremony — LG Talent, Growth, and Exploration prizes — and I was individually selected for the **US Silicon Valley trip**.
 
-![LG awards](/images/uploads/projects/auto-alt/lg-award.png)
+![LG awards](/images/projects/auto-alt/lg-award.png)
 
-![Camp poster](/images/uploads/projects/auto-alt/poster.png)
+![Camp poster](/images/projects/auto-alt/poster.png)
 
-![SNU camp](/images/uploads/projects/auto-alt/snu-camp.png)
+![SNU camp](/images/projects/auto-alt/snu-camp.png)
 
-![Award ceremony](/images/uploads/projects/auto-alt/award-ceremony.png)
+![Award ceremony](/images/projects/auto-alt/award-ceremony.png)
 
 At Stanford during the US camp, we also prototyped an AI legal advice chatbot for minor traffic violations — different project, same design-thinking energy.
 
-![Stanford certificate](/images/uploads/projects/auto-alt/stanford-cert.png)
+![Stanford certificate](/images/projects/auto-alt/stanford-cert.png)
 
 ## More
 
 The full story — application panic, SNU dorm all-nighter, YOLO training on a laptop — is in my [LG AI Youth Camp blog post](/blog/lg-ai-youth-camp). The [US camp writeup](/blog/us-camp) covers Silicon Valley.
 
-![Project overview video](/images/uploads/projects/auto-alt/overview.png)
+![Project overview video](/images/projects/auto-alt/overview.png)

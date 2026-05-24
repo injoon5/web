@@ -31,21 +31,21 @@ Stack: Next.js pages router, Tailwind CSS, no backend wired up in the public rep
 
 Before the Next.js prototype, I also built presentation materials for a fuller school-info app concept — timetable views, lunch menus, notice boards. Screenshots from that iteration:
 
-![App concept 1](/images/uploads/projects/sirius/app-1.png)
+![App concept 1](/images/projects/sirius/app-1.png)
 
-![App concept 2](/images/uploads/projects/sirius/app-2.png)
+![App concept 2](/images/projects/sirius/app-2.png)
 
-![App concept 3](/images/uploads/projects/sirius/app-3.png)
+![App concept 3](/images/projects/sirius/app-3.png)
 
-![App concept 4](/images/uploads/projects/sirius/app-4.png)
+![App concept 4](/images/projects/sirius/app-4.png)
 
-![App concept 5](/images/uploads/projects/sirius/app-5.png)
+![App concept 5](/images/projects/sirius/app-5.png)
 
-![App concept 6](/images/uploads/projects/sirius/app-6.png)
+![App concept 6](/images/projects/sirius/app-6.png)
 
-![App concept 7](/images/uploads/projects/sirius/app-7.png)
+![App concept 7](/images/projects/sirius/app-7.png)
 
-![App concept 8](/images/uploads/projects/sirius/app-8.png)
+![App concept 8](/images/projects/sirius/app-8.png)
 
 ## What happened next
 

@@ -29,18 +29,18 @@ No clean causal proof — correlation isn't causation, and a million other thing
 
 More importantly, this was my **first real data analysis project** — collecting data, cleaning it, choosing chart types, accepting that your hypothesis might not pan out.
 
-![Slide 3](/images/uploads/projects/covid-traffic/slide-3.png)
+![Slide 3](/images/projects/covid-traffic/slide-3.png)
 
-![Slide 4](/images/uploads/projects/covid-traffic/slide-4.png)
+![Slide 4](/images/projects/covid-traffic/slide-4.png)
 
-![Slide 5](/images/uploads/projects/covid-traffic/slide-5.png)
+![Slide 5](/images/projects/covid-traffic/slide-5.png)
 
-![Slide 6](/images/uploads/projects/covid-traffic/slide-6.png)
+![Slide 6](/images/projects/covid-traffic/slide-6.png)
 
-![Slide 7](/images/uploads/projects/covid-traffic/slide-7.png)
+![Slide 7](/images/projects/covid-traffic/slide-7.png)
 
-![Slide 8](/images/uploads/projects/covid-traffic/slide-8.png)
+![Slide 8](/images/projects/covid-traffic/slide-8.png)
 
-![Slide 9](/images/uploads/projects/covid-traffic/slide-9.png)
+![Slide 9](/images/projects/covid-traffic/slide-9.png)
 
-![Slide 11](/images/uploads/projects/covid-traffic/slide-11.png)
+![Slide 11](/images/projects/covid-traffic/slide-11.png)

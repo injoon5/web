@@ -28,15 +28,15 @@ Python scripts that:
 
 Both use the stack pattern — push numbers, on operator pop two, apply, push result.
 
-![Research overview](/images/uploads/projects/postfix-notation/main.png)
+![Research overview](/images/projects/postfix-notation/main.png)
 
-![Stack conversion](/images/uploads/projects/postfix-notation/part-1.png)
+![Stack conversion](/images/projects/postfix-notation/part-1.png)
 
-![Evaluation walkthrough](/images/uploads/projects/postfix-notation/part-2.png)
+![Evaluation walkthrough](/images/projects/postfix-notation/part-2.png)
 
-![Code examples](/images/uploads/projects/postfix-notation/part-3.png)
+![Code examples](/images/projects/postfix-notation/part-3.png)
 
-![Results](/images/uploads/projects/postfix-notation/part-4.png)
+![Results](/images/projects/postfix-notation/part-4.png)
 
 ## Context
 
