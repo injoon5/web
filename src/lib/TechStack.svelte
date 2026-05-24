@@ -3,38 +3,51 @@
 
 	let { techstack = [] } = $props();
 
-	// One item per category as the initial "highlights" view
-	const highlights = $derived(
-		techstack.map((cat) => cat.technologies[0]).filter(Boolean)
+	const FAVORITES = ['SvelteKit', 'SwiftUI', 'Convex', 'Figma', 'Obsidian', 'MacBook Pro'];
+
+	const favorites = $derived(
+		FAVORITES.map((name) =>
+			techstack.flatMap((cat) => cat.technologies).find((t) => t.name === name)
+		).filter(Boolean)
 	);
 
-	// null = highlights, number = category index
-	let activeIndex = $state(null);
+	// 'favorites' | number (category index)
+	let activeIndex = $state('favorites');
 
-	const panelId = $derived(activeIndex === null ? 'highlights' : String(activeIndex));
+	const panelId = $derived(String(activeIndex));
 
 	const items = $derived(
-		activeIndex === null
-			? highlights
+		activeIndex === 'favorites'
+			? favorites
 			: (techstack[activeIndex]?.technologies ?? [])
 	);
 
-	function toggle(index) {
-		activeIndex = activeIndex === index ? null : index;
+	function selectTab(index) {
+		activeIndex = index;
 	}
 
-	function onTabKeydown(e, index) {
-		let next = null;
-		if (e.key === 'ArrowRight') next = (index + 1) % techstack.length;
-		else if (e.key === 'ArrowLeft') next = (index - 1 + techstack.length) % techstack.length;
-		else if (e.key === 'Home') next = 0;
-		else if (e.key === 'End') next = techstack.length - 1;
-		else return;
-		e.preventDefault();
-		activeIndex = next;
-		e.currentTarget.closest('[role="tablist"]')
-			?.querySelector(`[data-tab-index="${next}"]`)
-			?.focus();
+	function onTabKeydown(e, tabIndex, isFav) {
+		// Arrow navigation: favorites is index -1 logically
+		const total = techstack.length;
+		if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			activeIndex = isFav ? 0 : Math.min(tabIndex + 1, total - 1);
+		} else if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			activeIndex = isFav ? 'favorites' : (tabIndex === 0 ? 'favorites' : tabIndex - 1);
+		} else if (e.key === 'Home') {
+			e.preventDefault();
+			activeIndex = 'favorites';
+		} else if (e.key === 'End') {
+			e.preventDefault();
+			activeIndex = total - 1;
+		} else return;
+		// Focus the newly active tab
+		const list = e.currentTarget.closest('[role="tablist"]');
+		const sel = activeIndex === 'favorites'
+			? list?.querySelector('[data-tab-fav]')
+			: list?.querySelector(`[data-tab-index="${activeIndex}"]`);
+		sel?.focus();
 	}
 
 	// Leaving panel: snap to absolute (so it doesn't hold layout height) then fade out.
@@ -85,6 +98,21 @@
 
 <div use:inViewOnce class="ts-root">
 	<div role="tablist" aria-label="Tech stack categories" class="ts-tabs">
+		<button
+			type="button"
+			role="tab"
+			data-tab-fav
+			id="ts-tab-fav"
+			aria-selected={activeIndex === 'favorites'}
+			aria-controls="ts-panel"
+			tabindex={activeIndex === 'favorites' ? 0 : -1}
+			class="ts-tab"
+			class:ts-tab-active={activeIndex === 'favorites'}
+			onclick={() => selectTab('favorites')}
+			onkeydown={(e) => onTabKeydown(e, -1, true)}
+		>
+			Favorites
+		</button>
 		{#each techstack as category, index}
 			<button
 				type="button"
@@ -96,8 +124,8 @@
 				tabindex={activeIndex === index ? 0 : -1}
 				class="ts-tab"
 				class:ts-tab-active={activeIndex === index}
-				onclick={() => toggle(index)}
-				onkeydown={(e) => onTabKeydown(e, index)}
+				onclick={() => selectTab(index)}
+				onkeydown={(e) => onTabKeydown(e, index, false)}
 			>
 				{category.name}
 			</button>
@@ -112,7 +140,7 @@
 					out:panelOut
 					id="ts-panel"
 					role="tabpanel"
-					aria-label={activeIndex === null ? 'Highlights' : techstack[activeIndex]?.name}
+					aria-label={activeIndex === 'favorites' ? 'Favorites' : techstack[activeIndex]?.name}
 					class="ts-panel"
 				>
 					{#each items as tech, i}
