@@ -78,7 +78,7 @@
 		let ready = false;
 
 		const ro = new ResizeObserver(() => {
-			const h = inner.scrollHeight;
+			const h = inner.offsetHeight;
 			if (!ready) {
 				node.style.transition = 'none';
 				node.style.height = h + 'px';
