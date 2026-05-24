@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
+	import TechStack from '$lib/TechStack.svelte';
 
 	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
 	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
@@ -252,31 +253,7 @@ Injoon Oh
 		</div>
 	</div>
 	<div class="col-span-10 mt-4 justify-center lg:mt-0">
-		<div class="mt-4 justify-center md:mr-2 lg:mt-0">
-			<div class="space-y-10">
-				{#each data.techstack as stacks}
-					<div>
-						<h3 class="text-base font-medium tracking-tight text-neutral-900 dark:text-neutral-100 mt-0.5">
-							{stacks.name}
-						</h3>
-						<div class="mt-4 grid grid-cols-4 gap-4 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-12">
-							{#each stacks.technologies as technology}
-								<div class="col-span-4 mt-2">
-									<p class="tracking-tight text-sm leading-normal font-medium text-neutral-900 dark:text-neutral-100">
-										{technology.name}
-									</p>
-									<p
-										class="tracking-tight text-sm leading-normal font-medium text-neutral-600 dark:text-neutral-400"
-									>
-										{technology.description}
-									</p>
-								</div>
-							{/each}
-						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
+		<TechStack techstack={data.techstack} />
 	</div>
 </div>
 
