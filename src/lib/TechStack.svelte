@@ -14,6 +14,7 @@
 	// 'favorites' | number (category index)
 	let activeIndex = $state('favorites');
 	let animated = $state(false);
+	let keyboardNav = $state(false);
 
 	let tabsEl = $state(null);
 	let tabsScrollEl = $state(null);
@@ -29,6 +30,7 @@
 	);
 
 	function selectTab(index) {
+		keyboardNav = false;
 		animated = true;
 		activeIndex = index;
 	}
@@ -43,8 +45,9 @@
 				: tabsEl.querySelector(`[data-tab-index="${activeIndex}"]`);
 		if (!activeEl) return;
 
+		const labelEl = activeEl.querySelector('.ts-tab-label') ?? activeEl;
 		const parentRect = tabsEl.getBoundingClientRect();
-		const rect = activeEl.getBoundingClientRect();
+		const rect = labelEl.getBoundingClientRect();
 		const left = rect.left - parentRect.left;
 		const right = parentRect.width - (left + rect.width);
 		clipLeft = left;
@@ -89,15 +92,19 @@
 		const total = techstack.length;
 		if (e.key === 'ArrowRight') {
 			e.preventDefault();
+			keyboardNav = true;
 			activeIndex = isFav ? 0 : Math.min(tabIndex + 1, total - 1);
 		} else if (e.key === 'ArrowLeft') {
 			e.preventDefault();
+			keyboardNav = true;
 			activeIndex = isFav ? 'favorites' : tabIndex === 0 ? 'favorites' : tabIndex - 1;
 		} else if (e.key === 'Home') {
 			e.preventDefault();
+			keyboardNav = true;
 			activeIndex = 'favorites';
 		} else if (e.key === 'End') {
 			e.preventDefault();
+			keyboardNav = true;
 			activeIndex = total - 1;
 		} else return;
 		// Focus the newly active tab
@@ -172,9 +179,10 @@
 				onclick={() => selectTab('favorites')}
 				onkeydown={(e) => onTabKeydown(e, -1, true)}
 			>
-				Favorites
+				<span class="ts-tab-label">Favorites</span>
 			</button>
 			{#each techstack as category, index}
+				<span class="ts-sep" aria-hidden="true">·</span>
 				<button
 					type="button"
 					role="tab"
@@ -188,18 +196,19 @@
 					onclick={() => selectTab(index)}
 					onkeydown={(e) => onTabKeydown(e, index, false)}
 				>
-					{category.name}
+					<span class="ts-tab-label">{category.name}</span>
 				</button>
 			{/each}
 			<div
 				class="ts-tabs-clip"
-				class:ts-clip-animate={clipReady}
+				class:ts-clip-animate={clipReady && !keyboardNav}
 				style:clip-path="inset(0 {clipRight}px 0 {clipLeft}px)"
 				style:opacity={clipVisible ? 1 : 0}
 				aria-hidden="true"
 			>
 				<span class="ts-clip-item" style="font-size: 1rem;">Favorites</span>
 				{#each techstack as category}
+					<span class="ts-clip-gap" aria-hidden="true">·</span>
 					<span class="ts-clip-item" style="font-size: 1rem;">{category.name}</span>
 				{/each}
 			</div>
@@ -261,6 +270,32 @@
 		white-space: nowrap;
 	}
 
+	.ts-tab-label {
+		display: inline-block;
+	}
+
+	.ts-sep,
+	.ts-clip-gap {
+		flex-shrink: 0;
+		padding-right: 0.6rem;
+		font-size: 1rem;
+		font-weight: 400;
+		pointer-events: none;
+		user-select: none;
+	}
+
+	.ts-sep {
+		color: var(--color-neutral-300);
+	}
+
+	:global(.dark) .ts-sep {
+		color: var(--color-neutral-700);
+	}
+
+	.ts-clip-gap {
+		visibility: hidden;
+	}
+
 	.ts-tab {
 		color: var(--color-neutral-400);
 	}
@@ -289,24 +324,7 @@
 	}
 
 	.ts-tab:focus-visible {
-		outline: 2px solid var(--color-neutral-400);
-		outline-offset: 2px;
-		border-radius: 2px;
-	}
-
-	/* Dot separator */
-	.ts-tab + .ts-tab::before,
-	.ts-clip-item + .ts-clip-item::before {
-		content: '·';
-		padding-right: 0.6rem;
-		color: var(--color-neutral-300);
-		pointer-events: none;
-		font-weight: 400;
-	}
-
-	:global(.dark) .ts-tab + .ts-tab::before,
-	:global(.dark) .ts-clip-item + .ts-clip-item::before {
-		color: var(--color-neutral-700);
+		outline: none;
 	}
 
 	.ts-tabs-clip {
