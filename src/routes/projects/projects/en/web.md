@@ -43,7 +43,7 @@ SvelteKit API routes (`/api/comments`, `/api/likes`, `/api/admin/*`) sit between
 
 ## OG images
 
-Built-in OG generation at `/api/og` — satori templates in `src/lib/og/templates.js` at 1200×630 with a dark dot-grid background. Separate layouts for blog posts, projects, and listing pages. Also use my standalone [OG API](/projects/og) for simpler title + subtitle cards.
+Built-in OG generation at `/api/og` — satori templates in `src/lib/og/templates.js` at 1200×630 with a dark dot-grid background. Separate layouts for blog posts, projects, and listing pages.
 
 ## Why I keep rebuilding it
 
