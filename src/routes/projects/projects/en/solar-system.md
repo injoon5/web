@@ -15,6 +15,8 @@ published: true
 
 Live at [solar-system-ten-dun.vercel.app](https://solar-system-ten-dun.vercel.app).
 
+![Development log](/images/uploads/projects/solar-system/dev-log.png)
+
 ## Why I built it
 
 I'd been going through a Three.js phase — wanted something visual that wasn't another dashboard. Space sims are the hello-world of 3D on the web, but doing it with actual numbers and NASA-style textures made it feel less like a tutorial and more like a toy I'd actually open.

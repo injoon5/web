@@ -27,10 +27,30 @@ Settings and logout links are… rickrolls. (`youtube.com/watch?v=dQw4w9WgXcQ`.)
 
 Stack: Next.js pages router, Tailwind CSS, no backend wired up in the public repo. It was more UI mockup than functional product at this stage.
 
+## Earlier versions
+
+Before the Next.js prototype, I also built presentation materials for a fuller school-info app concept — timetable views, lunch menus, notice boards. Screenshots from that iteration:
+
+![App concept 1](/images/uploads/projects/sirius/app-1.png)
+
+![App concept 2](/images/uploads/projects/sirius/app-2.png)
+
+![App concept 3](/images/uploads/projects/sirius/app-3.png)
+
+![App concept 4](/images/uploads/projects/sirius/app-4.png)
+
+![App concept 5](/images/uploads/projects/sirius/app-5.png)
+
+![App concept 6](/images/uploads/projects/sirius/app-6.png)
+
+![App concept 7](/images/uploads/projects/sirius/app-7.png)
+
+![App concept 8](/images/uploads/projects/sirius/app-8.png)
+
 ## What happened next
 
 Sirius didn't ship as a standalone app, but the idea clearly stuck — years later I rebuilt the same concept as [TimeforSchool](/projects/timefor-school) (notice board + timetable + lunch API + MCP) and [SchoolWatch](/projects/school-watch) (watchOS client). Same problem, better stack, actually deployed.
 
 The Sirius name, grid-dashboard concept, and "school info at a glance" pitch are basically the ancestor of everything school-related on this site.
 
-Made at Gifted Education Center, 2022.
+Made at Gifted Education Center, 2022. Materials from [injoon5/old-stuff](https://github.com/injoon5/old-stuff).
