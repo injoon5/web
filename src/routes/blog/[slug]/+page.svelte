@@ -14,6 +14,12 @@
 	import { fly, blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
+	// When duration is 0 (initial load / reduced motion) return an empty config
+	// so NO starting style is applied — a zero-length blur/fly still paints its
+	// opacity-0 start frame, which looked like a blink on load.
+	const blurT = (node, params) => (params.duration ? blur(node, params) : {});
+	const flyT = (node, params) => (params.duration ? fly(node, params) : {});
+
 	export let data;
 
 	// `lang` is the selected language (drives the selector pill instantly).
@@ -147,8 +153,8 @@
 					{#key displayLang}
 						<h2
 							style="grid-area: 1 / 1;"
-							in:blur={titleBlur}
-							out:blur={titleBlur}
+							in:blurT={titleBlur}
+							out:blurT={titleBlur}
 							class="text-xl font-medium text-neutral-500 dark:text-neutral-500"
 						>
 							{currentSeries[0].series}
@@ -160,8 +166,8 @@
 				{#key displayLang}
 					<h1
 						style="grid-area: 1 / 1;"
-						in:blur={titleBlur}
-						out:blur={titleBlur}
+						in:blurT={titleBlur}
+						out:blurT={titleBlur}
 						class="text-3xl font-semibold tracking-tight md:font-semibold"
 					>
 						{currentMeta.title}
@@ -189,7 +195,7 @@
 						<button
 							bind:this={langButtons[l]}
 							on:click={() => setLang(l)}
-							class="relative z-10 rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold text-neutral-500 transition-colors duration-150 hover:text-neutral-900 dark:hover:text-neutral-100"
+							class="relative z-10 rounded-full px-3 {l === 'en' ? 'mr-1' : ''} py-1 text-sm font-semibold text-neutral-500 transition-colors duration-150 hover:text-neutral-900 dark:hover:text-neutral-100"
 						>
 							{l === 'en' ? 'English' : '한국어'}
 						</button>
@@ -202,7 +208,7 @@
 					>
 						{#each data.availableLangs as l}
 							<span
-								class="rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold text-white dark:text-neutral-900"
+								class="rounded-full px-3 {l === 'en' ? 'mr-1' : ''} py-1 text-sm font-semibold text-white dark:text-neutral-900"
 							>
 								{l === 'en' ? 'English' : '한국어'}
 							</span>
@@ -223,7 +229,7 @@
 		<!-- Post -->
 		<div class="mt-10 grid overflow-hidden" bind:clientWidth={bodyWidth}>
 			{#key displayLang}
-				<div style="grid-area: 1 / 1;" in:fly={bodyIn} out:fly={bodyOut} on:introend={onSwapEnd}>
+				<div style="grid-area: 1 / 1;" in:flyT={bodyIn} out:flyT={bodyOut} on:introend={onSwapEnd}>
 					{#if currentMeta?.aiTranslated}
 						<div
 							class="mb-10 flex items-start gap-3 border-l-2 border-amber-400/80 bg-amber-100/40 px-4 py-3 dark:border-amber-500/60 dark:bg-amber-950/20"

@@ -12,6 +12,8 @@ onMount(() => {
 	requestAnimationFrame(() => requestAnimationFrame(() => (mounted = true)));
 });
 $: bf = { amount: 8, opacity: 0, duration: mounted && !reduceMotion ? 420 : 0, easing: cubicOut };
+// Empty config when duration is 0 so no opacity-0 start frame blinks on load.
+const blurT = (node, params) => (params.duration ? blur(node, params) : {});
 // Reverse a copy — mutating the prop in place flipped the order on every render.
 $: ordered = [...series].reverse();
 </script>
@@ -23,8 +25,8 @@ $: ordered = [...series].reverse();
 		{#key series[0].series}
 			<h2
 				style="grid-area: 1 / 1;"
-				in:blur={bf}
-				out:blur={bf}
+				in:blurT={bf}
+				out:blurT={bf}
 				class="line-clamp-1 select-none text-lg font-semibold text-neutral-900 dark:text-neutral-100"
 			>
 				Series: {series[0].series}
@@ -47,7 +49,7 @@ $: ordered = [...series].reverse();
 			<div class="block">
 				<div class="grid">
 					{#key post.title}
-						<h2 style="grid-area: 1 / 1;" in:blur={bf} out:blur={bf} class="-mb-1 line-clamp-1 text-lg font-medium">{post.title}</h2>
+						<h2 style="grid-area: 1 / 1;" in:blurT={bf} out:blurT={bf} class="-mb-1 line-clamp-1 text-lg font-medium">{post.title}</h2>
 					{/key}
 				</div>
 				<p class="text-sm font-normal text-neutral-500 dark:text-neutral-400">{post.date}</p>
