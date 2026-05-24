@@ -10,8 +10,33 @@
 	import Languages from '@lucide/svelte/icons/languages';
 
 	import { onMount, tick } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fly, blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+
+	// Cubic-bezier easing for the full-width body slide.
+	function cubicBezier(p1x, p1y, p2x, p2y) {
+		const cx = 3 * p1x;
+		const bx = 3 * (p2x - p1x) - cx;
+		const ax = 1 - cx - bx;
+		const cy = 3 * p1y;
+		const by = 3 * (p2y - p1y) - cy;
+		const ay = 1 - cy - by;
+		const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+		const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+		const sampleDX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+		return (x) => {
+			let t = x;
+			for (let i = 0; i < 8; i++) {
+				const d = sampleDX(t);
+				if (Math.abs(d) < 1e-6) break;
+				const diff = sampleX(t) - x;
+				if (Math.abs(diff) < 1e-5) break;
+				t -= diff / d;
+			}
+			return sampleY(t);
+		};
+	}
+	const slideEase = cubicBezier(0.65, 0, 0.35, 1);
 
 	export let data;
 
@@ -34,8 +59,12 @@
 		localStorage.setItem('preferred-lang', l);
 	}
 
-	$: inFly = { x: dir * 18, duration: reduceMotion ? 0 : 260, opacity: 0, easing: cubicOut };
-	$: outFly = { x: -dir * 18, duration: reduceMotion ? 0 : 190, opacity: 0, easing: cubicOut };
+	let bodyWidth = 0;
+
+	$: titleBlur = { amount: 8, opacity: 0, duration: reduceMotion ? 0 : 320, easing: cubicOut };
+	// Both directions share duration + easing so the two panels stay edge-to-edge while sliding.
+	$: bodyIn = { x: dir * bodyWidth, opacity: 1, duration: reduceMotion ? 0 : 520, easing: slideEase };
+	$: bodyOut = { x: -dir * bodyWidth, opacity: 1, duration: reduceMotion ? 0 : 520, easing: slideEase };
 
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
@@ -94,7 +123,7 @@
 			{/if}
 			<div class="grid">
 				{#key lang}
-					<div style="grid-area: 1 / 1;" in:fly={inFly} out:fly={outFly}>
+					<div style="grid-area: 1 / 1;" in:blur={titleBlur} out:blur={titleBlur}>
 						<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
 							{currentMeta.title}
 						</h1>
@@ -175,9 +204,9 @@
 				</div>
 			</div>
 		{/if}
-		<div class="mt-10 grid">
+		<div class="mt-10 grid overflow-hidden" bind:clientWidth={bodyWidth}>
 			{#key lang}
-				<div style="grid-area: 1 / 1;" use:lightboxAction class="prose-post" in:fly={inFly} out:fly={outFly}>
+				<div style="grid-area: 1 / 1;" use:lightboxAction class="prose-post" in:fly={bodyIn} out:fly={bodyOut}>
 					{#if currentContent}
 						<svelte:component this={currentContent} class="prose" />
 					{/if}
