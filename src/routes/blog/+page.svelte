@@ -22,15 +22,15 @@
 </script>
 
 <svelte:head>
-	<title>Blog - Injoon Oh</title>
+	<title>블로그 - Injoon Oh</title>
 	<meta
 		name="description"
-		content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about."
+		content="겨우 온라인에 올린 글들. 제가 한 일, 경험, 그리고 쓴 이야기들을 살펴보세요."
 	/>
-	<meta property="og:title" content="Blog - Injoon Oh" />
+	<meta property="og:title" content="블로그 - Injoon Oh" />
 	<meta
 		property="og:description"
-		content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about."
+		content="겨우 온라인에 올린 글들. 제가 한 일, 경험, 그리고 쓴 이야기들을 살펴보세요."
 	/>
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=blog" />
 	<meta name="twitter:card" content="summary_large_image" />
