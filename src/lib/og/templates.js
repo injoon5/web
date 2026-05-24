@@ -16,6 +16,7 @@ const textSecondary = '#a3a3a3';
 const textMuted = '#737373';
 const borderColor = '#262626';
 const dotColor = '#1a1a1a';
+const font = 'Pretendard';
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ function container(children) {
 				display: 'flex',
 				flexDirection: 'column',
 				backgroundColor: bg,
-				fontFamily: 'Inter',
+				fontFamily: font,
 				position: 'relative',
 				overflow: 'hidden'
 			},
@@ -119,7 +120,7 @@ function bottomBar(name = 'Injoon Oh') {
 					type: 'span',
 					props: {
 						style: {
-							fontSize: 22,
+							fontSize: 24,
 							fontWeight: 500,
 							color: textSecondary,
 							letterSpacing: '-0.01em'
@@ -131,7 +132,7 @@ function bottomBar(name = 'Injoon Oh') {
 					type: 'span',
 					props: {
 						style: {
-							fontSize: 20,
+							fontSize: 22,
 							fontWeight: 400,
 							color: textMuted,
 							letterSpacing: '0.02em'
@@ -144,19 +145,18 @@ function bottomBar(name = 'Injoon Oh') {
 	};
 }
 
-/** Small label badge */
-function badge(text) {
+/** Small label (no uppercase) */
+function label(text) {
 	return {
 		type: 'span',
 		props: {
 			style: {
 				display: 'flex',
-				fontSize: 15,
-				fontWeight: 600,
+				fontSize: 20,
+				fontWeight: 500,
 				color: textMuted,
-				textTransform: 'uppercase',
-				letterSpacing: '0.08em',
-				marginBottom: 16
+				letterSpacing: '-0.01em',
+				marginBottom: 12
 			},
 			children: text
 		}
@@ -181,7 +181,7 @@ export function homeTemplate() {
 						type: 'span',
 						props: {
 							style: {
-								fontSize: 76,
+								fontSize: 88,
 								fontWeight: 700,
 								color: textPrimary,
 								letterSpacing: '-0.04em',
@@ -194,13 +194,13 @@ export function homeTemplate() {
 						type: 'p',
 						props: {
 							style: {
-								fontSize: 28,
+								fontSize: 32,
 								fontWeight: 400,
 								color: textSecondary,
-								lineHeight: 1.5,
-								marginTop: 20,
-								maxWidth: 750,
-								letterSpacing: '-0.01em'
+								lineHeight: 1.4,
+								marginTop: 24,
+								maxWidth: 800,
+								letterSpacing: '-0.015em'
 							},
 							children:
 								'A student interested in math, science, and computers.'
@@ -225,15 +225,15 @@ export function blogListTemplate() {
 					justifyContent: 'center'
 				},
 				children: [
-					badge('Blog'),
+					label('Injoon Oh'),
 					{
 						type: 'span',
 						props: {
 							style: {
-								fontSize: 64,
+								fontSize: 72,
 								fontWeight: 700,
 								color: textPrimary,
-								letterSpacing: '-0.035em',
+								letterSpacing: '-0.04em',
 								lineHeight: 1.1
 							},
 							children: 'Blog'
@@ -243,12 +243,12 @@ export function blogListTemplate() {
 						type: 'p',
 						props: {
 							style: {
-								fontSize: 24,
+								fontSize: 28,
 								fontWeight: 400,
 								color: textSecondary,
-								lineHeight: 1.5,
-								marginTop: 16,
-								maxWidth: 700,
+								lineHeight: 1.4,
+								marginTop: 20,
+								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
 							children:
@@ -263,6 +263,7 @@ export function blogListTemplate() {
 }
 
 export function blogPostTemplate({ title, description, date }) {
+	const longTitle = title && title.length > 40;
 	return container([
 		{
 			type: 'div',
@@ -274,12 +275,12 @@ export function blogPostTemplate({ title, description, date }) {
 					justifyContent: 'center'
 				},
 				children: [
-					badge('Blog'),
+					label('Blog'),
 					{
 						type: 'span',
 						props: {
 							style: {
-								fontSize: title && title.length > 40 ? 44 : 56,
+								fontSize: longTitle ? 48 : 64,
 								fontWeight: 700,
 								color: textPrimary,
 								letterSpacing: '-0.035em',
@@ -295,11 +296,11 @@ export function blogPostTemplate({ title, description, date }) {
 									type: 'p',
 									props: {
 										style: {
-											fontSize: 22,
+											fontSize: 26,
 											fontWeight: 400,
 											color: textSecondary,
-											lineHeight: 1.5,
-											marginTop: 16,
+											lineHeight: 1.45,
+											marginTop: 18,
 											maxWidth: 900,
 											letterSpacing: '-0.01em'
 										},
@@ -314,10 +315,10 @@ export function blogPostTemplate({ title, description, date }) {
 									type: 'span',
 									props: {
 										style: {
-											fontSize: 20,
+											fontSize: 22,
 											fontWeight: 500,
 											color: textMuted,
-											marginTop: 20,
+											marginTop: 22,
 											letterSpacing: '-0.005em'
 										},
 										children: formatDate(date)
@@ -344,15 +345,15 @@ export function projectsListTemplate() {
 					justifyContent: 'center'
 				},
 				children: [
-					badge('Projects'),
+					label('Injoon Oh'),
 					{
 						type: 'span',
 						props: {
 							style: {
-								fontSize: 64,
+								fontSize: 72,
 								fontWeight: 700,
 								color: textPrimary,
-								letterSpacing: '-0.035em',
+								letterSpacing: '-0.04em',
 								lineHeight: 1.1
 							},
 							children: 'Projects'
@@ -362,12 +363,12 @@ export function projectsListTemplate() {
 						type: 'p',
 						props: {
 							style: {
-								fontSize: 24,
+								fontSize: 28,
 								fontWeight: 400,
 								color: textSecondary,
-								lineHeight: 1.5,
-								marginTop: 16,
-								maxWidth: 700,
+								lineHeight: 1.4,
+								marginTop: 20,
+								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
 							children:
@@ -382,6 +383,7 @@ export function projectsListTemplate() {
 }
 
 export function projectTemplate({ title, description, year, tags }) {
+	const longTitle = title && title.length > 40;
 	return container([
 		{
 			type: 'div',
@@ -393,12 +395,12 @@ export function projectTemplate({ title, description, year, tags }) {
 					justifyContent: 'center'
 				},
 				children: [
-					badge('Project'),
+					label('Project'),
 					{
 						type: 'span',
 						props: {
 							style: {
-								fontSize: title && title.length > 40 ? 44 : 56,
+								fontSize: longTitle ? 48 : 64,
 								fontWeight: 700,
 								color: textPrimary,
 								letterSpacing: '-0.035em',
@@ -414,11 +416,11 @@ export function projectTemplate({ title, description, year, tags }) {
 									type: 'p',
 									props: {
 										style: {
-											fontSize: 22,
+											fontSize: 26,
 											fontWeight: 400,
 											color: textSecondary,
-											lineHeight: 1.5,
-											marginTop: 16,
+											lineHeight: 1.45,
+											marginTop: 18,
 											maxWidth: 900,
 											letterSpacing: '-0.01em'
 										},
@@ -434,7 +436,7 @@ export function projectTemplate({ title, description, year, tags }) {
 								display: 'flex',
 								alignItems: 'center',
 								gap: 12,
-								marginTop: 20
+								marginTop: 22
 							},
 							children: [
 								...(year
@@ -443,7 +445,7 @@ export function projectTemplate({ title, description, year, tags }) {
 												type: 'span',
 												props: {
 													style: {
-														fontSize: 20,
+														fontSize: 22,
 														fontWeight: 500,
 														color: textMuted
 													},
@@ -459,7 +461,7 @@ export function projectTemplate({ title, description, year, tags }) {
 														{
 															type: 'span',
 															props: {
-																style: { fontSize: 20, color: textMuted },
+																style: { fontSize: 22, color: textMuted },
 																children: '\u00B7'
 															}
 														}
@@ -469,12 +471,12 @@ export function projectTemplate({ title, description, year, tags }) {
 												type: 'span',
 												props: {
 													style: {
-														fontSize: 15,
+														fontSize: 16,
 														fontWeight: 500,
 														color: textSecondary,
 														border: `1px solid ${borderColor}`,
 														borderRadius: 999,
-														padding: '4px 12px'
+														padding: '5px 14px'
 													},
 													children: tag
 												}
@@ -503,15 +505,15 @@ export function nowTemplate() {
 					justifyContent: 'center'
 				},
 				children: [
-					badge('Now'),
+					label('Injoon Oh'),
 					{
 						type: 'span',
 						props: {
 							style: {
-								fontSize: 64,
+								fontSize: 72,
 								fontWeight: 700,
 								color: textPrimary,
-								letterSpacing: '-0.035em',
+								letterSpacing: '-0.04em',
 								lineHeight: 1.1
 							},
 							children: 'Now'
@@ -521,12 +523,12 @@ export function nowTemplate() {
 						type: 'p',
 						props: {
 							style: {
-								fontSize: 24,
+								fontSize: 28,
 								fontWeight: 400,
 								color: textSecondary,
-								lineHeight: 1.5,
-								marginTop: 16,
-								maxWidth: 700,
+								lineHeight: 1.4,
+								marginTop: 20,
+								maxWidth: 750,
 								letterSpacing: '-0.01em'
 							},
 							children: 'What I\'m doing now.'

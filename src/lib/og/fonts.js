@@ -1,8 +1,10 @@
+const FONT_BASE = 'https://cdn.jsdelivr.net/npm/@fontsource/pretendard@5.2.5/files';
+
 const FONT_URLS = {
-	'Inter-Regular': 'https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hjQ.ttf',
-	'Inter-Medium': 'https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fAZ9hjQ.ttf',
-	'Inter-SemiBold': 'https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hjQ.ttf',
-	'Inter-Bold': 'https://fonts.gstatic.com/s/inter/v18/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hjQ.ttf'
+	regular: `${FONT_BASE}/pretendard-latin-400-normal.woff`,
+	medium: `${FONT_BASE}/pretendard-latin-500-normal.woff`,
+	semibold: `${FONT_BASE}/pretendard-latin-600-normal.woff`,
+	bold: `${FONT_BASE}/pretendard-latin-700-normal.woff`
 };
 
 /** @type {import('satori').Font[] | null} */
@@ -16,10 +18,10 @@ export async function loadFonts() {
 	);
 
 	_fonts = [
-		{ name: 'Inter', data: regular, weight: 400, style: 'normal' },
-		{ name: 'Inter', data: medium, weight: 500, style: 'normal' },
-		{ name: 'Inter', data: semibold, weight: 600, style: 'normal' },
-		{ name: 'Inter', data: bold, weight: 700, style: 'normal' }
+		{ name: 'Pretendard', data: regular, weight: 400, style: 'normal' },
+		{ name: 'Pretendard', data: medium, weight: 500, style: 'normal' },
+		{ name: 'Pretendard', data: semibold, weight: 600, style: 'normal' },
+		{ name: 'Pretendard', data: bold, weight: 700, style: 'normal' }
 	];
 
 	return _fonts;
