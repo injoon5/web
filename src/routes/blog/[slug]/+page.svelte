@@ -35,6 +35,7 @@
 	/** @type {Record<string, HTMLButtonElement>} */
 	let langButtons = {};
 	let pillStyle = '';
+	let clipStyle = '';
 	async function updatePill() {
 		await tick();
 		const el = langButtons[lang];
@@ -43,7 +44,10 @@
 		if (!parent) return;
 		const parentRect = parent.getBoundingClientRect();
 		const rect = el.getBoundingClientRect();
-		pillStyle = `transform: translateX(${rect.left - parentRect.left}px); width: ${rect.width}px; opacity: 1;`;
+		const left = rect.left - parentRect.left;
+		const right = parentRect.width - (left + rect.width);
+		pillStyle = `transform: translateX(${left}px); width: ${rect.width}px; opacity: 1;`;
+		clipStyle = `clip-path: inset(4px ${right}px 4px ${left}px round 9999px); opacity: 1;`;
 	}
 	$: lang, updatePill();
 	onMount(() => {
@@ -97,13 +101,24 @@
 						<button
 							bind:this={langButtons[l]}
 							on:click={() => setLang(l)}
-							class="relative z-10 rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold transition-colors duration-150 {lang === l
-								? 'text-white dark:text-neutral-900'
-								: 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}"
+							class="relative z-10 rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold text-neutral-500 transition-colors duration-150 hover:text-neutral-900 dark:hover:text-neutral-100"
 						>
 							{l === 'en' ? 'English' : '한국어'}
 						</button>
 					{/each}
+					<div
+						class="nav-clip pointer-events-none absolute inset-0 z-20 flex items-center gap-1 p-1"
+						style={clipStyle || 'clip-path: inset(4px 100% 4px 0 round 9999px);'}
+						aria-hidden="true"
+					>
+						{#each data.availableLangs as l}
+							<span
+								class="rounded-full px-3 {l === 'en' ? 'mr-0.5' : ''} py-1 text-sm font-semibold text-white dark:text-neutral-900"
+							>
+								{l === 'en' ? 'English' : '한국어'}
+							</span>
+						{/each}
+					</div>
 				</div>
 			{/if}
 			<div class="my-4">

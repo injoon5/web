@@ -163,6 +163,12 @@
 		opacity var(--motion-fast) ease;
 }
 
+/* Active-colored label layer clipped to the sliding pill (slides in sync). */
+.nav-clip {
+	transition: clip-path var(--motion-base) var(--ease-out-soft),
+		opacity var(--motion-fast) ease;
+}
+
 /*
   Shared post / project prose styling.
   Extracted from blog/[slug] and projects/[slug] so both stay in sync.
