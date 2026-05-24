@@ -5,8 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Optimizing images in static/"
-node scripts/optimize-images.mjs
+echo "==> Optimizing images in static/ (turbo + remote cache)"
+npx turbo run build-image-cache apply-optimized-images
 
 echo "==> Deploying Convex + building site"
 if [[ -n "${CONVEX_DEPLOY_KEY:-}" ]]; then
