@@ -7,7 +7,6 @@
 	import Lightbox from '../../../lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Languages from '@lucide/svelte/icons/languages';
-	import NumberFlow from '@number-flow/svelte';
 
 	import { onMount, tick } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -204,7 +203,7 @@
 				<p class="tabular">{formatDate(currentMeta.date)}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<NumberFlow value={readingMinutes} suffix=" min read" />
+					<p class="tabular">{readingMinutes} min read</p>
 				{/if}
 			</div>
 			{#if data.availableLangs.length > 1}

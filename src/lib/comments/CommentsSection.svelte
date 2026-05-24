@@ -28,7 +28,7 @@
 	let submitError = $state('');
 
 	// Generate a Linear-style anonymous handle for the placeholder
-	// (e.g. "stranger-7sl", "wanderer-k2x"). Stable per session.
+	// (e.g. "stranger-7sl", "wanderer-k2x"). Stable per browser session.
 	const handleAdjectives = [
 		'stranger',
 		'wanderer',
@@ -48,9 +48,18 @@
 		const suffix = Math.random().toString(36).slice(2, 5);
 		return `${adj}-${suffix}`;
 	}
-	const fallbackHandle = makeHandle();
+	let fallbackHandle = $state('guest');
 
-	onMount(resolveIpHash);
+	onMount(() => {
+		try {
+			const saved = sessionStorage.getItem('comment-fallback-handle');
+			fallbackHandle = saved || makeHandle();
+			if (!saved) sessionStorage.setItem('comment-fallback-handle', fallbackHandle);
+		} catch {
+			fallbackHandle = makeHandle();
+		}
+		resolveIpHash();
+	});
 
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(

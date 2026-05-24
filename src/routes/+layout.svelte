@@ -2,7 +2,8 @@
 	import '../app.css';
 	import NavBar from '$lib/NavBar.svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { configure } from 'onedollarstats';
+	import { afterNavigate } from '$app/navigation';
+	import { configure, view } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { page } from '$app/stores';
 	import { setupConvex } from 'convex-svelte';
@@ -31,6 +32,8 @@
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
 
+	let { children } = $props();
+
 	const SCROLL_DURATION = 500;
 
 	function scrollToTop() {
@@ -57,17 +60,31 @@
 	}
 
 	let cleanupTheme;
-	let scrolled = false;
+	let scrolled = $state(false);
+	let analyticsReady = false;
+	let trackedPath = '';
 
 	function onScroll() {
 		scrolled = window.scrollY > 8;
 	}
 
+	function trackPageView(pathname) {
+		if (!analyticsReady || !pathname || pathname === trackedPath) return;
+		trackedPath = pathname;
+		view(pathname);
+	}
+
+	afterNavigate(({ to }) => {
+		trackPageView(to?.url.pathname);
+	});
+
 	onMount(async () => {
 		configure({
 			collectorUrl: 'https://collector.onedollarstats.com/events',
-			autocollect: true
+			autocollect: false
 		});
+		analyticsReady = true;
+		trackPageView($page.url.pathname);
 		cleanupTheme = theme.syncWithOS();
 		onScroll();
 		window.addEventListener('scroll', onScroll, { passive: true });
@@ -100,7 +117,7 @@
 </div>
 
 <div class="mx-auto max-w-6xl px-4 pt-4 pb-4 text-sm sm:px-12">
-	<slot />
+	{@render children()}
 </div>
 
 <footer class="mt-10 mb-20 w-full pt-24 tracking-tight">
