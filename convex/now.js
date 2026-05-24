@@ -15,7 +15,7 @@ export const update = mutation({
 		adminSecret: v.string()
 	},
 	handler: async (ctx, args) => {
-		assertAdmin(args.adminSecret);
+		await assertAdmin(args.adminSecret);
 		const existing = await ctx.db.query('nowPage').first();
 		if (existing) {
 			await ctx.db.patch(existing._id, {

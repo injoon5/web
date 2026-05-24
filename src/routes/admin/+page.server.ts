@@ -2,14 +2,10 @@ import { redirect, fail } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import type { Actions, PageServerLoad } from './$types';
 import { ADMIN_SECRET } from '$env/static/private';
-import { secretsMatch } from '$lib/server/admin';
-
-function tokenValid(token: string | undefined): boolean {
-	return !!token && secretsMatch(token);
-}
+import { createAdminSessionToken, secretsMatch, verifyAdminSessionToken } from '$lib/server/admin';
 
 export const load: PageServerLoad = async ({ cookies }) => {
-	return { authenticated: tokenValid(cookies.get('admin_token')) };
+	return { authenticated: verifyAdminSessionToken(cookies.get('admin_token') ?? '') };
 };
 
 export const actions = {
@@ -18,11 +14,11 @@ export const actions = {
 		const password = form.get('password');
 
 		if (!ADMIN_SECRET) return fail(500, { error: 'Admin access is not configured' });
-		if (typeof password !== 'string' || !tokenValid(password)) {
+		if (typeof password !== 'string' || !secretsMatch(password)) {
 			return fail(401, { error: 'Incorrect password' });
 		}
 
-		cookies.set('admin_token', ADMIN_SECRET, {
+		cookies.set('admin_token', createAdminSessionToken(), {
 			path: '/',
 			httpOnly: true,
 			sameSite: 'strict',

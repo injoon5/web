@@ -7,7 +7,7 @@ import { getVoteCounts } from './lib/votes.js';
 export const listUrls = query({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
 		const rows = await ctx.db.query('commentUrlCounts').collect();
 		if (rows.length > 0) {
@@ -38,7 +38,7 @@ export const listUrls = query({
 export const listForUrl = query({
 	args: { url: v.string(), adminSecret: v.string() },
 	handler: async (ctx, { url, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
 		const docs = await ctx.db
 			.query('comments')

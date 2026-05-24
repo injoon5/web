@@ -27,7 +27,7 @@ export const toggle = mutation({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
+		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });

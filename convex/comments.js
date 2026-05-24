@@ -60,7 +60,7 @@ export const create = mutation({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
+		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });
@@ -112,7 +112,7 @@ export const vote = mutation({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
+		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });
@@ -159,7 +159,7 @@ export const applyEdit = mutation({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
+		const admin = await isAdmin(args.adminSecret);
 		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
 
 		const comment = await ctx.db.get(args.commentId);
@@ -184,7 +184,7 @@ export const softDelete = mutation({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
+		const admin = await isAdmin(args.adminSecret);
 		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
 
 		const comment = await ctx.db.get(args.commentId);
@@ -210,7 +210,7 @@ export const softDelete = mutation({
 export const hardDelete = mutation({
 	args: { commentId: v.id('comments'), adminSecret: v.string() },
 	handler: async (ctx, { commentId, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
 		// Recursively collect all descendant comment IDs
 		const toDelete = [commentId];
@@ -251,7 +251,7 @@ export const setReply = mutation({
 		adminSecret: v.string()
 	},
 	handler: async (ctx, { commentId, reply, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 		const trimmed = reply.trim();
 		await ctx.db.patch(commentId, { reply: trimmed || null });
 	}

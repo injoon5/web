@@ -62,7 +62,7 @@ export const backfillUrlCounts = internalMutation({
 export const run = mutation({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
 		await ctx.scheduler.runAfter(0, internal.backfill.backfillVoteCountsBatch, {
 			cursor: null

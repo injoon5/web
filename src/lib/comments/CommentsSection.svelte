@@ -1,13 +1,12 @@
 <script>
 	import { page } from '$app/stores';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import CommentNode from './CommentNode.svelte';
 	import { buildTree } from './buildTree.js';
-	import { clientIpHash, hashReal, hashAttempted, resolveIpHash } from '$lib/ipHash.js';
 
 	const MAX_LENGTH = 200;
 	const CHAR_THRESHOLD = 10;
@@ -50,14 +49,14 @@
 	}
 	const fallbackHandle = makeHandle();
 
-	onMount(resolveIpHash);
+	const ipHash = $derived($page.data.ipHash ?? '');
 
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(
 		api.comments.list,
 		() => ({
 			url: $page.url.pathname,
-			ipHash: $clientIpHash
+			ipHash
 		}),
 		// The runtime ipHash re-subscription swaps the query args on every visit.
 		// Keep the prior result so the comments don't flash back to loading.
@@ -124,15 +123,8 @@
 
 	const commentTree = $derived(buildTree(query.data ?? []));
 
-	// `myVote` is per-visitor: trust the highlight only once the real hash is in
-	// use and the subscription holds fresh (non-stale) data. Allow clicking once
-	// trusted, or once a failed /api/ip-hash leaves us with fresh data and no
-	// real hash (the vote itself is computed from the real IP server-side, so a
-	// broken hash fetch must not lock voting forever).
-	const voteKnown = $derived($hashReal && !query.isStale && !!query.data);
-	const canVote = $derived(
-		voteKnown || ($hashAttempted && !$hashReal && !query.isStale && !!query.data)
-	);
+	// `myVote` is per-visitor: trust the highlight once the subscription is fresh.
+	const canVote = $derived(!query.isStale && !!query.data && !!ipHash);
 
 	// Reset transient form state on path change
 	let currentPath = $state($page.url.pathname);
