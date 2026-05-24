@@ -2,6 +2,9 @@ import { writable } from 'svelte/store';
 
 export const lightboxStore = writable(null); // null = closed, { src, alt } = open
 
+/** Max displayed height for lightbox images (px). Keeps tall shots from filling the viewport. */
+export const MAX_LIGHTBOX_HEIGHT = 900;
+
 export function lazyImagesAction(node) {
 	node.querySelectorAll('img').forEach((img) => {
 		img.loading = 'lazy';

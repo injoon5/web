@@ -199,7 +199,7 @@
 	@apply prose-h3:tracking-tight prose-h4:tracking-tight;
 	@apply prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1;
 	@apply hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300;
-	@apply prose-img:mx-auto prose-img:cursor-zoom-in;
+	@apply prose-img:mx-auto prose-img:cursor-zoom-in prose-img:max-h-[min(70vh,900px)] prose-img:w-auto prose-img:h-auto;
 }
 
 @utility prose {

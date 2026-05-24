@@ -1,5 +1,5 @@
 <script>
-	import { lightboxStore } from './lightbox.js';
+	import { lightboxStore, MAX_LIGHTBOX_HEIGHT } from './lightbox.js';
 	import { onDestroy } from 'svelte';
 
 	let visible = false;
@@ -43,7 +43,7 @@
 	$: fit = (() => {
 		if (!naturalWidth || !naturalHeight || !winW || !winH) return null;
 		const availW = winW - 32; // 1rem padding each side
-		const availH = winH - 96; // matches max-height: calc(100dvh - 6rem)
+		const availH = Math.min(winH - 96, MAX_LIGHTBOX_HEIGHT); // viewport cap + max vertical size
 		const scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
 		return { w: Math.round(naturalWidth * scale), h: Math.round(naturalHeight * scale) };
 	})();
@@ -253,6 +253,7 @@
 		class="lb-backdrop"
 		class:closing
 		class:swipe-dismissing={swipeDismissing}
+		style="--lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
 		role="dialog"
 		aria-modal="true"
 		aria-label={alt || 'Image preview'}
@@ -449,7 +450,7 @@
 
 	.lb-img {
 		max-width: 100%;
-		max-height: calc(100dvh - 6rem);
+		max-height: min(calc(100dvh - 6rem), var(--lb-max-height));
 		width: auto;
 		height: auto;
 		object-fit: contain;

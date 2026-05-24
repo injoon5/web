@@ -20,6 +20,8 @@ const SKIP_DIRS = new Set(['node_modules', '.git', '.svelte-kit', 'build']);
 
 /** Max width for blog/photo assets (2x typical content column). */
 const MAX_WIDTH = Number.parseInt(process.env.IMAGE_MAX_WIDTH ?? '2400', 10);
+/** Max height — same bounding box as width so tall portraits get resized too. */
+const MAX_HEIGHT = Number.parseInt(process.env.IMAGE_MAX_HEIGHT ?? '2400', 10);
 const JPEG_QUALITY = Number.parseInt(process.env.JPEG_QUALITY ?? '88', 10);
 const PNG_COMPRESSION = Number.parseInt(process.env.PNG_COMPRESSION ?? '9', 10);
 const WEBP_QUALITY = Number.parseInt(process.env.WEBP_QUALITY ?? '85', 10);
@@ -125,9 +127,11 @@ async function optimizeFile(filePath) {
 	let pipeline = sharp(filePath, { failOn: 'none' }).rotate(); // respect EXIF orientation, then strip
 
 	const width = meta.width ?? 0;
-	if (width > MAX_WIDTH) {
+	const height = meta.height ?? 0;
+	if (width > MAX_WIDTH || height > MAX_HEIGHT) {
 		pipeline = pipeline.resize({
 			width: MAX_WIDTH,
+			height: MAX_HEIGHT,
 			withoutEnlargement: true,
 			fit: 'inside'
 		});
@@ -176,6 +180,10 @@ function pctSaved(before, after) {
 async function main() {
 	if (!Number.isFinite(MAX_WIDTH) || MAX_WIDTH < 1) {
 		console.error('IMAGE_MAX_WIDTH must be a positive integer');
+		process.exit(1);
+	}
+	if (!Number.isFinite(MAX_HEIGHT) || MAX_HEIGHT < 1) {
+		console.error('IMAGE_MAX_HEIGHT must be a positive integer');
 		process.exit(1);
 	}
 
