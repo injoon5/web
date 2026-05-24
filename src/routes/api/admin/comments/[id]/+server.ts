@@ -7,8 +7,21 @@ import { replySchema } from '$lib/server/validation';
 import { runConvex } from '$lib/server/api';
 import { ADMIN_SECRET } from '$env/static/private';
 
-export const DELETE: RequestHandler = async ({ params, request }) => {
+export const DELETE: RequestHandler = async ({ params, request, url }) => {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
+
+	if (url.searchParams.get('soft') === '1') {
+		return runConvex(
+			() =>
+				convex.mutation(api.comments.softDelete, {
+					commentId: params.id,
+					ipHash: '',
+					adminSecret: ADMIN_SECRET
+				}),
+			() => json({ success: true })
+		);
+	}
+
 	return runConvex(
 		() =>
 			convex.mutation(api.comments.hardDelete, { commentId: params.id, adminSecret: ADMIN_SECRET }),

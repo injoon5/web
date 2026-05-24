@@ -189,20 +189,59 @@ export const applyEdit = mutation({
 	}
 });
 
+export const softDelete = mutation({
+	args: {
+		commentId: v.id('comments'),
+		ipHash: v.string(),
+		adminSecret: v.optional(v.string())
+	},
+	handler: async (ctx, args) => {
+		const admin = isAdmin(args.adminSecret);
+		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
+
+		const comment = await ctx.db.get(args.commentId);
+		if (!comment || comment.deletedAt !== null) {
+			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+		}
+
+		await ctx.db.patch(args.commentId, {
+			text: '[deleted]',
+			username: '[deleted]',
+			updatedAt: Date.now()
+		});
+	}
+});
+
 export const hardDelete = mutation({
 	args: { commentId: v.id('comments'), adminSecret: v.string() },
 	handler: async (ctx, { commentId, adminSecret }) => {
 		assertAdmin(adminSecret);
 
-		const votes = await ctx.db
-			.query('commentVotes')
-			.withIndex('by_comment', (q) => q.eq('commentId', commentId))
-			.collect();
-		for (const vote of votes) {
-			await ctx.db.delete(vote._id);
+		// Recursively collect all descendant comment IDs
+		const toDelete = [commentId];
+		for (let i = 0; i < toDelete.length; i++) {
+			const children = await ctx.db
+				.query('comments')
+				.withIndex('by_parent', (q) => q.eq('parentId', toDelete[i]))
+				.collect();
+			for (const child of children) {
+				toDelete.push(child._id);
+			}
 		}
 
-		await ctx.db.patch(commentId, { deletedAt: Date.now() });
+		const now = Date.now();
+		for (const id of toDelete) {
+			// Delete all votes for this comment
+			const votes = await ctx.db
+				.query('commentVotes')
+				.withIndex('by_comment', (q) => q.eq('commentId', id))
+				.collect();
+			for (const vote of votes) {
+				await ctx.db.delete(vote._id);
+			}
+			// Set deletedAt
+			await ctx.db.patch(id, { deletedAt: now });
+		}
 	}
 });
 
