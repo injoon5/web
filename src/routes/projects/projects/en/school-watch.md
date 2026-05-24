@@ -8,11 +8,21 @@ tags:
 published: true
 ---
 
+<script>
+	import LazyVideo from '$lib/LazyVideo.svelte';
+</script>
+
 ## Why a watch app
 
 I wear an Apple Watch most days. Pulling out my phone between classes to check the timetable or see how much time was left in the period felt dumb when the screen was *right there* on my wrist.
 
 [SchoolWatch](https://github.com/injoon5/SchoolWatch) is my attempt to fix that — a watchOS app that hits the same [school API](/projects/timefor-school) as everything else, just on a 45mm display.
+
+## Demo
+
+<LazyVideo src="/uploads/projects/schoolwatch-demo.mp4" label="Play SchoolWatch demo" />
+
+The video only loads when you hit play — no upfront download on page load.
 
 ## App structure
 
