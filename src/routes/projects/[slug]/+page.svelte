@@ -5,12 +5,13 @@
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Languages from '@lucide/svelte/icons/languages';
 	import NumberFlow from '@number-flow/svelte';
-	import BlurHeightSwap from '$lib/BlurHeightSwap.svelte';
+	import { autoHeight } from '$lib/autoHeight.js';
 
 	import { onMount, tick } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fly, blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
+	const blurT = (node, params) => (params.duration ? blur(node, params) : {});
 	const flyT = (node, params) => (params.duration ? fly(node, params) : {});
 
 	export let data;
@@ -78,6 +79,7 @@
 
 	$: animate = mounted && !reduceMotion;
 	$: titleBlur = { amount: 8, opacity: 0, duration: animate ? 420 : 0, easing: cubicOut };
+	$: headerHeight = { duration: animate ? 420 : 0, enabled: animate };
 	$: bodyIn = {
 		x: dir * (bodyWidth + 32),
 		opacity: 1,
@@ -144,11 +146,20 @@
 		class="col-span-1 justify-center pt-10 md:col-span-10 md:col-start-2 lg:col-span-8 lg:col-start-3"
 	>
 		<div class="tracking-tight">
-			<BlurHeightSwap swapKey={displayLang} blurParams={titleBlur} {animate}>
-				<h1 class="text-3xl font-semibold tracking-tight md:font-semibold">
-					{currentMeta.title}
-				</h1>
-			</BlurHeightSwap>
+			<div class="overflow-hidden" use:autoHeight={headerHeight}>
+				<div class="grid" data-auto-height-inner>
+					{#key displayLang}
+						<h1
+							style="grid-area: 1 / 1;"
+							in:blurT={titleBlur}
+							out:blurT={titleBlur}
+							class="text-3xl font-semibold tracking-tight md:font-semibold"
+						>
+							{currentMeta.title}
+						</h1>
+					{/key}
+				</div>
+			</div>
 			<div
 				class="mt-1 flex flex-row items-center text-2xl font-medium text-neutral-600 dark:text-neutral-400"
 			>
@@ -158,16 +169,20 @@
 					<NumberFlow value={readingMinutes} suffix=" min read" />
 				{/if}
 			</div>
-			<BlurHeightSwap
-				swapKey={displayLang}
-				blurParams={titleBlur}
-				{animate}
-				className="mt-3"
-			>
-				<p class="text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500">
-					{currentMeta.description}
-				</p>
-			</BlurHeightSwap>
+			<div class="mt-3 overflow-hidden" use:autoHeight={headerHeight}>
+				<div class="grid" data-auto-height-inner>
+					{#key displayLang}
+						<p
+							style="grid-area: 1 / 1;"
+							in:blurT={titleBlur}
+							out:blurT={titleBlur}
+							class="text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500"
+						>
+							{currentMeta.description}
+						</p>
+					{/key}
+				</div>
+			</div>
 			<div class="mt-3 flex flex-wrap items-center gap-2">
 				<span class="text-sm text-neutral-600 dark:text-neutral-400">Stack</span>
 				{#each currentMeta.tags as tag}
