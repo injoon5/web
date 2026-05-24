@@ -177,28 +177,19 @@
 					</p>
 				{/key}
 			</div>
-			<div class="grid">
-				{#key displayLang}
-					<div
-						style="grid-area: 1 / 1;"
-						in:blurT={titleBlur}
-						out:blurT={titleBlur}
-						class="mt-3 flex flex-wrap items-center gap-1.5"
+			<div class="mt-3 flex flex-wrap items-center gap-2">
+				<span
+					class="text-sm font-medium tracking-widest text-neutral-400 uppercase dark:text-neutral-600"
+				>
+					Stack
+				</span>
+				{#each currentMeta.tags as tag}
+					<span
+						class="inline-flex items-center rounded-full border border-neutral-200 px-2.5 py-1 text-sm font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300"
 					>
-						<span
-							class="text-xs font-medium tracking-widest text-neutral-400 uppercase dark:text-neutral-600"
-						>
-							Stack
-						</span>
-						{#each currentMeta.tags as tag}
-							<span
-								class="inline-flex items-center rounded-full border border-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:border-neutral-800 dark:text-neutral-300"
-							>
-								{tag}
-							</span>
-						{/each}
-					</div>
-				{/key}
+						{tag}
+					</span>
+				{/each}
 			</div>
 			{#if data.availableLangs.length > 1}
 				<div
