@@ -93,9 +93,18 @@
 		<!-- Title -->
 		<div class="tracking-tight">
 			{#if currentSeries?.[0]?.series}
-				<h2 class="text-xl font-medium text-neutral-500 dark:text-neutral-500">
-					{currentSeries[0].series}
-				</h2>
+				<div class="grid">
+					{#key lang}
+						<h2
+							style="grid-area: 1 / 1;"
+							in:blur={titleBlur}
+							out:blur={titleBlur}
+							class="text-xl font-medium text-neutral-500 dark:text-neutral-500"
+						>
+							{currentSeries[0].series}
+						</h2>
+					{/key}
+				</div>
 			{/if}
 			<div class="grid">
 				{#key lang}
