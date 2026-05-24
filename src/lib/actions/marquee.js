@@ -1,12 +1,38 @@
 export function marqueePauseWhenOffscreen(node) {
+	let intersecting = true;
+	let hovered = false;
+
+	function sync() {
+		node.style.animationPlayState = intersecting && !hovered ? 'running' : 'paused';
+	}
+
 	const io = new IntersectionObserver(
 		([entry]) => {
-			node.style.animationPlayState = entry.isIntersecting ? 'running' : 'paused';
+			intersecting = entry.isIntersecting;
+			sync();
 		},
 		{ threshold: 0 }
 	);
 	io.observe(node);
-	return { destroy: () => io.disconnect() };
+
+	function onEnter() {
+		hovered = true;
+		sync();
+	}
+	function onLeave() {
+		hovered = false;
+		sync();
+	}
+	node.addEventListener('mouseenter', onEnter);
+	node.addEventListener('mouseleave', onLeave);
+
+	return {
+		destroy() {
+			io.disconnect();
+			node.removeEventListener('mouseenter', onEnter);
+			node.removeEventListener('mouseleave', onLeave);
+		}
+	};
 }
 
 // Drives marquee duration by scroll-distance, not track count, so it always
