@@ -93,7 +93,8 @@
 		lang === 'ko' && data.koReadingTime ? data.koReadingTime : data.enReadingTime;
 	$: currentMeta = displayLang === 'ko' && data.koMeta ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = displayLang === 'ko' && data.koContent ? data.koContent : data.enContent;
-	$: ogImageUrl = `https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(data.meta.title)}&description=${encodeURIComponent(data.meta.description || '')}&year=${encodeURIComponent(data.meta.year || '')}&tags=${encodeURIComponent((data.meta.tags || []).join(','))}`;
+	$: ogMeta = data.koMeta ?? data.enMeta ?? data.meta;
+	$: ogImageUrl = `https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(ogMeta.title)}&description=${encodeURIComponent(ogMeta.description || '')}&year=${encodeURIComponent(ogMeta.year || '')}&tags=${encodeURIComponent((ogMeta.tags || []).join(','))}`;
 
 	/** @type {Record<string, HTMLButtonElement>} */
 	let langButtons = {};
@@ -123,10 +124,10 @@
 </script>
 
 <svelte:head>
-	<title>{data.meta.title}</title>
+	<title>{ogMeta.title}</title>
 	<meta property="og:type" content="article" />
-	<meta property="og:title" content={data.meta.title} />
-	<meta property="og:description" content={headerMeta.description ?? ''} />
+	<meta property="og:title" content={ogMeta.title} />
+	<meta property="og:description" content={ogMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content={ogImageUrl} />
