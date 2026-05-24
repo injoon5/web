@@ -38,9 +38,9 @@
 
 	$: bannerFly = { y: -16, opacity: 0, duration: reduceMotion ? 0 : 360, easing: cubicOut };
 	$: titleBlur = { amount: 8, opacity: 0, duration: reduceMotion ? 0 : 420, easing: cubicOut };
-	// Both directions share duration + easing so the two panels stay edge-to-edge while sliding.
-	$: bodyIn = { x: dir * bodyWidth, opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
-	$: bodyOut = { x: -dir * bodyWidth, opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
+	// Both directions share duration + easing so the panels stay a constant gap apart while sliding.
+	$: bodyIn = { x: dir * (bodyWidth + 32), opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
+	$: bodyOut = { x: -dir * (bodyWidth + 32), opacity: 1, duration: reduceMotion ? 0 : 440, easing: cubicOut };
 
 	$: currentMeta = (lang === 'ko' && data.koMeta) ? data.koMeta : (data.enMeta ?? data.meta);
 	$: currentContent = (lang === 'ko' && data.koContent) ? data.koContent : data.enContent;
