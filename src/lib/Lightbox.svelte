@@ -266,22 +266,6 @@
 		on:touchcancel={onTouchCancel}
 		on:wheel={onWheel}
 	>
-		<!-- Close button -->
-		<button bind:this={closeBtn} class="lb-close" on:click={close} aria-label="Close image">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<line x1="18" y1="6" x2="6" y2="18" />
-				<line x1="6" y1="6" x2="18" y2="18" />
-			</svg>
-		</button>
-
 		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
 		<div
 			class="lb-drag-wrapper"
@@ -315,6 +299,24 @@
 					<p class="lb-caption">{alt}</p>
 				{/if}
 			</div>
+		</div>
+
+		<!-- Chrome layer — stays above transformed image content -->
+		<div class="lb-chrome">
+			<button bind:this={closeBtn} class="lb-close" on:click={close} aria-label="Close image">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<line x1="18" y1="6" x2="6" y2="18" />
+					<line x1="6" y1="6" x2="18" y2="18" />
+				</svg>
+			</button>
 		</div>
 	</div>
 {/if}
@@ -363,6 +365,22 @@
 		}
 	}
 
+	.lb-drag-wrapper {
+		position: relative;
+		z-index: 1;
+		display: flex;
+		max-width: 100%;
+		max-height: 100%;
+		will-change: transform;
+	}
+
+	.lb-chrome {
+		position: fixed;
+		inset: 0;
+		z-index: 2;
+		pointer-events: none;
+	}
+
 	.lb-close {
 		position: fixed;
 		top: 1rem;
@@ -373,18 +391,21 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 9999px;
-		background: rgba(255, 255, 255, 0.12);
+		background: rgba(0, 0, 0, 0.55);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
 		color: white;
 		border: none;
 		cursor: pointer;
+		pointer-events: auto;
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 		transition:
 			background-color 0.15s ease,
 			transform 0.15s ease;
-		z-index: 10000;
 	}
 
 	.lb-close:hover {
-		background: rgba(255, 255, 255, 0.22);
+		background: rgba(0, 0, 0, 0.72);
 		transform: scale(1.05);
 	}
 
