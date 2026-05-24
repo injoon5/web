@@ -1,4 +1,6 @@
-export const prerender = true;
+// Server-rendered (not prerendered) so the cookie/?lang= preferred language
+// is applied on the server — the first byte is the right language, no flash.
+export const prerender = false;
 
 import { error } from "@sveltejs/kit";
 
@@ -7,7 +9,7 @@ const koModules = import.meta.glob("../posts/ko/*.md");
 
 const slugFromPath = (p) => p.split("/").at(-1)?.replace(".md", "") ?? "";
 
-export async function load({ params }) {
+export async function load({ params, data }) {
 	const enKey = `../posts/en/${params.slug}.md`;
 	const koKey = `../posts/ko/${params.slug}.md`;
 
@@ -85,5 +87,6 @@ export async function load({ params }) {
 		availableLangs,
 		enReadingTime: enPost?.metadata?.readingTime ?? null,
 		koReadingTime: koPost?.metadata?.readingTime ?? null,
+		prefLang: data?.prefLang ?? null,
 	};
 }
