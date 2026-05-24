@@ -39,17 +39,12 @@
 	});
 
 	const path = $derived($page.url.pathname);
+	const freshQueryForPath = $derived(!query.isStale && !!query.data && dataUrl === path);
 	$effect(() => {
-		if (mutationResult && mutationResult.url !== path) mutationResult = null;
-	});
-	$effect(() => {
+		if (!mutationResult) return;
 		if (
-			mutationResult &&
-			mutationResult.url === path &&
-			query.data &&
-			!query.isStale &&
-			dataUrl === path &&
-			query.data.liked === mutationResult.liked
+			mutationResult.url !== path ||
+			(freshQueryForPath && query.data.liked === mutationResult.liked)
 		) {
 			mutationResult = null;
 		}
@@ -59,7 +54,10 @@
 	const countApplies = $derived(!query.isStale || dataUrl === path);
 	// `liked` is per-visitor: trust it only once the real hash is in use and the
 	// subscription holds fresh data for the current page.
-	const likedReady = $derived($hashReal && !query.isStale && !!query.data && dataUrl === path);
+	const likedReady = $derived($hashReal && freshQueryForPath);
+	// If /api/ip-hash fails, the direct POST still uses the real server-side IP.
+	// Keep the button usable once that failure mode has fresh count data.
+	const hashFallbackReady = $derived($hashAttempted && !$hashReal && freshQueryForPath);
 
 	const currentMutationResult = $derived(mutationResult?.url === path ? mutationResult : null);
 	const likeCount = $derived(
@@ -73,12 +71,7 @@
 		currentMutationResult ? currentMutationResult.liked : likedReady ? query.data.liked : false
 	);
 	const showCount = $derived(!!currentMutationResult || (countApplies && !!query.data));
-	// Allow clicks once liked is trustworthy, or once we've attempted the hash
-	// fetch and it failed (so a broken /api/ip-hash doesn't disable the button
-	// forever — the toggle itself is computed from the real IP server-side).
-	const interactive = $derived(
-		countApplies && (likedReady || ($hashAttempted && !$hashReal && !query.isStale && !!query.data))
-	);
+	const interactive = $derived(countApplies && (likedReady || hashFallbackReady));
 	const busy = $derived(!interactive || toggling);
 
 	function showLikeError(message) {
