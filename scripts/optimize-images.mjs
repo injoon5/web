@@ -19,10 +19,10 @@ const RASTER_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const SKIP_DIRS = new Set(['node_modules', '.git', '.svelte-kit', 'build']);
 
 /** Max width for blog/photo assets (2x typical content column). */
-const MAX_WIDTH = Number.parseInt(process.env.IMAGE_MAX_WIDTH ?? '1920', 10);
-const JPEG_QUALITY = Number.parseInt(process.env.JPEG_QUALITY ?? '82', 10);
+const MAX_WIDTH = Number.parseInt(process.env.IMAGE_MAX_WIDTH ?? '2400', 10);
+const JPEG_QUALITY = Number.parseInt(process.env.JPEG_QUALITY ?? '88', 10);
 const PNG_COMPRESSION = Number.parseInt(process.env.PNG_COMPRESSION ?? '9', 10);
-const WEBP_QUALITY = Number.parseInt(process.env.WEBP_QUALITY ?? '80', 10);
+const WEBP_QUALITY = Number.parseInt(process.env.WEBP_QUALITY ?? '85', 10);
 
 const dryRun = process.argv.includes('--dry-run');
 const force = process.argv.includes('--force');
