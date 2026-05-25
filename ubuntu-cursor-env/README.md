@@ -93,10 +93,12 @@ The upstream playbook at `/opt/cursor/ansible/vnc-desktop.yml` references `packa
 
 Skipped (handled differently here):
 
-- **cloud-agent-assets-manifest** hash baking (needs full asset CDN/manifest).
-- **install-baked-cloud-agent-tools.py** tarball bake (replaced by rsync + `cloud-agent-tools.tsv` in `config.sh`).
+- **CDN asset downloads** — replaced by `vendor/cloud-agent-assets/` + `scripts/install-cloud-agent-assets-offline.sh`.
+- **install-baked-cloud-agent-tools.py** tarball bake — replaced by rsync + TSV installers in `config.sh`.
+- **`/exec-daemon`** (~200MB runtime) — not vendored; see `SYSTEM_PATHS.md`.
+- **`~/.cursor/plugins`** cache — not vendored.
 
-Desktop fonts under `ansible/files/fonts/` are downloaded at install time by `install-fonts-and-fontconfig.sh` (Cascadia + theme fonts), not committed as binaries.
+Cascadia Code is extracted at install time from the vendored `CascadiaCode-2008.25.zip` in `cloud-agent-media/`.
 
 ## HiDPI
 

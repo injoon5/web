@@ -43,7 +43,12 @@ install_apt_prerequisites() {
     ca-certificates \
     curl \
     gnupg \
-    sudo
+    sudo \
+    jq \
+    unzip \
+    zip \
+    xz-utils \
+    fontconfig
 }
 
 sync_ansible_tree() {
@@ -102,6 +107,17 @@ install_bundle_tools_from_manifest() {
   done < "${manifest}"
 }
 
+install_cloud_agent_assets_offline() {
+  log "Installing vendored cloud-agent assets (fonts, media, wallpapers)..."
+  chmod +x "${SCRIPT_DIR}/scripts/install-cloud-agent-assets-offline.sh"
+  "${SCRIPT_DIR}/scripts/install-cloud-agent-assets-offline.sh"
+}
+
+install_opt_cursor_dirs() {
+  chmod +x "${SCRIPT_DIR}/scripts/install-opt-cursor-dirs.sh"
+  "${SCRIPT_DIR}/scripts/install-opt-cursor-dirs.sh"
+}
+
 run_ansible_playbook() {
   log "Running Ansible VNC desktop playbook..."
   export VNC_USER ANYOS_DESKTOP_APPEARANCE
@@ -153,14 +169,20 @@ main() {
   sync_ansible_tree
   install_cloud_agent_tools_bundle
   install_bundle_tools_from_manifest
+  install_cloud_agent_assets_offline
+  install_opt_cursor_dirs
   # configure-os-display reads /tmp/vnc-desktop-user-env when present
   capture_vnc_user_env
   run_ansible_playbook
   install_cursor_home_helpers
   log "Done. Ansible tree: ${ANSIBLE_DEST}"
   log "Cloud tools: ${CLOUD_TOOLS_DEST}/current"
+  log "Cloud media: /usr/local/share/cloud-agent-media/"
   log "Wallpapers: /usr/share/backgrounds/macos-wallpaper.png (+ desktop-background-{1,2,3}.png)"
+  log "Fonts: /usr/share/fonts/truetype/macos/ + cascadia (after playbook)"
+  log "noVNC: /usr/local/novnc/ (after playbook)"
   log "AnyOS config: /usr/local/share/anyos.conf — re-apply per-user with: anyos-setup ~${VNC_USER}"
+  log "See SYSTEM_PATHS.md for full path inventory"
 }
 
 main "$@"

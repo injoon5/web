@@ -1,0 +1,238 @@
+#!/bin/bash
+# Cloud Agent Secrets Scanner (commit-msg.cursor)
+# Prevents committing messages that contain user-configured secret values.
+# This protects against accidentally exposing secrets in repository history.
+
+set -e
+
+
+secret_value_has_newline() {
+    case "$1" in
+        *$'\n'*|*$'\r'*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+canonicalize_multiline_line_endings() {
+    local canonicalized_value="$1"
+
+    canonicalized_value="${canonicalized_value//$'\r\n'/$'\n'}"
+    canonicalized_value="${canonicalized_value//$'\r'/$'\n'}"
+
+    printf '%s' "$canonicalized_value"
+}
+
+normalize_secret_value() {
+    local normalized_value="$1"
+
+    normalized_value=$(canonicalize_multiline_line_endings "$normalized_value")
+
+    while true; do
+        if [ "$normalized_value" != "${normalized_value%$'\n'}" ]; then
+            normalized_value="${normalized_value%$'\n'}"
+            continue
+        fi
+        break
+    done
+
+    printf '%s' "$normalized_value"
+}
+
+stream_contains_secret() {
+    local secret_value="$1"
+
+    if secret_value_has_newline "$secret_value"; then
+        SECRET_VALUE="$(canonicalize_multiline_line_endings "$secret_value")" awk '
+            BEGIN {
+                secret = tolower(ENVIRON["SECRET_VALUE"])
+                newline = sprintf("%c", 10)
+                first = 1
+            }
+            {
+                line_content = $0
+                sub(/$/, "", line_content)
+                line_content = tolower(line_content)
+
+                if (first) {
+                    haystack = line_content
+                    first = 0
+                } else {
+                    haystack = haystack newline line_content
+                }
+            }
+            END {
+                exit index(haystack, secret) ? 0 : 1
+            }
+        '
+        return $?
+    fi
+
+    grep -qaFi -e "$secret_value"
+}
+
+find_first_match_line_in_numbered_stream() {
+    local secret_value="$1"
+
+    if secret_value_has_newline "$secret_value"; then
+        SECRET_VALUE="$(canonicalize_multiline_line_endings "$secret_value")" awk '
+            function report_match(haystack_value, start_line,    match_index, prefix, line_offset) {
+                match_index = index(haystack_value, secret)
+                if (match_index == 0) {
+                    return 0
+                }
+
+                prefix = substr(haystack_value, 1, match_index - 1)
+                line_offset = gsub(newline, "", prefix)
+                print start_line + line_offset
+                return 1
+            }
+            BEGIN {
+                secret = tolower(ENVIRON["SECRET_VALUE"])
+                newline = sprintf("%c", 10)
+                segment_started = 0
+                found = 0
+            }
+            {
+                separator = index($0, ":")
+                if (separator == 0) {
+                    next
+                }
+
+                line_number = substr($0, 1, separator - 1)
+                if (line_number !~ /^[0-9]+$/) {
+                    next
+                }
+
+                line_number += 0
+                content = substr($0, separator + 1)
+                sub(/$/, "", content)
+                content = tolower(content)
+
+                if (!segment_started || line_number != previous_line_number + 1) {
+                    if (segment_started && report_match(segment_haystack, segment_start_line)) {
+                        found = 1
+                        exit 0
+                    }
+
+                    segment_haystack = content
+                    segment_start_line = line_number
+                    segment_started = 1
+                } else {
+                    segment_haystack = segment_haystack newline content
+                }
+
+                previous_line_number = line_number
+            }
+            END {
+                if (!found && segment_started) {
+                    report_match(segment_haystack, segment_start_line)
+                }
+            }
+        '
+        return 0
+    fi
+
+    grep -Fi -m1 -e "$secret_value" | cut -d: -f1
+}
+
+find_first_match_line_in_file() {
+    local file_path="$1"
+    local secret_value="$2"
+
+    if secret_value_has_newline "$secret_value"; then
+        SECRET_VALUE="$(canonicalize_multiline_line_endings "$secret_value")" awk '
+            BEGIN {
+                secret = tolower(ENVIRON["SECRET_VALUE"])
+                newline = sprintf("%c", 10)
+                first = 1
+            }
+            {
+                line_content = $0
+                sub(/$/, "", line_content)
+                line_content = tolower(line_content)
+
+                if (first) {
+                    haystack = line_content
+                    first = 0
+                } else {
+                    haystack = haystack newline line_content
+                }
+            }
+            END {
+                match_index = index(haystack, secret)
+                if (match_index == 0) {
+                    exit 0
+                }
+
+                prefix = substr(haystack, 1, match_index - 1)
+                print gsub(newline, "", prefix) + 1
+            }
+        ' "$file_path"
+        return 0
+    fi
+
+    nl -ba "$file_path" | grep -Fi -m1 -e "$secret_value" | awk '{print $1}'
+}
+
+
+COMMIT_MSG_FILE="$1"
+
+# Exit early if no secrets are configured
+if [ -z "$CLOUD_AGENT_INJECTED_SECRET_NAMES" ]; then
+    exit 0
+fi
+
+# Track findings
+FOUND_ANY=0
+FINDINGS=""
+
+# Split secret names by comma and process each
+IFS=',' read -ra SECRET_NAMES <<< "$CLOUD_AGENT_INJECTED_SECRET_NAMES"
+
+for SECRET_NAME in "${SECRET_NAMES[@]}"; do
+    # Apply the length threshold to the raw value first so newline-terminated
+    # secrets keep the same scan eligibility they had before normalization.
+    RAW_SECRET_VALUE="${!SECRET_NAME}"
+    if [ -z "$RAW_SECRET_VALUE" ] || [ ${#RAW_SECRET_VALUE} -lt 8 ]; then
+        continue
+    fi
+
+    SECRET_VALUE=$(normalize_secret_value "$RAW_SECRET_VALUE")
+    if [ -z "$SECRET_VALUE" ]; then
+        continue
+    fi
+
+    # Search commit message lines while preserving line numbers
+    MATCH_LINE=$(find_first_match_line_in_file "$COMMIT_MSG_FILE" "$SECRET_VALUE")
+
+    if [ -n "$MATCH_LINE" ]; then
+        FOUND_ANY=1
+        FINDINGS="$FINDINGS
+  Secret:  $SECRET_NAME
+  Line:    $MATCH_LINE
+"
+    fi
+done
+
+# Report findings and block commit if any secrets were found
+if [ $FOUND_ANY -eq 1 ]; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔐 COMMIT BLOCKED: Secret value detected in commit message"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Your commit message contains values of configured secrets:"
+    echo "$FINDINGS"
+    echo "Committing this would expose your secrets in the repository history."
+    echo ""
+    echo "To fix this:"
+    echo "  1. Remove the hardcoded secret value from the commit message"
+    echo "  2. Use a redacted description instead (e.g. [REDACTED])"
+    echo "  3. Retry the commit with a safe message"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "CURSOR_SECRET_SCAN_BLOCKED=1" >&2
+    exit 1
+fi
+
+exit 0

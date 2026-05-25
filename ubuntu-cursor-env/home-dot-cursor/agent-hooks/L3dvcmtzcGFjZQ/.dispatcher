@@ -1,0 +1,25 @@
+#!/bin/bash
+# @cursor-managed
+# Universal hook dispatcher - all hook names symlink to this script
+set -e
+
+HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOOK_NAME="$(basename "$0")"
+
+# Read original hooks path
+ORIGINAL_HOOKS_PATH=""
+if [ -f "$HOOKS_DIR/.cursor-original-hooks-path" ]; then
+    ORIGINAL_HOOKS_PATH="$(cat "$HOOKS_DIR/.cursor-original-hooks-path")"
+fi
+
+# Run user's original hook if it exists
+if [ -n "$ORIGINAL_HOOKS_PATH" ] && [ -x "$ORIGINAL_HOOKS_PATH/$HOOK_NAME" ]; then
+    "$ORIGINAL_HOOKS_PATH/$HOOK_NAME" "$@"
+fi
+
+# Run any cursor hooks for this hook type
+for cursor_hook in "$HOOKS_DIR"/$HOOK_NAME.cursor*; do
+    if [ -x "$cursor_hook" ]; then
+        "$cursor_hook" "$@"
+    fi
+done
