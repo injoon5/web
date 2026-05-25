@@ -14,9 +14,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/config.env" ]; then
+  # shellcheck source=/dev/null
+  source "${SCRIPT_DIR}/config.env"
+fi
 VNC_USER="${VNC_USER:-ubuntu}"
 ANYOS_DESKTOP_APPEARANCE="${ANYOS_DESKTOP_APPEARANCE:-light}"
 CURSOR_HOME="${CURSOR_HOME:-/home/${VNC_USER}/.cursor}"
+ASSET_INSTALL_MODE="${ASSET_INSTALL_MODE:-offline}"
 OPT_CURSOR="/opt/cursor"
 ANSIBLE_DEST="${OPT_CURSOR}/ansible"
 CLOUD_TOOLS_DEST="${OPT_CURSOR}/cloud-agent-tools"
@@ -108,9 +113,41 @@ install_bundle_tools_from_manifest() {
 }
 
 install_cloud_agent_assets_offline() {
-  log "Installing vendored cloud-agent assets (fonts, media, wallpapers)..."
+  log "Installing vendored cloud-agent assets (fonts, media, logos, wallpapers)..."
   chmod +x "${SCRIPT_DIR}/scripts/install-cloud-agent-assets-offline.sh"
   "${SCRIPT_DIR}/scripts/install-cloud-agent-assets-offline.sh"
+}
+
+install_cloud_agent_assets_online() {
+  log "Downloading cloud-agent assets from ${CLOUD_AGENT_ASSETS_DOWNLOAD_BASE_URL}..."
+  chmod +x "${SCRIPT_DIR}/scripts/install-cloud-agent-assets-online.sh"
+  CLOUD_AGENT_ASSETS_DOWNLOAD_BASE_URL="${CLOUD_AGENT_ASSETS_DOWNLOAD_BASE_URL}" \
+  CLOUD_AGENT_ASSET_PREREQUISITES_VERSION="${CLOUD_AGENT_ASSET_PREREQUISITES_VERSION}" \
+  OPT_CURSOR="${OPT_CURSOR}" \
+    "${SCRIPT_DIR}/scripts/install-cloud-agent-assets-online.sh"
+}
+
+install_cloud_agent_assets() {
+  case "${ASSET_INSTALL_MODE}" in
+    offline)
+      install_cloud_agent_assets_offline
+      ;;
+    online)
+      install_cloud_agent_assets_online
+      ;;
+    auto)
+      if [ -d "${SCRIPT_DIR}/vendor/cloud-agent-assets" ]; then
+        install_cloud_agent_assets_offline
+      else
+        install_cloud_agent_assets_online
+      fi
+      ;;
+    *)
+      die "Unknown ASSET_INSTALL_MODE=${ASSET_INSTALL_MODE} (use offline, online, or auto)"
+      ;;
+  esac
+  chmod +x "${SCRIPT_DIR}/scripts/verify-cursor-logos.sh"
+  "${SCRIPT_DIR}/scripts/verify-cursor-logos.sh"
 }
 
 install_opt_cursor_dirs() {
@@ -169,20 +206,23 @@ main() {
   sync_ansible_tree
   install_cloud_agent_tools_bundle
   install_bundle_tools_from_manifest
-  install_cloud_agent_assets_offline
+  install_cloud_agent_assets
   install_opt_cursor_dirs
   # configure-os-display reads /tmp/vnc-desktop-user-env when present
   capture_vnc_user_env
   run_ansible_playbook
+  "${SCRIPT_DIR}/scripts/verify-cursor-logos.sh"
   install_cursor_home_helpers
   log "Done. Ansible tree: ${ANSIBLE_DEST}"
+  log "Asset CDN: ${CLOUD_AGENT_ASSETS_DOWNLOAD_BASE_URL:-<not set>} (see cloud-agent-assets.urls.json)"
   log "Cloud tools: ${CLOUD_TOOLS_DEST}/current"
   log "Cloud media: /usr/local/share/cloud-agent-media/"
   log "Wallpapers: /usr/share/backgrounds/macos-wallpaper.png (+ desktop-background-{1,2,3}.png)"
   log "Fonts: /usr/share/fonts/truetype/macos/ + cascadia (after playbook)"
   log "noVNC: /usr/local/novnc/ (after playbook)"
   log "AnyOS config: /usr/local/share/anyos.conf — re-apply per-user with: anyos-setup ~${VNC_USER}"
-  log "See SYSTEM_PATHS.md for full path inventory"
+  log "Cursor logos: /usr/share/pixmaps/cursor-logo.svg + hicolor apps (XFCE panel uses cursor-logo / cursor-logo-dark)"
+  log "See SYSTEM_PATHS.md and cloud-agent-assets.urls.json"
 }
 
 main "$@"

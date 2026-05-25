@@ -86,13 +86,22 @@ Installed from `cloud-agent-tools.tsv`, then invoked by Ansible:
 | `/etc/tigervnc/` | TigerVNC config |
 | `~/.vnc/` | Per-user VNC session files |
 
-## Branding
+## Branding (Cursor logos)
 
-| Path | In bundle |
-|------|-----------|
-| `/usr/share/pixmaps/cursor-logo.svg` | yes |
-| `/usr/share/pixmaps/cursor-logo-dark.svg` | yes |
-| `/usr/share/icons/hicolor/24x24/apps/cursor-logo*.png` | yes |
+| Path | In bundle | CDN URL in `cloud-agent-assets.urls.json` |
+|------|-----------|-------------------------------------------|
+| `/usr/share/pixmaps/cursor-logo.svg` | yes | `.../4961e333....svg` |
+| `/usr/share/pixmaps/cursor-logo-dark.svg` | yes | `.../0a964657....svg` |
+| `/usr/share/icons/hicolor/24x24/apps/cursor-logo.png` | yes | `.../a6ca61d1....png` |
+| `/usr/share/icons/hicolor/24x24/apps/cursor-logo-dark.png` | yes | `.../e0e7a7bc....png` |
+
+XFCE `applicationsmenu` plugin uses icon name `cursor-logo` (light panel) or `cursor-logo-dark` (dark panel).
+
+**Download base URL** (`config.env`):
+
+`https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets`
+
+Pattern: `{base}/{sha256}{suffix}` — same as `cloud-agent-setup sync-assets`.
 
 ## User home (`~/.cursor`)
 

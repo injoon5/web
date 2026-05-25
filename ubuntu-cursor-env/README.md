@@ -19,13 +19,39 @@ chmod +x config.sh
 sudo ./config.sh
 ```
 
-Optional environment variables:
+Optional environment variables (see also `config.env`):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VNC_USER` | `ubuntu` | Desktop user (created if missing) |
 | `ANYOS_DESKTOP_APPEARANCE` | `light` | `light` or `dark` top panel |
 | `CURSOR_HOME` | `/home/$VNC_USER/.cursor` | Target for bundled `home-dot-cursor/` helpers |
+| `CLOUD_AGENT_ASSETS_DOWNLOAD_BASE_URL` | see `config.env` | CDN base for hash-addressed assets |
+| `ASSET_INSTALL_MODE` | `offline` | `offline`, `online`, or `auto` |
+
+### Asset download URLs
+
+Content-addressed assets are fetched from:
+
+`https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/{sha256}{suffix}`
+
+Full list: `cloud-agent-assets.urls.json` (regenerate with `scripts/generate-asset-urls.sh`).
+
+For online install only:
+
+```bash
+ASSET_INSTALL_MODE=online sudo ./config.sh
+```
+
+### Cursor logos
+
+Installed to:
+
+- `/usr/share/pixmaps/cursor-logo.svg` and `cursor-logo-dark.svg`
+- `/usr/share/icons/hicolor/24x24/apps/cursor-logo.png` and `cursor-logo-dark.png`
+
+XFCE panel references `cursor-logo` / `cursor-logo-dark` (see `configure_os_display.sh`).  
+`config.sh` runs `scripts/verify-cursor-logos.sh` after asset install and after Ansible.
 
 ## What `config.sh` does
 

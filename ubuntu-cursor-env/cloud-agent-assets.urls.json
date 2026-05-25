@@ -1,0 +1,223 @@
+{
+  "downloadBaseUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets",
+  "urlPattern": "{downloadBaseUrl}/{hash}{suffix}",
+  "assets": [
+    {
+      "mode": "0644",
+      "hash": "393fb5b878ceed04aebc34b097e853ae5138c51d0c34b496ce8e2b47e0d0b94a",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/SourceSans3-Regular.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/393fb5b878ceed04aebc34b097e853ae5138c51d0c34b496ce8e2b47e0d0b94a.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-Regular.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/40d692fce188e4471e2b3cba937be967878f631ad3ebbbdcd587687c7ebe0c82.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "bbc051dd204b5019a1aa0bc0ae2aa8a05ab13e7a3f979fa357631dc7feb6833a",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-Italic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/bbc051dd204b5019a1aa0bc0ae2aa8a05ab13e7a3f979fa357631dc7feb6833a.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "97ad806f526e41546d46365bb3a393145f75b7b1568913db74549ad8b8dba872",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-Medium.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/97ad806f526e41546d46365bb3a393145f75b7b1568913db74549ad8b8dba872.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "51c2c8d7c36f7c26e6e2678b5c3069b329bde9a081154553b0f5bc2d4fc14075",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-MediumItalic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/51c2c8d7c36f7c26e6e2678b5c3069b329bde9a081154553b0f5bc2d4fc14075.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "78a843fade9d4612a5567302fb595b56976eb5fcebf4fea5a5912d638bafcde3",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-SemiBold.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/78a843fade9d4612a5567302fb595b56976eb5fcebf4fea5a5912d638bafcde3.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "eff2930c3d3b35d3fcf5f76252b6baef4c3e907d9d2fde1d16cf5d417f8deef4",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-SemiBoldItalic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/eff2930c3d3b35d3fcf5f76252b6baef4c3e907d9d2fde1d16cf5d417f8deef4.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "288316099b1e0a47a4716d159098005eef7c0066921f34e3200393dbdb01947f",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-Bold.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/288316099b1e0a47a4716d159098005eef7c0066921f34e3200393dbdb01947f.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "948405a16cdc62701da5f4005ed068ca5f4d27061d98f7974ccfc37831d9581d",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/Inter-BoldItalic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/948405a16cdc62701da5f4005ed068ca5f4d27061d98f7974ccfc37831d9581d.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "b577e9bc9887284e90aae5ad0699689ce36b5cd96207efbec68f77f8aed88379",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/PublicSans-Regular.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/b577e9bc9887284e90aae5ad0699689ce36b5cd96207efbec68f77f8aed88379.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "d77f79eca3f513e0b883ddbd293a3d2bb8fd35453ff74aff4afc6a6a1c6ce8f1",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/PublicSans-Italic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/d77f79eca3f513e0b883ddbd293a3d2bb8fd35453ff74aff4afc6a6a1c6ce8f1.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "bddd96a0bcd49b292524b4beff57d770ce97482fb3f84b788959422e06b863a6",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/PublicSans-Bold.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/bddd96a0bcd49b292524b4beff57d770ce97482fb3f84b788959422e06b863a6.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "2cec96a74e537bb5213f5ecb520e7af378a2366cc10b17a04866fbe4344fbfef",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/PublicSans-BoldItalic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/2cec96a74e537bb5213f5ecb520e7af378a2366cc10b17a04866fbe4344fbfef.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/JetBrainsMono-Regular.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/a0bf60ef0f83c5ed4d7a75d45838548b1f6873372dfac88f71804491898d138f.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "9d0a1f7a708e6af183f1193b7e81d40da294f5c67682c085d8401c60aac8ded4",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/JetBrainsMono-Italic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/9d0a1f7a708e6af183f1193b7e81d40da294f5c67682c085d8401c60aac8ded4.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/JetBrainsMono-Bold.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/5590990c82e097397517f275f430af4546e1c45cff408bde4255dad142479dcb.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "4039d5ce0ed225bf9c8b2c8c6436290ae2f356b7e90d70fa666227238324aa3b",
+      "suffix": ".ttf",
+      "destination": "/usr/share/fonts/truetype/macos/JetBrainsMono-BoldItalic.ttf",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/4039d5ce0ed225bf9c8b2c8c6436290ae2f356b7e90d70fa666227238324aa3b.ttf"
+    },
+    {
+      "mode": "0644",
+      "hash": "a6ca61d1d54644986645196219e110faca7f9bb1975473540037de2d4f120d32",
+      "suffix": ".png",
+      "destination": "/usr/share/icons/hicolor/24x24/apps/cursor-logo.png",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/a6ca61d1d54644986645196219e110faca7f9bb1975473540037de2d4f120d32.png"
+    },
+    {
+      "mode": "0644",
+      "hash": "e0e7a7bc01c020d3a02f6bcaaad9b86534157a6758c4bb4b2b0586317d68c975",
+      "suffix": ".png",
+      "destination": "/usr/share/icons/hicolor/24x24/apps/cursor-logo-dark.png",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/e0e7a7bc01c020d3a02f6bcaaad9b86534157a6758c4bb4b2b0586317d68c975.png"
+    },
+    {
+      "mode": "0644",
+      "hash": "0a9646570501d18d844dcb085f90e7b9146ff36e3356eb72b42f43dd8a251367",
+      "suffix": ".svg",
+      "destination": "/usr/share/pixmaps/cursor-logo-dark.svg",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/0a9646570501d18d844dcb085f90e7b9146ff36e3356eb72b42f43dd8a251367.svg"
+    },
+    {
+      "mode": "0644",
+      "hash": "4961e33371b2d4ab16aef6058906f3462b140664aa277897f3d65f0681c28119",
+      "suffix": ".svg",
+      "destination": "/usr/share/pixmaps/cursor-logo.svg",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/4961e33371b2d4ab16aef6058906f3462b140664aa277897f3d65f0681c28119.svg"
+    },
+    {
+      "mode": "0644",
+      "hash": "4602a0b8b986b18a1c3f460fd959ec1ce522aedcf11ab4c0d41a5fc5ed839be0",
+      "suffix": ".zip",
+      "destination": "/usr/local/share/cloud-agent-media/CascadiaCode-2008.25.zip",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/4602a0b8b986b18a1c3f460fd959ec1ce522aedcf11ab4c0d41a5fc5ed839be0.zip"
+    },
+    {
+      "mode": "0644",
+      "hash": "2635570e218afab2d34b0663287054f7b995b9f7f810e97410dcad389987d5ba",
+      "suffix": ".xz",
+      "destination": "/usr/local/share/cloud-agent-media/WhiteSur-Light.tar.xz",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/2635570e218afab2d34b0663287054f7b995b9f7f810e97410dcad389987d5ba.xz"
+    },
+    {
+      "mode": "0644",
+      "hash": "44dfc32b69c1d9767e5056af9600706a09e9a91539cc50ee2cb73a7ce7780165",
+      "suffix": ".gz",
+      "destination": "/usr/local/share/cloud-agent-media/WhiteSur-icon-theme-master.tar.gz",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/44dfc32b69c1d9767e5056af9600706a09e9a91539cc50ee2cb73a7ce7780165.gz"
+    },
+    {
+      "mode": "0644",
+      "hash": "7c71bea85272626fa28baedf868fd72d288462df4f64f302724d398f0315bf11",
+      "suffix": ".gz",
+      "destination": "/usr/local/share/cloud-agent-media/WhiteSur-cursors-master.tar.gz",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/7c71bea85272626fa28baedf868fd72d288462df4f64f302724d398f0315bf11.gz"
+    },
+    {
+      "mode": "0644",
+      "hash": "eecc6b3c324b8447d2049200298575f2418525f88f58bc8b5158b209f00fff23",
+      "suffix": ".zip",
+      "destination": "/usr/local/share/cloud-agent-media/noVNC-1.2.0.zip",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/eecc6b3c324b8447d2049200298575f2418525f88f58bc8b5158b209f00fff23.zip"
+    },
+    {
+      "mode": "0644",
+      "hash": "0f30cd77daaa4bfddd34b3d76e6ea6c1b60fcffb99fdf4823a0df50b4d46dab5",
+      "suffix": ".zip",
+      "destination": "/usr/local/share/cloud-agent-media/websockify-0.10.0.zip",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/0f30cd77daaa4bfddd34b3d76e6ea6c1b60fcffb99fdf4823a0df50b4d46dab5.zip"
+    },
+    {
+      "mode": "0644",
+      "hash": "6ea658d331552c5e07cabcbafb80824861ed6b7482fc93515d8804913c98a763",
+      "suffix": ".png",
+      "destination": "/usr/share/backgrounds/macos-wallpaper.png",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/6ea658d331552c5e07cabcbafb80824861ed6b7482fc93515d8804913c98a763.png"
+    },
+    {
+      "mode": "0644",
+      "hash": "616ec7b3354354e08b7e9407dc36b3c58dd418f72c07642b46df0de09e43a278",
+      "suffix": ".png",
+      "destination": "/usr/share/backgrounds/desktop-background-1.png",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/616ec7b3354354e08b7e9407dc36b3c58dd418f72c07642b46df0de09e43a278.png"
+    },
+    {
+      "mode": "0644",
+      "hash": "e0f70cc5ecb22c90d69f1e268e24fc34da93d0fc9833227d3e8d6627688d562a",
+      "suffix": ".png",
+      "destination": "/usr/share/backgrounds/desktop-background-2.png",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/e0f70cc5ecb22c90d69f1e268e24fc34da93d0fc9833227d3e8d6627688d562a.png"
+    },
+    {
+      "mode": "0644",
+      "hash": "3b8cbb413a5aa89da88400954b59f0a6ebf1943b39c20ada3cf20551c9f64e39",
+      "suffix": ".png",
+      "destination": "/usr/share/backgrounds/desktop-background-3.png",
+      "downloadUrl": "https://public-asphr-vm-daemon-bucket.s3.us-east-1.amazonaws.com/cloud-agent-assets/3b8cbb413a5aa89da88400954b59f0a6ebf1943b39c20ada3cf20551c9f64e39.png"
+    }
+  ]
+}

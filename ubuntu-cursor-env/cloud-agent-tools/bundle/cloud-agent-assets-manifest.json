@@ -1,0 +1,159 @@
+{
+  "assets": [
+    {
+      "sourcePath": "media/fonts/SourceSans3/SourceSans3-Regular.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/SourceSans3-Regular.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-Regular.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-Regular.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-Italic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-Italic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-Medium.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-Medium.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-MediumItalic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-MediumItalic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-SemiBold.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-SemiBold.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-SemiBoldItalic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-SemiBoldItalic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-Bold.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-Bold.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/Inter/Inter-BoldItalic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/Inter-BoldItalic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/PublicSans/PublicSans-Regular.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/PublicSans-Regular.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/PublicSans/PublicSans-Italic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/PublicSans-Italic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/PublicSans/PublicSans-Bold.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/PublicSans-Bold.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/PublicSans/PublicSans-BoldItalic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/PublicSans-BoldItalic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/JetBrainsMono/JetBrainsMono-Regular.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/JetBrainsMono-Regular.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/JetBrainsMono/JetBrainsMono-Italic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/JetBrainsMono-Italic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/JetBrainsMono/JetBrainsMono-Bold.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/JetBrainsMono-Bold.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/fonts/JetBrainsMono/JetBrainsMono-BoldItalic.ttf",
+      "destinationPath": "/usr/share/fonts/truetype/macos/JetBrainsMono-BoldItalic.ttf",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/logos/cursor-logo-24.png",
+      "destinationPath": "/usr/share/icons/hicolor/24x24/apps/cursor-logo.png",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/logos/cursor-logo-dark-24.png",
+      "destinationPath": "/usr/share/icons/hicolor/24x24/apps/cursor-logo-dark.png",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/logos/cursor-logo-dark.svg",
+      "destinationPath": "/usr/share/pixmaps/cursor-logo-dark.svg",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/logos/cursor-logo.svg",
+      "destinationPath": "/usr/share/pixmaps/cursor-logo.svg",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/archives/CascadiaCode-2008.25.zip",
+      "destinationPath": "/usr/local/share/cloud-agent-media/CascadiaCode-2008.25.zip",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/archives/WhiteSur-Light.tar.xz",
+      "destinationPath": "/usr/local/share/cloud-agent-media/WhiteSur-Light.tar.xz",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/archives/WhiteSur-icon-theme-master.tar.gz",
+      "destinationPath": "/usr/local/share/cloud-agent-media/WhiteSur-icon-theme-master.tar.gz",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/archives/WhiteSur-cursors-master.tar.gz",
+      "destinationPath": "/usr/local/share/cloud-agent-media/WhiteSur-cursors-master.tar.gz",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/archives/noVNC-1.2.0.zip",
+      "destinationPath": "/usr/local/share/cloud-agent-media/noVNC-1.2.0.zip",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/archives/websockify-0.10.0.zip",
+      "destinationPath": "/usr/local/share/cloud-agent-media/websockify-0.10.0.zip",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/desktop_background/desktop_background_0.png",
+      "destinationPath": "/usr/share/backgrounds/macos-wallpaper.png",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/desktop_background/desktop_background_1.png",
+      "destinationPath": "/usr/share/backgrounds/desktop-background-1.png",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/desktop_background/desktop_background_2.png",
+      "destinationPath": "/usr/share/backgrounds/desktop-background-2.png",
+      "mode": "0644"
+    },
+    {
+      "sourcePath": "media/desktop_background/desktop_background_3.png",
+      "destinationPath": "/usr/share/backgrounds/desktop-background-3.png",
+      "mode": "0644"
+    }
+  ]
+}
