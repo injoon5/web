@@ -9,37 +9,7 @@ export function voteCountsFromDoc(doc) {
 	return { upvotes: doc.upvotes, downvotes: doc.downvotes };
 }
 
-/** Read denormalized vote counts from the comment doc, with live fallback. */
-export async function getVoteCounts(ctx, doc, ipHash) {
-	let myVote = null;
-	if (ipHash) {
-		const mine = await ctx.db
-			.query('commentVotes')
-			.withIndex('by_comment_ip', (q) => q.eq('commentId', doc._id).eq('ipHash', ipHash))
-			.unique();
-		myVote = mine?.voteType ?? null;
-	}
-
-	if (doc.upvotes !== undefined && doc.downvotes !== undefined) {
-		return { upvotes: doc.upvotes, downvotes: doc.downvotes, myVote };
-	}
-
-	const votes = await ctx.db
-		.query('commentVotes')
-		.withIndex('by_comment', (q) => q.eq('commentId', doc._id))
-		.collect();
-
-	let upvotes = 0;
-	let downvotes = 0;
-	for (const vote of votes) {
-		if (vote.voteType === 'up') upvotes++;
-		else downvotes++;
-	}
-
-	return { upvotes, downvotes, myVote };
-}
-
-/** Count all votes for a comment (backfill / first write on legacy rows). */
+/** Count all votes for a comment (source of truth for denormalized fields). */
 export async function countAllVotes(ctx, commentId) {
 	const votes = await ctx.db
 		.query('commentVotes')
@@ -55,35 +25,57 @@ export async function countAllVotes(ctx, commentId) {
 	return { upvotes, downvotes };
 }
 
-/** Ensure denormalized counts exist, then apply a vote change delta. */
-export async function applyVoteChange(ctx, comment, existing, voteType, ipHash) {
-	let upvotes = comment.upvotes;
-	let downvotes = comment.downvotes;
+/** All vote rows for one visitor on a comment (normally 0–1; dedupe races). */
+async function votesForVisitor(ctx, commentId, ipHash) {
+	return ctx.db
+		.query('commentVotes')
+		.withIndex('by_comment_ip', (q) => q.eq('commentId', commentId).eq('ipHash', ipHash))
+		.collect();
+}
 
-	if (upvotes === undefined || downvotes === undefined) {
-		({ upvotes, downvotes } = await countAllVotes(ctx, comment._id));
+/**
+ * Apply a vote toggle/switch, then set denormalized counts from the votes table.
+ * Recounting after the write avoids lost updates when mutations overlap on counts.
+ */
+export async function applyVoteChange(ctx, comment, voteType, ipHash) {
+	const commentId = comment._id;
+	const rows = await votesForVisitor(ctx, commentId, ipHash);
+	let existing = rows[0] ?? null;
+
+	for (let i = 1; i < rows.length; i++) {
+		await ctx.db.delete(rows[i]._id);
 	}
 
 	if (existing && existing.voteType === voteType) {
 		await ctx.db.delete(existing._id);
-		if (voteType === 'up') upvotes--;
-		else downvotes--;
+		existing = null;
 	} else if (existing) {
 		await ctx.db.patch(existing._id, { voteType });
-		if (existing.voteType === 'up') upvotes--;
-		else downvotes--;
-		if (voteType === 'up') upvotes++;
-		else downvotes--;
 	} else {
-		await ctx.db.insert('commentVotes', {
-			commentId: comment._id,
-			ipHash,
-			voteType
-		});
-		if (voteType === 'up') upvotes++;
-		else downvotes++;
+		await ctx.db.insert('commentVotes', { commentId, ipHash, voteType });
 	}
 
-	await ctx.db.patch(comment._id, { upvotes, downvotes });
-	return { upvotes, downvotes };
+	const { upvotes, downvotes } = await countAllVotes(ctx, commentId);
+	await ctx.db.patch(commentId, { upvotes, downvotes });
+
+	const after = await votesForVisitor(ctx, commentId, ipHash);
+	const myVote = after[0]?.voteType ?? null;
+
+	return { upvotes, downvotes, myVote };
+}
+
+/** Read denormalized vote counts from the comment doc, with live fallback. */
+export async function getVoteCounts(ctx, doc, ipHash) {
+	let myVote = null;
+	if (ipHash) {
+		const rows = await votesForVisitor(ctx, doc._id, ipHash);
+		myVote = rows[0]?.voteType ?? null;
+	}
+
+	if (doc.upvotes !== undefined && doc.downvotes !== undefined) {
+		return { upvotes: doc.upvotes, downvotes: doc.downvotes, myVote };
+	}
+
+	const { upvotes, downvotes } = await countAllVotes(ctx, doc._id);
+	return { upvotes, downvotes, myVote };
 }

@@ -133,27 +133,12 @@ export const vote = mutation({
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
-		const existing = await ctx.db
-			.query('commentVotes')
-			.withIndex('by_comment_ip', (q) =>
-				q.eq('commentId', args.commentId).eq('ipHash', args.ipHash)
-			)
-			.unique();
-
-		const { upvotes, downvotes } = await applyVoteChange(
+		const { upvotes, downvotes, myVote } = await applyVoteChange(
 			ctx,
 			comment,
-			existing,
 			args.voteType,
 			args.ipHash
 		);
-
-		let myVote = null;
-		if (existing && existing.voteType === args.voteType) {
-			myVote = null;
-		} else {
-			myVote = args.voteType;
-		}
 
 		return { upvotes, downvotes, myVote };
 	}

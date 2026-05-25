@@ -69,8 +69,10 @@
 		activeFormId = id;
 	}
 
-	// Vote in-flight tracking (per-comment, race-safe)
+	// One in-flight vote per comment; extra clicks are queued (not dropped).
 	const votingIds = new SvelteSet();
+	/** @type {Map<string, Promise<void>>} */
+	const voteQueues = new Map();
 	let votingAnim = $state({ id: null, side: null });
 	let votingAnimTimer = null;
 	let voteError = $state('');
@@ -82,17 +84,7 @@
 		voteErrorTimer = setTimeout(() => (voteError = ''), 3000);
 	}
 
-	async function vote(commentId, voteType) {
-		if (!canVote) return;
-		if (votingIds.has(commentId)) return;
-
-		if (votingAnimTimer) clearTimeout(votingAnimTimer);
-		votingAnim = { id: commentId, side: voteType };
-		votingAnimTimer = setTimeout(() => {
-			votingAnim = { id: null, side: null };
-			votingAnimTimer = null;
-		}, 300);
-
+	async function performVote(commentId, voteType) {
 		votingIds.add(commentId);
 		try {
 			const res = await fetch(`/api/comments/${commentId}/vote`, {
@@ -109,6 +101,24 @@
 		} finally {
 			votingIds.delete(commentId);
 		}
+	}
+
+	function vote(commentId, voteType) {
+		if (!canVote) return;
+
+		if (votingAnimTimer) clearTimeout(votingAnimTimer);
+		votingAnim = { id: commentId, side: voteType };
+		votingAnimTimer = setTimeout(() => {
+			votingAnim = { id: null, side: null };
+			votingAnimTimer = null;
+		}, 300);
+
+		const prev = voteQueues.get(commentId) ?? Promise.resolve();
+		const next = prev.then(() => performVote(commentId, voteType));
+		voteQueues.set(commentId, next);
+		next.finally(() => {
+			if (voteQueues.get(commentId) === next) voteQueues.delete(commentId);
+		});
 	}
 
 	const charsLeft = $derived(MAX_LENGTH - commentText.length);
