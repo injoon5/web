@@ -1,5 +1,5 @@
 {
-	"buildCommand": "npx convex deploy --cmd 'npm run optimize-images && npm run build'",
+	"buildCommand": "npx convex deploy --cmd 'npx turbo run build-image-cache apply-optimized-images build'",
 	"redirects": [
 		{
 			"source": "/.well-known/webfinger",

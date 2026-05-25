@@ -1,22 +1,27 @@
 #!/usr/bin/env node
 /**
- * Losslessly-ish compress raster images under static/ before deploy.
- * Keeps original paths/extensions so markdown image URLs stay valid.
+ * Losslessly-ish compress raster images from git into .cache/image-mirror/.
+ * apply-optimized-images.mjs copies mirrors onto static/ for the build.
+ *
+ * Source bytes always come from git HEAD so optimized static/ files never
+ * bust the manifest. Turbo Remote Cache restores .cache/ across deploys.
  */
 
-import { createHash } from 'node:crypto';
-import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import sharp from 'sharp';
+
+const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-const STATIC_DIR = path.join(ROOT, 'static');
-const CACHE_PATH = path.join(ROOT, '.cache', 'image-optimize.json');
-
-const RASTER_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
-const SKIP_DIRS = new Set(['node_modules', '.git', '.svelte-kit', 'build']);
+const CACHE_DIR = path.join(ROOT, '.cache');
+const MANIFEST_PATH = path.join(CACHE_DIR, 'image-optimize.json');
+const FINGERPRINT_PATH = path.join(CACHE_DIR, 'source-fingerprints.json');
+const MIRROR_DIR = path.join(CACHE_DIR, 'image-mirror');
 
 /** Max width for blog/photo assets (2x typical content column). */
 const MAX_WIDTH = Number.parseInt(process.env.IMAGE_MAX_WIDTH ?? '2400', 10);
@@ -26,58 +31,59 @@ const JPEG_QUALITY = Number.parseInt(process.env.JPEG_QUALITY ?? '88', 10);
 const PNG_COMPRESSION = Number.parseInt(process.env.PNG_COMPRESSION ?? '9', 10);
 const WEBP_QUALITY = Number.parseInt(process.env.WEBP_QUALITY ?? '85', 10);
 
+const SETTINGS_KEY = [
+	MAX_WIDTH,
+	MAX_HEIGHT,
+	JPEG_QUALITY,
+	PNG_COMPRESSION,
+	WEBP_QUALITY
+].join(':');
+
 const dryRun = process.argv.includes('--dry-run');
 const force = process.argv.includes('--force');
 const verbose = process.argv.includes('--verbose') || dryRun;
 
-/** @type {Record<string, string>} */
-let cache = {};
+/** @type {Record<string, { input: string, settings: string }>} */
+let manifest = {};
 
-async function loadCache() {
+/**
+ * @param {string} cmd
+ * @param {string[]} args
+ * @param {import('node:child_process').ExecFileOptions} [options]
+ */
+async function run(cmd, args, options = {}) {
+	const { stdout } = await execFileAsync(cmd, args, {
+		cwd: ROOT,
+		maxBuffer: 64 * 1024 * 1024,
+		...options
+	});
+	return stdout;
+}
+
+async function loadManifest() {
 	try {
-		const raw = await readFile(CACHE_PATH, 'utf8');
-		cache = JSON.parse(raw);
+		const raw = await readFile(MANIFEST_PATH, 'utf8');
+		manifest = JSON.parse(raw);
 	} catch {
-		cache = {};
+		manifest = {};
 	}
 }
 
-async function saveCache() {
+async function saveManifest() {
 	if (dryRun) return;
-	await mkdir(path.dirname(CACHE_PATH), { recursive: true });
-	await writeFile(CACHE_PATH, JSON.stringify(cache, null, 2));
+	await mkdir(CACHE_DIR, { recursive: true });
+	await writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
 }
 
-async function fileDigest(filePath) {
-	const buf = await readFile(filePath);
-	return createHash('sha256').update(buf).digest('hex');
+function mirrorPath(rel) {
+	return path.join(MIRROR_DIR, rel);
 }
 
 /**
- * @param {string} dir
- * @returns {AsyncGenerator<string>}
+ * @param {string} rel
  */
-async function* walkRasterFiles(dir) {
-	let entries;
-	try {
-		entries = await stat(dir);
-	} catch {
-		return;
-	}
-	if (!entries.isDirectory()) return;
-
-	const names = await readdir(dir, { withFileTypes: true });
-	for (const entry of names) {
-		const full = path.join(dir, entry.name);
-		if (entry.isDirectory()) {
-			if (SKIP_DIRS.has(entry.name)) continue;
-			yield* walkRasterFiles(full);
-			continue;
-		}
-		if (!entry.isFile()) continue;
-		const ext = path.extname(entry.name).toLowerCase();
-		if (RASTER_EXT.has(ext)) yield full;
-	}
+async function readGitSource(rel) {
+	return run('git', ['show', `HEAD:${rel}`], { encoding: 'buffer' });
 }
 
 /**
@@ -110,21 +116,34 @@ function encodeForExt(pipeline, ext) {
 }
 
 /**
- * @param {string} filePath
+ * @param {string} rel
+ * @param {string} inputHash
+ * @param {Buffer} sourceBuf
  */
-async function optimizeFile(filePath) {
-	const rel = path.relative(ROOT, filePath);
-	const ext = path.extname(filePath).toLowerCase();
-	const beforeStat = await stat(filePath);
-	const digest = await fileDigest(filePath);
+async function optimizeFile(rel, inputHash, sourceBuf) {
+	const ext = path.extname(rel).toLowerCase();
+	const beforeSize = sourceBuf.length;
+	const cached = manifest[rel];
+	const mirror = mirrorPath(rel);
 
-	if (!force && cache[rel] === digest) {
-		if (verbose) console.log(`skip (cached): ${rel}`);
-		return { rel, skipped: true, saved: 0 };
+	if (
+		!force &&
+		cached?.input === inputHash &&
+		cached?.settings === SETTINGS_KEY
+	) {
+		try {
+			const mirrorStat = await stat(mirror);
+			if (mirrorStat.isFile()) {
+				if (verbose) console.log(`skip (cached): ${rel}`);
+				return { rel, skipped: true, saved: 0 };
+			}
+		} catch {
+			// Mirror missing or unreadable — fall through and re-optimize.
+		}
 	}
 
-	const meta = await sharp(filePath).metadata();
-	let pipeline = sharp(filePath, { failOn: 'none' }).rotate(); // respect EXIF orientation, then strip
+	const meta = await sharp(sourceBuf).metadata();
+	let pipeline = sharp(sourceBuf, { failOn: 'none' }).rotate();
 
 	const width = meta.width ?? 0;
 	const height = meta.height ?? 0;
@@ -140,11 +159,21 @@ async function optimizeFile(filePath) {
 	pipeline = encodeForExt(pipeline, ext);
 	const outBuf = await pipeline.toBuffer();
 
-	if (outBuf.length >= beforeStat.size) {
-		cache[rel] = digest;
+	if (outBuf.length >= beforeSize) {
+		manifest[rel] = { input: inputHash, settings: SETTINGS_KEY };
+		if (dryRun) {
+			if (verbose) {
+				console.log(
+					`skip (no gain): ${rel} (${formatBytes(beforeSize)} -> ${formatBytes(outBuf.length)})`
+				);
+			}
+			return { rel, skipped: true, saved: 0 };
+		}
+		await mkdir(path.dirname(mirror), { recursive: true });
+		await writeFile(mirror, sourceBuf);
 		if (verbose) {
 			console.log(
-				`skip (no gain): ${rel} (${formatBytes(beforeStat.size)} -> ${formatBytes(outBuf.length)})`
+				`skip (no gain): ${rel} (${formatBytes(beforeSize)} -> ${formatBytes(outBuf.length)})`
 			);
 		}
 		return { rel, skipped: true, saved: 0 };
@@ -152,18 +181,21 @@ async function optimizeFile(filePath) {
 
 	if (dryRun) {
 		console.log(
-			`would optimize: ${rel} ${formatBytes(beforeStat.size)} -> ${formatBytes(outBuf.length)} (${pctSaved(beforeStat.size, outBuf.length)})`
+			`would optimize: ${rel} ${formatBytes(beforeSize)} -> ${formatBytes(outBuf.length)} (${pctSaved(beforeSize, outBuf.length)})`
 		);
-		return { rel, skipped: false, saved: beforeStat.size - outBuf.length };
+		return { rel, skipped: false, saved: beforeSize - outBuf.length };
 	}
 
-	const tmp = `${filePath}.opt.tmp`;
+	const tmp = `${mirror}.opt.tmp`;
+	await mkdir(path.dirname(mirror), { recursive: true });
 	await writeFile(tmp, outBuf);
-	await rename(tmp, filePath);
-	cache[rel] = await fileDigest(filePath);
+	await rename(tmp, mirror);
+	manifest[rel] = { input: inputHash, settings: SETTINGS_KEY };
 
-	const saved = beforeStat.size - outBuf.length;
-	console.log(`optimized: ${rel} ${formatBytes(beforeStat.size)} -> ${formatBytes(outBuf.length)} (${pctSaved(beforeStat.size, outBuf.length)})`);
+	const saved = beforeSize - outBuf.length;
+	console.log(
+		`optimized: ${rel} ${formatBytes(beforeSize)} -> ${formatBytes(outBuf.length)} (${pctSaved(beforeSize, outBuf.length)})`
+	);
 	return { rel, skipped: false, saved };
 }
 
@@ -187,26 +219,35 @@ async function main() {
 		process.exit(1);
 	}
 
-	await loadCache();
+	let fingerprint;
+	try {
+		fingerprint = JSON.parse(await readFile(FINGERPRINT_PATH, 'utf8'));
+	} catch {
+		console.error('Missing .cache/source-fingerprints.json — run fingerprint-images first');
+		process.exit(1);
+	}
 
+	await loadManifest();
+
+	const files = fingerprint.files ?? {};
 	let totalSaved = 0;
 	let optimized = 0;
 	let skipped = 0;
 
-	for await (const filePath of walkRasterFiles(STATIC_DIR)) {
+	for (const [rel, inputHash] of Object.entries(files)) {
 		try {
-			const result = await optimizeFile(filePath);
+			const sourceBuf = await readGitSource(rel);
+			const result = await optimizeFile(rel, inputHash, sourceBuf);
 			if (result.skipped) skipped += 1;
 			else optimized += 1;
 			totalSaved += result.saved;
 		} catch (err) {
-			const rel = path.relative(ROOT, filePath);
 			console.error(`failed: ${rel}`, err instanceof Error ? err.message : err);
 			process.exitCode = 1;
 		}
 	}
 
-	await saveCache();
+	await saveManifest();
 
 	const mode = dryRun ? ' (dry run)' : '';
 	console.log(

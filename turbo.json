@@ -1,0 +1,32 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"globalEnv": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"],
+	"tasks": {
+		"fingerprint-images": {
+			"inputs": ["scripts/fingerprint-images.mjs"],
+			"outputs": [".cache/source-fingerprints.json"],
+			"env": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"]
+		},
+		"build-image-cache": {
+			"dependsOn": ["fingerprint-images"],
+			"inputs": [".cache/source-fingerprints.json", "scripts/optimize-images.mjs"],
+			"outputs": [".cache/image-optimize.json", ".cache/image-mirror/**"],
+			"env": [
+				"IMAGE_MAX_WIDTH",
+				"IMAGE_MAX_HEIGHT",
+				"JPEG_QUALITY",
+				"PNG_COMPRESSION",
+				"WEBP_QUALITY"
+			]
+		},
+		"apply-optimized-images": {
+			"dependsOn": ["build-image-cache"],
+			"cache": false
+		},
+		"build": {
+			"dependsOn": ["apply-optimized-images"],
+			"outputs": [".svelte-kit/**", ".vercel/**"],
+			"env": ["PUBLIC_CONVEX_URL", "ADMIN_SECRET", "CONVEX_DEPLOY_KEY"]
+		}
+	}
+}
