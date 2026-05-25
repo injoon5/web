@@ -22,6 +22,10 @@
 	let clipRight = $state(0);
 	let clipVisible = $state(false);
 	let clipReady = $state(false);
+	let fadeLeft = $state(false);
+	let fadeRight = $state(false);
+
+	const SCROLL_FADE_EPS = 2;
 
 	const panelId = $derived(String(activeIndex));
 
@@ -33,6 +37,22 @@
 		keyboardNav = false;
 		animated = true;
 		activeIndex = index;
+	}
+
+	function updateScrollFade() {
+		const el = tabsScrollEl;
+		if (!el) return;
+
+		const { scrollLeft, scrollWidth, clientWidth } = el;
+		const overflow = scrollWidth - clientWidth > SCROLL_FADE_EPS;
+		if (!overflow) {
+			fadeLeft = false;
+			fadeRight = false;
+			return;
+		}
+
+		fadeLeft = scrollLeft > SCROLL_FADE_EPS;
+		fadeRight = scrollLeft + clientWidth < scrollWidth - SCROLL_FADE_EPS;
 	}
 
 	async function updateClip() {
@@ -69,7 +89,11 @@
 			});
 		});
 
-		const onScroll = () => updateClip();
+		const onScroll = () => {
+			updateScrollFade();
+			updateClip();
+		};
+		updateScrollFade();
 		tabsScrollEl?.addEventListener('scroll', onScroll, { passive: true });
 
 		return () => {
@@ -81,6 +105,7 @@
 		if (!tabsEl || typeof ResizeObserver === 'undefined') return;
 
 		const ro = new ResizeObserver(() => {
+			updateScrollFade();
 			updateClip();
 		});
 		ro.observe(tabsEl);
@@ -165,8 +190,9 @@
 </script>
 
 <div class="ts-root">
-	<div bind:this={tabsScrollEl} class="ts-tabs-scroll">
-		<div bind:this={tabsEl} role="tablist" aria-label="Tech stack categories" class="ts-tabs">
+	<div class="ts-tabs-scroll-wrap">
+		<div bind:this={tabsScrollEl} class="ts-tabs-scroll">
+			<div bind:this={tabsEl} role="tablist" aria-label="Tech stack categories" class="ts-tabs">
 			<button
 				type="button"
 				role="tab"
@@ -212,6 +238,17 @@
 				{/each}
 			</div>
 		</div>
+		</div>
+		<div
+			class="ts-tabs-fade ts-tabs-fade-left"
+			class:ts-tabs-fade-visible={fadeLeft}
+			aria-hidden="true"
+		></div>
+		<div
+			class="ts-tabs-fade ts-tabs-fade-right"
+			class:ts-tabs-fade-visible={fadeRight}
+			aria-hidden="true"
+		></div>
 	</div>
 
 	<div use:animateHeight class="ts-height-outer">
@@ -245,14 +282,54 @@
 	.ts-root {
 		font-size: 1rem;
 		line-height: 1.25rem;
+		--ts-fade-bg: #fff;
+	}
+
+	:global(.dark) .ts-root {
+		--ts-fade-bg: var(--color-neutral-950);
 	}
 
 	/* --- Tabs --- */
+	.ts-tabs-scroll-wrap {
+		position: relative;
+		margin-bottom: 0.75rem;
+	}
+
 	.ts-tabs-scroll {
 		overflow-x: auto;
 		overscroll-behavior-x: contain;
 		scrollbar-width: none;
-		margin-bottom: 0.75rem;
+	}
+
+	.ts-tabs-fade {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 1.75rem;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 160ms ease;
+		z-index: 1;
+	}
+
+	.ts-tabs-fade-left {
+		left: 0;
+		background: linear-gradient(to right, var(--ts-fade-bg) 15%, transparent);
+	}
+
+	.ts-tabs-fade-right {
+		right: 0;
+		background: linear-gradient(to left, var(--ts-fade-bg) 15%, transparent);
+	}
+
+	.ts-tabs-fade-visible {
+		opacity: 1;
+	}
+
+	@media (min-width: 640px) {
+		.ts-tabs-fade {
+			display: none;
+		}
 	}
 
 	.ts-tabs-scroll::-webkit-scrollbar {
@@ -470,7 +547,8 @@
 		.ts-height-outer {
 			transition: none;
 		}
-		.ts-tabs-clip.ts-clip-animate {
+		.ts-tabs-clip.ts-clip-animate,
+		.ts-tabs-fade {
 			transition: none;
 		}
 		.ts-panel-animate,
