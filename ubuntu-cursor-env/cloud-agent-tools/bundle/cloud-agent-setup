@@ -1,0 +1,546 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOLS_MANIFEST_PATH="${SCRIPT_DIR}/cloud-agent-tools.tsv"
+ASSET_MANIFEST_PATH="${SCRIPT_DIR}/cloud-agent-assets.tsv"
+
+VNC_DESKTOP_APTFILE_DESTINATION_PATH="/usr/local/share/vnc-desktop.Aptfile"
+VNC_DESKTOP_APTFILE_VERSION_PATH="/usr/local/share/vnc-desktop.Aptfile.version"
+CAPTURE_VNC_USER_ENV_SCRIPT_DESTINATION_PATH="/tmp/capture-vnc-user-env"
+VNC_DESKTOP_APT_INSTALL_SCRIPT_DESTINATION_PATH="/usr/local/bin/install-vnc-desktop-apt-packages"
+VNC_DESKTOP_APT_INSTALL_SCRIPT_VERSION_PATH="/usr/local/bin/install-vnc-desktop-apt-packages.sh.version"
+GOOGLE_CHROME_INSTALL_SCRIPT_DESTINATION_PATH="/usr/local/bin/install-google-chrome"
+GOOGLE_CHROME_INSTALL_VERSION_PATH="/usr/local/bin/install-google-chrome.sh.version"
+CONFIGURE_GOOGLE_CHROME_SCRIPT_DESTINATION_PATH="/usr/local/bin/configure-google-chrome"
+CONFIGURE_GOOGLE_CHROME_VERSION_PATH="/usr/local/bin/configure-google-chrome.sh.version"
+INSTALL_LOCALES_SCRIPT_DESTINATION_PATH="/usr/local/bin/install-locales"
+INSTALL_LOCALES_VERSION_PATH="/usr/local/bin/install-locales.sh.version"
+FONT_INSTALL_SCRIPT_DESTINATION_PATH="/usr/local/bin/install-fonts-and-fontconfig"
+FONT_INSTALL_VERSION_PATH="/usr/local/bin/install-fonts-and-fontconfig.sh.version"
+INSTALL_AND_CONFIGURE_THEMES_SCRIPT_DESTINATION_PATH="/usr/local/bin/install-and-configure-themes"
+INSTALL_AND_CONFIGURE_THEMES_VERSION_PATH="/usr/local/bin/install_and_configure_themes.sh.version"
+INSTALL_REMOTE_VNC_SETUP_SCRIPT_DESTINATION_PATH="/usr/local/bin/install-remote-vnc-setup"
+INSTALL_REMOTE_VNC_SETUP_VERSION_PATH="/usr/local/bin/install-remote-vnc-setup.sh.version"
+CONFIGURE_OS_DISPLAY_SCRIPT_DESTINATION_PATH="/usr/local/bin/configure-os-display"
+CONFIGURE_OS_DISPLAY_VERSION_PATH="/usr/local/bin/configure_os_display.sh.version"
+INSTALL_CURSOR_ARTIFACT_DIRECTORIES_SCRIPT_DESTINATION_PATH="/usr/local/bin/install-cursor-artifact-directories"
+INSTALL_CURSOR_ARTIFACT_DIRECTORIES_VERSION_PATH="/usr/local/bin/install-cursor-artifact-directories.sh.version"
+CLOUD_AGENT_ASSET_PREREQUISITES_VERSION_PATH="/usr/local/share/install-cloud-agent-assets-prerequisites.version"
+VNC_DESKTOP_APT_CLEANUP_MARKER_PATH="/tmp/vnc-desktop-apt-cleanup-needed"
+
+CLOUD_AGENT_ASSET_PREREQUISITE_PACKAGES=(
+    bash
+    ca-certificates
+    coreutils
+    curl
+    findutils
+    tar
+)
+
+CLOUD_AGENT_ASSET_REQUIRED_COMMANDS=(
+    base64
+    bash
+    curl
+    dirname
+    install
+    mktemp
+    sha256sum
+    xargs
+)
+
+# Must match packages/agent-controller/src/podConfig.ts (install-cloud-agent-assets wrapper).
+VNC_SETUP_FAILURE_SENTINEL_PATH="/usr/local/share/vnc-setup-commands-failure.v6.env"
+VNC_SETUP_FAILURE_SENTINEL_VERSION="v6"
+VNC_SETUP_FAILURE_MAX_CONSECUTIVE=3
+
+usage() {
+    cat <<'EOF' >&2
+Usage:
+  cloud-agent-setup sync-assets <download-base-url> <command-name> <prerequisites-version>
+  cloud-agent-setup run-step <step-name> [args...]
+  cloud-agent-setup wrap-vnc-step <step-index> <total-steps> <command-name> -- <step-name> [run-step-args...]
+EOF
+    exit 1
+}
+
+require_file() {
+    local file_path="$1"
+    local message="$2"
+    if [ ! -f "$file_path" ]; then
+        echo "$message" >&2
+        exit 1
+    fi
+}
+
+require_executable() {
+    local file_path="$1"
+    local message="$2"
+    if [ ! -x "$file_path" ]; then
+        echo "$message" >&2
+        exit 1
+    fi
+}
+
+read_trimmed_file() {
+    local file_path="$1"
+    if [ -f "$file_path" ]; then
+        tr -d '\n\r' < "$file_path"
+    fi
+}
+
+sha256_file() {
+    sha256sum "$1" | cut -d' ' -f1
+}
+
+install_manifest_rows() {
+    local manifest_path="$1"
+    require_file "$manifest_path" "ERROR: manifest missing at ${manifest_path}"
+    cat "$manifest_path"
+}
+
+install_bundle_tools() {
+    local command_name="$1"
+    while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        local tab
+        tab=$'\t'
+        if [[ "$line" != *"$tab"*"$tab"*"$tab"* ]]; then
+            echo "${command_name}: invalid tools manifest row: $line" >&2
+            exit 1
+        fi
+
+        local asset_mode asset_remainder asset_hash bundle_path_b64 asset_destination_b64
+        asset_mode="${line%%$tab*}"
+        asset_remainder="${line#*$tab}"
+        asset_hash="${asset_remainder%%$tab*}"
+        asset_remainder="${asset_remainder#*$tab}"
+        bundle_path_b64="${asset_remainder%%$tab*}"
+        asset_destination_b64="${asset_remainder#*$tab}"
+
+        local bundle_path asset_destination asset_hash_file asset_current_hash source_path
+        bundle_path="$(printf "%s" "$bundle_path_b64" | base64 --decode)"
+        asset_destination="$(printf "%s" "$asset_destination_b64" | base64 --decode)"
+        source_path="${SCRIPT_DIR}/${bundle_path}"
+        asset_hash_file="${asset_destination}.hash"
+        asset_current_hash=""
+
+        require_file "$source_path" "ERROR: bundled tool missing at ${source_path}"
+
+        if [ -f "$asset_destination" ]; then
+            if [ -f "$asset_hash_file" ]; then
+                asset_current_hash="$(read_trimmed_file "$asset_hash_file")"
+            else
+                asset_current_hash="$(sha256_file "$asset_destination")"
+                printf "%s" "$asset_current_hash" > "$asset_hash_file"
+            fi
+        fi
+
+        if [ "$asset_current_hash" = "$asset_hash" ]; then
+            echo "${command_name}: ${asset_destination} already at ${asset_hash}, skipping bundled tool install"
+            continue
+        fi
+
+        install -D -m "$asset_mode" "$source_path" "$asset_destination"
+        printf "%s" "$asset_hash" > "$asset_hash_file"
+        echo "${command_name}: installed bundled tool ${asset_destination} at ${asset_hash}"
+    done <<< "$(install_manifest_rows "$TOOLS_MANIFEST_PATH")"
+}
+
+ensure_asset_prerequisites() {
+    local expected_version="$1"
+    local current_version=""
+    local missing_required_commands=false
+    if [ -f "$CLOUD_AGENT_ASSET_PREREQUISITES_VERSION_PATH" ]; then
+        current_version="$(read_trimmed_file "$CLOUD_AGENT_ASSET_PREREQUISITES_VERSION_PATH")"
+    fi
+
+    local required_command
+    for required_command in "${CLOUD_AGENT_ASSET_REQUIRED_COMMANDS[@]}"; do
+        if ! command -v "$required_command" >/dev/null 2>&1; then
+            missing_required_commands=true
+        fi
+    done
+
+    if [ "$current_version" = "$expected_version" ] && [ "$missing_required_commands" = false ]; then
+        return
+    fi
+
+    if ! command -v apt-get >/dev/null 2>&1; then
+        echo "ERROR: apt-get is not available on this VM; cannot install cloud agent asset prerequisites" >&2
+        exit 1
+    fi
+
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends "${CLOUD_AGENT_ASSET_PREREQUISITE_PACKAGES[@]}"
+    mkdir -p /usr/local/share
+    printf '%s\n' "$expected_version" > "$CLOUD_AGENT_ASSET_PREREQUISITES_VERSION_PATH"
+    touch "$VNC_DESKTOP_APT_CLEANUP_MARKER_PATH"
+}
+
+ensure_required_commands() {
+    local required_command
+    for required_command in "${CLOUD_AGENT_ASSET_REQUIRED_COMMANDS[@]}"; do
+        if ! command -v "$required_command" >/dev/null 2>&1; then
+            echo "ERROR: required command '$required_command' is not available; cannot install cloud agent assets" >&2
+            exit 1
+        fi
+    done
+}
+
+sync_cloud_agent_assets() {
+    local download_base_url="$1"
+    local command_name="$2"
+    local normalized_download_base_url="$download_base_url"
+    if [[ "$normalized_download_base_url" == */ ]]; then
+        normalized_download_base_url="${normalized_download_base_url%/}"
+    fi
+
+    local tmpdir
+    tmpdir="$(mktemp -d)"
+    trap "rm -rf $(printf '%q' "$tmpdir")" EXIT
+
+    local changed_marker_dir pipeline_start_ms manifest_setup_start_ms manifest_setup_end_ms manifest_setup_elapsed_ms
+    local download_phase_start_ms download_phase_end_ms download_phase_elapsed_ms
+    local cache_refresh_start_ms cache_refresh_end_ms cache_refresh_elapsed_ms
+    local pipeline_end_ms pipeline_elapsed_ms
+    pipeline_start_ms="$(date +%s%3N)"
+    manifest_setup_start_ms="$(date +%s%3N)"
+    changed_marker_dir="$tmpdir/changed"
+    mkdir -p "$changed_marker_dir"
+
+    export DOWNLOAD_BASE_URL="$normalized_download_base_url"
+    export TMPDIR_ASSETS="$tmpdir"
+    export CHANGED_MARKER_DIR="$changed_marker_dir"
+    export COMMAND_NAME="$command_name"
+
+    manifest_setup_end_ms="$(date +%s%3N)"
+    manifest_setup_elapsed_ms="$((manifest_setup_end_ms - manifest_setup_start_ms))"
+    echo "${command_name}: manifest setup completed in ${manifest_setup_elapsed_ms}ms"
+
+    download_phase_start_ms="$(date +%s%3N)"
+    if ! xargs -r -a "$ASSET_MANIFEST_PATH" -d '\n' -P 16 -n 1 bash -c '
+set -euo pipefail
+line="$1"
+tab=$'\''\t'\''
+if [[ "$line" != *"$tab"*"$tab"*"$tab"* ]]; then
+  echo "${COMMAND_NAME}: invalid asset manifest row: $line" >&2
+  exit 1
+fi
+asset_mode="${line%%$tab*}"
+asset_remainder="${line#*$tab}"
+asset_hash="${asset_remainder%%$tab*}"
+asset_remainder="${asset_remainder#*$tab}"
+asset_suffix="${asset_remainder%%$tab*}"
+asset_destination_b64="${asset_remainder#*$tab}"
+asset_destination="$(printf "%s" "$asset_destination_b64" | base64 --decode)"
+asset_hash_file="${asset_destination}.hash"
+asset_url="${DOWNLOAD_BASE_URL}/${asset_hash}${asset_suffix}"
+asset_current_hash=""
+if [ -f "$asset_destination" ]; then
+  if [ -f "$asset_hash_file" ]; then
+    asset_current_hash="$(tr -d '\''\n\r'\'' < "$asset_hash_file")"
+  else
+    asset_current_hash="$(sha256sum "$asset_destination" | cut -d'\'' '\'' -f1)"
+    printf "%s" "$asset_current_hash" > "$asset_hash_file"
+  fi
+fi
+
+if [ "$asset_current_hash" = "$asset_hash" ]; then
+  echo "${COMMAND_NAME}: ${asset_destination} already at ${asset_hash}, skipping"
+  exit 0
+fi
+
+asset_tmp_path="$(mktemp "${TMPDIR_ASSETS}/cloud-agent-asset-XXXXXX")"
+asset_download_start_ms="$(date +%s%3N)"
+echo "${COMMAND_NAME}: fetching ${asset_url} to ${asset_tmp_path}"
+curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors -o "$asset_tmp_path" "$asset_url"
+asset_download_end_ms="$(date +%s%3N)"
+asset_download_elapsed_ms="$((asset_download_end_ms - asset_download_start_ms))"
+echo "${COMMAND_NAME}: download completed in ${asset_download_elapsed_ms}ms for ${asset_destination}"
+downloaded_hash="$(sha256sum "$asset_tmp_path" | cut -d'\'' '\'' -f1)"
+if [ "$downloaded_hash" != "$asset_hash" ]; then
+  echo "${COMMAND_NAME}: downloaded hash mismatch for ${asset_destination} (expected ${asset_hash}, got ${downloaded_hash})" >&2
+  exit 1
+fi
+install -D -m "$asset_mode" "$asset_tmp_path" "$asset_destination"
+rm -f "$asset_tmp_path"
+printf "%s" "$asset_hash" > "$asset_hash_file"
+if [[ "$asset_destination" == /usr/share/icons/* || "$asset_destination" == /usr/share/pixmaps/* ]]; then
+  touch "${CHANGED_MARKER_DIR}/icons.changed"
+fi
+if [[ "$asset_destination" == /usr/share/fonts/* ]]; then
+  touch "${CHANGED_MARKER_DIR}/fonts.changed"
+fi
+' _; then
+        exit 1
+    fi
+
+    download_phase_end_ms="$(date +%s%3N)"
+    download_phase_elapsed_ms="$((download_phase_end_ms - download_phase_start_ms))"
+    echo "${command_name}: all downloads completed in ${download_phase_elapsed_ms}ms"
+
+    cache_refresh_start_ms="$(date +%s%3N)"
+    if [ -f "$changed_marker_dir/icons.changed" ]; then
+        if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+            gtk-update-icon-cache -f /usr/share/icons/hicolor
+        else
+            echo "${command_name}: gtk-update-icon-cache unavailable, skipping icon cache refresh"
+        fi
+    else
+        echo "${command_name}: no icon assets changed, skipping icon cache refresh"
+    fi
+
+    if [ -f "$changed_marker_dir/fonts.changed" ]; then
+        if command -v fc-cache >/dev/null 2>&1; then
+            fc-cache -f -v
+        else
+            echo "${command_name}: fc-cache unavailable, skipping font cache refresh"
+        fi
+    else
+        echo "${command_name}: no font assets changed, skipping font cache refresh"
+    fi
+
+    cache_refresh_end_ms="$(date +%s%3N)"
+    cache_refresh_elapsed_ms="$((cache_refresh_end_ms - cache_refresh_start_ms))"
+    echo "${command_name}: cache refresh step completed in ${cache_refresh_elapsed_ms}ms"
+
+    pipeline_end_ms="$(date +%s%3N)"
+    pipeline_elapsed_ms="$((pipeline_end_ms - pipeline_start_ms))"
+    echo "${command_name}: install pipeline completed in ${pipeline_elapsed_ms}ms"
+}
+
+run_versioned_step() {
+    local step_name="$1"
+    local runtime_version="$2"
+    local version_path="$3"
+    local script_path="$4"
+    shift 4
+
+    require_executable "$script_path" "ERROR: required script asset missing or not executable at ${script_path}"
+
+    if [ -f "$version_path" ] && [ "$(read_trimmed_file "$version_path")" = "$runtime_version" ]; then
+        echo "${step_name} already configured at ${runtime_version}, skipping"
+        return 0
+    fi
+
+    "$script_path" "$runtime_version" "$version_path" "$@"
+}
+
+run_install_vnc_desktop_apt_packages() {
+    local aptfile_version="$1"
+    local script_version="$2"
+
+    require_file "$VNC_DESKTOP_APTFILE_DESTINATION_PATH" "ERROR: required apt asset missing at ${VNC_DESKTOP_APTFILE_DESTINATION_PATH}"
+    require_executable "$VNC_DESKTOP_APT_INSTALL_SCRIPT_DESTINATION_PATH" "ERROR: required script asset missing or not executable at ${VNC_DESKTOP_APT_INSTALL_SCRIPT_DESTINATION_PATH}"
+
+    if [ -f "$VNC_DESKTOP_APTFILE_VERSION_PATH" ] && [ -f "$VNC_DESKTOP_APT_INSTALL_SCRIPT_VERSION_PATH" ] && \
+        [ "$(read_trimmed_file "$VNC_DESKTOP_APTFILE_VERSION_PATH")" = "$aptfile_version" ] && \
+        [ "$(read_trimmed_file "$VNC_DESKTOP_APT_INSTALL_SCRIPT_VERSION_PATH")" = "$script_version" ]; then
+        echo "VNC desktop apt installer already configured (aptfile=${aptfile_version}, script=${script_version}), skipping"
+        return 0
+    fi
+
+    "$VNC_DESKTOP_APT_INSTALL_SCRIPT_DESTINATION_PATH" \
+        "$VNC_DESKTOP_APTFILE_DESTINATION_PATH" \
+        "$VNC_DESKTOP_APTFILE_VERSION_PATH" \
+        "$VNC_DESKTOP_APT_CLEANUP_MARKER_PATH" \
+        "$aptfile_version"
+    printf '%s\n' "$script_version" > "$VNC_DESKTOP_APT_INSTALL_SCRIPT_VERSION_PATH"
+}
+
+run_cleanup_vnc_desktop_apt() {
+    if [ ! -f "$VNC_DESKTOP_APT_CLEANUP_MARKER_PATH" ]; then
+        echo "No apt cleanup needed, skipping"
+        return 0
+    fi
+
+    if ! command -v apt-get >/dev/null 2>&1; then
+        echo "ERROR: apt-get is not available on this VM; cannot run VNC apt cleanup" >&2
+        exit 1
+    fi
+
+    apt-get autoclean
+    rm -rf /var/lib/apt/lists
+    rm -f "$VNC_DESKTOP_APT_CLEANUP_MARKER_PATH"
+}
+
+cmd_sync_assets() {
+    local download_base_url="${1:-}"
+    local command_name="${2:-install-cloud-agent-assets}"
+    local prerequisites_version="${3:-}"
+
+    if [ -z "$download_base_url" ] || [ -z "$prerequisites_version" ]; then
+        usage
+    fi
+
+    # sync-assets runs as root; later steps run as the VNC user and must read/execute here.
+    chmod 755 "$SCRIPT_DIR"
+    chmod -R a+rX "$SCRIPT_DIR"
+
+    ensure_asset_prerequisites "$prerequisites_version"
+    ensure_required_commands
+    install_bundle_tools "$command_name"
+    sync_cloud_agent_assets "$download_base_url" "$command_name"
+}
+
+cmd_run_step() {
+    local step_name="${1:-}"
+    shift || true
+
+    case "$step_name" in
+        capture-vnc-user-env)
+            require_executable "$CAPTURE_VNC_USER_ENV_SCRIPT_DESTINATION_PATH" "ERROR: required script asset missing or not executable at ${CAPTURE_VNC_USER_ENV_SCRIPT_DESTINATION_PATH}"
+            "$CAPTURE_VNC_USER_ENV_SCRIPT_DESTINATION_PATH" "$@"
+            ;;
+        install-vnc-desktop-apt-packages)
+            run_install_vnc_desktop_apt_packages "${1:-}" "${2:-}"
+            ;;
+        install-google-chrome)
+            run_versioned_step "$step_name" "${1:-}" "$GOOGLE_CHROME_INSTALL_VERSION_PATH" "$GOOGLE_CHROME_INSTALL_SCRIPT_DESTINATION_PATH" "${2:-$VNC_DESKTOP_APT_CLEANUP_MARKER_PATH}"
+            ;;
+        configure-google-chrome)
+            run_versioned_step "$step_name" "${1:-}" "$CONFIGURE_GOOGLE_CHROME_VERSION_PATH" "$CONFIGURE_GOOGLE_CHROME_SCRIPT_DESTINATION_PATH" "${2:-}" "${3:-}"
+            ;;
+        install-locales)
+            run_versioned_step "$step_name" "${1:-}" "$INSTALL_LOCALES_VERSION_PATH" "$INSTALL_LOCALES_SCRIPT_DESTINATION_PATH"
+            ;;
+        cleanup-vnc-desktop-apt)
+            run_cleanup_vnc_desktop_apt
+            ;;
+        install-fonts-and-fontconfig)
+            run_versioned_step "$step_name" "${1:-}" "$FONT_INSTALL_VERSION_PATH" "$FONT_INSTALL_SCRIPT_DESTINATION_PATH"
+            ;;
+        install-and-configure-themes)
+            run_versioned_step "$step_name" "${1:-}" "$INSTALL_AND_CONFIGURE_THEMES_VERSION_PATH" "$INSTALL_AND_CONFIGURE_THEMES_SCRIPT_DESTINATION_PATH"
+            ;;
+        install-remote-vnc-setup)
+            run_versioned_step "$step_name" "${1:-}" "$INSTALL_REMOTE_VNC_SETUP_VERSION_PATH" "$INSTALL_REMOTE_VNC_SETUP_SCRIPT_DESTINATION_PATH" "${2:-}" "${3:-}"
+            ;;
+        configure-os-display)
+            run_versioned_step "$step_name" "${1:-}" "$CONFIGURE_OS_DISPLAY_VERSION_PATH" "$CONFIGURE_OS_DISPLAY_SCRIPT_DESTINATION_PATH" "${2:-}" "${3:-}"
+            ;;
+        install-cursor-artifact-directories)
+            run_versioned_step "$step_name" "${1:-}" "$INSTALL_CURSOR_ARTIFACT_DIRECTORIES_VERSION_PATH" "$INSTALL_CURSOR_ARTIFACT_DIRECTORIES_SCRIPT_DESTINATION_PATH"
+            ;;
+        *)
+            echo "ERROR: unknown cloud-agent setup step '${step_name}'" >&2
+            exit 1
+            ;;
+    esac
+}
+
+cmd_wrap_vnc_step() {
+    local step_index="$1"
+    local total_steps="$2"
+    local command_name="$3"
+    shift 3
+    if [ "${1:-}" != "--" ]; then
+        echo "ERROR: wrap-vnc-step expected -- before run-step arguments" >&2
+        exit 1
+    fi
+    shift
+
+    local SENTINEL_PATH="$VNC_SETUP_FAILURE_SENTINEL_PATH"
+    local SENTINEL_VERSION="$VNC_SETUP_FAILURE_SENTINEL_VERSION"
+    local MAX_CONSECUTIVE_FAILURES="$VNC_SETUP_FAILURE_MAX_CONSECUTIVE"
+    local STEP_INDEX="$step_index"
+    local STEP_NAME="$command_name"
+    local TOTAL_STEPS="$total_steps"
+    local consecutiveFailures=0
+    local failedStepIndex=-1
+    local failedStepName=""
+    local lastFailureAtEpoch=""
+    local sentinelVersion=""
+
+    if [ -f "$SENTINEL_PATH" ]; then
+        while IFS='=' read -r key value; do
+            case "$key" in
+                sentinelVersion) sentinelVersion="$value" ;;
+                consecutiveFailures) consecutiveFailures="$value" ;;
+                failedStepIndex) failedStepIndex="$value" ;;
+                failedStepName) failedStepName="$value" ;;
+                lastFailureAtEpoch) lastFailureAtEpoch="$value" ;;
+            esac
+        done <"$SENTINEL_PATH" || true
+    fi
+
+    case "$consecutiveFailures" in
+        '' | *[!0-9]*) consecutiveFailures=0 ;;
+    esac
+    case "$failedStepIndex" in
+        '' | *[!0-9-]*) failedStepIndex=-1 ;;
+    esac
+
+    if [ -f "$SENTINEL_PATH" ] && [ "$sentinelVersion" != "$SENTINEL_VERSION" ]; then
+        echo "Ignoring sentinel with version '$sentinelVersion' (expected '$SENTINEL_VERSION') for VNC setup command step '$STEP_NAME'"
+        consecutiveFailures=0
+        failedStepIndex=-1
+    fi
+
+    if [ "$consecutiveFailures" -ge "$MAX_CONSECUTIVE_FAILURES" ]; then
+        echo "Skipping VNC setup command step '$STEP_NAME': permanently disabled after $consecutiveFailures consecutive failures"
+        exit 0
+    fi
+
+    if [ "$failedStepIndex" -ge 0 ] && [ "$STEP_INDEX" -gt "$failedStepIndex" ]; then
+        echo "Skipping VNC setup command step '$STEP_NAME': downstream of last failed step index $failedStepIndex"
+        exit 0
+    fi
+
+    set +e
+    cmd_run_step "$@"
+    local inner_exit=$?
+    set -e
+
+    if [ "$inner_exit" -eq 0 ]; then
+        if [ "$failedStepIndex" -eq "$STEP_INDEX" ] || [ "$STEP_INDEX" -eq $((TOTAL_STEPS - 1)) ]; then
+            if rm -f "$SENTINEL_PATH"; then
+                echo "Cleared VNC setup command failure sentinel after successful step '$STEP_NAME'"
+            fi
+        fi
+        exit 0
+    fi
+
+    local nextConsecutiveFailures=$((consecutiveFailures + 1))
+    local attemptNumber=$nextConsecutiveFailures
+    local isFinal=false
+    if [ "$attemptNumber" -ge "$MAX_CONSECUTIVE_FAILURES" ]; then
+        isFinal=true
+    fi
+    echo "VNC setup command failed: step='$STEP_NAME' stepIndex=$STEP_INDEX attemptNumber=$attemptNumber isFinal=$isFinal" >&2
+    if mkdir -p "$(dirname "$SENTINEL_PATH")" && {
+        printf 'sentinelVersion=%s\n' "$SENTINEL_VERSION"
+        printf 'consecutiveFailures=%s\n' "$nextConsecutiveFailures"
+        printf 'failedStepIndex=%s\n' "$step_index"
+        printf 'failedStepName=%s\n' "$command_name"
+        printf 'lastFailureAtEpoch=%s\n' "$(date +%s)"
+    } >"$SENTINEL_PATH"; then
+        echo "Recorded VNC setup command failure sentinel for step '$STEP_NAME' at index $STEP_INDEX (consecutive failures: $nextConsecutiveFailures)" >&2
+    fi
+    exit 0
+}
+
+main() {
+    local subcommand="${1:-}"
+    shift || true
+
+    case "$subcommand" in
+        sync-assets)
+            cmd_sync_assets "$@"
+            ;;
+        run-step)
+            cmd_run_step "$@"
+            ;;
+        wrap-vnc-step)
+            cmd_wrap_vnc_step "$@"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+}
+
+main "$@"

@@ -1,0 +1,84 @@
+# Shared Aptfile for the cloud-agent VNC desktop environment.
+# The version is the SHA-256 of this file's contents.
+
+# VNC server
+tigervnc-standalone-server
+tigervnc-common
+tigervnc-tools
+
+# XFCE desktop environment
+xfce4
+xfce4-terminal
+xfce4-settings
+thunar
+
+# X11 and display tooling
+x11-utils
+x11-xserver-utils
+xdg-utils
+xdotool
+xclip
+procps
+
+# D-Bus and accessibility
+dbus-x11
+at-spi2-core
+
+# Applications
+mousepad
+seahorse
+sudo
+ffmpeg
+
+# Theming
+adwaita-icon-theme
+gnome-themes-extra
+gnome-keyring
+plank
+sassc
+libglib2.0-dev-bin
+libxml2-utils
+dconf-cli
+xz-utils
+
+# Locale configuration
+locales
+
+# Fonts
+xfonts-base
+xfonts-terminus
+fonts-noto
+fonts-wqy-microhei
+fonts-droid-fallback
+fonts-noto-color-emoji
+fonts-liberation
+fonts-croscore
+fonts-cantarell
+fonts-jetbrains-mono
+
+# Development libraries needed by desktop apps
+libx11-dev
+libxkbfile-dev
+libsecret-1-dev
+libgbm-dev
+libnotify4
+libnss3
+libxss1
+
+# Mesa software rendering for WebGL
+libgl1-mesa-dri
+libglx-mesa0
+libgl1
+
+# Python runtime for websockify
+python3-minimal
+python3-numpy
+
+# Cloud asset installer prerequisites
+bash
+ca-certificates
+coreutils
+curl
+findutils
+gzip
+tar

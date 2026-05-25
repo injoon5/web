@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SOCKET_PATH='/run/host-services/ssh-auth.sock'
+BUNDLED_SSH_KEYGEN_PATH='/exec-daemon/ssh-keygen'
+SSH_KEYGEN_PATH=''
+
+if command -v ssh-keygen >/dev/null 2>&1; then
+  SSH_KEYGEN_PATH="$(command -v ssh-keygen)"
+elif [ -x "$BUNDLED_SSH_KEYGEN_PATH" ]; then
+  SSH_KEYGEN_PATH="$BUNDLED_SSH_KEYGEN_PATH"
+fi
+
+if [ -z "$SSH_KEYGEN_PATH" ]; then
+  printf '%s\n'     "unable to sign Git object because ssh-keygen is missing."     "Please install the OpenSSH client package for your Linux distribution."     "Or skip object signatures (for example: 'git commit --no-gpg-sign' or 'git tag --no-sign')." >&2
+  exit 1
+fi
+
+if [ ! -S "$SOCKET_PATH" ]; then
+  printf '%s\n'     "unable to sign Git object because SSH agent socket is not available."     "Skip object signatures (for example: 'git commit --no-gpg-sign' or 'git tag --no-sign')." >&2
+  exit 1
+fi
+
+SSH_AUTH_SOCK="$SOCKET_PATH" exec "$SSH_KEYGEN_PATH" "$@"

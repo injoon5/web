@@ -1,0 +1,432 @@
+# VNC Desktop Environment Playbook
+# Shared between public and internal Cursor container images
+#
+# This playbook installs and configures:
+# - TigerVNC server
+# - XFCE4 desktop environment
+# - noVNC web-based VNC client
+# - Google Chrome browser
+# - WhiteSur macOS-style theme (GTK, icons, cursors)
+# - Cursor logo and branding
+# - Required fonts (including macOS fonts and Cascadia Code)
+# - polished-renderer (native video renderer for screen recordings)
+#
+# Usage:
+#   ansible-playbook vnc-desktop.yml --connection=local -i localhost,
+#
+# Variables:
+#   vnc_user: User to configure VNC for (default: ubuntu)
+
+---
+- name: Install VNC Desktop Environment
+  hosts: localhost
+  become: true
+  vars:
+    vnc_user: "{{ lookup('env', 'VNC_USER') | default('ubuntu', true) }}"
+    vnc_user_home: "{{ '/root' if vnc_user == 'root' else '/home/' ~ vnc_user }}"
+    # Appearance for the XFCE top panel (macOS-like menu bar).
+    # - light: black foreground (default)
+    # - dark: historical white foreground
+    anyos_desktop_appearance: "{{ lookup('env', 'ANYOS_DESKTOP_APPEARANCE') | default('light', true) }}"
+    # this version is hardcoded in desktop-init.sh, make sure to update it there
+    novnc_version: "1.2.0"
+    websockify_version: "0.10.0"
+    vnc_desktop_apt_cleanup_marker_path: "/tmp/vnc-desktop-apt-cleanup-needed"
+    cloud_agent_asset_prerequisite_packages:
+      - bash
+      - ca-certificates
+      - coreutils
+      - curl
+      - findutils
+      - gzip
+      - tar
+    cloud_agent_asset_prerequisites_version: "{{ (cloud_agent_asset_prerequisite_packages | join('\n')) | hash('sha256') }}"
+    # Must match packages/agent-controller/src/podConfig.ts CLOUD_AGENT_ASSET_REQUIRED_COMMANDS (order + values).
+    cloud_agent_asset_required_commands:
+      - base64
+      - bash
+      - curl
+      - gzip
+      - ln
+      - mkdir
+      - mktemp
+      - mv
+      - rm
+      - sha256sum
+      - tar
+    cloud_agent_asset_required_commands_version: "{{ (cloud_agent_asset_required_commands | join('\n')) | hash('sha256') }}"
+    vnc_desktop_aptfile_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/vnc-desktop.Aptfile\"') | split(' ') | first }}"
+    vnc_desktop_apt_install_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/install-vnc-desktop-apt-packages.sh\"') | split(' ') | first }}"
+    google_chrome_install_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/install-google-chrome.sh\"') | split(' ') | first }}"
+    google_chrome_install_runtime_version: "{{ ([google_chrome_install_script_version, vnc_desktop_apt_cleanup_marker_path] | join('\n')) | hash('sha256') }}"
+    google_chrome_configure_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/configure-google-chrome.sh\"') | split(' ') | first }}"
+    font_install_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/install-fonts-and-fontconfig.sh\"') | split(' ') | first }}"
+    install_locales_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/install-locales.sh\"') | split(' ') | first }}"
+    install_and_configure_themes_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/install_and_configure_themes.sh\"') | split(' ') | first }}"
+    install_remote_vnc_setup_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/install-remote-vnc-setup.sh\"') | split(' ') | first }}"
+    configure_os_display_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/configure_os_display.sh\"') | split(' ') | first }}"
+    install_cursor_artifact_directories_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/install-cursor-artifact-directories.sh\"') | split(' ') | first }}"
+    capture_vnc_user_env_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/capture-vnc-user-env.sh\"') | split(' ') | first }}"
+    desktop_init_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/desktop-init.sh\"') | split(' ') | first }}"
+    anyos_conf_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/anyos.conf\"') | split(' ') | first }}"
+    anyos_setup_script_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/anyos-setup.sh\"') | split(' ') | first }}"
+    # Must match packages/agent-controller/src/podConfig.ts version computations exactly.
+    # For single-input steps, TS uses sha256(file_bytes) directly as the runtime version —
+    # do NOT wrap in an extra sha256 layer.
+    install_locales_runtime_version: "{{ install_locales_script_version }}"
+    font_install_runtime_version: "{{ font_install_script_version }}"
+    install_and_configure_themes_runtime_version: "{{ install_and_configure_themes_script_version }}"
+    install_cursor_artifact_directories_runtime_version: "{{ install_cursor_artifact_directories_script_version }}"
+    # For multi-input steps, TS uses sha256(items.join("\n")). The Ansible computation must
+    # produce the same hash by joining the same inputs in the same order.
+    install_remote_vnc_setup_runtime_version: "{{ ([install_remote_vnc_setup_script_version, novnc_version, websockify_version] | join('\n')) | hash('sha256') }}"
+    # TS: sha256([scriptHash, VNC_DESKTOP_USER_ENV_PATH].join("\n"))
+    # where VNC_DESKTOP_USER_ENV_PATH = "/tmp/vnc-desktop-user-env"
+    google_chrome_configure_runtime_version: "{{ ([google_chrome_configure_script_version, '/tmp/vnc-desktop-user-env'] | join('\n')) | hash('sha256') }}"
+    # TS: sha256([scriptHash, anyosConfHash, anyosSetupHash, VNC_DESKTOP_USER_ENV_PATH, appearance].join("\n"))
+    configure_os_display_runtime_version: "{{ ([configure_os_display_script_version, anyos_conf_version, anyos_setup_script_version, '/tmp/vnc-desktop-user-env', anyos_desktop_appearance] | join('\n')) | hash('sha256') }}"
+    desktop_background_0_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/backgrounds/desktop_background_0.png\"') | split(' ') | first }}"
+    desktop_background_1_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/backgrounds/desktop_background_1.png\"') | split(' ') | first }}"
+    desktop_background_2_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/backgrounds/desktop_background_2.png\"') | split(' ') | first }}"
+    desktop_background_3_version: "{{ lookup('pipe', 'sha256sum \"' ~ playbook_dir ~ '/files/backgrounds/desktop_background_3.png\"') | split(' ') | first }}"
+
+  tasks:
+    # =========================================================================
+    # SYSTEM PACKAGES
+    # =========================================================================
+    - name: Install controller-compatible VNC setup scripts
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        local_follow: true
+        mode: '0755'
+      loop:
+        - src: files/install-vnc-desktop-apt-packages.sh
+          dest: /usr/local/bin/install-vnc-desktop-apt-packages
+        - src: files/install-google-chrome.sh
+          dest: /usr/local/bin/install-google-chrome
+        - src: files/configure-google-chrome.sh
+          dest: /usr/local/bin/configure-google-chrome
+        - src: files/install-locales.sh
+          dest: /usr/local/bin/install-locales
+        - src: files/install-fonts-and-fontconfig.sh
+          dest: /usr/local/bin/install-fonts-and-fontconfig
+        - src: files/install_and_configure_themes.sh
+          dest: /usr/local/bin/install-and-configure-themes
+        - src: files/install-remote-vnc-setup.sh
+          dest: /usr/local/bin/install-remote-vnc-setup
+        - src: files/configure_os_display.sh
+          dest: /usr/local/bin/configure-os-display
+        - src: files/install-cursor-artifact-directories.sh
+          dest: /usr/local/bin/install-cursor-artifact-directories
+
+    - name: Install baked capture-vnc-user-env script
+      copy:
+        src: files/capture-vnc-user-env.sh
+        dest: /tmp/capture-vnc-user-env
+        local_follow: true
+        mode: '0755'
+    - name: Install controller-compatible VNC desktop Aptfile
+      copy:
+        src: files/vnc-desktop.Aptfile
+        dest: /usr/local/share/vnc-desktop.Aptfile
+        local_follow: true
+        mode: '0644'
+
+    - name: Install VNC and desktop environment packages
+      command:
+        argv:
+          - /usr/local/bin/install-vnc-desktop-apt-packages
+          - /usr/local/share/vnc-desktop.Aptfile
+          - /usr/local/share/vnc-desktop.Aptfile.version
+          - "{{ vnc_desktop_apt_cleanup_marker_path }}"
+          - "{{ vnc_desktop_aptfile_version }}"
+      register: vnc_desktop_apt_install_result
+      changed_when: "'skipping' not in (vnc_desktop_apt_install_result.stdout | lower)"
+
+    # =========================================================================
+    # GOOGLE CHROME
+    # =========================================================================
+    - name: Install Google Chrome setup and package
+      command:
+        argv:
+          - /usr/local/bin/install-google-chrome
+          - "{{ google_chrome_install_runtime_version }}"
+          - /usr/local/bin/install-google-chrome.sh.version
+          - "{{ vnc_desktop_apt_cleanup_marker_path }}"
+      register: google_chrome_install_result
+      changed_when: "'skipping' not in (google_chrome_install_result.stdout | lower)"
+
+    - name: Configure Google Chrome for container and VM usage
+      command:
+        argv:
+          - /usr/local/bin/configure-google-chrome
+          - "{{ google_chrome_configure_runtime_version }}"
+          - /usr/local/bin/configure-google-chrome.sh.version
+      register: google_chrome_configure_result
+      changed_when: "'skipping' not in (google_chrome_configure_result.stdout | lower)"
+      environment:
+        USER: "{{ vnc_user }}"
+
+    # =========================================================================
+    # LOCALE CONFIGURATION
+    # =========================================================================
+    - name: Install locale configuration
+      command:
+        argv:
+          - /usr/local/bin/install-locales
+          - "{{ install_locales_runtime_version }}"
+          - /usr/local/bin/install-locales.sh.version
+      register: install_locales_result
+      changed_when: "'skipping' not in (install_locales_result.stdout | lower)"
+
+    # =========================================================================
+    # CURSOR LOGO
+    # =========================================================================
+    - name: Install Cursor logo
+      copy:
+        src: files/cursor-logo.svg
+        dest: /usr/share/pixmaps/cursor-logo.svg
+        mode: '0644'
+
+    - name: Install Cursor logo (dark appearance)
+      copy:
+        src: files/cursor-logo-dark.svg
+        dest: /usr/share/pixmaps/cursor-logo-dark.svg
+        mode: '0644'
+
+    - name: Create hicolor apps icon directory
+      file:
+        path: /usr/share/icons/hicolor/24x24/apps
+        state: directory
+        mode: '0755'
+
+    - name: Install Cursor logo (hicolor icon theme)
+      copy:
+        src: files/cursor-logo-24.png
+        dest: /usr/share/icons/hicolor/24x24/apps/cursor-logo.png
+        mode: '0644'
+
+    - name: Install Cursor logo (dark, hicolor icon theme)
+      copy:
+        src: files/cursor-logo-dark-24.png
+        dest: /usr/share/icons/hicolor/24x24/apps/cursor-logo-dark.png
+        mode: '0644'
+
+    - name: Update icon cache (hicolor)
+      command: gtk-update-icon-cache -f /usr/share/icons/hicolor
+      changed_when: false
+
+    # =========================================================================
+    # MACOS FONTS
+    # =========================================================================
+    - name: Create macOS fonts directory
+      file:
+        path: /usr/share/fonts/truetype/macos
+        state: directory
+        mode: '0755'
+
+    - name: Install macOS fonts
+      copy:
+        src: files/fonts/
+        dest: /usr/share/fonts/truetype/macos/
+        mode: '0644'
+
+    # =========================================================================
+    # FONT DOWNLOAD + CONFIG
+    # =========================================================================
+    - name: Install Cascadia fonts and fontconfig setup
+      command:
+        argv:
+          - /usr/local/bin/install-fonts-and-fontconfig
+          - "{{ font_install_runtime_version }}"
+          - /usr/local/bin/install-fonts-and-fontconfig.sh.version
+      register: font_install_result
+      changed_when: "'skipping' not in (font_install_result.stdout | lower)"
+
+    # =========================================================================
+    # THEMES
+    # =========================================================================
+    - name: Install and configure themes
+      command:
+        argv:
+          - /usr/local/bin/install-and-configure-themes
+          - "{{ install_and_configure_themes_runtime_version }}"
+          - /usr/local/bin/install_and_configure_themes.sh.version
+      register: install_and_configure_themes_result
+      changed_when: "'skipping' not in (install_and_configure_themes_result.stdout | lower)"
+
+    # =========================================================================
+    # NOVNC INSTALLATION
+    # =========================================================================
+    - name: Install remote VNC setup
+      command:
+        argv:
+          - /usr/local/bin/install-remote-vnc-setup
+          - "{{ install_remote_vnc_setup_runtime_version }}"
+          - /usr/local/bin/install-remote-vnc-setup.sh.version
+          - "{{ novnc_version }}"
+          - "{{ websockify_version }}"
+      register: install_remote_vnc_setup_result
+      changed_when: "'skipping' not in (install_remote_vnc_setup_result.stdout | lower)"
+
+    # =========================================================================
+    # SCRIPT INSTALLATION
+    # =========================================================================
+    - name: Install desktop-init.sh script
+      copy:
+        src: files/desktop-init.sh
+        local_follow: true
+        dest: /usr/local/share/desktop-init.sh
+        mode: '0755'
+
+    - name: Install AnyOS configuration file
+      copy:
+        src: files/anyos.conf
+        local_follow: true
+        dest: /usr/local/share/anyos.conf
+        mode: '0644'
+
+    - name: Install AnyOS setup script
+      copy:
+        src: files/anyos-setup.sh
+        local_follow: true
+        dest: /usr/local/bin/anyos-setup
+        mode: '0755'
+
+    # =========================================================================
+    # XFWM4 WINDOW DECORATION ASSETS
+    # Using standard (1x) assets for 1920x1200 @ 96 DPI.
+    # For HiDPI (4K 2x), run: files/install-hidpi-assets.sh
+    # =========================================================================
+
+    # =========================================================================
+    # DESKTOP BACKGROUND
+    # =========================================================================
+    - name: Install desktop background 0 (default wallpaper)
+      copy:
+        src: files/backgrounds/desktop_background_0.png
+        dest: /usr/share/backgrounds/macos-wallpaper.png
+        mode: '0644'
+
+    - name: Install desktop background 1
+      copy:
+        src: files/backgrounds/desktop_background_1.png
+        dest: /usr/share/backgrounds/desktop-background-1.png
+        mode: '0644'
+
+    - name: Install desktop background 2
+      copy:
+        src: files/backgrounds/desktop_background_2.png
+        dest: /usr/share/backgrounds/desktop-background-2.png
+        mode: '0644'
+
+    - name: Install desktop background 3
+      copy:
+        src: files/backgrounds/desktop_background_3.png
+        dest: /usr/share/backgrounds/desktop-background-3.png
+        mode: '0644'
+
+    # =========================================================================
+    # OS DISPLAY CONFIGURATION
+    # =========================================================================
+    - name: Configure OS display
+      command:
+        argv:
+          - /usr/local/bin/configure-os-display
+          - "{{ configure_os_display_runtime_version }}"
+          - /usr/local/bin/configure_os_display.sh.version
+          - "{{ vnc_user }}"
+          - "{{ anyos_desktop_appearance }}"
+      register: configure_os_display_result
+      changed_when: "'skipping' not in (configure_os_display_result.stdout | lower)"
+
+    # =========================================================================
+    # CURSOR DIRECTORIES
+    # =========================================================================
+    - name: Install Cursor artifact directories
+      command:
+        argv:
+          - /usr/local/bin/install-cursor-artifact-directories
+          - "{{ install_cursor_artifact_directories_runtime_version }}"
+          - /usr/local/bin/install-cursor-artifact-directories.sh.version
+      register: install_cursor_artifact_directories_result
+      changed_when: "'skipping' not in (install_cursor_artifact_directories_result.stdout | lower)"
+
+    # =========================================================================
+    # CLEANUP
+    # =========================================================================
+    - name: Check whether apt cleanup is needed
+      stat:
+        path: "{{ vnc_desktop_apt_cleanup_marker_path }}"
+      register: vnc_desktop_apt_cleanup_marker
+
+    - name: Clean apt cache
+      apt:
+        autoclean: true
+      when: vnc_desktop_apt_cleanup_marker.stat.exists
+
+    - name: Remove apt lists
+      file:
+        path: /var/lib/apt/lists
+        state: absent
+      when: vnc_desktop_apt_cleanup_marker.stat.exists
+      ignore_errors: true
+
+    - name: Remove apt cleanup marker
+      file:
+        path: "{{ vnc_desktop_apt_cleanup_marker_path }}"
+        state: absent
+      when: vnc_desktop_apt_cleanup_marker.stat.exists
+
+    - name: Write baked asset version files
+      copy:
+        dest: "{{ item.dest }}"
+        content: "{{ item.content }}"
+        mode: '0644'
+      loop:
+        - dest: /usr/local/share/install-cloud-agent-assets-prerequisites.version
+          content: "{{ cloud_agent_asset_prerequisites_version }}"
+        - dest: /usr/local/share/install-cloud-agent-assets-required-commands.version
+          content: "{{ cloud_agent_asset_required_commands_version }}"
+        - dest: /usr/local/share/vnc-desktop.Aptfile.version
+          content: "{{ vnc_desktop_aptfile_version }}"
+        - dest: /usr/local/bin/install-vnc-desktop-apt-packages.sh.version
+          content: "{{ vnc_desktop_apt_install_script_version }}"
+        - dest: /usr/local/bin/install-google-chrome.sh.version
+          content: "{{ google_chrome_install_runtime_version }}"
+        - dest: /usr/local/bin/configure-google-chrome.sh.version
+          content: "{{ google_chrome_configure_runtime_version }}"
+        - dest: /usr/local/bin/install-locales.sh.version
+          content: "{{ install_locales_runtime_version }}"
+        - dest: /usr/local/bin/install-fonts-and-fontconfig.sh.version
+          content: "{{ font_install_runtime_version }}"
+        - dest: /usr/local/bin/install_and_configure_themes.sh.version
+          content: "{{ install_and_configure_themes_runtime_version }}"
+        - dest: /usr/local/bin/install-remote-vnc-setup.sh.version
+          content: "{{ install_remote_vnc_setup_runtime_version }}"
+        - dest: /tmp/capture-vnc-user-env.version
+          content: "{{ capture_vnc_user_env_script_version }}"
+        - dest: /usr/local/share/desktop-init.sh.version
+          content: "{{ desktop_init_script_version }}"
+        - dest: /usr/local/share/anyos.conf.version
+          content: "{{ anyos_conf_version }}"
+        - dest: /usr/local/bin/anyos-setup.version
+          content: "{{ anyos_setup_script_version }}"
+        - dest: /usr/share/backgrounds/macos-wallpaper.png.version
+          content: "{{ desktop_background_0_version }}"
+        - dest: /usr/share/backgrounds/desktop-background-1.png.version
+          content: "{{ desktop_background_1_version }}"
+        - dest: /usr/share/backgrounds/desktop-background-2.png.version
+          content: "{{ desktop_background_2_version }}"
+        - dest: /usr/share/backgrounds/desktop-background-3.png.version
+          content: "{{ desktop_background_3_version }}"
+        - dest: /usr/local/bin/configure_os_display.sh.version
+          content: "{{ configure_os_display_runtime_version }}"
+        - dest: /usr/local/bin/install-cursor-artifact-directories.sh.version
+          content: "{{ install_cursor_artifact_directories_runtime_version }}"
+
+    # Cloud-agent manifest hash baking and tools tarball extraction require the
+    # everysphere monorepo. ubuntu-cursor-env/config.sh installs cloud-agent-tools
+    # from the vendored bundle instead.
+
