@@ -1,11 +1,11 @@
 import { json, error } from '@sveltejs/kit';
 import { ADMIN_SECRET } from '$env/static/private';
+import { verifyAdminCookie } from '$lib/server/admin';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
 
 export async function POST({ request, cookies }) {
-	const token = cookies.get('admin_token');
-	if (!ADMIN_SECRET || token !== ADMIN_SECRET) {
+	if (!verifyAdminCookie(cookies.get('admin_token'))) {
 		throw error(401, 'Unauthorized');
 	}
 

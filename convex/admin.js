@@ -1,18 +1,25 @@
 import { v } from 'convex/values';
 import { query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
+import { countActiveCommentsByUrl } from './lib/commentsScan.js';
 import { adminComment } from './lib/serialize.js';
+import { isUrlCountsBackfillComplete } from './lib/migration.js';
+import { getVoteCounts, voteCountsFromDoc } from './lib/votes.js';
 
 export const listUrls = query({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
-		const all = await ctx.db.query('comments').collect();
-		const counts = new Map();
-		for (const c of all) {
-			if (c.deletedAt !== null) continue;
-			counts.set(c.url, (counts.get(c.url) ?? 0) + 1);
+		const backfillComplete = await isUrlCountsBackfillComplete(ctx);
+		const rows = await ctx.db.query('commentUrlCounts').collect();
+		const counts = new Map(rows.map(({ url, count }) => [url, count]));
+
+		if (!backfillComplete) {
+			const scanned = await countActiveCommentsByUrl(ctx);
+			for (const [url, count] of scanned) {
+				counts.set(url, count);
+			}
 		}
 
 		return Array.from(counts.entries())
@@ -24,7 +31,7 @@ export const listUrls = query({
 export const listForUrl = query({
 	args: { url: v.string(), adminSecret: v.string() },
 	handler: async (ctx, { url, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
 		const docs = await ctx.db
 			.query('comments')
@@ -32,24 +39,14 @@ export const listForUrl = query({
 			.collect();
 
 		const active = docs.filter((d) => d.deletedAt === null);
+		active.sort((a, b) => a._creationTime - b._creationTime);
 
-		const enriched = await Promise.all(
+		return await Promise.all(
 			active.map(async (doc) => {
-				const votes = await ctx.db
-					.query('commentVotes')
-					.withIndex('by_comment', (q) => q.eq('commentId', doc._id))
-					.collect();
-				let upvotes = 0;
-				let downvotes = 0;
-				for (const v of votes) {
-					if (v.voteType === 'up') upvotes++;
-					else downvotes++;
-				}
+				const cached = voteCountsFromDoc(doc);
+				const { upvotes, downvotes } = cached ?? (await getVoteCounts(ctx, doc, ''));
 				return adminComment(doc, { upvotes, downvotes });
 			})
 		);
-
-		enriched.sort((a, b) => a.createdAt - b.createdAt);
-		return enriched;
 	}
 });

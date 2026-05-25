@@ -6,7 +6,7 @@ import { publicBan } from './lib/serialize.js';
 export const list = query({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 		const rows = await ctx.db.query('bannedIps').collect();
 		rows.sort((a, b) => b._creationTime - a._creationTime);
 		return rows.map(publicBan);
@@ -20,7 +20,7 @@ export const create = mutation({
 		adminSecret: v.string()
 	},
 	handler: async (ctx, { commentId, reason, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
 		const comment = await ctx.db.get(commentId);
 		if (!comment) {
@@ -52,7 +52,7 @@ export const create = mutation({
 export const remove = mutation({
 	args: { banId: v.id('bannedIps'), adminSecret: v.string() },
 	handler: async (ctx, { banId, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 		await ctx.db.delete(banId);
 	}
 });

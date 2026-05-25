@@ -1,18 +1,18 @@
 <script>
 	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 	import NumberFlow from '@number-flow/svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import Heart from '@lucide/svelte/icons/heart';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
-	import { clientIpHash, hashReal, hashAttempted, resolveIpHash } from '$lib/ipHash.js';
+
+	const ipHash = $derived($page.data.ipHash ?? '');
 
 	const query = useQuery(
 		api.likes.get,
 		() => ({
 			url: $page.url.pathname,
-			ipHash: $clientIpHash
+			ipHash
 		}),
 		// Keep the prior result so the count doesn't flash to the skeleton when
 		// the ipHash re-subscription fires. `isStale` (below) tells us when the
@@ -20,8 +20,6 @@
 		// previous page — or the pre-resolution hash — as authoritative.
 		{ keepPreviousData: true }
 	);
-
-	onMount(resolveIpHash);
 
 	let toggling = $state(false);
 	let likeError = $state('');
@@ -52,12 +50,8 @@
 	// The count is independent of the visitor's hash, so retained same-URL data
 	// is still correct; only data carried over from another URL must be hidden.
 	const countApplies = $derived(!query.isStale || dataUrl === path);
-	// `liked` is per-visitor: trust it only once the real hash is in use and the
-	// subscription holds fresh data for the current page.
-	const likedReady = $derived($hashReal && freshQueryForPath);
-	// If /api/ip-hash fails, the direct POST still uses the real server-side IP.
-	// Keep the button usable once that failure mode has fresh count data.
-	const hashFallbackReady = $derived($hashAttempted && !$hashReal && freshQueryForPath);
+	// `liked` is per-visitor: trust it once the subscription is fresh for this page.
+	const likedReady = $derived(freshQueryForPath && !!ipHash);
 
 	const currentMutationResult = $derived(mutationResult?.url === path ? mutationResult : null);
 	const likeCount = $derived(
@@ -71,7 +65,7 @@
 		currentMutationResult ? currentMutationResult.liked : likedReady ? query.data.liked : false
 	);
 	const showCount = $derived(!!currentMutationResult || (countApplies && !!query.data));
-	const interactive = $derived(countApplies && (likedReady || hashFallbackReady));
+	const interactive = $derived(countApplies && likedReady);
 	const busy = $derived(!interactive || toggling);
 
 	function showLikeError(message) {

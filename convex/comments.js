@@ -1,40 +1,25 @@
 import { ConvexError, v } from 'convex/values';
-import { mutation, query } from './_generated/server.js';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
 import { assertAdmin, isAdmin } from './lib/auth.js';
+import { isBanned } from './lib/bans.js';
 import { publicComment } from './lib/serialize.js';
+import { applyVoteChange, commentScore, getVoteCounts } from './lib/votes.js';
+import { decrementUrlCount, incrementUrlCount } from './lib/urlCounts.js';
 
 const MAX_DEPTH = 2;
 const MAX_COMMENTS = 200;
-
-async function isBanned(ctx, ipHash) {
-	const ban = await ctx.db
-		.query('bannedIps')
-		.withIndex('by_ip', (q) => q.eq('ipHash', ipHash))
-		.unique();
-	return ban !== null;
-}
 
 async function consumeRateLimit(ctx, name, ipHash) {
 	await limiter.limit(ctx, name, { key: ipHash, throws: true });
 }
 
-async function aggregateVotes(ctx, commentId, ipHash) {
-	const votes = await ctx.db
-		.query('commentVotes')
-		.withIndex('by_comment', (q) => q.eq('commentId', commentId))
-		.collect();
-
-	let upvotes = 0;
-	let downvotes = 0;
-	let myVote = null;
-	for (const v of votes) {
-		if (v.voteType === 'up') upvotes++;
-		else downvotes++;
-		if (ipHash && v.ipHash === ipHash) myVote = v.voteType;
+export const consumeEditRateLimit = internalMutation({
+	args: { ipHash: v.string() },
+	handler: async (ctx, { ipHash }) => {
+		await consumeRateLimit(ctx, 'edit', ipHash);
 	}
-	return { upvotes, downvotes, myVote };
-}
+});
 
 export const list = query({
 	args: { url: v.string(), ipHash: v.string() },
@@ -46,23 +31,24 @@ export const list = query({
 
 		const active = docs.filter((d) => d.deletedAt === null);
 
-		const enriched = await Promise.all(
-			active.map(async (doc) => {
-				const counts = await aggregateVotes(ctx, doc._id, ipHash);
+		active.sort((a, b) => {
+			const scoreDiff = commentScore(b) - commentScore(a);
+			if (scoreDiff !== 0) return scoreDiff;
+			return b._creationTime - a._creationTime;
+		});
+
+		const top = active.slice(0, MAX_COMMENTS);
+
+		return await Promise.all(
+			top.map(async (doc) => {
+				const counts = await getVoteCounts(ctx, doc, ipHash);
 				return publicComment(doc, counts);
 			})
 		);
-
-		enriched.sort((a, b) => {
-			if (b.score !== a.score) return b.score - a.score;
-			return b.createdAt - a.createdAt;
-		});
-
-		return enriched.slice(0, MAX_COMMENTS);
 	}
 });
 
-export const getForAuth = query({
+export const getCommentAuth = internalQuery({
 	args: { commentId: v.id('comments') },
 	handler: async (ctx, { commentId }) => {
 		const doc = await ctx.db.get(commentId);
@@ -82,7 +68,7 @@ export const create = mutation({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
+		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });
@@ -114,8 +100,12 @@ export const create = mutation({
 			depth,
 			reply: null,
 			updatedAt: null,
-			deletedAt: null
+			deletedAt: null,
+			upvotes: 0,
+			downvotes: 0
 		});
+
+		await incrementUrlCount(ctx, args.url);
 
 		const doc = await ctx.db.get(id);
 		return publicComment(doc, { upvotes: 0, downvotes: 0, myVote: null });
@@ -130,7 +120,7 @@ export const vote = mutation({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
+		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });
@@ -143,41 +133,23 @@ export const vote = mutation({
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
-		const existing = await ctx.db
-			.query('commentVotes')
-			.withIndex('by_comment_ip', (q) =>
-				q.eq('commentId', args.commentId).eq('ipHash', args.ipHash)
-			)
-			.unique();
+		const { upvotes, downvotes, myVote } = await applyVoteChange(
+			ctx,
+			comment,
+			args.voteType,
+			args.ipHash
+		);
 
-		if (existing && existing.voteType === args.voteType) {
-			await ctx.db.delete(existing._id);
-		} else if (existing) {
-			await ctx.db.patch(existing._id, { voteType: args.voteType });
-		} else {
-			await ctx.db.insert('commentVotes', {
-				commentId: args.commentId,
-				ipHash: args.ipHash,
-				voteType: args.voteType
-			});
-		}
-
-		const { upvotes, downvotes, myVote } = await aggregateVotes(ctx, args.commentId, args.ipHash);
 		return { upvotes, downvotes, myVote };
 	}
 });
 
-export const applyEdit = mutation({
+export const applyEdit = internalMutation({
 	args: {
 		commentId: v.id('comments'),
-		text: v.string(),
-		ipHash: v.string(),
-		adminSecret: v.optional(v.string())
+		text: v.string()
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
-		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
-
 		const comment = await ctx.db.get(args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
@@ -189,16 +161,11 @@ export const applyEdit = mutation({
 	}
 });
 
-export const softDelete = mutation({
+export const softDelete = internalMutation({
 	args: {
-		commentId: v.id('comments'),
-		ipHash: v.string(),
-		adminSecret: v.optional(v.string())
+		commentId: v.id('comments')
 	},
 	handler: async (ctx, args) => {
-		const admin = isAdmin(args.adminSecret);
-		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
-
 		const comment = await ctx.db.get(args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
@@ -215,7 +182,7 @@ export const softDelete = mutation({
 export const hardDelete = mutation({
 	args: { commentId: v.id('comments'), adminSecret: v.string() },
 	handler: async (ctx, { commentId, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 
 		// Recursively collect all descendant comment IDs
 		const toDelete = [commentId];
@@ -231,7 +198,11 @@ export const hardDelete = mutation({
 
 		const now = Date.now();
 		for (const id of toDelete) {
-			// Delete all votes for this comment
+			const doc = await ctx.db.get(id);
+			if (doc?.deletedAt === null) {
+				await decrementUrlCount(ctx, doc.url);
+			}
+
 			const votes = await ctx.db
 				.query('commentVotes')
 				.withIndex('by_comment', (q) => q.eq('commentId', id))
@@ -252,7 +223,7 @@ export const setReply = mutation({
 		adminSecret: v.string()
 	},
 	handler: async (ctx, { commentId, reply, adminSecret }) => {
-		assertAdmin(adminSecret);
+		await assertAdmin(adminSecret);
 		const trimmed = reply.trim();
 		await ctx.db.patch(commentId, { reply: trimmed || null });
 	}

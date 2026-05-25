@@ -1,4 +1,5 @@
-import { createHash } from 'crypto';
+import { createHmac } from 'crypto';
+import { IP_HASH_SECRET } from '$env/static/private';
 
 export function getClientIp(request: Request): string {
 	// Prefer x-real-ip: on Vercel (and most reverse proxies) it is set by the
@@ -16,5 +17,8 @@ export function getClientIp(request: Request): string {
 }
 
 export function hashIp(ip: string): string {
-	return createHash('sha256').update(ip).digest('hex');
+	if (!IP_HASH_SECRET) {
+		throw new Error('IP_HASH_SECRET is not set');
+	}
+	return createHmac('sha256', IP_HASH_SECRET).update(ip).digest('hex');
 }
