@@ -34,6 +34,7 @@ Convex agent skills for common tasks can be installed by running
 ### Gotchas
 
 - `PUBLIC_CONVEX_URL` is imported via `$env/static/public` (build-time). The dev server will start with a placeholder URL in `.env`, but Convex-backed features (comments, likes, /now page) won't work until a real Convex deployment is connected.
+- `IP_HASH_SECRET` must be set on Vercel and listed in `turbo.json` `build.env` — SvelteKit inlines `$env/static/private` at build time; Turbo strict mode on Vercel only passes vars declared there.
 - **Convex deploy key is URL-encoded** in the secrets store. Decode before use: `DECODED_KEY=$(node -e "console.log(decodeURIComponent(process.env.CONVEX_DEPLOY_KEY))")` then export `CONVEX_DEPLOY_KEY="$DECODED_KEY"`.
 - To deploy Convex functions to a preview: `npx convex deploy --preview-create "my-preview-name" --cmd 'echo done' --cmd-url-env-var-name PUBLIC_CONVEX_URL`
 - Set `ADMIN_SECRET` in Convex: `npx convex env set ADMIN_SECRET "$ADMIN_SECRET" --preview-name "my-preview-name"`

@@ -26,7 +26,7 @@
 		"build": {
 			"dependsOn": ["apply-optimized-images"],
 			"outputs": [".svelte-kit/**", ".vercel/**"],
-			"env": ["PUBLIC_CONVEX_URL", "ADMIN_SECRET", "CONVEX_DEPLOY_KEY"]
+			"env": ["PUBLIC_CONVEX_URL", "ADMIN_SECRET", "CONVEX_DEPLOY_KEY", "IP_HASH_SECRET"]
 		}
 	}
 }
