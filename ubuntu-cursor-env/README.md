@@ -29,13 +29,17 @@ Optional environment variables:
 
 ## What `config.sh` does
 
-1. Installs **Ansible**, Python 3, rsync, curl via `apt`.
+1. Installs **Ansible**, Python 3, rsync, curl, jq, fontconfig via `apt`.
 2. Rsyncs `ansible/` → `/opt/cursor/ansible/`.
 3. Installs the vendored **cloud-agent-tools** bundle under `/opt/cursor/cloud-agent-tools/<hash>/` and symlinks `current`.
 4. Installs bundled scripts to `/usr/local/bin` and `/usr/local/share` via `cloud-agent-tools.tsv` (offline; no download URL).
-5. Captures `/tmp/vnc-desktop-user-env` for the VNC user (used by Chrome/display scripts).
-6. Runs `ansible-playbook /opt/cursor/ansible/vnc-desktop.yml --connection=local -i localhost,`.
-7. Copies small **~/.cursor** helpers from `home-dot-cursor/` (e.g. `bin/cursor-git-ssh-keygen`).
+5. Installs **cloud-agent assets** from `vendor/cloud-agent-assets/` via `cloud-agent-assets.tsv` (fonts, `cloud-agent-media` archives, wallpapers, logos).
+6. Creates `/opt/cursor/{artifacts,recording-staging,logs,.exec-daemon}` (exec-daemon binary is runtime-only).
+7. Captures `/tmp/vnc-desktop-user-env` for the VNC user (used by Chrome/display scripts).
+8. Runs `ansible-playbook /opt/cursor/ansible/vnc-desktop.yml --connection=local -i localhost,`.
+9. Copies small **~/.cursor** helpers from `home-dot-cursor/` (bin, agent-hooks).
+
+Full path list: [SYSTEM_PATHS.md](./SYSTEM_PATHS.md).
 
 After a successful run you should have the same system paths as the cloud image:
 
@@ -69,17 +73,25 @@ sudo cp ubuntu-cursor-env/ansible/files/anyos-setup.sh /usr/local/bin/anyos-setu
 ubuntu-cursor-env/
 ├── config.sh                 # Main installer (run with sudo)
 ├── README.md
-├── home-dot-cursor/          # Optional ~/.cursor files (not full plugin cache)
+├── SYSTEM_PATHS.md           # Every system path used by setup
+├── scripts/
+│   ├── install-cloud-agent-assets-offline.sh
+│   └── install-opt-cursor-dirs.sh
+├── vendor/
+│   └── cloud-agent-assets/   # Offline mirror of cloud-agent-assets.tsv destinations
+├── home-dot-cursor/          # ~/.cursor bin + agent-hooks (not plugin cache)
 ├── cloud-agent-tools/
 │   └── bundle/               # Vendored cloud-agent-tools snapshot
 │       ├── cloud-agent-setup
 │       ├── cloud-agent-tools.tsv
+│       ├── cloud-agent-assets.tsv
 │       └── files/{anyos,vnc}/
 └── ansible/
     ├── vnc-desktop.yml       # Self-contained playbook (local file paths)
     ├── README.md             # Upstream Ansible docs
     └── files/
         ├── backgrounds/      # desktop_background_0..3.png
+        ├── fonts/            # Inter, JetBrains Mono, etc. (macOS UI fonts)
         ├── logos/            # Cursor panel branding
         ├── xfce-config/      # XFCE/GTK/Plank templates
         ├── anyos.conf
