@@ -35,6 +35,7 @@ adwaita-icon-theme
 gnome-themes-extra
 gnome-keyring
 plank
+bamfdaemon
 sassc
 libglib2.0-dev-bin
 libxml2-utils

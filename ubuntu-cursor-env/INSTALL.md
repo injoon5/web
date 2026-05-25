@@ -166,6 +166,22 @@ sudo gtk-update-icon-cache -f /usr/share/icons/hicolor
 sudo ANYOS_DESKTOP_APPEARANCE=light /usr/local/bin/configure-os-display <version> /usr/local/bin/configure_os_display.sh.version ubuntu light
 ```
 
+### Plank keeps restarting (`Plank exited, restarting...`)
+
+Plank needs the **XFCE session D-Bus**, not `autolaunch:`. Updated `desktop-init.sh` waits for `~/.dbus/session-bus/*` and logs to `/tmp/plank.log`.
+
+On a running VM, pull the fix and restart desktop init, or patch `/usr/local/share/desktop-init.sh` and:
+
+```bash
+sudo pkill plank || true
+sudo rm -f /tmp/plank.log
+# ensure session dbus exists (xfce must be running)
+grep DBUS_SESSION_BUS_ADDRESS /home/ubuntu/.dbus/session-bus/* | tail -1
+sudo /usr/local/share/desktop-init.sh
+```
+
+Install `bamfdaemon` if matcher warnings persist: `sudo apt-get install -y bamfdaemon`
+
 ### HiDPI (4K)
 
 ```bash

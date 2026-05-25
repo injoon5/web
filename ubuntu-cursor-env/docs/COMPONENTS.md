@@ -140,7 +140,7 @@ Self-contained playbook (no everysphere monorepo paths). Runs locally as root.
 
 1. **Copy install scripts** to `/usr/local/bin` (same as tools.tsv, from `ansible/files/`)
 2. **Apt packages** — `install-vnc-desktop-apt-packages` + `vnc-desktop.Aptfile`
-3. **Google Chrome** — download + configure for container/VM
+3. **Google Chrome / Chromium** — amd64: Google deb; **arm64: Chromium** + `google-chrome-stable` symlinks
 4. **Locales** — `en_US.UTF-8`
 5. **Cursor logos** — copy from `ansible/files/logos/` to pixmaps + hicolor
 6. **macOS fonts** — copy `ansible/files/fonts/` → `/usr/share/fonts/truetype/macos/`

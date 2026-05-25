@@ -133,6 +133,59 @@ dump_x_debug() {
     log_error "xfce4 processes: $(pgrep -a xfce 2>&1 || echo 'none')"
 }
 
+# Plank needs the XFCE session D-Bus (not autolaunch:). Read address from the
+# dbus-launch file xfce4-session creates after VNC starts.
+read_session_dbus_address() {
+    local dbus_dir="${user_home}/.dbus/session-bus"
+    local dbus_file=""
+    local addr=""
+
+    if [ -d "${dbus_dir}" ]; then
+        dbus_file="$(ls -t "${dbus_dir}"/* 2>/dev/null | head -1)"
+    fi
+    if [ -n "${dbus_file}" ] && [ -f "${dbus_file}" ]; then
+        addr="$(grep '^DBUS_SESSION_BUS_ADDRESS=' "${dbus_file}" | head -1 | cut -d= -f2- | tr -d "'\"")"
+    fi
+
+    if [ -z "${addr}" ] && [ "${user_name}" != "root" ]; then
+        local uid
+        uid="$(id -u "${user_name}")"
+        if [ -S "/run/user/${uid}/bus" ]; then
+            addr="unix:path=/run/user/${uid}/bus"
+        fi
+    fi
+
+    if [ -n "${addr}" ]; then
+        export DBUS_SESSION_BUS_ADDRESS="${addr}"
+        return 0
+    fi
+    return 1
+}
+
+wait_for_session_dbus() {
+    local max_attempts=120
+    local attempts=0
+    while ! read_session_dbus_address; do
+        sleep 0.5
+        attempts=$((attempts + 1))
+        if [ "${attempts}" -ge "${max_attempts}" ]; then
+            log_error "Session D-Bus address not found after 60 seconds"
+            return 1
+        fi
+    done
+    log "Session D-Bus: ${DBUS_SESSION_BUS_ADDRESS}"
+    return 0
+}
+
+plank_env() {
+    export DISPLAY="${DISPLAY}"
+    export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS}"
+    export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}"
+    export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
+    export XDG_SESSION_CLASS="${XDG_SESSION_CLASS:-user}"
+    export GTK_MODULES="${GTK_MODULES:-gail:atk-bridge}"
+}
+
 # Wait for window manager to be ready (XFCE4's xfwm4)
 # xdpyinfo succeeding only means X server accepts connections,
 # not that the window manager is initialized
@@ -322,21 +375,32 @@ else
     log_error "noVNC directory not found at /usr/local/novnc"
 fi
 
-# Start Plank respawn loop (needs X and window manager to display the dock)
+# Start Plank respawn loop (needs X, window manager, and session D-Bus)
 log "Starting Plank dock..."
 (
     while true; do
-        # Wait for X server before each start (handles X restarts)
         while ! sudoUserIf xdpyinfo -display "${DISPLAY}" >/dev/null 2>&1; do
             sleep 1
         done
-        # Wait for window manager (xfwm4) to be ready
         if ! wait_for_window_manager; then
             log_error "Proceeding with Plank despite window manager detection failure"
         fi
-        # Start Plank
-        sudoUserIf plank 2>/dev/null
-        log "Plank exited, restarting in 2 seconds..."
+        if ! wait_for_session_dbus; then
+            log_error "Plank waiting for session D-Bus; retrying in 2 seconds..."
+            sleep 2
+            continue
+        fi
+        plank_env
+        exit_code=0
+        sudoUserIf plank >>/tmp/plank.log 2>&1 || exit_code=$?
+        if [ "${exit_code}" -ne 0 ]; then
+            log_error "Plank exited with code ${exit_code} (see /tmp/plank.log)"
+            tail -5 /tmp/plank.log 2>/dev/null | while IFS= read -r line; do
+                log_error "  plank: ${line}"
+            done
+        else
+            log "Plank exited cleanly, restarting in 2 seconds..."
+        fi
         sleep 2
     done
 ) &
