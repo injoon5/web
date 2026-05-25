@@ -13,7 +13,7 @@ export const DELETE: RequestHandler = async ({ params, request, url }) => {
 	if (url.searchParams.get('soft') === '1') {
 		return runConvex(
 			() =>
-				convex.mutation(api.comments.softDelete, {
+				convex.action(api.commentActions.softDeleteComment, {
 					commentId: params.id,
 					ipHash: '',
 					adminSecret: ADMIN_SECRET

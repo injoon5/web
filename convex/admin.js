@@ -2,32 +2,43 @@ import { v } from 'convex/values';
 import { query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
 import { adminComment } from './lib/serialize.js';
+import { isUrlCountsBackfillComplete } from './lib/migration.js';
 import { getVoteCounts } from './lib/votes.js';
+
+async function countActiveCommentsByUrl(ctx) {
+	const counts = new Map();
+	let cursor = null;
+
+	do {
+		const batch = await ctx.db.query('comments').paginate({
+			numItems: 500,
+			cursor
+		});
+		for (const comment of batch.page) {
+			if (comment.deletedAt !== null) continue;
+			counts.set(comment.url, (counts.get(comment.url) ?? 0) + 1);
+		}
+		cursor = batch.isDone ? null : batch.continueCursor;
+	} while (cursor);
+
+	return counts;
+}
 
 export const listUrls = query({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
 		await assertAdmin(adminSecret);
 
+		const backfillComplete = await isUrlCountsBackfillComplete(ctx);
 		const rows = await ctx.db.query('commentUrlCounts').collect();
-		if (rows.length > 0) {
-			return rows.map(({ url, count }) => ({ url, count })).sort((a, b) => b.count - a.count);
-		}
+		const counts = new Map(rows.map(({ url, count }) => [url, count]));
 
-		// Fallback until backfill populates commentUrlCounts (pre-migration data).
-		const counts = new Map();
-		let cursor = null;
-		do {
-			const batch = await ctx.db.query('comments').paginate({
-				numItems: 500,
-				cursor
-			});
-			for (const comment of batch.page) {
-				if (comment.deletedAt !== null) continue;
-				counts.set(comment.url, (counts.get(comment.url) ?? 0) + 1);
+		if (!backfillComplete) {
+			const scanned = await countActiveCommentsByUrl(ctx);
+			for (const [url, count] of scanned) {
+				counts.set(url, count);
 			}
-			cursor = batch.isDone ? null : batch.continueCursor;
-		} while (cursor);
+		}
 
 		return Array.from(counts.entries())
 			.map(([url, count]) => ({ url, count }))

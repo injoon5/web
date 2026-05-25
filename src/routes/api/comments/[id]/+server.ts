@@ -8,21 +8,6 @@ import { getClientIp, hashIp } from '$lib/server/ip';
 import { runConvex, handleConvexErr } from '$lib/server/api';
 import { ADMIN_SECRET } from '$env/static/private';
 
-async function requireCommentPassword(commentId: string, password: string) {
-	let result;
-	try {
-		result = await convex.action(api.commentActions.verifyCommentPassword, {
-			commentId,
-			password
-		});
-	} catch (err) {
-		return handleConvexErr(err);
-	}
-	if (result.reason === 'not_found') throw error(404, 'Comment not found');
-	if (!result.valid) throw error(401, 'Incorrect password');
-	return null;
-}
-
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	const ipHash = hashIp(getClientIp(request));
 	const admin = verifyAdminSecret(request);
@@ -37,16 +22,12 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 	const { text, password } = parsed.data;
 
-	if (!admin) {
-		const authErr = await requireCommentPassword(params.id, password);
-		if (authErr) return authErr;
-	}
-
 	return runConvex(
 		() =>
-			convex.mutation(api.comments.applyEdit, {
+			convex.action(api.commentActions.editComment, {
 				commentId: params.id,
 				text,
+				password: admin ? '' : password,
 				ipHash,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
@@ -68,16 +49,12 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		const parsed = deleteCommentSchema.safeParse(raw);
 		if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
 
-		const authErr = await requireCommentPassword(params.id, parsed.data.password);
-		if (authErr) return authErr;
-	}
-
-	if (admin) {
 		return runConvex(
 			() =>
-				convex.mutation(api.comments.hardDelete, {
+				convex.action(api.commentActions.softDeleteComment, {
 					commentId: params.id,
-					adminSecret: ADMIN_SECRET
+					password: parsed.data.password,
+					ipHash
 				}),
 			() => json({ success: true })
 		);
@@ -85,9 +62,9 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 
 	return runConvex(
 		() =>
-			convex.mutation(api.comments.softDelete, {
+			convex.mutation(api.comments.hardDelete, {
 				commentId: params.id,
-				ipHash
+				adminSecret: ADMIN_SECRET
 			}),
 		() => json({ success: true })
 	);

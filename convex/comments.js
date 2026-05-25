@@ -1,5 +1,5 @@
 import { ConvexError, v } from 'convex/values';
-import { internalQuery, mutation, query } from './_generated/server.js';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
 import { assertAdmin, isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
@@ -13,6 +13,13 @@ const MAX_COMMENTS = 200;
 async function consumeRateLimit(ctx, name, ipHash) {
 	await limiter.limit(ctx, name, { key: ipHash, throws: true });
 }
+
+export const consumeEditRateLimit = internalMutation({
+	args: { ipHash: v.string() },
+	handler: async (ctx, { ipHash }) => {
+		await consumeRateLimit(ctx, 'edit', ipHash);
+	}
+});
 
 export const list = query({
 	args: { url: v.string(), ipHash: v.string() },
@@ -45,7 +52,7 @@ export const getCommentAuth = internalQuery({
 	handler: async (ctx, { commentId }) => {
 		const doc = await ctx.db.get(commentId);
 		if (!doc) return null;
-		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt, ipHash: doc.ipHash };
+		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt };
 	}
 });
 
@@ -151,17 +158,12 @@ export const vote = mutation({
 	}
 });
 
-export const applyEdit = mutation({
+export const applyEdit = internalMutation({
 	args: {
 		commentId: v.id('comments'),
-		text: v.string(),
-		ipHash: v.string(),
-		adminSecret: v.optional(v.string())
+		text: v.string()
 	},
 	handler: async (ctx, args) => {
-		const admin = await isAdmin(args.adminSecret);
-		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
-
 		const comment = await ctx.db.get(args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
@@ -173,16 +175,11 @@ export const applyEdit = mutation({
 	}
 });
 
-export const softDelete = mutation({
+export const softDelete = internalMutation({
 	args: {
-		commentId: v.id('comments'),
-		ipHash: v.string(),
-		adminSecret: v.optional(v.string())
+		commentId: v.id('comments')
 	},
 	handler: async (ctx, args) => {
-		const admin = await isAdmin(args.adminSecret);
-		if (!admin) await consumeRateLimit(ctx, 'edit', args.ipHash);
-
 		const comment = await ctx.db.get(args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
