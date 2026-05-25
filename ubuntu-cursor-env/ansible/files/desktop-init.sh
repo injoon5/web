@@ -201,8 +201,27 @@ wait_for_session_dbus() {
             return 1
         fi
     done
-    log "Session D-Bus: ${DBUS_SESSION_BUS_ADDRESS}"
+    if [ "${DBUS_SESSION_BUS_ADDRESS}" != "${_LAST_LOGGED_SESSION_DBUS:-}" ]; then
+        log "Session D-Bus: ${DBUS_SESSION_BUS_ADDRESS}"
+        _LAST_LOGGED_SESSION_DBUS="${DBUS_SESSION_BUS_ADDRESS}"
+    fi
     return 0
+}
+
+vnc_display_active() {
+    if sudoUserIf xdpyinfo -display "${DISPLAY}" >/dev/null 2>&1; then
+        return 0
+    fi
+    if pgrep -f "Xtigervnc ${DISPLAY}" >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
+stop_vnc_display() {
+    log "Stopping TigerVNC on ${DISPLAY}..."
+    sudoUserIf tigervncserver -kill "${DISPLAY}" 2>/dev/null || true
+    sleep 2
 }
 
 plank_env() {
@@ -315,12 +334,26 @@ else
 fi
 
 
-# Setup X11 socket directory
-log "Setting up X11 socket directory..."
-sudoIf rm -rf /tmp/.X11-unix /tmp/.X*-lock
-mkdir -p /tmp/.X11-unix || log_error "Failed to create /tmp/.X11-unix"
-sudoIf chmod 1777 /tmp/.X11-unix || log_error "Failed to chmod /tmp/.X11-unix"
-sudoIf chown root:"${group_name}" /tmp/.X11-unix || log_error "Failed to chown /tmp/.X11-unix"
+# Re-running init while VNC is up must not wipe X11 sockets or start a second server.
+vnc_already_running=false
+if vnc_display_active; then
+    vnc_already_running=true
+fi
+if [ "${ANYOS_FORCE_VNC_RESTART:-0}" = "1" ] && [ "${vnc_already_running}" = "true" ]; then
+    stop_vnc_display
+    vnc_already_running=false
+fi
+
+if [ "${vnc_already_running}" = "true" ]; then
+    log "TigerVNC already active on ${DISPLAY} — reusing session (ANYOS_FORCE_VNC_RESTART=1 to recreate)"
+    mkdir -p /tmp/.X11-unix 2>/dev/null || true
+else
+    log "Setting up X11 socket directory..."
+    sudoIf rm -rf /tmp/.X11-unix /tmp/.X*-lock
+    mkdir -p /tmp/.X11-unix || log_error "Failed to create /tmp/.X11-unix"
+    sudoIf chmod 1777 /tmp/.X11-unix || log_error "Failed to chmod /tmp/.X11-unix"
+    sudoIf chown root:"${group_name}" /tmp/.X11-unix || log_error "Failed to chown /tmp/.X11-unix"
+fi
 
 # Parse resolution
 if [ "$(echo "${VNC_RESOLUTION}" | tr -cd 'x' | wc -c)" = "1" ]; then
@@ -370,24 +403,28 @@ log "Starting VNC and configuring Plank in parallel..."
 ) &
 plank_config_pid=$!
 
-# Start VNC server (daemonizes itself)
-log "Starting VNC server on display ${DISPLAY} at ${screen_geometry} ${VNC_DPI} DPI..."
-vnc_output=$(sudoUserIf tigervncserver ${DISPLAY} \
-    -geometry ${screen_geometry} \
-    -depth ${screen_depth} \
-    -rfbport ${VNC_PORT} \
-    -dpi ${VNC_DPI} \
-    -localhost \
-    -desktop AnyOS \
-    -SecurityTypes None \
-    -xstartup /tmp/anyos-xstartup 2>&1)
-vnc_exit=$?
-if [ $vnc_exit -ne 0 ]; then
-    log_error "VNC server start failed with exit code $vnc_exit"
-    log_error "VNC output: $vnc_output"
-    dump_vnc_debug
+# Start VNC server (daemonizes itself) unless display is already up
+if [ "${vnc_already_running}" = "true" ]; then
+    log "Skipping tigervncserver — display ${DISPLAY} is already running"
 else
-    log "VNC server started (exit code $vnc_exit)"
+    log "Starting VNC server on display ${DISPLAY} at ${screen_geometry} ${VNC_DPI} DPI..."
+    vnc_output=$(sudoUserIf tigervncserver ${DISPLAY} \
+        -geometry ${screen_geometry} \
+        -depth ${screen_depth} \
+        -rfbport ${VNC_PORT} \
+        -dpi ${VNC_DPI} \
+        -localhost \
+        -desktop AnyOS \
+        -SecurityTypes None \
+        -xstartup /tmp/anyos-xstartup 2>&1)
+    vnc_exit=$?
+    if [ $vnc_exit -ne 0 ]; then
+        log_error "VNC server start failed with exit code $vnc_exit"
+        log_error "VNC output: $vnc_output"
+        dump_vnc_debug
+    else
+        log "VNC server started (exit code $vnc_exit)"
+    fi
 fi
 
 # Wait for background tasks to complete
@@ -435,16 +472,16 @@ log "Starting Plank dock..."
         while ! sudoUserIf xdpyinfo -display "${DISPLAY}" >/dev/null 2>&1; do
             sleep 1
         done
+        if sudoUserIf pgrep -u "${user_name}" -x plank >/dev/null 2>&1; then
+            sleep 5
+            continue
+        fi
         if ! wait_for_window_manager; then
             log_error "Proceeding with Plank despite window manager detection failure"
         fi
         if ! wait_for_session_dbus; then
             log_error "Plank waiting for session D-Bus; retrying in 2 seconds..."
             sleep 2
-            continue
-        fi
-        if sudoUserIf pgrep -u "${user_name}" -x plank >/dev/null 2>&1; then
-            sleep 5
             continue
         fi
         ensure_bamfdaemon

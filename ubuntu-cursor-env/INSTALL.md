@@ -166,6 +166,17 @@ sudo gtk-update-icon-cache -f /usr/share/icons/hicolor
 sudo ANYOS_DESKTOP_APPEARANCE=light /usr/local/bin/configure-os-display <version> /usr/local/bin/configure_os_display.sh.version ubuntu light
 ```
 
+### Re-running `desktop-init.sh` while VNC is already up
+
+Do **not** run a full init on a live desktop unless you mean to restart VNC. A second `tigervncserver :1` fails with "already running" (harmless if you use the idempotent script). Older scripts also wiped `/tmp/.X11-unix` while X was up — avoid that.
+
+- **Plank only:** `sudo bash /path/to/ubuntu-cursor-env/scripts/restart-plank.sh`
+- **Full VNC restart:** `sudo -u ubuntu tigervncserver -kill :1`, then `sudo ANYOS_FORCE_VNC_RESTART=1 /usr/local/share/desktop-init.sh`
+
+### noVNC missing (`/usr/local/novnc` not found)
+
+Re-run the playbook or install script from the repo: `ansible/files/install-remote-vnc-setup.sh` (installs to `/usr/local/novnc/`). Raw VNC on port 5901 still works without noVNC.
+
 ### Plank keeps restarting (`Plank exited, restarting...`)
 
 Two common causes:
