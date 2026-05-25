@@ -123,8 +123,9 @@
 
 	const commentTree = $derived(buildTree(query.data ?? []));
 
-	// `myVote` is per-visitor: trust the highlight once the subscription is fresh.
-	const canVote = $derived(!query.isStale && !!query.data && !!ipHash);
+	// Trust per-visitor vote state once ipHash is loaded and the subscription is fresh.
+	const voteKnown = $derived(!query.isStale && !!query.data && !!ipHash);
+	const canVote = $derived(voteKnown);
 
 	// Reset transient form state on path change
 	let currentPath = $state($page.url.pathname);
