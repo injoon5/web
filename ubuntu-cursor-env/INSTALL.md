@@ -168,19 +168,31 @@ sudo ANYOS_DESKTOP_APPEARANCE=light /usr/local/bin/configure-os-display <version
 
 ### Plank keeps restarting (`Plank exited, restarting...`)
 
-Plank needs the **XFCE session D-Bus**, not `autolaunch:`. Updated `desktop-init.sh` waits for `~/.dbus/session-bus/*` and logs to `/tmp/plank.log`.
+Two common causes:
 
-On a running VM, pull the fix and restart desktop init, or patch `/usr/local/share/desktop-init.sh` and:
+1. **No session D-Bus** — Plank must use the bus from `xfce4-session` (`~/.dbus/session-bus/*`), not `autolaunch:`.
+2. **`sudo -u` drops env** — Even with a valid bus address, `sudo -u ubuntu plank` strips `DBUS_SESSION_BUS_ADDRESS`. Current `desktop-init.sh` uses `sudoUserEnvIf` to pass `DISPLAY`, D-Bus, and XDG vars explicitly.
+
+xstartup uses `dbus-run-session -- startxfce4`. Logs: `/tmp/plank.log`, `/tmp/bamfdaemon.log`.
+
+On a running VM:
 
 ```bash
-sudo pkill plank || true
-sudo rm -f /tmp/plank.log
-# ensure session dbus exists (xfce must be running)
+sudo apt-get install -y bamfdaemon dbus-x11
+# deploy latest /usr/local/share/desktop-init.sh from this repo, then:
+sudo pkill plank bamfdaemon 2>/dev/null || true
+sudo rm -f /tmp/plank.log /tmp/bamfdaemon.log
 grep DBUS_SESSION_BUS_ADDRESS /home/ubuntu/.dbus/session-bus/* | tail -1
 sudo /usr/local/share/desktop-init.sh
+tail -30 /tmp/plank.log
 ```
 
-Install `bamfdaemon` if matcher warnings persist: `sudo apt-get install -y bamfdaemon`
+Manual test (replace `ADDR` and user):
+
+```bash
+ADDR=$(grep '^DBUS_SESSION_BUS_ADDRESS=' /home/ubuntu/.dbus/session-bus/* | head -1 | cut -d= -f2- | tr -d "'\"")
+sudo -u ubuntu env DISPLAY=:1 DBUS_SESSION_BUS_ADDRESS="$ADDR" XDG_CURRENT_DESKTOP=XFCE plank -d
+```
 
 ### HiDPI (4K)
 

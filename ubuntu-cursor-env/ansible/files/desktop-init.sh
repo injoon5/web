@@ -104,6 +104,34 @@ sudoUserIf() {
     fi
 }
 
+# sudo -u strips session env; Plank/bamfd need DISPLAY + DBUS passed explicitly.
+sudoUserEnvIf() {
+    plank_env
+    if [ "$(id -u)" -eq 0 ] && [ "${user_name}" != "root" ]; then
+        sudo -u "${user_name}" env \
+            HOME="${HOME}" \
+            USER="${USER}" \
+            DISPLAY="${DISPLAY}" \
+            DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS}" \
+            XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP}" \
+            XDG_SESSION_TYPE="${XDG_SESSION_TYPE}" \
+            XDG_SESSION_CLASS="${XDG_SESSION_CLASS}" \
+            XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-xfce}" \
+            XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}" \
+            GTK_MODULES="${GTK_MODULES}" \
+            GDK_BACKEND="${GDK_BACKEND:-x11}" \
+            LANG="${LANG}" \
+            LANGUAGE="${LANGUAGE}" \
+            GDK_SCALE="${GDK_SCALE}" \
+            GDK_DPI_SCALE="${GDK_DPI_SCALE}" \
+            LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE}" \
+            GALLIUM_DRIVER="${GALLIUM_DRIVER}" \
+            "$@"
+    else
+        "$@"
+    fi
+}
+
 # Debug helpers for service failures
 dump_dbus_debug() {
     log_error "=== D-Bus Debug Info ==="
@@ -178,12 +206,35 @@ wait_for_session_dbus() {
 }
 
 plank_env() {
+    export HOME="${user_home}"
+    export USER="${user_name}"
     export DISPLAY="${DISPLAY}"
     export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS}"
     export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-XFCE}"
     export XDG_SESSION_TYPE="${XDG_SESSION_TYPE:-x11}"
     export XDG_SESSION_CLASS="${XDG_SESSION_CLASS:-user}"
+    export XDG_SESSION_DESKTOP="${XDG_SESSION_DESKTOP:-xfce}"
     export GTK_MODULES="${GTK_MODULES:-gail:atk-bridge}"
+    export GDK_BACKEND="${GDK_BACKEND:-x11}"
+    if [ "${user_name}" != "root" ]; then
+        local uid
+        uid="$(id -u "${user_name}" 2>/dev/null || true)"
+        if [ -n "${uid}" ] && [ -d "/run/user/${uid}" ]; then
+            export XDG_RUNTIME_DIR="/run/user/${uid}"
+        fi
+    fi
+}
+
+ensure_bamfdaemon() {
+    if ! command -v bamfdaemon >/dev/null 2>&1; then
+        return 0
+    fi
+    if sudoUserIf pgrep -u "${user_name}" -x bamfdaemon >/dev/null 2>&1; then
+        return 0
+    fi
+    log "Starting bamfdaemon (Plank window matching)..."
+    sudoUserEnvIf bamfdaemon >>/tmp/bamfdaemon.log 2>&1 &
+    sleep 1
 }
 
 # Wait for window manager to be ready (XFCE4's xfwm4)
@@ -299,7 +350,9 @@ export ELECTRON_FORCE_DEVICE_SCALE_FACTOR=${GDK_SCALE}
 export LIBGL_ALWAYS_SOFTWARE=1
 export GALLIUM_DRIVER=llvmpipe
 
-exec /usr/bin/startxfce4
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+exec dbus-run-session -- /usr/bin/startxfce4
 XSTARTUP
 chmod +x /tmp/anyos-xstartup || log_error "Failed to chmod xstartup script"
 
@@ -390,16 +443,23 @@ log "Starting Plank dock..."
             sleep 2
             continue
         fi
-        plank_env
+        if sudoUserIf pgrep -u "${user_name}" -x plank >/dev/null 2>&1; then
+            sleep 5
+            continue
+        fi
+        ensure_bamfdaemon
         exit_code=0
-        sudoUserIf plank >>/tmp/plank.log 2>&1 || exit_code=$?
+        sudoUserEnvIf plank >>/tmp/plank.log 2>&1 || exit_code=$?
         if [ "${exit_code}" -ne 0 ]; then
             log_error "Plank exited with code ${exit_code} (see /tmp/plank.log)"
-            tail -5 /tmp/plank.log 2>/dev/null | while IFS= read -r line; do
+            tail -10 /tmp/plank.log 2>/dev/null | while IFS= read -r line; do
                 log_error "  plank: ${line}"
             done
         else
-            log "Plank exited cleanly, restarting in 2 seconds..."
+            log_error "Plank exited (code 0); see /tmp/plank.log — restarting in 2 seconds..."
+            tail -5 /tmp/plank.log 2>/dev/null | while IFS= read -r line; do
+                log_error "  plank: ${line}"
+            done
         fi
         sleep 2
     done
