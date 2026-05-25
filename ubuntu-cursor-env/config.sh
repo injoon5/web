@@ -9,7 +9,9 @@
 #   ./config.sh
 #   VNC_USER=ubuntu ANYOS_DESKTOP_APPEARANCE=light ./config.sh
 #
-# Requires: Ubuntu 22.04+ (or Debian with apt), network for apt/chrome/fonts.
+# Requires: Ubuntu 22.04+ (or Debian with apt).
+# Network: required for apt packages and Google Chrome; NOT required for vendored
+# assets when ASSET_INSTALL_MODE=offline (default). See INSTALL.md.
 
 set -euo pipefail
 
@@ -199,8 +201,16 @@ ensure_vnc_user() {
   usermod -aG sudo "${VNC_USER}" 2>/dev/null || true
 }
 
+run_preflight() {
+  if [ -x "${SCRIPT_DIR}/scripts/preflight.sh" ]; then
+    log "Running preflight checks..."
+    "${SCRIPT_DIR}/scripts/preflight.sh"
+  fi
+}
+
 main() {
   require_root
+  run_preflight
   ensure_vnc_user
   install_apt_prerequisites
   sync_ansible_tree
