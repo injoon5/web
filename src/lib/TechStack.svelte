@@ -342,6 +342,7 @@
 	}
 
 	.ts-tabs-clip.ts-clip-animate {
+		will-change: clip-path, opacity;
 		transition:
 			clip-path var(--motion-base) var(--ease-out-soft),
 			opacity var(--motion-fast) ease;
@@ -362,9 +363,11 @@
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 1rem;
+		will-change: transform, opacity;
 	}
 
 	.ts-panel-animate {
+		will-change: transform, opacity;
 		animation: ts-panel-in var(--motion-slow) var(--ease-out-soft) both;
 	}
 
@@ -393,6 +396,7 @@
 	}
 
 	.ts-panel-animate .ts-item {
+		will-change: transform, opacity;
 		animation: ts-item-in 300ms var(--ease-out-soft) both;
 		animation-delay: calc(var(--i) * 45ms);
 	}
