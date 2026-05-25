@@ -167,10 +167,6 @@ export const applyEdit = mutation({
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
-		if (!admin && comment.ipHash !== args.ipHash) {
-			throw new ConvexError({ kind: 'Unauthorized', message: 'Not allowed to edit this comment' });
-		}
-
 		const updatedAt = Date.now();
 		await ctx.db.patch(args.commentId, { text: args.text, updatedAt });
 		return { id: args.commentId, text: args.text, updatedAt };
@@ -190,13 +186,6 @@ export const softDelete = mutation({
 		const comment = await ctx.db.get(args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
-		}
-
-		if (!admin && comment.ipHash !== args.ipHash) {
-			throw new ConvexError({
-				kind: 'Unauthorized',
-				message: 'Not allowed to delete this comment'
-			});
 		}
 
 		await ctx.db.patch(args.commentId, {

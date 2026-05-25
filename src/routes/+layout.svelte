@@ -141,7 +141,7 @@
 			<div class="col-span-12 lg:mt-10">
 				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
 				{#if commit}
-					<p class="tabular mt-1 text-xs font-normal text-neutral-400 dark:text-neutral-600">
+					<p class="mt- tabular text-xs font-normal text-neutral-400 dark:text-neutral-600">
 						Built from
 						<a
 							href="https://github.com/injoon5/web/commit/{commit}"
