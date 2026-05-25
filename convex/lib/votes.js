@@ -1,3 +1,14 @@
+/** Score from denormalized counts (legacy rows without counts sort as 0 until backfill). */
+export function commentScore(doc) {
+	return (doc.upvotes ?? 0) - (doc.downvotes ?? 0);
+}
+
+/** Vote counts from the comment doc when denormalized fields exist. */
+export function voteCountsFromDoc(doc) {
+	if (doc.upvotes === undefined || doc.downvotes === undefined) return null;
+	return { upvotes: doc.upvotes, downvotes: doc.downvotes };
+}
+
 /** Read denormalized vote counts from the comment doc, with live fallback. */
 export async function getVoteCounts(ctx, doc, ipHash) {
 	let myVote = null;

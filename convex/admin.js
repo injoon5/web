@@ -3,7 +3,7 @@ import { query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
 import { adminComment } from './lib/serialize.js';
 import { isUrlCountsBackfillComplete } from './lib/migration.js';
-import { getVoteCounts } from './lib/votes.js';
+import { getVoteCounts, voteCountsFromDoc } from './lib/votes.js';
 
 async function countActiveCommentsByUrl(ctx) {
 	const counts = new Map();
@@ -57,15 +57,14 @@ export const listForUrl = query({
 			.collect();
 
 		const active = docs.filter((d) => d.deletedAt === null);
+		active.sort((a, b) => a._creationTime - b._creationTime);
 
-		const enriched = await Promise.all(
+		return await Promise.all(
 			active.map(async (doc) => {
-				const { upvotes, downvotes } = await getVoteCounts(ctx, doc, '');
+				const cached = voteCountsFromDoc(doc);
+				const { upvotes, downvotes } = cached ?? (await getVoteCounts(ctx, doc, ''));
 				return adminComment(doc, { upvotes, downvotes });
 			})
 		);
-
-		enriched.sort((a, b) => a.createdAt - b.createdAt);
-		return enriched;
 	}
 });

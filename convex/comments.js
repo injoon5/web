@@ -4,7 +4,7 @@ import { limiter } from './rateLimits.js';
 import { assertAdmin, isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
 import { publicComment } from './lib/serialize.js';
-import { applyVoteChange, getVoteCounts } from './lib/votes.js';
+import { applyVoteChange, commentScore, getVoteCounts } from './lib/votes.js';
 import { decrementUrlCount, incrementUrlCount } from './lib/urlCounts.js';
 
 const MAX_DEPTH = 2;
@@ -31,19 +31,20 @@ export const list = query({
 
 		const active = docs.filter((d) => d.deletedAt === null);
 
-		const enriched = await Promise.all(
-			active.map(async (doc) => {
+		active.sort((a, b) => {
+			const scoreDiff = commentScore(b) - commentScore(a);
+			if (scoreDiff !== 0) return scoreDiff;
+			return b._creationTime - a._creationTime;
+		});
+
+		const top = active.slice(0, MAX_COMMENTS);
+
+		return await Promise.all(
+			top.map(async (doc) => {
 				const counts = await getVoteCounts(ctx, doc, ipHash);
 				return publicComment(doc, counts);
 			})
 		);
-
-		enriched.sort((a, b) => {
-			if (b.score !== a.score) return b.score - a.score;
-			return b.createdAt - a.createdAt;
-		});
-
-		return enriched.slice(0, MAX_COMMENTS);
 	}
 });
 

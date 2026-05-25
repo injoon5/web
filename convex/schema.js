@@ -29,11 +29,6 @@ export default defineSchema({
 		complete: v.boolean()
 	}).index('by_key', ['key']),
 
-	migrationMeta: defineTable({
-		key: v.string(),
-		completedAt: v.number()
-	}).index('by_key', ['key']),
-
 	commentVotes: defineTable({
 		commentId: v.id('comments'),
 		ipHash: v.string(),
