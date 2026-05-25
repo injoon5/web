@@ -135,7 +135,25 @@ Use offline mode (default). Ensure `vendor/cloud-agent-assets/` exists in your c
 - `sudo apt-get update` manually  
 - Ubuntu mirrors must be reachable (Chrome + XFCE packages)
 
-### Google Chrome install fails
+### Google Chrome install fails on ARM64 (`ubuntu-ports`, `arm64`)
+
+Google's apt repo only ships **amd64** Chrome. On ARM64, `install-google-chrome.sh` automatically installs **Chromium** and symlinks `/usr/bin/google-chrome-stable` so the rest of the playbook works.
+
+If you already hit the amd64 error, clean up and re-run:
+
+```bash
+sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+sudo rm -f /usr/local/bin/install-google-chrome.sh.version
+sudo apt-get update
+sudo ansible-playbook /opt/cursor/ansible/vnc-desktop.yml \
+  --connection=local -i localhost, \
+  -e vnc_user=ubuntu \
+  --start-at-task "Install Google Chrome setup and package"
+```
+
+Or pull the latest `ubuntu-cursor-env` and run `sudo ./config.sh` again.
+
+### Google Chrome install fails (amd64)
 
 `install-google-chrome.sh` downloads from Google. Proxy/firewall must allow `dl.google.com`.
 

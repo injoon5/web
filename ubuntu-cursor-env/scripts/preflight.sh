@@ -63,6 +63,15 @@ for logo in cursor-logo.svg cursor-logo-dark.svg; do
   [ -f "${ENV_ROOT}/ansible/files/logos/${logo}" ] && ok "logo ${logo}" || bad "missing ansible/files/logos/${logo}"
 done
 
+deb_arch="$(dpkg --print-architecture 2>/dev/null || uname -m)"
+case "${deb_arch}" in
+  arm64|armhf|aarch64)
+    ok "architecture ${deb_arch} — install-google-chrome will use Chromium"
+    ;;
+  amd64) ok "architecture ${deb_arch} — Google Chrome deb supported" ;;
+  *) warn_msg "architecture ${deb_arch} — browser install may use Chromium fallback" ;;
+esac
+
 if [ -n "${CLOUD_AGENT_ASSETS_DOWNLOAD_BASE_URL:-}" ]; then
   if command -v curl >/dev/null 2>&1; then
     code="$(curl -sI -m 10 -o /dev/null -w '%{http_code}' \

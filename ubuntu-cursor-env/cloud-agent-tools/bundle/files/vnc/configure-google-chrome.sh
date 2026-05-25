@@ -34,8 +34,14 @@ if [ -f "${VERSION_PATH}" ] && [ "$(tr -d '\n\r' < "${VERSION_PATH}")" = "${SCRI
 fi
 
 if [ ! -x /usr/bin/google-chrome-stable ]; then
-    echo "ERROR: Google Chrome is not installed; cannot apply Chrome configuration" >&2
+    echo "ERROR: Browser is not installed at /usr/bin/google-chrome-stable; run install-google-chrome first" >&2
     exit 1
+fi
+
+if command -v chromium-browser >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1; then
+    if readlink -f /usr/bin/google-chrome-stable 2>/dev/null | grep -q chromium; then
+        echo "Configuring Chromium (ARM64) via google-chrome-stable wrapper"
+    fi
 fi
 
 CHROME_DESKTOP_FILE="/usr/share/applications/google-chrome.desktop"
