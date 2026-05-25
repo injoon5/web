@@ -1,17 +1,25 @@
-const URL_COUNTS_KEY = 'urlCounts';
+/**
+ * migrationMeta — one-time backfill completion flags (not a migration runner).
+ *
+ * Each row: { key, complete: true }. Used so reads can skip expensive fallbacks
+ * after batched backfills finish. Add a new key per backfill job.
+ */
 
-export async function isUrlCountsBackfillComplete(ctx) {
+export const URL_COUNTS_KEY = 'urlCounts';
+export const VOTE_COUNTS_KEY = 'voteCounts';
+
+async function isBackfillComplete(ctx, key) {
 	const row = await ctx.db
 		.query('migrationMeta')
-		.withIndex('by_key', (q) => q.eq('key', URL_COUNTS_KEY))
+		.withIndex('by_key', (q) => q.eq('key', key))
 		.unique();
 	return row?.complete === true;
 }
 
-export async function setUrlCountsBackfillComplete(ctx) {
+async function setBackfillComplete(ctx, key) {
 	const existing = await ctx.db
 		.query('migrationMeta')
-		.withIndex('by_key', (q) => q.eq('key', URL_COUNTS_KEY))
+		.withIndex('by_key', (q) => q.eq('key', key))
 		.unique();
 
 	if (existing) {
@@ -19,5 +27,21 @@ export async function setUrlCountsBackfillComplete(ctx) {
 		return;
 	}
 
-	await ctx.db.insert('migrationMeta', { key: URL_COUNTS_KEY, complete: true });
+	await ctx.db.insert('migrationMeta', { key, complete: true });
+}
+
+export function isUrlCountsBackfillComplete(ctx) {
+	return isBackfillComplete(ctx, URL_COUNTS_KEY);
+}
+
+export function setUrlCountsBackfillComplete(ctx) {
+	return setBackfillComplete(ctx, URL_COUNTS_KEY);
+}
+
+export function isVoteCountsBackfillComplete(ctx) {
+	return isBackfillComplete(ctx, VOTE_COUNTS_KEY);
+}
+
+export function setVoteCountsBackfillComplete(ctx) {
+	return setBackfillComplete(ctx, VOTE_COUNTS_KEY);
 }

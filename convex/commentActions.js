@@ -17,6 +17,19 @@ async function requirePassword(ctx, commentId, password) {
 	}
 }
 
+/** Rate limit + password for non-admin callers. */
+async function authorizeOwner(ctx, { commentId, password, ipHash, adminSecret }) {
+	if (await isAdmin(adminSecret)) return;
+
+	await ctx.runMutation(internal.comments.consumeEditRateLimit, { ipHash });
+
+	if (!password) {
+		throw new ConvexError({ kind: 'Unauthorized', message: 'Incorrect password' });
+	}
+
+	await requirePassword(ctx, commentId, password);
+}
+
 export const editComment = action({
 	args: {
 		commentId: v.id('comments'),
@@ -26,12 +39,7 @@ export const editComment = action({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = await isAdmin(args.adminSecret);
-
-		if (!admin) {
-			await ctx.runMutation(internal.comments.consumeEditRateLimit, { ipHash: args.ipHash });
-			await requirePassword(ctx, args.commentId, args.password);
-		}
+		await authorizeOwner(ctx, args);
 
 		return await ctx.runMutation(internal.comments.applyEdit, {
 			commentId: args.commentId,
@@ -48,15 +56,7 @@ export const softDeleteComment = action({
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
-		const admin = await isAdmin(args.adminSecret);
-
-		if (!admin) {
-			await ctx.runMutation(internal.comments.consumeEditRateLimit, { ipHash: args.ipHash });
-			if (!args.password) {
-				throw new ConvexError({ kind: 'Unauthorized', message: 'Incorrect password' });
-			}
-			await requirePassword(ctx, args.commentId, args.password);
-		}
+		await authorizeOwner(ctx, args);
 
 		await ctx.runMutation(internal.comments.softDelete, {
 			commentId: args.commentId

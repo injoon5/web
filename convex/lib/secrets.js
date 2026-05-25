@@ -1,4 +1,7 @@
-/** Constant-time HMAC-SHA256 comparison for admin secrets (Convex V8 runtime). */
+/**
+ * Constant-time HMAC-SHA256 comparison for admin secrets (Convex V8 runtime).
+ * Must match the algorithm in src/lib/server/admin.ts (Node crypto).
+ */
 export async function secretsMatch(candidate, secret) {
 	if (!secret || !candidate) return false;
 

@@ -2,7 +2,8 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api.js';
 import { internalMutation, mutation } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
-import { setUrlCountsBackfillComplete } from './lib/migration.js';
+import { paginateCommentBatches } from './lib/commentsScan.js';
+import { setUrlCountsBackfillComplete, setVoteCountsBackfillComplete } from './lib/migration.js';
 import { incrementUrlCount } from './lib/urlCounts.js';
 import { countAllVotes } from './lib/votes.js';
 
@@ -26,7 +27,10 @@ export const backfillVoteCountsBatch = internalMutation({
 			await ctx.scheduler.runAfter(0, internal.backfill.backfillVoteCountsBatch, {
 				cursor: batch.continueCursor
 			});
+			return;
 		}
+
+		await setVoteCountsBackfillComplete(ctx);
 	}
 });
 

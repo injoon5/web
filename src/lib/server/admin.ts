@@ -1,6 +1,8 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { ADMIN_SECRET } from '$env/static/private';
 
+/** Must stay in sync with convex/lib/secrets.js (Convex V8 crypto.subtle). */
+
 const SESSION_MAX_AGE_MS = 60 * 60 * 24 * 1000;
 
 export function secretsMatch(candidate: string): boolean {

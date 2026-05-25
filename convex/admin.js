@@ -1,28 +1,10 @@
 import { v } from 'convex/values';
 import { query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
+import { countActiveCommentsByUrl } from './lib/commentsScan.js';
 import { adminComment } from './lib/serialize.js';
 import { isUrlCountsBackfillComplete } from './lib/migration.js';
 import { getVoteCounts, voteCountsFromDoc } from './lib/votes.js';
-
-async function countActiveCommentsByUrl(ctx) {
-	const counts = new Map();
-	let cursor = null;
-
-	do {
-		const batch = await ctx.db.query('comments').paginate({
-			numItems: 500,
-			cursor
-		});
-		for (const comment of batch.page) {
-			if (comment.deletedAt !== null) continue;
-			counts.set(comment.url, (counts.get(comment.url) ?? 0) + 1);
-		}
-		cursor = batch.isDone ? null : batch.continueCursor;
-	} while (cursor);
-
-	return counts;
-}
 
 export const listUrls = query({
 	args: { adminSecret: v.string() },
