@@ -81,7 +81,7 @@ export async function applyVoteChange(ctx, comment, existing, voteType, ipHash) 
 			voteType
 		});
 		if (voteType === 'up') upvotes++;
-		else downvotes--;
+		else downvotes++;
 	}
 
 	await ctx.db.patch(comment._id, { upvotes, downvotes });
