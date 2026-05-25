@@ -84,6 +84,7 @@
 			updateClip();
 		});
 		ro.observe(tabsEl);
+		if (tabsScrollEl) ro.observe(tabsScrollEl);
 		return () => ro.disconnect();
 	});
 
@@ -175,7 +176,6 @@
 				aria-controls="ts-panel"
 				tabindex={activeIndex === 'favorites' ? 0 : -1}
 				class="ts-tab"
-				style="font-size: 1rem;"
 				onclick={() => selectTab('favorites')}
 				onkeydown={(e) => onTabKeydown(e, -1, true)}
 			>
@@ -192,7 +192,6 @@
 					aria-controls="ts-panel"
 					tabindex={activeIndex === index ? 0 : -1}
 					class="ts-tab"
-					style="font-size: 1rem;"
 					onclick={() => selectTab(index)}
 					onkeydown={(e) => onTabKeydown(e, index, false)}
 				>
@@ -206,10 +205,10 @@
 				style:opacity={clipVisible ? 1 : 0}
 				aria-hidden="true"
 			>
-				<span class="ts-clip-item" style="font-size: 1rem;">Favorites</span>
+				<span class="ts-clip-item"><span class="ts-tab-label">Favorites</span></span>
 				{#each techstack as category}
 					<span class="ts-clip-gap" aria-hidden="true">·</span>
-					<span class="ts-clip-item" style="font-size: 1rem;">{category.name}</span>
+					<span class="ts-clip-item"><span class="ts-tab-label">{category.name}</span></span>
 				{/each}
 			</div>
 		</div>
@@ -242,6 +241,12 @@
 </div>
 
 <style>
+	/* Isolate tab metrics from homepage section typography (text-lg, etc.) */
+	.ts-root {
+		font-size: 1rem;
+		line-height: 1.25rem;
+	}
+
 	/* --- Tabs --- */
 	.ts-tabs-scroll {
 		overflow-x: auto;
@@ -254,6 +259,11 @@
 		display: none;
 	}
 
+	.ts-tabs,
+	.ts-tabs-clip {
+		align-items: center;
+	}
+
 	.ts-tabs {
 		position: relative;
 		display: inline-flex;
@@ -264,10 +274,19 @@
 	.ts-tab,
 	.ts-clip-item {
 		flex-shrink: 0;
-		padding: 0.25rem 0.6rem 0.25rem 0;
-		font-size: 0.875rem;
+		margin: 0;
+		padding: 0.25rem 0 0.25rem 0;
+		border: 0;
+		background: none;
+		appearance: none;
+		font: inherit;
 		font-weight: 500;
 		white-space: nowrap;
+	}
+
+	.ts-tab {
+		cursor: pointer;
+		color: inherit;
 	}
 
 	.ts-tab-label {
@@ -276,10 +295,16 @@
 
 	.ts-sep,
 	.ts-clip-gap {
+		box-sizing: border-box;
 		flex-shrink: 0;
-		padding-right: 0.6rem;
-		font-size: 1rem;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.45rem;
+		padding: 0.25rem 0;
+		font: inherit;
 		font-weight: 400;
+		line-height: 1.25rem;
 		pointer-events: none;
 		user-select: none;
 	}
@@ -342,6 +367,7 @@
 	}
 
 	.ts-tabs-clip.ts-clip-animate {
+		will-change: clip-path, opacity;
 		transition:
 			clip-path var(--motion-base) var(--ease-out-soft),
 			opacity var(--motion-fast) ease;
@@ -362,9 +388,11 @@
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 1rem;
+		will-change: transform, opacity;
 	}
 
 	.ts-panel-animate {
+		will-change: transform, opacity;
 		animation: ts-panel-in var(--motion-slow) var(--ease-out-soft) both;
 	}
 
@@ -393,6 +421,7 @@
 	}
 
 	.ts-panel-animate .ts-item {
+		will-change: transform, opacity;
 		animation: ts-item-in 300ms var(--ease-out-soft) both;
 		animation-delay: calc(var(--i) * 45ms);
 	}
