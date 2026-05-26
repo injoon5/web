@@ -1,10 +1,12 @@
-const FONT_BASE = 'https://cdn.jsdelivr.net/npm/@fontsource/pretendard@5.2.5/files';
+// Full Pretendard (not the @fontsource `latin` subset, which has no Hangul) so
+// Korean titles/labels render in OG images instead of missing-glyph boxes.
+const FONT_BASE = 'https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff';
 
 const FONT_URLS = {
-	regular: `${FONT_BASE}/pretendard-latin-400-normal.woff`,
-	medium: `${FONT_BASE}/pretendard-latin-500-normal.woff`,
-	semibold: `${FONT_BASE}/pretendard-latin-600-normal.woff`,
-	bold: `${FONT_BASE}/pretendard-latin-700-normal.woff`
+	regular: `${FONT_BASE}/Pretendard-Regular.woff`,
+	medium: `${FONT_BASE}/Pretendard-Medium.woff`,
+	semibold: `${FONT_BASE}/Pretendard-SemiBold.woff`,
+	bold: `${FONT_BASE}/Pretendard-Bold.woff`
 };
 
 /** @type {import('satori').Font[] | null} */

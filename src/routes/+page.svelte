@@ -223,8 +223,15 @@
 						{post.description ||
 							'Some amazing project that I forgot or failed to write a description for. '}
 					</p>
-					<div class="text-sm font-medium whitespace-nowrap text-neutral-500 dark:text-neutral-500">
-						{post.date || post.year}
+					<div
+						class="flex items-center gap-2 text-sm font-medium text-neutral-500 dark:text-neutral-500"
+					>
+						<span class="whitespace-nowrap">{post.date || post.year}</span>
+						{#if post.hasEn}
+							<span class="text-sm font-semibold text-neutral-400 dark:text-neutral-600"
+								>English</span
+							>
+						{/if}
 					</div>
 				</a>
 			{/each}

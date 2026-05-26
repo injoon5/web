@@ -39,10 +39,19 @@
 					href={`/projects/${project.slug}`}
 					class="group flex flex-row items-center justify-between gap-2"
 				>
-					<span
-						class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline sm:text-base dark:text-neutral-100 dark:group-hover:text-neutral-400"
-					>
-						{project.title}
+					<span class="flex min-w-0 items-center gap-2">
+						<span
+							class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline sm:text-base dark:text-neutral-100 dark:group-hover:text-neutral-400"
+						>
+							{project.title}
+						</span>
+						{#if project.hasEn}
+							<span
+								class="shrink-0 text-xs font-semibold tracking-wide text-neutral-400 uppercase dark:text-neutral-600"
+							>
+								EN
+							</span>
+						{/if}
 					</span>
 					<span
 						class="ml-4 text-base font-medium whitespace-nowrap text-neutral-500 group-hover:text-neutral-600 sm:text-base dark:text-neutral-400 dark:group-hover:text-neutral-500"
