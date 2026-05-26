@@ -22,6 +22,7 @@ export type Project = {
 	tags: TagsList[];
 	coverimage: string;
 	published: boolean;
+	hasEn?: boolean;
 };
 
 export type Tags = {

@@ -19,22 +19,31 @@ const collectMdFiles = (dir) => {
 	});
 };
 
-// Function to fetch all posts
+// Function to fetch all posts. The same slug exists in both en/ and ko/, so we
+// dedupe by slug — preferring Korean (the site default) — to avoid emitting two
+// feed items that point at the same /blog/{slug} URL.
 const getPosts = () => {
 	const files = collectMdFiles(postsDir);
-	return files
-		.map((file) => {
-			const content = fs.readFileSync(file, 'utf-8');
-			const match = /---\s*([\s\S]+?)\s*---/.exec(content);
-			if (match) {
-				const meta = parseFrontmatter(match[1]);
+	const bySlug: Record<string, any> = {};
 
-				meta.slug = path.basename(file, '.md');
-				meta.content = content.replace(/---[\s\S]+?---/, ''); // Remove frontmatter
-				return meta;
-			}
-		})
-		.filter((post) => post && post.published === true);
+	for (const file of files) {
+		const content = fs.readFileSync(file, 'utf-8');
+		const match = /---\s*([\s\S]+?)\s*---/.exec(content);
+		if (!match) continue;
+
+		const meta: any = parseFrontmatter(match[1]);
+		if (meta.published !== true) continue;
+
+		meta.slug = path.basename(file, '.md');
+		meta.content = content.replace(/---[\s\S]+?---/, ''); // Remove frontmatter
+
+		const isKo = /[/\\]ko[/\\]/.test(file);
+		if (!bySlug[meta.slug] || isKo) bySlug[meta.slug] = meta;
+	}
+
+	return Object.values(bySlug).sort(
+		(first, second) => new Date(second.date).getTime() - new Date(first.date).getTime()
+	);
 };
 
 // Function to clean up content by stripping non-text elements (e.g., images, embeds)

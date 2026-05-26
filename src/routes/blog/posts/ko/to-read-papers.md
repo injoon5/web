@@ -1,7 +1,7 @@
 ---
 type: blog
 title: 읽고 싶은 논문들
-slug: '{{slug}}'
+slug: 'to-read-papers'
 description: '컴퓨터 과학 관련되어 언젠가 꼭 읽어보고 싶은 논문들을 모으고 있습니다. '
 date: '2024-09-15'
 coverimage: ''

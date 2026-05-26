@@ -138,20 +138,36 @@
 	$: currentReadingTime = readingTimeFor(displayLang);
 	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
 	$: currentSeries = seriesFor(displayLang);
-	$: ogMeta = data.koMeta ?? data.enMeta ?? data.meta;
-	$: ogImageUrl = `https://www.injoon5.com/api/og?template=blog-post&title=${encodeURIComponent(ogMeta.title)}&description=${encodeURIComponent(ogMeta.description || '')}&date=${encodeURIComponent(ogMeta.date || '')}`;
+	// Head metadata tracks the language actually being shown so the tab title and
+	// social card match the visible content (and default to Korean for crawlers).
+	$: headMeta = metaFor(displayLang) ?? data.meta;
+	$: ogImageUrl = `https://www.injoon5.com/api/og?template=blog-post&title=${encodeURIComponent(headMeta.title)}&description=${encodeURIComponent(headMeta.description || '')}&date=${encodeURIComponent(headMeta.date || '')}`;
+	// Keep <html lang> in sync with the shown language (SSR sets it via hooks.server.ts).
+	$: if (typeof document !== 'undefined') document.documentElement.lang = displayLang;
 </script>
 
 <!-- SEO -->
 <svelte:head>
-	<title>{ogMeta.title}</title>
+	<title>{headMeta.title}</title>
 	<meta property="og:type" content="article" />
-	<meta property="og:title" content={ogMeta.title} />
-	<meta property="og:description" content={ogMeta.description ?? ''} />
+	<meta property="og:title" content={headMeta.title} />
+	<meta property="og:description" content={headMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content={ogImageUrl} />
 	<meta property="og:url" content="https://www.injoon5.com/blog/{$page.params.slug}" />
+	{#each data.availableLangs as l}
+		<link
+			rel="alternate"
+			hreflang={l}
+			href="https://www.injoon5.com/blog/{$page.params.slug}?lang={l}"
+		/>
+	{/each}
+	<link
+		rel="alternate"
+		hreflang="x-default"
+		href="https://www.injoon5.com/blog/{$page.params.slug}"
+	/>
 </svelte:head>
 
 <Lightbox />
@@ -195,10 +211,24 @@
 			<div
 				class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400"
 			>
-				<p class="tabular">{formatDate(currentMeta.date)}</p>
+				<div class="grid">
+					{#each [displayLang] as l (l)}
+						<p
+							style="grid-area: 1 / 1;"
+							in:blurT={titleBlur}
+							out:blurT={titleBlur}
+							class="tabular whitespace-nowrap"
+						>
+							{formatDate(metaFor(l).date, 'medium', l === 'ko' ? 'ko' : 'en')}
+						</p>
+					{/each}
+				</div>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<NumberFlow value={readingMinutes} suffix=" min read" />
+					<NumberFlow
+						value={readingMinutes}
+						suffix={displayLang === 'ko' ? '분 읽기' : ' min read'}
+					/>
 				{/if}
 			</div>
 			<LanguageSwitcher {lang} {mounted} availableLangs={data.availableLangs} onselect={setLang} />

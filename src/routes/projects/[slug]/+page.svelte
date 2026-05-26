@@ -107,19 +107,35 @@
 	$: currentMeta = metaFor(displayLang);
 	$: currentReadingTime = readingTimeFor(displayLang);
 	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
-	$: ogMeta = data.koMeta ?? data.enMeta ?? data.meta;
-	$: ogImageUrl = `https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(ogMeta.title)}&description=${encodeURIComponent(ogMeta.description || '')}&year=${encodeURIComponent(ogMeta.year || '')}&tags=${encodeURIComponent((ogMeta.tags || []).join(','))}`;
+	// Head metadata tracks the language actually being shown so the tab title and
+	// social card match the visible content (and default to Korean for crawlers).
+	$: headMeta = metaFor(displayLang) ?? data.meta;
+	$: ogImageUrl = `https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(headMeta.title)}&description=${encodeURIComponent(headMeta.description || '')}&year=${encodeURIComponent(headMeta.year || '')}&tags=${encodeURIComponent((headMeta.tags || []).join(','))}`;
+	// Keep <html lang> in sync with the shown language (SSR sets it via hooks.server.ts).
+	$: if (typeof document !== 'undefined') document.documentElement.lang = displayLang;
 </script>
 
 <svelte:head>
-	<title>{ogMeta.title}</title>
+	<title>{headMeta.title}</title>
 	<meta property="og:type" content="article" />
-	<meta property="og:title" content={ogMeta.title} />
-	<meta property="og:description" content={ogMeta.description ?? ''} />
+	<meta property="og:title" content={headMeta.title} />
+	<meta property="og:description" content={headMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content={ogImageUrl} />
 	<meta property="og:url" content="https://www.injoon5.com/projects/{$page.params.slug}" />
+	{#each data.availableLangs as l}
+		<link
+			rel="alternate"
+			hreflang={l}
+			href="https://www.injoon5.com/projects/{$page.params.slug}?lang={l}"
+		/>
+	{/each}
+	<link
+		rel="alternate"
+		hreflang="x-default"
+		href="https://www.injoon5.com/projects/{$page.params.slug}"
+	/>
 </svelte:head>
 
 <Lightbox />
@@ -149,10 +165,13 @@
 				<p class="tabular">{currentMeta.year}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<NumberFlow value={readingMinutes} suffix=" min read" />
+					<NumberFlow
+						value={readingMinutes}
+						suffix={displayLang === 'ko' ? '분 읽기' : ' min read'}
+					/>
 				{/if}
 			</div>
-			
+
 			<div class="mt-3 overflow-hidden" use:autoHeight={headerHeight}>
 				<div class="grid" data-auto-height-inner>
 					{#each [displayLang] as l (l)}
@@ -180,7 +199,6 @@
 			<div class="my-4">
 				<LikeButton />
 			</div>
-			
 		</div>
 
 		<div class="mt-10 grid min-w-0 overflow-hidden" bind:clientWidth={bodyWidth}>
