@@ -34,24 +34,41 @@
 
 	// Optimistic intent: the liked state the user picked but the server hasn't
 	// confirmed yet. `null` means "no pending intent, trust the server".
-	let pendingLiked = $state(null);
+	let desired = $state(null);
 	let pendingPath = $state(null);
-	let inFlight = false;
+	let inFlight = $state(false);
+	// The intent value most recently persisted to the server. Lets the sync loop
+	// tell "synced, waiting for realtime" apart from "still needs to be sent".
+	let lastSent = null;
 	let likeError = $state('');
 	let likeErrorTimer = null;
 	let particles = $state([]);
 	let particleId = 0;
 
-	// Drop the optimistic override once realtime confirms it (or moves past it).
+	// New page: abandon any intent from the previous page and trust its server
+	// state. An in-flight request for the old page still completes (and persists),
+	// it just no longer touches this page's UI.
+	let trackedPath = null;
 	$effect(() => {
-		if (pendingLiked !== null && pendingPath === path && ready && serverLiked === pendingLiked) {
-			pendingLiked = null;
+		if (path !== trackedPath) {
+			trackedPath = path;
+			desired = null;
+			pendingPath = null;
+			lastSent = null;
 		}
 	});
 
-	const activePending = $derived(
-		pendingLiked !== null && pendingPath === path ? pendingLiked : null
-	);
+	// Drop the optimistic override only once nothing is in flight AND realtime
+	// reflects our latest intent, so the button can never settle out of sync.
+	$effect(() => {
+		if (desired !== null && pendingPath === path && !inFlight && ready && serverLiked === desired) {
+			desired = null;
+			pendingPath = null;
+			lastSent = null;
+		}
+	});
+
+	const activePending = $derived(desired !== null && pendingPath === path ? desired : null);
 	const isLiked = $derived(activePending !== null ? activePending : serverLiked);
 	// Adjust the global count by our own optimistic delta only; other visitors'
 	// likes already flow through `serverCount`.
@@ -92,48 +109,67 @@
 	function toggleLike() {
 		if (!interactive) return;
 		const next = !isLiked;
+		desired = next;
 		pendingPath = path;
-		pendingLiked = next;
 		if (next) spawnHearts();
-		flush(path);
+		sync();
 	}
 
-	// Serialize writes: one request in flight at a time, always converging on the
-	// latest intent. `setLike` is idempotent, so out-of-order clicks settle to the
-	// final desired state instead of fighting each other.
-	async function flush(targetPath) {
+	// Persist the user's latest intent. One request in flight at a time; after each
+	// send the loop re-reads `desired`, so the final state always reaches the server
+	// (setLike is idempotent, so overlapping clicks converge instead of fighting).
+	// On failure the optimistic state reverts and an error is shown, so the button
+	// can never settle in a state different from the server.
+	async function sync() {
 		if (inFlight) return;
-		if (pendingLiked === null || pendingPath !== targetPath) return;
-
-		const desired = pendingLiked;
 		inFlight = true;
 		try {
-			const res = await fetch('/api/likes', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ url: targetPath, liked: desired })
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				// Revert the optimistic state back to whatever the server reports.
-				if (pendingPath === targetPath) pendingLiked = null;
-				showLikeError(data.message ?? 'Could not save like.');
-				return;
+			while (desired !== null && desired !== lastSent && pendingPath === path) {
+				const sending = desired;
+				const targetPath = path;
+				let res = null;
+				let threw = false;
+				try {
+					res = await fetch('/api/likes', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ url: targetPath, liked: sending })
+					});
+				} catch {
+					threw = true;
+				}
+
+				// Navigated away mid-request: the write for the old page was already
+				// sent, so stop — this page starts from its own server state.
+				if (path !== targetPath) break;
+
+				if (threw) {
+					revert('Something went wrong.');
+					break;
+				}
+				if (!res.ok) {
+					const data = await res.json().catch(() => ({}));
+					revert(data.message ?? 'Could not save like.');
+					break;
+				}
+				lastSent = sending;
 			}
-			// Success: realtime will deliver the new server state and the reconcile
-			// effect clears the optimistic override.
-		} catch {
-			if (pendingPath === targetPath) pendingLiked = null;
-			showLikeError('Something went wrong.');
-			return;
 		} finally {
 			inFlight = false;
 		}
 
-		// The user changed their mind mid-flight — send the newest intent.
-		if (pendingLiked !== null && pendingLiked !== desired && pendingPath === targetPath) {
-			flush(targetPath);
+		// A newer intent may have arrived while the lock was held (e.g. a click that
+		// landed during navigation). Drive it now that we have released the lock.
+		if (desired !== null && desired !== lastSent && pendingPath === path) {
+			sync();
 		}
+	}
+
+	function revert(message) {
+		desired = null;
+		pendingPath = null;
+		lastSent = null;
+		showLikeError(message);
 	}
 </script>
 
