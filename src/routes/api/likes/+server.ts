@@ -29,13 +29,14 @@ export const POST: RequestHandler = async ({ request }) => {
 	const parsed = likeSchema.safeParse(raw);
 	if (!parsed.success) throw error(400, 'Missing url');
 
-	const { url: pageUrl } = parsed.data;
+	const { url: pageUrl, liked } = parsed.data;
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
 	return runConvex(() =>
-		convex.mutation(api.likes.toggle, {
+		convex.mutation(api.likes.setLike, {
 			url: pageUrl,
 			ipHash,
+			liked,
 			adminSecret: admin ? ADMIN_SECRET : undefined
 		})
 	);

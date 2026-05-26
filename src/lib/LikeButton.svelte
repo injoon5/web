@@ -4,69 +4,77 @@
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import Heart from '@lucide/svelte/icons/heart';
-	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 
 	const ipHash = $derived($page.data.ipHash ?? '');
+	const path = $derived($page.url.pathname);
 
 	const query = useQuery(
 		api.likes.get,
 		() => ({
-			url: $page.url.pathname,
+			url: path,
 			ipHash
 		}),
 		// Keep the prior result so the count doesn't flash to the skeleton when
-		// the ipHash re-subscription fires. `isStale` (below) tells us when the
-		// retained data belongs to different args so we never treat data from a
-		// previous page — or the pre-resolution hash — as authoritative.
+		// the subscription re-fires. `freshPath` (below) tracks which page the
+		// latest non-stale result belongs to, so retained data from a previous
+		// page is never treated as authoritative.
 		{ keepPreviousData: true }
 	);
 
-	let toggling = $state(false);
+	// Pathname the most recent fresh (non-stale) result belongs to.
+	let freshPath = $state(null);
+	$effect(() => {
+		if (query.data && !query.isStale) freshPath = path;
+	});
+	const ready = $derived(!query.isStale && !!query.data && freshPath === path);
+
+	// Authoritative server state for this page (count is global; liked is per-IP).
+	const serverCount = $derived(ready ? (query.data.count ?? 0) : 0);
+	const serverLiked = $derived(ready && !!ipHash ? !!query.data.liked : false);
+
+	// Optimistic intent: the liked state the user picked but the server hasn't
+	// confirmed yet. `null` means "no pending intent, trust the server".
+	let desired = $state(null);
+	let pendingPath = $state(null);
+	let inFlight = $state(false);
+	// The intent value most recently persisted to the server. Lets the sync loop
+	// tell "synced, waiting for realtime" apart from "still needs to be sent".
+	let lastSent = null;
 	let likeError = $state('');
 	let likeErrorTimer = null;
 	let particles = $state([]);
 	let particleId = 0;
-	let mutationResult = $state(null);
 
-	// Pathname of the most recent fresh (non-stale) result, so we can tell
-	// whether retained stale data still applies to the current page (an ipHash
-	// swap on the same URL) or belongs to a post we navigated away from.
-	let dataUrl = $state(null);
+	// New page: abandon any intent from the previous page and trust its server
+	// state. An in-flight request for the old page still completes (and persists),
+	// it just no longer touches this page's UI.
+	let trackedPath = null;
 	$effect(() => {
-		if (query.data && !query.isStale) dataUrl = $page.url.pathname;
-	});
-
-	const path = $derived($page.url.pathname);
-	const freshQueryForPath = $derived(!query.isStale && !!query.data && dataUrl === path);
-	$effect(() => {
-		if (!mutationResult) return;
-		if (
-			mutationResult.url !== path ||
-			(freshQueryForPath && query.data.liked === mutationResult.liked)
-		) {
-			mutationResult = null;
+		if (path !== trackedPath) {
+			trackedPath = path;
+			desired = null;
+			pendingPath = null;
+			lastSent = null;
 		}
 	});
-	// The count is independent of the visitor's hash, so retained same-URL data
-	// is still correct; only data carried over from another URL must be hidden.
-	const countApplies = $derived(!query.isStale || dataUrl === path);
-	// `liked` is per-visitor: trust it once the subscription is fresh for this page.
-	const likedReady = $derived(freshQueryForPath && !!ipHash);
 
-	const currentMutationResult = $derived(mutationResult?.url === path ? mutationResult : null);
-	const likeCount = $derived(
-		currentMutationResult
-			? currentMutationResult.count
-			: countApplies
-				? (query.data?.count ?? 0)
-				: 0
-	);
-	const isLiked = $derived(
-		currentMutationResult ? currentMutationResult.liked : likedReady ? query.data.liked : false
-	);
-	const showCount = $derived(!!currentMutationResult || (countApplies && !!query.data));
-	const interactive = $derived(countApplies && likedReady);
-	const busy = $derived(!interactive || toggling);
+	// Drop the optimistic override only once nothing is in flight AND realtime
+	// reflects our latest intent, so the button can never settle out of sync.
+	$effect(() => {
+		if (desired !== null && pendingPath === path && !inFlight && ready && serverLiked === desired) {
+			desired = null;
+			pendingPath = null;
+			lastSent = null;
+		}
+	});
+
+	const activePending = $derived(desired !== null && pendingPath === path ? desired : null);
+	const isLiked = $derived(activePending !== null ? activePending : serverLiked);
+	// Adjust the global count by our own optimistic delta only; other visitors'
+	// likes already flow through `serverCount`.
+	const likeCount = $derived(serverCount + ((isLiked ? 1 : 0) - (serverLiked ? 1 : 0)));
+	const showCount = $derived(ready || activePending !== null);
+	const interactive = $derived(ready && !!ipHash);
 
 	function showLikeError(message) {
 		likeError = message;
@@ -98,31 +106,70 @@
 		}, 900);
 	}
 
-	async function toggleLike() {
-		toggling = true;
+	function toggleLike() {
+		if (!interactive) return;
+		const next = !isLiked;
+		desired = next;
+		pendingPath = path;
+		if (next) spawnHearts();
+		sync();
+	}
+
+	// Persist the user's latest intent. One request in flight at a time; after each
+	// send the loop re-reads `desired`, so the final state always reaches the server
+	// (setLike is idempotent, so overlapping clicks converge instead of fighting).
+	// On failure the optimistic state reverts and an error is shown, so the button
+	// can never settle in a state different from the server.
+	async function sync() {
+		if (inFlight) return;
+		inFlight = true;
 		try {
-			const res = await fetch('/api/likes', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ url: $page.url.pathname })
-			});
-			if (res.ok) {
-				const data = await res.json();
-				mutationResult = {
-					url: $page.url.pathname,
-					count: data.count,
-					liked: data.liked
-				};
-				if (data.liked) spawnHearts();
-			} else {
-				const data = await res.json().catch(() => ({}));
-				showLikeError(data.message ?? 'Could not save like.');
+			while (desired !== null && desired !== lastSent && pendingPath === path) {
+				const sending = desired;
+				const targetPath = path;
+				let res = null;
+				let threw = false;
+				try {
+					res = await fetch('/api/likes', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ url: targetPath, liked: sending })
+					});
+				} catch {
+					threw = true;
+				}
+
+				// Navigated away mid-request: the write for the old page was already
+				// sent, so stop — this page starts from its own server state.
+				if (path !== targetPath) break;
+
+				if (threw) {
+					revert('Something went wrong.');
+					break;
+				}
+				if (!res.ok) {
+					const data = await res.json().catch(() => ({}));
+					revert(data.message ?? 'Could not save like.');
+					break;
+				}
+				lastSent = sending;
 			}
-		} catch {
-			showLikeError('Something went wrong.');
 		} finally {
-			toggling = false;
+			inFlight = false;
 		}
+
+		// A newer intent may have arrived while the lock was held (e.g. a click that
+		// landed during navigation). Drive it now that we have released the lock.
+		if (desired !== null && desired !== lastSent && pendingPath === path) {
+			sync();
+		}
+	}
+
+	function revert(message) {
+		desired = null;
+		pendingPath = null;
+		lastSent = null;
+		showLikeError(message);
 	}
 </script>
 
@@ -152,7 +199,7 @@
 
 		<button
 			onclick={toggleLike}
-			disabled={busy}
+			disabled={!interactive}
 			aria-pressed={isLiked}
 			/* 
 			   transition-[background-color,border-color,color,transform,width] enables width, see next line
@@ -164,16 +211,12 @@
 				? 'border-rose-300/70 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-950/60'
 				: 'border-neutral-200 bg-transparent text-neutral-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-rose-900/50 dark:hover:bg-rose-950/30 dark:hover:text-rose-300'}"
 		>
-			{#if busy}
-				<LoaderCircle size="14" strokeWidth="2" class="animate-spin" aria-hidden="true" />
-			{:else}
-				<Heart
-					size="14"
-					strokeWidth="2"
-					fill={isLiked ? 'currentColor' : 'none'}
-					aria-hidden="true"
-				/>
-			{/if}
+			<Heart
+				size="14"
+				strokeWidth="2"
+				fill={isLiked ? 'currentColor' : 'none'}
+				aria-hidden="true"
+			/>
 			<span
 				class="like-label inline-block whitespace-nowrap transition-[width] duration-200 ease-out will-change-[width]"
 				style="width: {isLiked ? '40px' : '30px'}"
