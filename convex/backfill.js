@@ -3,8 +3,13 @@ import { internal } from './_generated/api.js';
 import { internalMutation, mutation } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
 import { paginateCommentBatches } from './lib/commentsScan.js';
-import { setUrlCountsBackfillComplete, setVoteCountsBackfillComplete } from './lib/migration.js';
+import {
+	setLikeCountsBackfillComplete,
+	setUrlCountsBackfillComplete,
+	setVoteCountsBackfillComplete
+} from './lib/migration.js';
 import { incrementUrlCount } from './lib/urlCounts.js';
+import { incrementLikeCount } from './lib/likeCounts.js';
 import { countAllVotes } from './lib/votes.js';
 
 const BATCH_SIZE = 100;
@@ -69,6 +74,40 @@ export const backfillUrlCountsBatch = internalMutation({
 	}
 });
 
+export const backfillLikeCountsBatch = internalMutation({
+	args: {
+		cursor: v.union(v.string(), v.null()),
+		reset: v.boolean()
+	},
+	handler: async (ctx, { cursor, reset }) => {
+		if (reset) {
+			const existing = await ctx.db.query('likeCounts').collect();
+			for (const row of existing) {
+				await ctx.db.delete(row._id);
+			}
+		}
+
+		const batch = await ctx.db.query('likes').paginate({
+			numItems: BATCH_SIZE,
+			cursor
+		});
+
+		for (const doc of batch.page) {
+			await incrementLikeCount(ctx, doc.url);
+		}
+
+		if (!batch.isDone) {
+			await ctx.scheduler.runAfter(0, internal.backfill.backfillLikeCountsBatch, {
+				cursor: batch.continueCursor,
+				reset: false
+			});
+			return;
+		}
+
+		await setLikeCountsBackfillComplete(ctx);
+	}
+});
+
 export const run = mutation({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
@@ -78,6 +117,10 @@ export const run = mutation({
 			cursor: null
 		});
 		await ctx.scheduler.runAfter(0, internal.backfill.backfillUrlCountsBatch, {
+			cursor: null,
+			reset: true
+		});
+		await ctx.scheduler.runAfter(0, internal.backfill.backfillLikeCountsBatch, {
 			cursor: null,
 			reset: true
 		});

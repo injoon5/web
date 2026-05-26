@@ -44,6 +44,11 @@ export default defineSchema({
 		.index('by_url', ['url'])
 		.index('by_url_ip', ['url', 'ipHash']),
 
+	likeCounts: defineTable({
+		url: v.string(),
+		count: v.number()
+	}).index('by_url', ['url']),
+
 	bannedIps: defineTable({
 		ipHash: v.string(),
 		reason: v.union(v.string(), v.null())

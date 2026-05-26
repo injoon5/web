@@ -30,7 +30,8 @@ export const voteSchema = z.object({
 });
 
 export const likeSchema = z.object({
-	url: z.string().min(1)
+	url: z.string().min(1),
+	liked: z.boolean().optional()
 });
 
 export const replySchema = z.object({
