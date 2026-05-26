@@ -2,9 +2,11 @@ import { internalAction, internalMutation, internalQuery, query } from './_gener
 import { v } from 'convex/values';
 import { internal } from './_generated/api.js';
 
-const DATA_REPO_RAW = 'https://raw.githubusercontent.com/injoon5/data/main';
-const NOW_PLAYING_URL = `${DATA_REPO_RAW}/now-playing.json`;
-const PHOTOS_URL = `${DATA_REPO_RAW}/photos.json`;
+const LAST_FM_USER = 'injoon5';
+const LAST_FM_API = 'https://ws.audioscrobbler.com/2.0/';
+const PHOTOS_FEED_URL = 'https://photos.injoon5.com/feed.json';
+const NOW_PLAYING_TRACK_LIMIT = 20;
+const PHOTOS_LIMIT = 8;
 
 const KEYS = {
 	nowPlaying: 'nowPlaying',
@@ -78,20 +80,61 @@ export const upsertCache = internalMutation({
 	}
 });
 
-async function fetchJsonPayload(url) {
-	const res = await fetch(url, {
+/** Mirrors injoon5/data now-playing.py — Last.fm recent tracks, capped at 20. */
+async function fetchNowPlayingPayload() {
+	const apiKey = process.env.LAST_FM_PUBLIC_API_KEY;
+	if (!apiKey) {
+		throw new Error('LAST_FM_PUBLIC_API_KEY is not set in Convex environment');
+	}
+
+	const url = new URL(LAST_FM_API);
+	url.searchParams.set('method', 'user.getrecenttracks');
+	url.searchParams.set('user', LAST_FM_USER);
+	url.searchParams.set('api_key', apiKey);
+	url.searchParams.set('format', 'json');
+
+	const res = await fetch(url.toString(), {
 		headers: { Accept: 'application/json' }
 	});
 	if (!res.ok) {
-		throw new Error(`${url} HTTP ${res.status}`);
+		throw new Error(`Last.fm HTTP ${res.status}`);
 	}
-	const json = await res.json();
-	return JSON.stringify(json);
+
+	const response = await res.json();
+	const recenttracks = response?.recenttracks;
+	if (!recenttracks?.track) {
+		throw new Error('Invalid Last.fm response: missing recenttracks.track');
+	}
+
+	let tracks = recenttracks.track;
+	if (!Array.isArray(tracks)) {
+		tracks = [tracks];
+	}
+	recenttracks.track = tracks.slice(0, NOW_PLAYING_TRACK_LIMIT);
+
+	return JSON.stringify(response);
 }
 
-async function syncKey(ctx, key, url) {
+/** Mirrors injoon5/data photos.py — photos.injoon5.com feed, capped at 8. */
+async function fetchPhotosPayload() {
+	const res = await fetch(PHOTOS_FEED_URL, {
+		headers: { Accept: 'application/json' }
+	});
+	if (!res.ok) {
+		throw new Error(`photos feed HTTP ${res.status}`);
+	}
+
+	const data = await res.json();
+	if (Array.isArray(data?.photos)) {
+		data.photos = data.photos.slice(0, PHOTOS_LIMIT);
+	}
+
+	return JSON.stringify(data);
+}
+
+async function syncKey(ctx, key, fetchPayload) {
 	try {
-		const payload = await fetchJsonPayload(url);
+		const payload = await fetchPayload();
 		await ctx.runMutation(internal.homeFeed.upsertCache, {
 			key,
 			payload,
@@ -115,13 +158,13 @@ async function syncKey(ctx, key, url) {
 export const syncNowPlaying = internalAction({
 	args: {},
 	handler: async (ctx) => {
-		await syncKey(ctx, KEYS.nowPlaying, NOW_PLAYING_URL);
+		await syncKey(ctx, KEYS.nowPlaying, fetchNowPlayingPayload);
 	}
 });
 
 export const syncPhotos = internalAction({
 	args: {},
 	handler: async (ctx) => {
-		await syncKey(ctx, KEYS.photos, PHOTOS_URL);
+		await syncKey(ctx, KEYS.photos, fetchPhotosPayload);
 	}
 });

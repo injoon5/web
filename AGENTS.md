@@ -38,6 +38,7 @@ Convex agent skills for common tasks can be installed by running
 - **Convex deploy key is URL-encoded** in the secrets store. Decode before use: `DECODED_KEY=$(node -e "console.log(decodeURIComponent(process.env.CONVEX_DEPLOY_KEY))")` then export `CONVEX_DEPLOY_KEY="$DECODED_KEY"`.
 - To deploy Convex functions to a preview: `npx convex deploy --preview-create "my-preview-name" --cmd 'echo done' --cmd-url-env-var-name PUBLIC_CONVEX_URL`
 - Set `ADMIN_SECRET` in Convex: `npx convex env set ADMIN_SECRET "$ADMIN_SECRET" --preview-name "my-preview-name"`
+- Set `LAST_FM_PUBLIC_API_KEY` in Convex for homepage Now Listening crons: `npx convex env set LAST_FM_PUBLIC_API_KEY "$LAST_FM_PUBLIC_API_KEY" --prod` (and preview if needed)
 - After `npm install`, delete `pnpm-lock.yaml` if it appears (per `CLAUDE.md`).
 - The `.env` file is gitignored. Copy `.env.example` to `.env` for local dev.
 - No TypeScript in Svelte scripts - use plain JS (no `lang="ts"`, no type annotations in `.svelte` files).

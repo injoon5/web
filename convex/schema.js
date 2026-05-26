@@ -59,7 +59,7 @@ export default defineSchema({
 		updatedAt: v.number()
 	}),
 
-	/** Cached injoon5/data JSON for the homepage (synced from GitHub raw). */
+	/** Cached homepage feed JSON (Last.fm + photos.injoon5.com feed). */
 	homeFeedCache: defineTable({
 		key: v.string(),
 		payload: v.string(),
