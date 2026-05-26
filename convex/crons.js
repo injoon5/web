@@ -5,7 +5,7 @@ const crons = cronJobs();
 
 crons.interval(
 	'sync homepage now playing',
-	{ minutes: 1 },
+	{ minutes: 3 },
 	internal.homeFeed.syncNowPlaying,
 	{}
 );
