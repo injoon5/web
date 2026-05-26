@@ -51,6 +51,15 @@
 		-moz-osx-font-smoothing: grayscale;
 	}
 
+	/* Disable iOS Safari double-tap-to-zoom on tappable controls so rapid
+	   taps (e.g. the like button) register as taps, not a zoom gesture.
+	   Pinch-zoom is unaffected. */
+	button,
+	[role='button'],
+	summary {
+		touch-action: manipulation;
+	}
+
 	::selection {
 		background-color: rgba(120, 120, 120, 0.25);
 	}
