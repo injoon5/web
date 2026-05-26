@@ -1,5 +1,7 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$convex/_generated/api';
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 	import TechStack from '$lib/TechStack.svelte';
@@ -10,17 +12,35 @@
 	let heroNameEl;
 	let heroObserver;
 
-	// LoadState: 'loading' | 'ready' | 'error'
-	let nowlistening = null;
-	let photos = null;
+	const nowPlayingQuery = useQuery(api.homeFeed.getNowPlaying, () => ({}));
+	const photosQuery = useQuery(api.homeFeed.getPhotos, () => ({}));
 
-	let nowState = 'loading';
-	let photosState = 'loading';
+	const nowlistening = $derived(nowPlayingQuery.data?.data ?? null);
+	const photos = $derived(photosQuery.data?.data ?? null);
 
-	let nowError = null;
-	let photosError = null;
+	/** @param {{ data?: { data?: unknown, lastSyncError?: string | null } | null, isLoading: boolean, error?: unknown }} query */
+	function feedState(query) {
+		if (query.data?.data) return 'ready';
+		if (query.isLoading && !query.data) return 'loading';
+		if (query.data?.lastSyncError || query.error) return 'error';
+		return 'loading';
+	}
 
-	onMount(async () => {
+	const nowState = $derived(feedState(nowPlayingQuery));
+	const photosState = $derived(feedState(photosQuery));
+
+	const nowError = $derived(
+		nowPlayingQuery.data?.lastSyncError ??
+			(nowPlayingQuery.error instanceof Error
+				? nowPlayingQuery.error.message
+				: 'Failed to load now playing')
+	);
+	const photosError = $derived(
+		photosQuery.data?.lastSyncError ??
+			(photosQuery.error instanceof Error ? photosQuery.error.message : 'Failed to load photos')
+	);
+
+	onMount(() => {
 		// Flip once the hero name passes behind the ~64px-tall sticky nav, so the
 		// navbar name fades in right as the hero tucks away.
 		heroObserver = new IntersectionObserver(
@@ -28,41 +48,6 @@
 			{ rootMargin: '-64px 0px 0px 0px', threshold: 0 }
 		);
 		if (heroNameEl) heroObserver.observe(heroNameEl);
-
-		nowState = 'loading';
-		photosState = 'loading';
-		nowError = null;
-		photosError = null;
-
-		const loadPhotos = fetch(`https://raw.githubusercontent.com/injoon5/data/main/photos.json`)
-			.then(async (r) => {
-				if (!r.ok) throw new Error(`photos.json HTTP ${r.status}`);
-				return r.json();
-			})
-			.then((j) => {
-				photos = j;
-				photosState = 'ready';
-			})
-			.catch((e) => {
-				photosState = 'error';
-				photosError = e?.message ?? 'Failed to load photos';
-			});
-
-		const loadNow = fetch(`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`)
-			.then(async (r) => {
-				if (!r.ok) throw new Error(`now-playing.json HTTP ${r.status}`);
-				return r.json();
-			})
-			.then((j) => {
-				nowlistening = j;
-				nowState = 'ready';
-			})
-			.catch((e) => {
-				nowState = 'error';
-				nowError = e?.message ?? 'Failed to load now playing';
-			});
-
-		await Promise.allSettled([loadPhotos, loadNow]);
 	});
 
 	onDestroy(() => {

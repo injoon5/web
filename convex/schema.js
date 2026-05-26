@@ -57,5 +57,13 @@ export default defineSchema({
 	nowPage: defineTable({
 		content: v.string(),
 		updatedAt: v.number()
-	})
+	}),
+
+	/** Cached injoon5/data JSON for the homepage (synced from GitHub raw). */
+	homeFeedCache: defineTable({
+		key: v.string(),
+		payload: v.string(),
+		updatedAt: v.number(),
+		lastSyncError: v.union(v.string(), v.null())
+	}).index('by_key', ['key'])
 });
