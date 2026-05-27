@@ -1,5 +1,6 @@
 <script>
 	import { tick, onMount } from 'svelte';
+	import { cubicOut } from 'svelte/easing';
 
 	let { techstack = [] } = $props();
 
@@ -142,15 +143,17 @@
 		sel?.focus();
 	}
 
+	const PANEL_MS = 220;
+
 	function panelOut(node, { skip = false } = {}) {
 		if (skip) return { duration: 0 };
 		node.style.pointerEvents = 'none';
-		return { duration: 160, css: (t) => `opacity: ${t}` };
+		return { duration: PANEL_MS, easing: cubicOut, css: (t) => `opacity: ${t}` };
 	}
 
 	function panelIn(node, { skip = false } = {}) {
 		if (skip) return { duration: 0 };
-		return { duration: 200, css: (t) => `opacity: ${t}` };
+		return { duration: PANEL_MS, easing: cubicOut, css: (t) => `opacity: ${t}` };
 	}
 
 	// Animates the wrapper height to match its inner content whenever it resizes.
@@ -170,6 +173,19 @@
 				node.getBoundingClientRect();
 				node.style.transition = '';
 				ready = true;
+				return;
+			}
+
+			const current = parseFloat(node.style.height);
+			const shrinking = Number.isFinite(current) && h < current - 1;
+
+			// After crossfade the outgoing panel unmounts and height drops — snap so we
+			// don't get a second slow shrink on top of the opacity transition.
+			if (shrinking) {
+				node.style.transition = 'none';
+				node.style.height = h + 'px';
+				node.getBoundingClientRect();
+				node.style.transition = '';
 			} else {
 				node.style.height = h + 'px';
 			}
@@ -188,51 +204,51 @@
 	<div class="ts-tabs-scroll-wrap">
 		<div bind:this={tabsScrollEl} class="ts-tabs-scroll">
 			<div bind:this={tabsEl} role="tablist" aria-label="Tech stack categories" class="ts-tabs">
-			<button
-				type="button"
-				role="tab"
-				data-tab-fav
-				id="ts-tab-fav"
-				aria-selected={activeIndex === 'favorites'}
-				aria-controls="ts-panel"
-				tabindex={activeIndex === 'favorites' ? 0 : -1}
-				class="ts-tab"
-				onclick={() => selectTab('favorites')}
-				onkeydown={(e) => onTabKeydown(e, -1, true)}
-			>
-				<span class="ts-tab-label">Favorites</span>
-			</button>
-			{#each techstack as category, index}
-				<span class="ts-sep" aria-hidden="true">·</span>
 				<button
 					type="button"
 					role="tab"
-					data-tab-index={index}
-					id="ts-tab-{index}"
-					aria-selected={activeIndex === index}
+					data-tab-fav
+					id="ts-tab-fav"
+					aria-selected={activeIndex === 'favorites'}
 					aria-controls="ts-panel"
-					tabindex={activeIndex === index ? 0 : -1}
+					tabindex={activeIndex === 'favorites' ? 0 : -1}
 					class="ts-tab"
-					onclick={() => selectTab(index)}
-					onkeydown={(e) => onTabKeydown(e, index, false)}
+					onclick={() => selectTab('favorites')}
+					onkeydown={(e) => onTabKeydown(e, -1, true)}
 				>
-					<span class="ts-tab-label">{category.name}</span>
+					<span class="ts-tab-label">Favorites</span>
 				</button>
-			{/each}
-			<div
-				class="ts-tabs-clip"
-				class:ts-clip-animate={clipReady && !keyboardNav}
-				style:clip-path="inset(0 {clipRight}px 0 {clipLeft}px)"
-				style:opacity={clipVisible ? 1 : 0}
-				aria-hidden="true"
-			>
-				<span class="ts-clip-item"><span class="ts-tab-label">Favorites</span></span>
-				{#each techstack as category}
-					<span class="ts-clip-gap" aria-hidden="true">·</span>
-					<span class="ts-clip-item"><span class="ts-tab-label">{category.name}</span></span>
+				{#each techstack as category, index}
+					<span class="ts-sep" aria-hidden="true">·</span>
+					<button
+						type="button"
+						role="tab"
+						data-tab-index={index}
+						id="ts-tab-{index}"
+						aria-selected={activeIndex === index}
+						aria-controls="ts-panel"
+						tabindex={activeIndex === index ? 0 : -1}
+						class="ts-tab"
+						onclick={() => selectTab(index)}
+						onkeydown={(e) => onTabKeydown(e, index, false)}
+					>
+						<span class="ts-tab-label">{category.name}</span>
+					</button>
 				{/each}
+				<div
+					class="ts-tabs-clip"
+					class:ts-clip-animate={clipReady && !keyboardNav}
+					style:clip-path="inset(0 {clipRight}px 0 {clipLeft}px)"
+					style:opacity={clipVisible ? 1 : 0}
+					aria-hidden="true"
+				>
+					<span class="ts-clip-item"><span class="ts-tab-label">Favorites</span></span>
+					{#each techstack as category}
+						<span class="ts-clip-gap" aria-hidden="true">·</span>
+						<span class="ts-clip-item"><span class="ts-tab-label">{category.name}</span></span>
+					{/each}
+				</div>
 			</div>
-		</div>
 		</div>
 		<div
 			class="ts-tabs-fade ts-tabs-fade-left"
@@ -256,10 +272,9 @@
 					role="tabpanel"
 					aria-label={activeIndex === 'favorites' ? 'Favorites' : techstack[activeIndex]?.name}
 					class="ts-panel"
-					class:ts-panel-animate={animated}
 				>
-					{#each items as tech, i}
-						<div class="ts-item" style="--i: {i}">
+					{#each items as tech (tech.name)}
+						<div class="ts-item">
 							<a href={tech.link} target="_blank" rel="noopener noreferrer" class="ts-name"
 								>{tech.name}</a
 							>
@@ -448,7 +463,7 @@
 	/* --- Animated height wrapper --- */
 	.ts-height-outer {
 		overflow: hidden;
-		transition: height 260ms var(--ease-out-soft);
+		transition: height 220ms var(--ease-out-soft);
 	}
 
 	/* Stack in/out panels in one cell so height stays max(old, new) during crossfade */
@@ -468,12 +483,6 @@
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 1rem;
-		will-change: opacity;
-	}
-
-	.ts-panel-animate {
-		will-change: opacity;
-		animation: ts-panel-in var(--motion-slow) var(--ease-out-soft) both;
 	}
 
 	@media (min-width: 640px) {
@@ -482,35 +491,11 @@
 		}
 	}
 
-	@keyframes ts-panel-in {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-
 	/* --- Items --- */
 	.ts-item {
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
-	}
-
-	.ts-panel-animate .ts-item {
-		will-change: opacity;
-		animation: ts-item-in 300ms var(--ease-out-soft) both;
-		animation-delay: calc(var(--i) * 45ms);
-	}
-
-	@keyframes ts-item-in {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
 	}
 
 	.ts-name {
@@ -549,10 +534,6 @@
 		.ts-tabs-clip.ts-clip-animate,
 		.ts-tabs-fade {
 			transition: none;
-		}
-		.ts-panel-animate,
-		.ts-panel-animate .ts-item {
-			animation: none;
 		}
 	}
 </style>
