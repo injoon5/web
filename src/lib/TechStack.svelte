@@ -144,18 +144,13 @@
 
 	function panelOut(node, { skip = false } = {}) {
 		if (skip) return { duration: 0 };
-		const { offsetTop, offsetLeft, offsetWidth } = node;
-		node.style.position = 'absolute';
-		node.style.top = offsetTop + 'px';
-		node.style.left = offsetLeft + 'px';
-		node.style.width = offsetWidth + 'px';
 		node.style.pointerEvents = 'none';
 		return { duration: 160, css: (t) => `opacity: ${t}` };
 	}
 
 	function panelIn(node, { skip = false } = {}) {
 		if (skip) return { duration: 0 };
-		return { duration: 200, css: (t, u) => `opacity: ${t}; transform: translateY(${u * 5}px)` };
+		return { duration: 200, css: (t) => `opacity: ${t}` };
 	}
 
 	// Animates the wrapper height to match its inner content whenever it resizes.
@@ -456,8 +451,16 @@
 		transition: height 260ms var(--ease-out-soft);
 	}
 
+	/* Stack in/out panels in one cell so height stays max(old, new) during crossfade */
 	.ts-height-inner {
-		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.ts-height-inner > :global(*) {
+		grid-row: 1;
+		grid-column: 1;
+		min-width: 0;
 	}
 
 	/* --- Panel --- */
@@ -465,11 +468,11 @@
 		display: grid;
 		grid-template-columns: 1fr;
 		gap: 1rem;
-		will-change: transform, opacity;
+		will-change: opacity;
 	}
 
 	.ts-panel-animate {
-		will-change: transform, opacity;
+		will-change: opacity;
 		animation: ts-panel-in var(--motion-slow) var(--ease-out-soft) both;
 	}
 
@@ -482,11 +485,9 @@
 	@keyframes ts-panel-in {
 		from {
 			opacity: 0;
-			transform: translateY(5px);
 		}
 		to {
 			opacity: 1;
-			transform: translateY(0);
 		}
 	}
 
@@ -498,7 +499,7 @@
 	}
 
 	.ts-panel-animate .ts-item {
-		will-change: transform, opacity;
+		will-change: opacity;
 		animation: ts-item-in 300ms var(--ease-out-soft) both;
 		animation-delay: calc(var(--i) * 45ms);
 	}
@@ -506,11 +507,9 @@
 	@keyframes ts-item-in {
 		from {
 			opacity: 0;
-			transform: translateY(6px);
 		}
 		to {
 			opacity: 1;
-			transform: translateY(0);
 		}
 	}
 
