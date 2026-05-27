@@ -3,8 +3,6 @@
 
 @plugin '@tailwindcss/typography';
 
-@source '../node_modules/svhighlight/**/*.svelte';
-
 /* Class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -257,7 +255,11 @@
 	width: 0.5rem;
 	margin-right: 1.25rem;
 	text-align: right;
-	@apply text-neutral-500 dark:text-neutral-400;
+	color: var(--color-neutral-500);
+}
+
+.dark .prose code[data-line-numbers] > span[data-line]::before {
+	color: var(--color-neutral-400);
 }
 
 .prose code[data-line-numbers-max-digits='2'] > span[data-line]::before {
