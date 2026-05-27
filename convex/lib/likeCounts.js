@@ -7,25 +7,25 @@ function counterRows(ctx, url) {
 		.collect();
 }
 
-async function actualLikeCount(ctx, url) {
+/** Distinct visitors who liked a page (one row per ipHash, even if races left duplicates). */
+export async function uniqueLikeCount(ctx, url) {
 	const rows = await ctx.db
 		.query('likes')
 		.withIndex('by_url', (q) => q.eq('url', url))
 		.collect();
-	return rows.length;
+	return new Set(rows.map((row) => row.ipHash)).size;
 }
 
 /**
  * Read-only like count, safe to call from queries.
  *
- * Until the backfill flag is set, the denormalized counter may be missing or
- * partial for pages that had likes before this table existed, so we fall back
- * to counting rows directly (correct, just O(n)). Once backfilled, the counter
- * is authoritative and reads stay O(1).
+ * Until the backfill flag is set, count distinct ipHashes directly (correct if
+ * duplicate rows exist from a past race). Once backfilled, the denormalized
+ * counter is authoritative and reads stay O(1).
  */
 export async function readLikeCount(ctx, url) {
 	if (!(await isLikeCountsBackfillComplete(ctx))) {
-		return actualLikeCount(ctx, url);
+		return uniqueLikeCount(ctx, url);
 	}
 	const rows = await counterRows(ctx, url);
 	return rows.reduce((sum, row) => sum + row.count, 0);
@@ -44,6 +44,24 @@ async function canonicalLikeCountRow(ctx, url) {
 		await ctx.db.delete(rows[i]._id);
 	}
 	return { ...rows[0], count: total };
+}
+
+/** Set the denormalized counter to the current unique-like count for a URL. */
+export async function syncLikeCountForUrl(ctx, url) {
+	const count = await uniqueLikeCount(ctx, url);
+	const row = await canonicalLikeCountRow(ctx, url);
+
+	if (count === 0) {
+		if (row) await ctx.db.delete(row._id);
+		return;
+	}
+
+	if (row) {
+		await ctx.db.patch(row._id, { count });
+		return;
+	}
+
+	await ctx.db.insert('likeCounts', { url, count });
 }
 
 export async function incrementLikeCount(ctx, url) {

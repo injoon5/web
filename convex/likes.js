@@ -3,7 +3,7 @@ import { mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
 import { isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
-import { decrementLikeCount, incrementLikeCount, readLikeCount } from './lib/likeCounts.js';
+import { readLikeCount, syncLikeCountForUrl } from './lib/likeCounts.js';
 
 async function aggregate(ctx, url, ipHash) {
 	const mine = await ctx.db
@@ -41,10 +41,9 @@ export const setLike = mutation({
 			.withIndex('by_url_ip', (q) => q.eq('url', args.url).eq('ipHash', args.ipHash))
 			.collect();
 
-		// Dedup any stray rows from a past race so membership is exactly one or zero.
+		// Dedup stray rows from a past race so membership is exactly one or zero.
 		for (let i = 1; i < rows.length; i++) {
 			await ctx.db.delete(rows[i]._id);
-			await decrementLikeCount(ctx, args.url);
 		}
 		const existing = rows[0] ?? null;
 		const currentlyLiked = existing !== null;
@@ -59,12 +58,12 @@ export const setLike = mutation({
 
 			if (desired) {
 				await ctx.db.insert('likes', { url: args.url, ipHash: args.ipHash });
-				await incrementLikeCount(ctx, args.url);
 			} else {
 				await ctx.db.delete(existing._id);
-				await decrementLikeCount(ctx, args.url);
 			}
 		}
+
+		await syncLikeCountForUrl(ctx, args.url);
 
 		return aggregate(ctx, args.url, args.ipHash);
 	}
