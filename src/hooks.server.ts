@@ -1,3 +1,4 @@
+import { building } from '$app/environment';
 import { type Handle } from '@sveltejs/kit';
 
 // Resolve the %lang% placeholder in app.html. Only blog/project detail pages are
@@ -9,7 +10,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	let lang = 'en';
 	if (isContent) {
-		const pref = event.url.searchParams.get('lang') || event.cookies.get('preferred-lang');
+		// searchParams (and cookies) are unavailable while the prerender crawler visits
+		// SSR-only routes linked from prerendered pages — default to Korean.
+		const pref = building
+			? null
+			: event.url.searchParams.get('lang') || event.cookies.get('preferred-lang');
 		lang = pref === 'en' ? 'en' : 'ko';
 	}
 
