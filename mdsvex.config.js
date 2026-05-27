@@ -11,6 +11,7 @@ import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
 import { createHighlighter } from '@svelte-dev/pretty-code';
 import { remarkReadingTime } from './src/lib/remarkReadingTime.js';
+import { rehypeStripCodeTabindex } from './src/lib/rehypeStripCodeTabindex.js';
 
 const config = {
 	extensions: ['.md'],
@@ -45,7 +46,8 @@ const config = {
 		rehypeSlug,
 		rehypeFigure,
 		[rehypeExternalLinks, { target: ['_blank'], rel: ['noopener noreferrer'] }],
-		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }]
+		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }],
+		rehypeStripCodeTabindex
 	]
 };
 

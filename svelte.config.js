@@ -9,6 +9,15 @@ const config = {
 	extensions: ['.svelte', '.md'],
 	preprocess: [vitePreprocess(), mdsvex(mdsvexConfig)],
 
+	onwarn(warning, handler) {
+		const mdA11y =
+			warning.filename?.endsWith('.md') &&
+			(warning.code === 'a11y_no_noninteractive_tabindex' ||
+				warning.code === 'a11y_img_redundant_alt');
+		if (mdA11y) return;
+		handler(warning);
+	},
+
 	kit: {
 		adapter: adapter(),
 		alias: {
