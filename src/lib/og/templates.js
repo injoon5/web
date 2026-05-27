@@ -21,6 +21,17 @@ const borderColor = '#2e2e2e';
 const dotColor = '#161616';
 const font = 'Pretendard';
 
+// Non-title type scale (labels, body, descriptions, meta, footer, tags)
+const type = {
+	label: 26,
+	body: 34,
+	description: 32,
+	meta: 28,
+	footerName: 30,
+	footerUrl: 28,
+	tag: 22
+};
+
 // ── Typography helpers ──────────────────────────────────────────
 
 const CJK_RE = /[\u3000-\u9fff\uac00-\ud7af\uff00-\uffef]/;
@@ -113,13 +124,51 @@ function bodyText(children, { marginTop = 22, maxWidth = 780 } = {}) {
 		type: 'p',
 		props: {
 			style: {
-				fontSize: 30,
+				fontSize: type.body,
 				fontWeight: 500,
 				color: textSecondary,
 				lineHeight: 1.55,
 				marginTop,
 				maxWidth,
 				letterSpacing: hasCjk(children) ? '-0.004em' : '-0.01em'
+			},
+			children
+		}
+	};
+}
+
+/** Post / project description paragraph. */
+function descriptionText(str) {
+	if (!str) return null;
+	return {
+		type: 'p',
+		props: {
+			style: {
+				fontSize: type.description,
+				fontWeight: 500,
+				color: textSecondary,
+				lineHeight: 1.52,
+				marginTop: 20,
+				maxWidth: 900,
+				letterSpacing: tracking(str, { latin: '-0.01em', cjk: '-0.002em' })
+			},
+			children: truncate(str, 120)
+		}
+	};
+}
+
+/** Date, year, and other tertiary lines. */
+function metaText(children, { marginTop = 20 } = {}) {
+	return {
+		type: 'span',
+		props: {
+			style: {
+				fontSize: type.meta,
+				fontWeight: 500,
+				color: textMuted,
+				marginTop,
+				letterSpacing: '-0.004em',
+				lineHeight: 1.35
 			},
 			children
 		}
@@ -208,7 +257,7 @@ function bottomBar(name = 'Injoon Oh') {
 					type: 'span',
 					props: {
 						style: {
-							fontSize: 26,
+							fontSize: type.footerName,
 							fontWeight: 600,
 							color: textSecondary,
 							letterSpacing: '-0.008em'
@@ -220,7 +269,7 @@ function bottomBar(name = 'Injoon Oh') {
 					type: 'span',
 					props: {
 						style: {
-							fontSize: 24,
+							fontSize: type.footerUrl,
 							fontWeight: 500,
 							color: textMuted,
 							letterSpacing: '0.01em'
@@ -239,7 +288,7 @@ function label(text) {
 		props: {
 			style: {
 				display: 'flex',
-				fontSize: 22,
+				fontSize: type.label,
 				fontWeight: 600,
 				color: textMuted,
 				letterSpacing: tracking(text, { latin: '-0.012em', cjk: '0', neutral: '-0.006em' }),
@@ -293,46 +342,8 @@ export function blogPostTemplate({ title, description, date }) {
 		mainColumn([
 			label('블로그'),
 			titleText(title),
-			...(description
-				? [
-						{
-							type: 'p',
-							props: {
-								style: {
-									fontSize: 28,
-									fontWeight: 500,
-									color: textSecondary,
-									lineHeight: 1.52,
-									marginTop: 20,
-									maxWidth: 900,
-									letterSpacing: tracking(description, {
-										latin: '-0.01em',
-										cjk: '-0.002em'
-									})
-								},
-								children: truncate(description, 120)
-							}
-						}
-					]
-				: []),
-			...(date
-				? [
-						{
-							type: 'span',
-							props: {
-								style: {
-									fontSize: 24,
-									fontWeight: 500,
-									color: textMuted,
-									marginTop: 20,
-									letterSpacing: '-0.004em',
-									lineHeight: 1.35
-								},
-								children: formatDate(date)
-							}
-						}
-					]
-				: [])
+			...(description ? [descriptionText(description)] : []),
+			...(date ? [metaText(formatDate(date))] : [])
 		]),
 		bottomBar()
 	]);
@@ -354,28 +365,7 @@ export function projectTemplate({ title, description, year, tags }) {
 		mainColumn([
 			label('프로젝트'),
 			titleText(title),
-			...(description
-				? [
-						{
-							type: 'p',
-							props: {
-								style: {
-									fontSize: 28,
-									fontWeight: 500,
-									color: textSecondary,
-									lineHeight: 1.52,
-									marginTop: 20,
-									maxWidth: 900,
-									letterSpacing: tracking(description, {
-										latin: '-0.01em',
-										cjk: '-0.002em'
-									})
-								},
-								children: truncate(description, 120)
-							}
-						}
-					]
-				: []),
+			...(description ? [descriptionText(description)] : []),
 			{
 				type: 'div',
 				props: {
@@ -387,22 +377,7 @@ export function projectTemplate({ title, description, year, tags }) {
 						marginTop: 20
 					},
 					children: [
-						...(year
-							? [
-									{
-										type: 'span',
-										props: {
-											style: {
-												fontSize: 24,
-												fontWeight: 500,
-												color: textMuted,
-												letterSpacing: '-0.004em'
-											},
-											children: year
-										}
-									}
-								]
-							: []),
+						...(year ? [metaText(year, { marginTop: 0 })] : []),
 						...(tags && tags.length > 0
 							? [
 									...(year
@@ -410,7 +385,11 @@ export function projectTemplate({ title, description, year, tags }) {
 												{
 													type: 'span',
 													props: {
-														style: { fontSize: 24, color: textMuted, fontWeight: 500 },
+														style: {
+															fontSize: type.meta,
+															color: textMuted,
+															fontWeight: 500
+														},
 														children: '\u00B7'
 													}
 												}
@@ -420,12 +399,12 @@ export function projectTemplate({ title, description, year, tags }) {
 										type: 'span',
 										props: {
 											style: {
-												fontSize: 18,
+												fontSize: type.tag,
 												fontWeight: 600,
 												color: textSecondary,
 												border: `1px solid ${borderColor}`,
 												borderRadius: 999,
-												padding: '6px 16px',
+												padding: '7px 18px',
 												letterSpacing: tracking(tag, {
 													latin: '-0.01em',
 													cjk: '0'
