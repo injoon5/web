@@ -4,10 +4,8 @@ import { visit } from 'unist-util-visit';
 export function rehypeStripCodeTabindex() {
 	return (tree) => {
 		visit(tree, 'element', (node) => {
-			if (node.tagName === 'pre' && node.properties?.tabIndex != null) {
+			if (node.tagName === 'pre' && node.properties != null) {
 				delete node.properties.tabIndex;
-			}
-			if (node.tagName === 'pre' && node.properties?.tabindex != null) {
 				delete node.properties.tabindex;
 			}
 		});

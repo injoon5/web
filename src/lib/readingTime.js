@@ -1,7 +1,5 @@
-// English: ~200 WPM (word-based)
-// Korean: ~500 CPM — characters per minute (eojeol-based reading is faster measured in chars)
-const EN_WORDS_PER_MINUTE = 200;
-const KO_CHARS_PER_MINUTE = 500;
+export const EN_WORDS_PER_MINUTE = 200;
+export const KO_CHARS_PER_MINUTE = 500;
 
 /**
  * Strip markdown syntax from raw text, leaving plain readable content.

@@ -9,8 +9,8 @@
  * gentler tracking (especially Hangul), and higher contrast.
  */
 
-const WIDTH = 1200;
-const HEIGHT = 630;
+export const WIDTH = 1200;
+export const HEIGHT = 630;
 
 // ── Shared palette ──────────────────────────────────────────────
 const bg = '#0a0a0a';
