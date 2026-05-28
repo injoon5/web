@@ -10,6 +10,7 @@
 	import NumberFlow from '@number-flow/svelte';
 	import { autoHeight } from '$lib/autoHeight.js';
 	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
+	import StableLangStack from '$lib/StableLangStack.svelte';
 
 	import { onMount, tick } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -211,29 +212,33 @@
 			<div
 				class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400"
 			>
-				<div class="grid">
-					{#each [displayLang] as l (l)}
-						<p
-							style="grid-area: 1 / 1;"
-							in:blurT={titleBlur}
-							out:blurT={titleBlur}
-							class="tabular whitespace-nowrap"
-						>
-							{formatDate(metaFor(l).date, 'medium', l === 'ko' ? 'ko' : 'en')}
-						</p>
-					{/each}
-				</div>
+				<StableLangStack
+					langs={data.availableLangs}
+					{displayLang}
+					transition={titleBlur}
+					as="p"
+					className="tabular whitespace-nowrap"
+					text={(l) => formatDate(metaFor(l).date, 'medium', l === 'ko' ? 'ko' : 'en')}
+				/>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<span class="inline-flex items-baseline whitespace-nowrap">
-						<NumberFlow value={readingMinutes} />
-						<span class="grid">
-							{#each [displayLang] as l (l)}
-								<span style="grid-area: 1 / 1;" in:blurT={titleBlur} out:blurT={titleBlur}>
-									{l === 'ko' ? '분 읽기' : ' min read'}
+					<span class="tabular inline-flex items-baseline whitespace-nowrap">
+						<span class="grid shrink-0">
+							{#each data.availableLangs as l (`${l}-mins-ghost`)}
+								<span style="grid-area: 1 / 1" class="invisible" aria-hidden="true">
+									{parseInt(readingTimeFor(l) ?? '', 10) || 0}
 								</span>
 							{/each}
+							<span style="grid-area: 1 / 1">
+								<NumberFlow value={readingMinutes} />
+							</span>
 						</span>
+						<StableLangStack
+							langs={data.availableLangs}
+							{displayLang}
+							transition={titleBlur}
+							text={(l) => (l === 'ko' ? '분 읽기' : ' min read')}
+						/>
 					</span>
 				{/if}
 			</div>
