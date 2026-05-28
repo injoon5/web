@@ -16,7 +16,7 @@
 	export let className = '';
 </script>
 
-<div class="grid {className}">
+<div class="grid items-center {className}">
 	{#each langs as l (`${l}-ghost`)}
 		<svelte:element this={as} style="grid-area: 1 / 1" class="invisible" aria-hidden="true">
 			{text(l)}
