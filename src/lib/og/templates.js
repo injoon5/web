@@ -15,21 +15,22 @@ export const HEIGHT = 630;
 // ── Shared palette ──────────────────────────────────────────────
 const bg = '#0a0a0a';
 const textPrimary = '#fafafa';
-const textSecondary = '#c4c4c4';
-const textMuted = '#8f8f8f';
+const textSecondary = '#d0d0d0';
+const textMuted = '#9a9a9a';
 const borderColor = '#2e2e2e';
 const dotColor = '#161616';
 const font = 'Pretendard';
 
-// Non-title type scale (labels, body, descriptions, meta, footer, tags)
+// Non-title type scale — sized for legibility at ~50% display (Twitter/iMessage thumbnails).
+// At 600px display (50% of 1200), a 30px source renders as 15px; 22px would be ~11px.
 const type = {
-	label: 26,
-	body: 34,
-	description: 32,
-	meta: 28,
-	footerName: 30,
-	footerUrl: 28,
-	tag: 22
+	label: 30,
+	body: 38,
+	description: 36,
+	meta: 32,
+	footerName: 32,
+	footerUrl: 30,
+	tag: 28
 };
 
 // ── Typography helpers ──────────────────────────────────────────
@@ -125,7 +126,7 @@ function bodyText(children, { marginTop = 22, maxWidth = 780 } = {}) {
 		props: {
 			style: {
 				fontSize: type.body,
-				fontWeight: 500,
+				fontWeight: 600,
 				color: textSecondary,
 				lineHeight: 1.55,
 				marginTop,
@@ -145,7 +146,7 @@ function descriptionText(str) {
 		props: {
 			style: {
 				fontSize: type.description,
-				fontWeight: 500,
+				fontWeight: 600,
 				color: textSecondary,
 				lineHeight: 1.52,
 				marginTop: 20,
@@ -404,7 +405,7 @@ export function projectTemplate({ title, description, year, tags }) {
 												color: textSecondary,
 												border: `1px solid ${borderColor}`,
 												borderRadius: 999,
-												padding: '7px 18px',
+												padding: '8px 18px',
 												letterSpacing: tracking(tag, {
 													latin: '-0.01em',
 													cjk: '0'
