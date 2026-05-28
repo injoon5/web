@@ -250,9 +250,14 @@
 		const parent = node.parentElement;
 		if (parent) parent.style.position = 'relative';
 
+		const height = node.getBoundingClientRect().height;
+
 		node.style.position = 'absolute';
-		node.style.inset = '0';
-		node.style.width = '100%';
+		node.style.top = '0';
+		node.style.left = '0';
+		node.style.right = '0';
+		node.style.height = `${height}px`;
+		node.style.overflow = 'hidden';
 		node.style.pointerEvents = 'none';
 		node.style.zIndex = '0';
 
