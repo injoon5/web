@@ -101,7 +101,11 @@
 		fadeRight = scrollLeft + clientWidth < scrollWidth - SCROLL_FADE_EPS;
 	}
 
-	async function updateClip() {
+	/** When false, clip-path updates snap instantly (scroll/resize). */
+	let clipTransition = $state(false);
+
+	async function updateClip({ transition = false } = {}) {
+		clipTransition = transition;
 		await tick();
 		if (!tabsEl) return;
 
@@ -152,7 +156,7 @@
 
 	$effect(() => {
 		activeIndex;
-		updateClip();
+		updateClip({ transition: clipReady && !keyboardNav });
 	});
 
 	onMount(() => {
@@ -176,14 +180,14 @@
 
 		const onScroll = () => {
 			updateScrollFade();
-			updateClip();
+			updateClip({ transition: false });
 		};
 		updateScrollFade();
 		tabsScrollEl?.addEventListener('scroll', onScroll, { passive: true });
 
 		const onResize = () => {
 			updateScrollFade();
-			updateClip();
+			updateClip({ transition: false });
 			const next = measurePanelHeight();
 			if (next > 0) setOuterHeight(next, { animate: false });
 		};
@@ -201,7 +205,7 @@
 
 		const ro = new ResizeObserver(() => {
 			updateScrollFade();
-			updateClip();
+			updateClip({ transition: false });
 		});
 		ro.observe(tabsEl);
 		if (tabsScrollEl) ro.observe(tabsScrollEl);
@@ -335,7 +339,7 @@
 				{/each}
 				<div
 					class="ts-tabs-clip"
-					class:ts-clip-animate={clipReady && !keyboardNav}
+					class:ts-clip-animate={clipReady && !keyboardNav && clipTransition}
 					style:clip-path="inset(0 {clipRight}px 0 {clipLeft}px)"
 					style:opacity={clipVisible ? 1 : 0}
 					aria-hidden="true"
