@@ -225,21 +225,16 @@
 				</div>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<div class="grid">
-						{#each [displayLang] as l (l)}
-							{@const minutes = parseInt(readingTimeFor(l) ?? '', 10)}
-							{#if !isNaN(minutes)}
-								<p
-									style="grid-area: 1 / 1;"
-									in:blurT={titleBlur}
-									out:blurT={titleBlur}
-									class="tabular m-0 whitespace-nowrap"
-								>
-									<NumberFlow value={minutes} suffix={l === 'ko' ? '분 읽기' : ' min read'} />
-								</p>
-							{/if}
-						{/each}
-					</div>
+					<span class="inline-flex items-baseline whitespace-nowrap">
+						<NumberFlow value={readingMinutes} />
+						<span class="grid">
+							{#each [displayLang] as l (l)}
+								<span style="grid-area: 1 / 1;" in:blurT={titleBlur} out:blurT={titleBlur}>
+									{l === 'ko' ? '분 읽기' : ' min read'}
+								</span>
+							{/each}
+						</span>
+					</span>
 				{/if}
 			</div>
 			<LanguageSwitcher {lang} {mounted} availableLangs={data.availableLangs} onselect={setLang} />
