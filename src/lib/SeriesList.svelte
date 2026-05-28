@@ -34,8 +34,10 @@
 		{/key}
 	</div>
 	{#each ordered as post, index (post.slug)}
-		<a
-			href={post.slug === $page.params.slug ? '' : post.slug}
+		<svelte:element
+			this={post.slug === $page.params.slug ? 'div' : 'a'}
+			href={post.slug === $page.params.slug ? undefined : `/blog/${post.slug}`}
+			aria-current={post.slug === $page.params.slug ? 'page' : undefined}
 			class=" border-t border-neutral-200 dark:border-neutral-800 {post.slug === $page.params.slug
 				? 'cursor-default opacity-50'
 				: 'hover:bg-neutral-200  dark:hover:bg-neutral-800 '}  flex flex-row px-3 py-2 {index ===
@@ -63,6 +65,6 @@
 				</div>
 				<p class="text-sm font-normal text-neutral-500 dark:text-neutral-400">{post.date}</p>
 			</div>
-		</a>
+		</svelte:element>
 	{/each}
 </div>
