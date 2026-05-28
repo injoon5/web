@@ -250,9 +250,14 @@
 		const parent = node.parentElement;
 		if (parent) parent.style.position = 'relative';
 
+		const height = node.getBoundingClientRect().height;
+
 		node.style.position = 'absolute';
-		node.style.inset = '0';
-		node.style.width = '100%';
+		node.style.top = '0';
+		node.style.left = '0';
+		node.style.right = '0';
+		node.style.height = `${height}px`;
+		node.style.overflow = 'hidden';
 		node.style.pointerEvents = 'none';
 		node.style.zIndex = '0';
 
@@ -405,7 +410,13 @@
 	/* --- Tabs --- */
 	.ts-tabs-scroll-wrap {
 		position: relative;
+		padding-bottom: 0.6rem;
 		margin-bottom: 0.75rem;
+		border-bottom: 1px solid var(--color-neutral-200);
+	}
+
+	:global(.dark) .ts-tabs-scroll-wrap {
+		border-bottom-color: var(--color-neutral-800);
 	}
 
 	.ts-tabs-scroll {
