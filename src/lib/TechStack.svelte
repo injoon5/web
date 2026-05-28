@@ -26,6 +26,7 @@
 	let clipReady = $state(false);
 	let fadeLeft = $state(false);
 	let fadeRight = $state(false);
+	let reducedMotion = $state(false);
 
 	const SCROLL_FADE_EPS = 2;
 
@@ -35,19 +36,34 @@
 		activeIndex === 'favorites' ? favorites : (techstack[activeIndex]?.technologies ?? [])
 	);
 
-	const PANEL_MS = 280;
-	const HEIGHT_MS = 280;
-	const ITEM_STAGGER_MS = 40;
-	const ITEM_MAX_STAGGER = 6;
+	const skipMotion = $derived(keyboardNav || reducedMotion);
+
+	// Enter slightly slower than exit — asymmetric timing feels more responsive (Emil)
+	const PANEL_IN_MS = 240;
+	const PANEL_OUT_MS = 180;
+	const HEIGHT_MS = 240;
+	const ITEM_STAGGER_MS = 35;
+	const ITEM_MAX_STAGGER = 5;
 
 	async function selectTab(index) {
 		if (index === activeIndex) return;
-		keyboardNav = false;
 
+		const instant = skipMotion;
 		const wasAnimated = animated;
 		const startH = measurePanelHeight();
 
 		animated = true;
+
+		if (instant) {
+			activeIndex = index;
+			await tick();
+			const h = measurePanelHeight();
+			if (h > 0) setOuterHeight(h, { animate: false });
+			keyboardNav = false;
+			return;
+		}
+
+		keyboardNav = false;
 
 		if (wasAnimated && startH > 0) {
 			setOuterHeight(startH, { animate: false });
@@ -140,6 +156,13 @@
 	});
 
 	onMount(() => {
+		const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+		reducedMotion = motionMq.matches;
+		const onMotionChange = () => {
+			reducedMotion = motionMq.matches;
+		};
+		motionMq.addEventListener('change', onMotionChange);
+
 		updateClip().then(() => {
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
@@ -169,6 +192,7 @@
 		return () => {
 			tabsScrollEl?.removeEventListener('scroll', onScroll);
 			window.removeEventListener('resize', onResize);
+			motionMq.removeEventListener('change', onMotionChange);
 		};
 	});
 
@@ -229,11 +253,11 @@
 		node.style.zIndex = '0';
 
 		return {
-			duration: PANEL_MS,
+			duration: PANEL_OUT_MS,
 			easing: cubicOut,
 			css: (t, u) => {
-				const y = u * 6;
-				const blur = u * 3;
+				const y = u * 4;
+				const blur = u * 2;
 				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
 			}
 		};
@@ -246,11 +270,11 @@
 		node.style.zIndex = '1';
 
 		return {
-			duration: PANEL_MS,
+			duration: PANEL_IN_MS,
 			easing: cubicOut,
 			css: (t, u) => {
 				const y = u * 6;
-				const blur = u * 3;
+				const blur = u * 2;
 				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
 			}
 		};
@@ -263,10 +287,10 @@
 
 		return {
 			delay,
-			duration: 220,
+			duration: 180,
 			easing: cubicOut,
 			css: (t, u) => {
-				const y = u * 8;
+				const y = u * 6;
 				const blur = u * 2;
 				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
 			}
@@ -340,8 +364,8 @@
 		<div class="ts-height-inner">
 			{#key panelId}
 				<div
-					in:panelIn={{ skip: !animated }}
-					out:panelOut={{ skip: !animated }}
+					in:panelIn={{ skip: !animated || skipMotion }}
+					out:panelOut={{ skip: !animated || skipMotion }}
 					onoutroend={onPanelOutroEnd}
 					id="ts-panel"
 					role="tabpanel"
@@ -349,7 +373,7 @@
 					class="ts-panel"
 				>
 					{#each items as tech, i (tech.name)}
-						<div class="ts-item" in:itemIn={{ index: i, skip: !animated }}>
+						<div class="ts-item" in:itemIn={{ index: i, skip: !animated || skipMotion }}>
 							<a href={tech.link} target="_blank" rel="noopener noreferrer" class="ts-name"
 								>{tech.name}</a
 							>
@@ -449,6 +473,11 @@
 	.ts-tab {
 		cursor: pointer;
 		color: inherit;
+		transition: transform 140ms var(--ease-out-soft);
+	}
+
+	.ts-tab:active {
+		transform: scale(0.97);
 	}
 
 	.ts-tab-label {
@@ -595,12 +624,16 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.ts-height-outer {
+		.ts-height-outer,
+		.ts-tab {
 			transition: none;
 		}
 		.ts-tabs-clip.ts-clip-animate,
 		.ts-tabs-fade {
 			transition: none;
+		}
+		.ts-tab:active {
+			transform: none;
 		}
 	}
 </style>
