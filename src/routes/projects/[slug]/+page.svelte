@@ -165,10 +165,21 @@
 				<p class="tabular">{currentMeta.year}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<NumberFlow
-						value={readingMinutes}
-						suffix={displayLang === 'ko' ? '분 읽기' : ' min read'}
-					/>
+					<div class="grid">
+						{#each [displayLang] as l (l)}
+							{@const minutes = parseInt(readingTimeFor(l) ?? '', 10)}
+							{#if !isNaN(minutes)}
+								<p
+									style="grid-area: 1 / 1;"
+									in:blurT={titleBlur}
+									out:blurT={titleBlur}
+									class="tabular m-0 whitespace-nowrap"
+								>
+									<NumberFlow value={minutes} suffix={l === 'ko' ? '분 읽기' : ' min read'} />
+								</p>
+							{/if}
+						{/each}
+					</div>
 				{/if}
 			</div>
 
