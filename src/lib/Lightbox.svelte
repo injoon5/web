@@ -30,6 +30,10 @@
 	let lastPanX = 0;
 	let lastPanY = 0;
 
+	function resetPan() {
+		panX = panY = lastPanX = lastPanY = 0;
+	}
+
 	// Focus trap bookkeeping
 	let previouslyFocused = null;
 
@@ -63,10 +67,7 @@
 			pinching = false;
 			pinchScale = 1;
 			committedScale = 1;
-			panX = 0;
-			panY = 0;
-			lastPanX = 0;
-			lastPanY = 0;
+			resetPan();
 			visible = true;
 		} else {
 			visible = false;
@@ -138,7 +139,7 @@
 		if (committedScale > 1) {
 			// pinch-zoom in effect → reset on tap
 			committedScale = 1;
-			panX = panY = lastPanX = lastPanY = 0;
+			resetPan();
 			zoomed = false;
 			return;
 		}
@@ -203,7 +204,7 @@
 			committedScale = pinchScale;
 			if (committedScale <= 1.02) {
 				committedScale = 1;
-				panX = panY = lastPanX = lastPanY = 0;
+				resetPan();
 			}
 			pinching = false;
 			pinchStartDist = 0;
@@ -234,7 +235,7 @@
 		const next = Math.max(1, Math.min(4, committedScale - e.deltaY * 0.0025));
 		committedScale = next;
 		if (committedScale === 1) {
-			panX = panY = lastPanX = lastPanY = 0;
+			resetPan();
 		}
 	}
 
