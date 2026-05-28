@@ -166,7 +166,7 @@
 				<p class="tabular">{currentMeta.year}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<span class="tabular inline-flex items-baseline whitespace-nowrap">
+					<span class="tabular inline-flex whitespace-nowrap">
 						<span class="grid shrink-0 leading-none">
 							{#each data.availableLangs as l (`${l}-mins-ghost`)}
 								<span style="grid-area: 1 / 1" class="invisible" aria-hidden="true">
