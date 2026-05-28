@@ -57,5 +57,15 @@ export default defineSchema({
 	nowPage: defineTable({
 		content: v.string(),
 		updatedAt: v.number()
+	}),
+
+	nowPlaying: defineTable({
+		data: v.any(),
+		updatedAt: v.number()
+	}),
+
+	photos: defineTable({
+		data: v.any(),
+		updatedAt: v.number()
 	})
 });

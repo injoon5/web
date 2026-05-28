@@ -1,26 +1,39 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$convex/_generated/api';
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 	import TechStack from '$lib/TechStack.svelte';
 
+	let { data } = $props();
+
 	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
 	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
 	// there's no per-frame scroll math.
-	let heroNameEl;
+	let heroNameEl = $state();
 	let heroObserver;
 
+	// Music and photos are populated by Convex cron jobs (see convex/crons.js)
+	// and pushed to the client over Convex's realtime WebSocket.
+	const nowQuery = useQuery(api.media.getNowPlaying, () => ({}));
+	const photosQuery = useQuery(api.media.getPhotos, () => ({}));
+
+	const nowlistening = $derived(nowQuery.data?.data ?? null);
+	const photos = $derived(photosQuery.data?.data ?? null);
+
 	// LoadState: 'loading' | 'ready' | 'error'
-	let nowlistening = null;
-	let photos = null;
+	const nowState = $derived(
+		nowQuery.isLoading ? 'loading' : nowQuery.error ? 'error' : 'ready'
+	);
+	const photosState = $derived(
+		photosQuery.isLoading ? 'loading' : photosQuery.error ? 'error' : 'ready'
+	);
 
-	let nowState = 'loading';
-	let photosState = 'loading';
+	const nowError = $derived(nowQuery.error?.message ?? null);
+	const photosError = $derived(photosQuery.error?.message ?? null);
 
-	let nowError = null;
-	let photosError = null;
-
-	onMount(async () => {
+	onMount(() => {
 		// Flip once the hero name passes behind the ~64px-tall sticky nav, so the
 		// navbar name fades in right as the hero tucks away.
 		heroObserver = new IntersectionObserver(
@@ -28,49 +41,12 @@
 			{ rootMargin: '-64px 0px 0px 0px', threshold: 0 }
 		);
 		if (heroNameEl) heroObserver.observe(heroNameEl);
-
-		nowState = 'loading';
-		photosState = 'loading';
-		nowError = null;
-		photosError = null;
-
-		const loadPhotos = fetch(`https://raw.githubusercontent.com/injoon5/data/main/photos.json`)
-			.then(async (r) => {
-				if (!r.ok) throw new Error(`photos.json HTTP ${r.status}`);
-				return r.json();
-			})
-			.then((j) => {
-				photos = j;
-				photosState = 'ready';
-			})
-			.catch((e) => {
-				photosState = 'error';
-				photosError = e?.message ?? 'Failed to load photos';
-			});
-
-		const loadNow = fetch(`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`)
-			.then(async (r) => {
-				if (!r.ok) throw new Error(`now-playing.json HTTP ${r.status}`);
-				return r.json();
-			})
-			.then((j) => {
-				nowlistening = j;
-				nowState = 'ready';
-			})
-			.catch((e) => {
-				nowState = 'error';
-				nowError = e?.message ?? 'Failed to load now playing';
-			});
-
-		await Promise.allSettled([loadPhotos, loadNow]);
 	});
 
 	onDestroy(() => {
 		heroObserver?.disconnect();
 		heroNameVisible.set(true);
 	});
-
-	export let data;
 </script>
 
 <svelte:head>

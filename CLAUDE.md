@@ -95,8 +95,15 @@ convex/
 | `likes`        | url, ipHash                                                                                        | `by_url`, `by_url_ip`         |
 | `bannedIps`    | ipHash, reason                                                                                     | `by_ip`                       |
 | `nowPage`      | content, updatedAt                                                                                 | —                             |
+| `nowPlaying`   | data (Last.fm response), updatedAt                                                                 | —                             |
+| `photos`       | data (photos feed), updatedAt                                                                      | —                             |
 
 `createdAt` is Convex's built-in `_creationTime` on every doc.
+
+`nowPlaying` and `photos` are single-row tables populated by Convex cron jobs
+(`convex/crons.js` → `convex/media.js`): the music cron runs every minute, the
+photos cron every hour. The home page reads them via `useQuery` instead of the
+old `raw.githubusercontent.com/injoon5/data` JSON files.
 
 ---
 
