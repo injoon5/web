@@ -19,6 +19,7 @@
 
 	let tabsEl = $state(null);
 	let tabsScrollEl = $state(null);
+	let heightOuterEl = $state(null);
 	let clipLeft = $state(0);
 	let clipRight = $state(0);
 	let clipVisible = $state(false);
@@ -34,10 +35,38 @@
 		activeIndex === 'favorites' ? favorites : (techstack[activeIndex]?.technologies ?? [])
 	);
 
-	function selectTab(index) {
+	const PANEL_MS = 280;
+	const HEIGHT_MS = 280;
+	const ITEM_STAGGER_MS = 40;
+	const ITEM_MAX_STAGGER = 6;
+
+	async function selectTab(index) {
+		if (index === activeIndex) return;
 		keyboardNav = false;
+
+		const wasAnimated = animated;
+		const startH = measurePanelHeight();
+
 		animated = true;
+
+		if (wasAnimated && startH > 0) {
+			setOuterHeight(startH, { animate: false });
+		}
+
 		activeIndex = index;
+		await tick();
+
+		if (!wasAnimated) {
+			const h = measurePanelHeight();
+			if (h > 0) setOuterHeight(h, { animate: false });
+			return;
+		}
+
+		requestAnimationFrame(() => {
+			const endH = measurePanelHeight();
+			const target = Math.max(startH, endH);
+			if (target > 0) setOuterHeight(target);
+		});
 	}
 
 	function updateScrollFade() {
@@ -76,6 +105,35 @@
 		clipVisible = true;
 	}
 
+	function measurePanelHeight() {
+		const inner = heightOuterEl?.firstElementChild;
+		if (!inner) return 0;
+		return inner.getBoundingClientRect().height;
+	}
+
+	function setOuterHeight(px, { animate = true } = {}) {
+		const outer = heightOuterEl;
+		if (!outer || px <= 0) return;
+
+		if (!animate) {
+			outer.style.transition = 'none';
+			outer.style.height = `${px}px`;
+			outer.getBoundingClientRect();
+			outer.style.transition = '';
+			return;
+		}
+
+		outer.style.height = `${px}px`;
+	}
+
+	async function onPanelOutroEnd() {
+		await tick();
+		requestAnimationFrame(() => {
+			const h = measurePanelHeight();
+			if (h > 0) setOuterHeight(h);
+		});
+	}
+
 	$effect(() => {
 		activeIndex;
 		updateClip();
@@ -90,6 +148,9 @@
 			});
 		});
 
+		const h = measurePanelHeight();
+		if (h > 0) setOuterHeight(h, { animate: false });
+
 		const onScroll = () => {
 			updateScrollFade();
 			updateClip();
@@ -97,8 +158,17 @@
 		updateScrollFade();
 		tabsScrollEl?.addEventListener('scroll', onScroll, { passive: true });
 
+		const onResize = () => {
+			updateScrollFade();
+			updateClip();
+			const next = measurePanelHeight();
+			if (next > 0) setOuterHeight(next, { animate: false });
+		};
+		window.addEventListener('resize', onResize);
+
 		return () => {
 			tabsScrollEl?.removeEventListener('scroll', onScroll);
+			window.removeEventListener('resize', onResize);
 		};
 	});
 
@@ -115,86 +185,90 @@
 	});
 
 	function onTabKeydown(e, tabIndex, isFav) {
-		// Arrow navigation: favorites is index -1 logically
 		const total = techstack.length;
+		let next = null;
+
 		if (e.key === 'ArrowRight') {
 			e.preventDefault();
 			keyboardNav = true;
-			activeIndex = isFav ? 0 : Math.min(tabIndex + 1, total - 1);
+			next = isFav ? 0 : Math.min(tabIndex + 1, total - 1);
 		} else if (e.key === 'ArrowLeft') {
 			e.preventDefault();
 			keyboardNav = true;
-			activeIndex = isFav ? 'favorites' : tabIndex === 0 ? 'favorites' : tabIndex - 1;
+			next = isFav ? 'favorites' : tabIndex === 0 ? 'favorites' : tabIndex - 1;
 		} else if (e.key === 'Home') {
 			e.preventDefault();
 			keyboardNav = true;
-			activeIndex = 'favorites';
+			next = 'favorites';
 		} else if (e.key === 'End') {
 			e.preventDefault();
 			keyboardNav = true;
-			activeIndex = total - 1;
+			next = total - 1;
 		} else return;
-		// Focus the newly active tab
+
+		selectTab(next);
+
 		const list = e.currentTarget.closest('[role="tablist"]');
 		const sel =
-			activeIndex === 'favorites'
+			next === 'favorites'
 				? list?.querySelector('[data-tab-fav]')
-				: list?.querySelector(`[data-tab-index="${activeIndex}"]`);
+				: list?.querySelector(`[data-tab-index="${next}"]`);
 		sel?.focus();
 	}
 
-	const PANEL_MS = 220;
-
 	function panelOut(node, { skip = false } = {}) {
 		if (skip) return { duration: 0 };
+
+		const parent = node.parentElement;
+		if (parent) parent.style.position = 'relative';
+
+		node.style.position = 'absolute';
+		node.style.inset = '0';
+		node.style.width = '100%';
 		node.style.pointerEvents = 'none';
-		return { duration: PANEL_MS, easing: cubicOut, css: (t) => `opacity: ${t}` };
+		node.style.zIndex = '0';
+
+		return {
+			duration: PANEL_MS,
+			easing: cubicOut,
+			css: (t, u) => {
+				const y = u * 6;
+				const blur = u * 3;
+				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
+			}
+		};
 	}
 
 	function panelIn(node, { skip = false } = {}) {
 		if (skip) return { duration: 0 };
-		return { duration: PANEL_MS, easing: cubicOut, css: (t) => `opacity: ${t}` };
+
+		node.style.position = 'relative';
+		node.style.zIndex = '1';
+
+		return {
+			duration: PANEL_MS,
+			easing: cubicOut,
+			css: (t, u) => {
+				const y = u * 6;
+				const blur = u * 3;
+				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
+			}
+		};
 	}
 
-	// Animates the wrapper height to match its inner content whenever it resizes.
-	// First measurement skips the transition so there's no flash on mount.
-	function animateHeight(node) {
-		const inner = node.firstElementChild;
-		if (!inner || typeof ResizeObserver === 'undefined') return {};
+	function itemIn(node, { index = 0, skip = false } = {}) {
+		if (skip) return { duration: 0 };
 
-		let ready = false;
+		const delay = Math.min(index, ITEM_MAX_STAGGER) * ITEM_STAGGER_MS;
 
-		const ro = new ResizeObserver(() => {
-			const h = inner.offsetHeight;
-			if (!ready) {
-				node.style.transition = 'none';
-				node.style.height = h + 'px';
-				// Force a reflow so the transition:none takes effect before we re-enable
-				node.getBoundingClientRect();
-				node.style.transition = '';
-				ready = true;
-				return;
-			}
-
-			const current = parseFloat(node.style.height);
-			const shrinking = Number.isFinite(current) && h < current - 1;
-
-			// After crossfade the outgoing panel unmounts and height drops — snap so we
-			// don't get a second slow shrink on top of the opacity transition.
-			if (shrinking) {
-				node.style.transition = 'none';
-				node.style.height = h + 'px';
-				node.getBoundingClientRect();
-				node.style.transition = '';
-			} else {
-				node.style.height = h + 'px';
-			}
-		});
-
-		ro.observe(inner);
 		return {
-			destroy() {
-				ro.disconnect();
+			delay,
+			duration: 220,
+			easing: cubicOut,
+			css: (t, u) => {
+				const y = u * 8;
+				const blur = u * 2;
+				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
 			}
 		};
 	}
@@ -262,19 +336,20 @@
 		></div>
 	</div>
 
-	<div use:animateHeight class="ts-height-outer">
+	<div bind:this={heightOuterEl} class="ts-height-outer" style:--ts-height-ms="{HEIGHT_MS}ms">
 		<div class="ts-height-inner">
 			{#key panelId}
 				<div
 					in:panelIn={{ skip: !animated }}
 					out:panelOut={{ skip: !animated }}
+					onoutroend={onPanelOutroEnd}
 					id="ts-panel"
 					role="tabpanel"
 					aria-label={activeIndex === 'favorites' ? 'Favorites' : techstack[activeIndex]?.name}
 					class="ts-panel"
 				>
-					{#each items as tech (tech.name)}
-						<div class="ts-item">
+					{#each items as tech, i (tech.name)}
+						<div class="ts-item" in:itemIn={{ index: i, skip: !animated }}>
 							<a href={tech.link} target="_blank" rel="noopener noreferrer" class="ts-name"
 								>{tech.name}</a
 							>
@@ -463,19 +538,11 @@
 	/* --- Animated height wrapper --- */
 	.ts-height-outer {
 		overflow: hidden;
-		transition: height 220ms var(--ease-out-soft);
+		transition: height var(--ts-height-ms, 280ms) var(--ease-out-soft);
 	}
 
-	/* Stack in/out panels in one cell so height stays max(old, new) during crossfade */
 	.ts-height-inner {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.ts-height-inner > :global(*) {
-		grid-row: 1;
-		grid-column: 1;
-		min-width: 0;
+		position: relative;
 	}
 
 	/* --- Panel --- */
