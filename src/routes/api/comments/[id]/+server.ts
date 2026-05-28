@@ -1,26 +1,17 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { editCommentSchema, deleteCommentSchema } from '$lib/server/validation';
-import { getClientIp, hashIp } from '$lib/server/ip';
-import { runConvex, handleConvexErr } from '$lib/server/api';
+import { requestIpHash } from '$lib/server/ip';
+import { runConvex, parseBody } from '$lib/server/api';
 import { ADMIN_SECRET } from '$env/static/private';
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
-	const ipHash = hashIp(getClientIp(request));
+	const ipHash = requestIpHash(request);
 	const admin = verifyAdminSecret(request);
-
-	let raw;
-	try {
-		raw = await request.json();
-	} catch {
-		throw error(400, 'Invalid request body');
-	}
-	const parsed = editCommentSchema.safeParse(raw);
-	if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
-	const { text, password } = parsed.data;
+	const { text, password } = await parseBody(request, editCommentSchema);
 
 	return runConvex(
 		() =>
@@ -36,24 +27,16 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 };
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
-	const ipHash = hashIp(getClientIp(request));
+	const ipHash = requestIpHash(request);
 	const admin = verifyAdminSecret(request);
 
 	if (!admin) {
-		let raw;
-		try {
-			raw = await request.json();
-		} catch {
-			throw error(400, 'Invalid request body');
-		}
-		const parsed = deleteCommentSchema.safeParse(raw);
-		if (!parsed.success) throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
-
+		const { password } = await parseBody(request, deleteCommentSchema);
 		return runConvex(
 			() =>
 				convex.action(api.commentActions.softDeleteComment, {
 					commentId: params.id,
-					password: parsed.data.password,
+					password,
 					ipHash
 				}),
 			() => json({ success: true })

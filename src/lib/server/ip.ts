@@ -22,3 +22,8 @@ export function hashIp(ip: string): string {
 	}
 	return createHmac('sha256', IP_HASH_SECRET).update(ip).digest('hex');
 }
+
+/** Convenience: extract and hash the client IP from a request in one call. */
+export function requestIpHash(request: Request): string {
+	return hashIp(getClientIp(request));
+}

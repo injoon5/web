@@ -7,9 +7,9 @@
 	import { api } from '$convex/_generated/api';
 	import CommentNode from './CommentNode.svelte';
 	import { buildTree } from './buildTree.js';
+	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
 
-	const MAX_LENGTH = 200;
-	const CHAR_THRESHOLD = 10;
+	const MAX_LENGTH = MAX_COMMENT_LENGTH;
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -127,7 +127,7 @@
 		submitting ||
 			!commentText.trim() ||
 			!password ||
-			password.length < 4 ||
+			password.length < MIN_PASSWORD_LENGTH ||
 			commentText.length > MAX_LENGTH
 	);
 
@@ -155,7 +155,7 @@
 		formSubmitted = true;
 		submitError = '';
 		if (!commentText.trim()) return;
-		if (password.length < 4) return;
+		if (password.length < MIN_PASSWORD_LENGTH) return;
 		if (commentText.length > MAX_LENGTH) return;
 
 		submitting = true;
@@ -219,8 +219,8 @@
 				autocomplete="off"
 				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			/>
-			{#if formSubmitted && password.length > 0 && password.length < 4}
-				<p class="mt-1 text-sm text-red-500">Password must be at least 4 characters.</p>
+			{#if formSubmitted && password.length > 0 && password.length < MIN_PASSWORD_LENGTH}
+				<p class="mt-1 text-sm text-red-500">Password must be at least {MIN_PASSWORD_LENGTH} characters.</p>
 			{/if}
 		</div>
 		{#if submitError}
