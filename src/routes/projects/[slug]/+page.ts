@@ -1,6 +1,6 @@
-// Server-rendered (not prerendered) so the cookie/?lang= preferred language
-// is applied on the server — the first byte is the right language, no flash.
-export const prerender = false;
+// Prerendered so pages are served from CDN edge.
+// Language preference is restored client-side via localStorage/cookie in onMount.
+export const prerender = true;
 
 import { error } from '@sveltejs/kit';
 
