@@ -7,10 +7,9 @@
 	import Lightbox from '../../../lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Languages from '@lucide/svelte/icons/languages';
-	import NumberFlow from '@number-flow/svelte';
 	import { autoHeight } from '$lib/autoHeight.js';
 	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
-	import StableLangStack from '$lib/StableLangStack.svelte';
+	import ReadingTime from '$lib/ReadingTime.svelte';
 
 	import { onMount, tick } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -136,8 +135,7 @@
 	}
 
 	$: currentMeta = metaFor(displayLang);
-	$: currentReadingTime = readingTimeFor(displayLang);
-	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
+	$: readingMinutes = parseInt(readingTimeFor(displayLang) ?? '', 10);
 	$: currentSeries = seriesFor(displayLang);
 	// Head metadata tracks the language actually being shown so the tab title and
 	// social card match the visible content (and default to Korean for crawlers).
@@ -215,24 +213,7 @@
 				<p class="tabular whitespace-nowrap">{formatDate(currentMeta.date)}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<span class="tabular inline-flex whitespace-nowrap">
-						<span class="grid shrink-0 leading-none">
-							{#each data.availableLangs as l (`${l}-mins-ghost`)}
-								<span style="grid-area: 1 / 1" class="invisible" aria-hidden="true">
-									{parseInt(readingTimeFor(l) ?? '', 10) || 0}
-								</span>
-							{/each}
-							<span style="grid-area: 1 / 1">
-								<NumberFlow value={readingMinutes} />
-							</span>
-						</span>
-						<StableLangStack
-							langs={data.availableLangs}
-							{displayLang}
-							transition={titleBlur}
-							text={(l) => (l === 'ko' ? '분 읽기' : ' min read')}
-						/>
-					</span>
+					<ReadingTime langs={data.availableLangs} {displayLang} {readingTimeFor} {animate} />
 				{/if}
 			</div>
 			<LanguageSwitcher {lang} {mounted} availableLangs={data.availableLangs} onselect={setLang} />
