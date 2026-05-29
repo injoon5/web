@@ -6,9 +6,9 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import Self from './CommentNode.svelte';
+	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
 
-	const MAX_LENGTH = 200;
-	const CHAR_THRESHOLD = 10;
+	const MAX_LENGTH = MAX_COMMENT_LENGTH;
 
 	let {
 		comment,
@@ -54,7 +54,7 @@
 		replySubmitting ||
 			!replyText.trim() ||
 			!replyPassword ||
-			replyPassword.length < 4 ||
+			replyPassword.length < MIN_PASSWORD_LENGTH ||
 			replyText.length > MAX_LENGTH
 	);
 
@@ -124,7 +124,7 @@
 	async function submitReply() {
 		replyError = '';
 		if (!replyText.trim()) return (replyError = 'Reply cannot be empty.');
-		if (replyPassword.length < 4) return (replyError = 'Password must be at least 4 characters.');
+		if (replyPassword.length < MIN_PASSWORD_LENGTH) return (replyError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
 		if (replyText.length > MAX_LENGTH) return (replyError = `Max ${MAX_LENGTH} characters.`);
 
 		replySubmitting = true;
@@ -155,7 +155,7 @@
 
 	async function confirmDelete() {
 		deleteError = '';
-		if (deletePassword.length < 4) return (deleteError = 'Password must be at least 4 characters.');
+		if (deletePassword.length < MIN_PASSWORD_LENGTH) return (deleteError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
 
 		deleteSubmitting = true;
 		try {
@@ -324,7 +324,7 @@
 					<div class="flex gap-2">
 						<button
 							onclick={confirmDelete}
-							disabled={deleteSubmitting || deletePassword.length < 4}
+							disabled={deleteSubmitting || deletePassword.length < MIN_PASSWORD_LENGTH}
 							class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							{deleteSubmitting ? 'Deleting…' : 'Delete'}

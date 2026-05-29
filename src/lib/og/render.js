@@ -1,9 +1,7 @@
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { loadFonts } from './fonts.js';
-
-const WIDTH = 1200;
-const HEIGHT = 630;
+import { WIDTH, HEIGHT } from './templates.js';
 
 /**
  * Render a satori element tree to a PNG buffer.

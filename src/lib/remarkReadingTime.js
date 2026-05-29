@@ -1,7 +1,5 @@
 import { toString } from 'mdast-util-to-string';
-
-const EN_WORDS_PER_MINUTE = 200;
-const KO_CHARS_PER_MINUTE = 500;
+import { EN_WORDS_PER_MINUTE, KO_CHARS_PER_MINUTE } from './readingTime.js';
 
 /**
  * Remark plugin that computes reading time at build time from the parsed AST

@@ -8,11 +8,8 @@ function formatDate(date: string, dateStyle: DateStyle = 'medium', locales = 'en
 }
 
 function sliceText(description: string, limit: number) {
-	if (description.split(' ').length <= limit) {
-		return description;
-	} else {
-		return description.split(' ').slice(0, limit).join(' ').concat('...');
-	}
+	const words = description.split(' ');
+	return words.length <= limit ? description : words.slice(0, limit).join(' ') + '...';
 }
 
 export { sliceText, formatDate };

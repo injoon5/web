@@ -2,6 +2,24 @@ import { error, json } from '@sveltejs/kit';
 import { ConvexError } from 'convex/values';
 
 /**
+ * Parse the request body as JSON and validate it against a Zod schema.
+ * Throws a 400 SvelteKit error on parse or validation failure.
+ */
+export async function parseBody(request, schema) {
+	let raw;
+	try {
+		raw = await request.json();
+	} catch {
+		throw error(400, 'Invalid request body');
+	}
+	const parsed = schema.safeParse(raw);
+	if (!parsed.success) {
+		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
+	}
+	return parsed.data;
+}
+
+/**
  * Convert a thrown Convex error into a SvelteKit Response.
  * Handles structured ConvexError payloads (`{ kind, message?, retryAfter? }`)
  * and falls back to a generic 500 for anything else.

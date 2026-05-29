@@ -244,6 +244,10 @@
 		sel?.focus();
 	}
 
+	/** Shared CSS for all blur-slide transitions. Returns a Svelte css() function. */
+	const blurSlideCss = (yMag) => (t, u) =>
+		`opacity: ${t}; transform: translateY(${u * yMag}px); filter: blur(${u * 2}px)`;
+
 	function panelOut(node, { skip = false } = {}) {
 		if (skip) return { duration: 0 };
 
@@ -261,15 +265,7 @@
 		node.style.pointerEvents = 'none';
 		node.style.zIndex = '0';
 
-		return {
-			duration: PANEL_OUT_MS,
-			easing: cubicOut,
-			css: (t, u) => {
-				const y = u * 4;
-				const blur = u * 2;
-				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
-			}
-		};
+		return { duration: PANEL_OUT_MS, easing: cubicOut, css: blurSlideCss(4) };
 	}
 
 	function panelIn(node, { skip = false } = {}) {
@@ -278,32 +274,14 @@
 		node.style.position = 'relative';
 		node.style.zIndex = '1';
 
-		return {
-			duration: PANEL_IN_MS,
-			easing: cubicOut,
-			css: (t, u) => {
-				const y = u * 6;
-				const blur = u * 2;
-				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
-			}
-		};
+		return { duration: PANEL_IN_MS, easing: cubicOut, css: blurSlideCss(6) };
 	}
 
 	function itemIn(node, { index = 0, skip = false } = {}) {
 		if (skip) return { duration: 0 };
 
 		const delay = Math.min(index, ITEM_MAX_STAGGER) * ITEM_STAGGER_MS;
-
-		return {
-			delay,
-			duration: 180,
-			easing: cubicOut,
-			css: (t, u) => {
-				const y = u * 6;
-				const blur = u * 2;
-				return `opacity: ${t}; transform: translateY(${y}px); filter: blur(${blur}px)`;
-			}
-		};
+		return { delay, duration: 180, easing: cubicOut, css: blurSlideCss(6) };
 	}
 </script>
 
