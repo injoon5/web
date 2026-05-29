@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Fingerprint tracked raster images from git HEAD (not the working tree).
- * Used as a stable turbo input so optimized bytes on disk do not bust cache.
+ * Used as a stable turbo input so optimized bytes on disk and commit SHA do not bust cache.
  */
 
 import { createHash } from 'node:crypto';
@@ -45,17 +45,7 @@ async function main() {
 	}
 
 	await mkdir(path.dirname(OUT_PATH), { recursive: true });
-	await writeFile(
-		OUT_PATH,
-		JSON.stringify(
-			{
-				commit: (await git('git', ['rev-parse', 'HEAD'])).trim(),
-				files: fingerprints
-			},
-			null,
-			2
-		)
-	);
+	await writeFile(OUT_PATH, JSON.stringify({ files: fingerprints }, null, 2));
 }
 
 main().catch((err) => {

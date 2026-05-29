@@ -1,6 +1,5 @@
 {
 	"$schema": "https://turbo.build/schema.json",
-	"globalEnv": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"],
 	"globalPassThroughEnv": [
 		"DATABASE_URL",
 		"UPSTASH_REDIS_REST_URL",
@@ -12,9 +11,14 @@
 	],
 	"tasks": {
 		"fingerprint-images": {
-			"inputs": ["scripts/fingerprint-images.mjs"],
-			"outputs": [".cache/source-fingerprints.json"],
-			"env": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"]
+			"inputs": [
+				"scripts/fingerprint-images.mjs",
+				"static/**/*.jpg",
+				"static/**/*.jpeg",
+				"static/**/*.png",
+				"static/**/*.webp"
+			],
+			"outputs": [".cache/source-fingerprints.json"]
 		},
 		"build-image-cache": {
 			"dependsOn": ["fingerprint-images"],
