@@ -19,7 +19,7 @@ You're reading this on it. [injoon5/web](https://github.com/injoon5/web) is my p
 
 Multilingual support: blog posts and projects can exist in both `en/` and `ko/` directories. The slug page loads whichever languages are published and shows a pill toggle.
 
-The homepage fetches two external JSON files client-side on mount — [now-playing.json](https://raw.githubusercontent.com/injoon5/data/main/now-playing.json) and photos data from the same repo. No server needed; raw GitHub URLs have no CORS restrictions.
+Homepage **Now Listening** and **Photos** widgets read from Convex (`homeFeedCache`). Crons pull Last.fm (`LAST_FM_PUBLIC_API_KEY`) every minute and [photos.injoon5.com/feed.json](https://photos.injoon5.com/feed.json) every hour — the old [injoon5/data](https://github.com/injoon5/data) repo is no longer on the read path.
 
 ## Convex backend
 
@@ -32,6 +32,7 @@ Anything live goes through Convex (`convex-svelte` subscriptions on the client):
 | `likes` | Page-level like toggles |
 | `bannedIps` | IP ban list |
 | `nowPage` | Editable `/now` page content |
+| `homeFeedCache` | Cached Last.fm + photos feed for the homepage |
 
 Comments are sorted by **score** (upvotes − downvotes), then recency. Passwords are bcrypt-hashed for edit/delete. Rate limiting runs inside Convex via `@convex-dev/rate-limiter` — survives cold starts, applies to both HTTP routes and direct mutations. Admin requests with a valid `ADMIN_SECRET` bypass everything.
 

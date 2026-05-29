@@ -20,7 +20,7 @@ aiTranslated: true
 
 다국어도 된다. 블로그랑 프로젝트는 `en/`이랑 `ko/` 폴더에 둘 다 있을 수 있고, 슬러그 페이지가 공개된 언어만 불러와서 알약 모양 토글을 띄운다.
 
-홈페이지는 마운트될 때 외부 JSON 두 개를 클라이언트에서 가져온다. [now-playing.json](https://raw.githubusercontent.com/injoon5/data/main/now-playing.json)이랑 같은 저장소의 사진 데이터. 서버는 필요 없는데, GitHub raw URL이 CORS 제한이 없어서다.
+홈페이지 **Now Listening**이랑 **Photos** 위젯은 Convex `homeFeedCache`에서 읽는다. 크론이 Last.fm(`LAST_FM_PUBLIC_API_KEY`, 3분마다)이랑 [photos.injoon5.com/feed.json](https://photos.injoon5.com/feed.json)(1시간마다)을 직접 가져온다. 예전 [injoon5/data](https://github.com/injoon5/data) 저장소는 읽기 경로에 없다.
 
 ## Convex 백엔드
 
@@ -33,6 +33,7 @@ aiTranslated: true
 | `likes` | 페이지 단위 좋아요 토글 |
 | `bannedIps` | IP 차단 목록 |
 | `nowPage` | 편집 가능한 `/now` 페이지 콘텐츠 |
+| `homeFeedCache` | 홈페이지용 Last.fm + 사진 피드 캐시 |
 
 댓글은 **점수**(추천 − 비추천) 순으로 정렬하고, 같으면 최신순이다. 비밀번호는 수정/삭제용으로 bcrypt 해싱한다. 속도 제한은 `@convex-dev/rate-limiter`로 Convex 안에서 도는데, 콜드 스타트에도 안 풀리고 HTTP 라우트랑 직접 mutation 양쪽에 다 걸린다. `ADMIN_SECRET`이 맞는 관리자 요청은 이 전부를 건너뛴다.
 
