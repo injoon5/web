@@ -212,14 +212,7 @@
 			<div
 				class="mt-1 flex flex-row items-center text-xl font-medium text-neutral-600 dark:text-neutral-400"
 			>
-				<StableLangStack
-					langs={data.availableLangs}
-					{displayLang}
-					transition={titleBlur}
-					as="p"
-					className="tabular whitespace-nowrap"
-					text={(l) => formatDate(metaFor(l).date, 'medium', l === 'ko' ? 'ko' : 'en')}
-				/>
+				<p class="tabular whitespace-nowrap">{formatDate(currentMeta.date)}</p>
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
 					<span class="tabular inline-flex whitespace-nowrap">

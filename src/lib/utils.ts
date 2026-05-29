@@ -1,6 +1,6 @@
 type DateStyle = Intl.DateTimeFormatOptions['dateStyle'];
 
-function formatDate(date: string, dateStyle: DateStyle = 'medium', locales = 'en') {
+function formatDate(date: string, dateStyle: DateStyle = 'medium', locales = 'en-US') {
 	// Safari is mad about dashes in the date
 	const dateToFormat = new Date(date.replaceAll('-', '/'));
 	const dateFormatter = new Intl.DateTimeFormat(locales, { dateStyle });
