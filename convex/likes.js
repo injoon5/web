@@ -4,6 +4,7 @@ import { limiter } from './rateLimits.js';
 import { isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
 import { decrementLikeCount, incrementLikeCount, readLikeCount } from './lib/likeCounts.js';
+import { assertIpProof } from './lib/ipProof.js';
 
 async function aggregate(ctx, url, ipHash) {
 	const mine = await ctx.db
@@ -25,12 +26,14 @@ export const setLike = mutation({
 	args: {
 		url: v.string(),
 		ipHash: v.string(),
+		ipProof: v.string(),
 		// Desired state. Omitted falls back to a toggle so older clients keep working.
 		liked: v.optional(v.boolean()),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
 		const admin = await isAdmin(args.adminSecret);
+		if (!admin) await assertIpProof(args.ipHash, args.ipProof);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });
