@@ -8,5 +8,7 @@ export function createIpProof(ipHash: string): string {
 	if (!IP_HASH_SECRET) {
 		throw new Error('IP_HASH_SECRET is not set');
 	}
-	return createHmac('sha256', IP_HASH_SECRET).update(PURPOSE + ipHash).digest('hex');
+	return createHmac('sha256', IP_HASH_SECRET)
+		.update(PURPOSE + ipHash)
+		.digest('hex');
 }
