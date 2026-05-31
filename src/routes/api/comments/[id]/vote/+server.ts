@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
 import { requestIpHash } from '$lib/server/ip';
+import { createIpProof } from '$lib/server/ipProof';
 import { voteSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { runConvex, parseBody } from '$lib/server/api';
@@ -9,6 +10,7 @@ import { ADMIN_SECRET } from '$env/static/private';
 
 export const POST: RequestHandler = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
+	const ipProof = createIpProof(ipHash);
 	const admin = verifyAdminSecret(request);
 	const { voteType } = await parseBody(request, voteSchema);
 
@@ -17,6 +19,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 			commentId: params.id,
 			voteType,
 			ipHash,
+			ipProof,
 			adminSecret: admin ? ADMIN_SECRET : undefined
 		})
 	);
