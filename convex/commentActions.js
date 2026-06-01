@@ -5,6 +5,7 @@ import { ConvexError, v } from 'convex/values';
 import { action } from './_generated/server.js';
 import { internal } from './_generated/api.js';
 import { isAdmin } from './lib/auth.js';
+import { assertIpProof } from './lib/ipProof.js';
 
 async function requirePassword(ctx, commentId, password) {
 	const auth = await ctx.runQuery(internal.comments.getCommentAuth, { commentId });
@@ -18,9 +19,10 @@ async function requirePassword(ctx, commentId, password) {
 }
 
 /** Rate limit + password for non-admin callers. */
-async function authorizeOwner(ctx, { commentId, password, ipHash, adminSecret }) {
+async function authorizeOwner(ctx, { commentId, password, ipHash, ipProof, adminSecret }) {
 	if (await isAdmin(adminSecret)) return;
 
+	await assertIpProof(ipHash, ipProof);
 	await ctx.runMutation(internal.comments.consumeEditRateLimit, { ipHash });
 
 	if (!password) {
@@ -36,6 +38,7 @@ export const editComment = action({
 		text: v.string(),
 		password: v.string(),
 		ipHash: v.string(),
+		ipProof: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
@@ -53,6 +56,7 @@ export const softDeleteComment = action({
 		commentId: v.id('comments'),
 		password: v.optional(v.string()),
 		ipHash: v.string(),
+		ipProof: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
