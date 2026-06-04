@@ -1,19 +1,20 @@
-import { json, error } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import { ADMIN_SECRET } from '$env/static/private';
-import { verifyAdminCookie } from '$lib/server/admin';
+import { requireAdmin } from '$lib/server/admin';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
+import { nowSchema } from '$lib/server/validation';
+import { parseBody, runConvex } from '$lib/server/api';
 
-export async function POST({ request, cookies }) {
-	if (!verifyAdminCookie(cookies.get('admin_token'))) {
-		throw error(401, 'Unauthorized');
-	}
+export async function POST({ request }) {
+	// Use the shared header-or-cookie admin check (consistent with every other
+	// admin route), validate the body, and map Convex errors to HTTP responses.
+	requireAdmin(request);
 
-	const body = await request.json().catch(() => null);
-	if (!body || typeof body.content !== 'string') {
-		throw error(400, 'Missing content');
-	}
+	const { content } = await parseBody(request, nowSchema);
 
-	await convex.mutation(api.now.update, { content: body.content, adminSecret: ADMIN_SECRET });
-	return json({ ok: true });
+	return runConvex(
+		() => convex.mutation(api.now.update, { content, adminSecret: ADMIN_SECRET }),
+		() => json({ ok: true })
+	);
 }

@@ -36,6 +36,7 @@
 
 	// Focus trap bookkeeping
 	let previouslyFocused = null;
+	let wasVisible = false;
 
 	// Viewport size — used to reserve the image box before the src loads,
 	// which prevents a layout shift when the image arrives after the open.
@@ -76,18 +77,23 @@
 		}
 	}
 
-	// When the lightbox becomes visible, capture focus and move it inside.
-	$: if (visible && typeof document !== 'undefined') {
-		previouslyFocused = document.activeElement;
-		queueMicrotask(() => closeBtn?.focus());
-	} else if (!visible && previouslyFocused && typeof document !== 'undefined') {
-		// Restore focus when closing
-		try {
-			previouslyFocused.focus();
-		} catch {
-			// Element may have been removed from the DOM.
+	// Capture/restore focus only on the actual open<->close transition. Gating on
+	// `wasVisible` stops a re-run (e.g. when `closeBtn` binds) from re-capturing
+	// `previouslyFocused` as the close button itself, which would otherwise break
+	// focus restoration to the element that opened the lightbox.
+	$: if (typeof document !== 'undefined') {
+		if (visible && !wasVisible) {
+			previouslyFocused = document.activeElement;
+			queueMicrotask(() => closeBtn?.focus());
+		} else if (!visible && wasVisible && previouslyFocused) {
+			try {
+				previouslyFocused.focus();
+			} catch {
+				// Element may have been removed from the DOM.
+			}
+			previouslyFocused = null;
 		}
-		previouslyFocused = null;
+		wasVisible = visible;
 	}
 
 	function close() {

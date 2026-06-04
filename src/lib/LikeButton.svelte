@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/stores';
+	import { onDestroy } from 'svelte';
 	import NumberFlow from '@number-flow/svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
@@ -44,6 +45,10 @@
 	let likeErrorTimer = null;
 	let particles = $state([]);
 	let particleId = 0;
+
+	onDestroy(() => {
+		if (likeErrorTimer) clearTimeout(likeErrorTimer);
+	});
 
 	// New page: abandon any intent from the previous page and trust its server
 	// state. An in-flight request for the old page still completes (and persists),

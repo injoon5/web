@@ -2,6 +2,8 @@
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import { marked } from 'marked';
+	import DOMPurify from 'dompurify';
+	import { browser } from '$app/environment';
 
 	const { data } = $props();
 
@@ -15,7 +17,15 @@
 	const doc = $derived(nowQuery.data);
 	const content = $derived(doc?.content ?? '');
 	const updatedAt = $derived(doc?.updatedAt ? new Date(doc.updatedAt) : null);
-	const html = $derived(content ? marked.parse(content, { gfm: true, breaks: false }) : '');
+	// The content is admin-authored, but sanitize the rendered markdown anyway as
+	// defense-in-depth (a compromised admin token shouldn't yield stored XSS).
+	// DOMPurify needs a DOM, so only run it in the browser; during SSR the Convex
+	// subscription hasn't resolved yet, so `content` is empty regardless.
+	const html = $derived.by(() => {
+		if (!content) return '';
+		const rendered = /** @type {string} */ (marked.parse(content, { gfm: true, breaks: false }));
+		return browser ? DOMPurify.sanitize(rendered) : rendered;
+	});
 
 	/** @type {Array<{ unit: Intl.RelativeTimeFormatUnit, secs: number }>} */
 	const RELATIVE_UNITS = [

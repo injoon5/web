@@ -1,5 +1,6 @@
 <script>
 	import { enhance } from '$app/forms';
+	import { onDestroy } from 'svelte';
 	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
 	import { buildTree } from '$lib/comments/buildTree.js';
 
@@ -34,6 +35,9 @@
 		if (errorTimer) clearTimeout(errorTimer);
 		errorTimer = setTimeout(() => (errorMessage = ''), 4000);
 	}
+	onDestroy(() => {
+		if (errorTimer) clearTimeout(errorTimer);
+	});
 
 	async function loadUrls() {
 		loadingUrls = true;

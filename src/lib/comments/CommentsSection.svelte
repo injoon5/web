@@ -78,6 +78,11 @@
 	let voteError = $state('');
 	let voteErrorTimer = null;
 
+	onDestroy(() => {
+		if (votingAnimTimer) clearTimeout(votingAnimTimer);
+		if (voteErrorTimer) clearTimeout(voteErrorTimer);
+	});
+
 	function showVoteError(message) {
 		voteError = message;
 		if (voteErrorTimer) clearTimeout(voteErrorTimer);
@@ -220,7 +225,9 @@
 				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			/>
 			{#if formSubmitted && password.length > 0 && password.length < MIN_PASSWORD_LENGTH}
-				<p class="mt-1 text-sm text-red-500">Password must be at least {MIN_PASSWORD_LENGTH} characters.</p>
+				<p class="mt-1 text-sm text-red-500">
+					Password must be at least {MIN_PASSWORD_LENGTH} characters.
+				</p>
 			{/if}
 		</div>
 		{#if submitError}

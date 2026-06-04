@@ -9,6 +9,9 @@ import { decrementUrlCount, incrementUrlCount } from './lib/urlCounts.js';
 
 const MAX_DEPTH = 2;
 const MAX_COMMENTS = 200;
+const MAX_TEXT_LENGTH = 200;
+const MAX_USERNAME_LENGTH = 32;
+const MAX_REPLY_LENGTH = 1000;
 
 async function consumeRateLimit(ctx, name, ipHash) {
 	await limiter.limit(ctx, name, { key: ipHash, throws: true });
@@ -74,6 +77,19 @@ export const create = mutation({
 			throw new ConvexError({ kind: 'Banned' });
 		}
 
+		// Enforce limits server-side: this mutation is part of the public Convex
+		// API, so direct callers must not be able to bypass the SvelteKit/Zod layer.
+		const username = args.username.trim() || 'Anonymous';
+		if (args.text.length < 1 || args.text.length > MAX_TEXT_LENGTH) {
+			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
+		}
+		if (username.length > MAX_USERNAME_LENGTH) {
+			throw new ConvexError({
+				kind: 'BadRequest',
+				message: 'Username must be 32 characters or less'
+			});
+		}
+
 		if (!admin) await consumeRateLimit(ctx, 'comment', args.ipHash);
 
 		let depth = 0;
@@ -92,7 +108,7 @@ export const create = mutation({
 
 		const id = await ctx.db.insert('comments', {
 			url: args.url,
-			username: args.username.trim() || 'Anonymous',
+			username,
 			passwordHash: args.passwordHash,
 			text: args.text,
 			ipHash: args.ipHash,
@@ -184,6 +200,11 @@ export const hardDelete = mutation({
 	handler: async (ctx, { commentId, adminSecret }) => {
 		await assertAdmin(adminSecret);
 
+		// Already hard-deleted (or missing): descendants and votes were handled by
+		// the original call, so a retry/double-click has nothing left to do.
+		const root = await ctx.db.get(commentId);
+		if (!root || root.deletedAt !== null) return;
+
 		// Recursively collect all descendant comment IDs
 		const toDelete = [commentId];
 		for (let i = 0; i < toDelete.length; i++) {
@@ -224,7 +245,20 @@ export const setReply = mutation({
 	},
 	handler: async (ctx, { commentId, reply, adminSecret }) => {
 		await assertAdmin(adminSecret);
+
+		const comment = await ctx.db.get(commentId);
+		if (!comment || comment.deletedAt !== null) {
+			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+		}
+
 		const trimmed = reply.trim();
+		if (trimmed.length > MAX_REPLY_LENGTH) {
+			throw new ConvexError({
+				kind: 'BadRequest',
+				message: 'Reply must be 1000 characters or less'
+			});
+		}
+
 		await ctx.db.patch(commentId, { reply: trimmed || null });
 	}
 });

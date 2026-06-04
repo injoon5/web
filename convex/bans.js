@@ -29,14 +29,18 @@ export const create = mutation({
 
 		const trimmedReason = reason?.trim() || null;
 
-		const existing = await ctx.db
+		// Collect (not `.unique()`) so a pre-existing duplicate can't throw; keep
+		// the first row, prune any extras, and self-heal the table on write.
+		const existingRows = await ctx.db
 			.query('bannedIps')
 			.withIndex('by_ip', (q) => q.eq('ipHash', comment.ipHash))
-			.unique();
+			.collect();
 
-		if (existing) {
-			await ctx.db.patch(existing._id, { reason: trimmedReason });
-			const updated = await ctx.db.get(existing._id);
+		if (existingRows.length > 0) {
+			const [keep, ...extras] = existingRows;
+			for (const extra of extras) await ctx.db.delete(extra._id);
+			await ctx.db.patch(keep._id, { reason: trimmedReason });
+			const updated = await ctx.db.get(keep._id);
 			return publicBan(updated);
 		}
 

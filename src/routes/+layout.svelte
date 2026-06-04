@@ -10,6 +10,8 @@
 	import { theme } from '$lib/theme.js';
 	import { env as publicEnv } from '$env/dynamic/public';
 
+	const { children } = $props();
+
 	const commit = publicEnv.PUBLIC_GIT_COMMIT ?? '';
 	const commitDate = (() => {
 		const raw = publicEnv.PUBLIC_GIT_COMMIT_DATE;
@@ -51,7 +53,7 @@
 	}
 
 	let cleanupTheme;
-	let scrolled = false;
+	let scrolled = $state(false);
 
 	function onScroll() {
 		scrolled = window.scrollY > 8;
@@ -95,7 +97,7 @@
 </div>
 
 <div class="mx-auto max-w-6xl px-4 pt-4 pb-4 text-sm sm:px-12">
-	<slot />
+	{@render children()}
 </div>
 
 <footer class="mt-10 mb-20 w-full pt-24 tracking-tight">
@@ -129,7 +131,7 @@
 				class="col-span-12 mt-10 flex hover:text-neutral-900 md:col-span-6 lg:col-span-5 lg:mt-0 lg:justify-end dark:hover:text-neutral-100"
 			>
 				<button
-					on:click={() => {
+					onclick={() => {
 						trigger([{ duration: SCROLL_DURATION }], { intensity: 1 });
 						scrollToTop();
 					}}

@@ -18,11 +18,13 @@ export const editCommentSchema = z.object({
 		.min(1, 'Comment cannot be empty')
 		.max(200, 'Comment must be 200 characters or less')
 		.trim(),
-	password: z.string().min(4, 'Password must be at least 4 characters')
+	// Verifies an existing password (already created with min 4), so only a
+	// non-empty value is required here.
+	password: z.string().min(1, 'Password is required')
 });
 
 export const deleteCommentSchema = z.object({
-	password: z.string().min(4, 'Password must be at least 4 characters')
+	password: z.string().min(1, 'Password is required')
 });
 
 export const voteSchema = z.object({
@@ -36,6 +38,10 @@ export const likeSchema = z.object({
 
 export const replySchema = z.object({
 	reply: z.string().max(1000)
+});
+
+export const nowSchema = z.object({
+	content: z.string().max(20000, 'Content must be 20000 characters or less')
 });
 
 export const banSchema = z.object({
