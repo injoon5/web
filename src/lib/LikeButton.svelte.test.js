@@ -71,8 +71,8 @@ describe('LikeButton', () => {
 	});
 });
 
-describe('LikeButton optimistic count (realtime echo)', () => {
-	it('never double-counts when the server echoes the like back', async () => {
+describe('LikeButton optimistic count', () => {
+	it('settles without double-counting when the server confirms our like', async () => {
 		const query = createReactiveQuery({ data: { count: 5, liked: false } });
 		useQuery.mockReturnValue(query);
 
@@ -85,18 +85,39 @@ describe('LikeButton optimistic count (realtime echo)', () => {
 		await fireEvent.click(btn);
 		expect(screen.getByText('6')).toBeInTheDocument();
 
-		// Realtime echo where `count` has absorbed our like but `liked` hasn't
-		// caught up yet (the window that used to render a transient 7).
-		query.set({ data: { count: 6, liked: false } });
-		await tick();
-		expect(screen.queryByText('7')).toBeNull();
-		expect(screen.getByText('6')).toBeInTheDocument();
-
-		// `liked` catches up -> settles, still 6.
+		// The server applies our like and echoes it back. `count` and `liked` move
+		// together (one atomic query result), so our optimistic +1 is absorbed into
+		// the server count rather than stacked on top of it: 6, never a flash of 7.
 		query.set({ data: { count: 6, liked: true } });
 		await tick();
-		await waitFor(() => expect(screen.getByText('6')).toBeInTheDocument());
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Liked' })).toBeInTheDocument());
+		expect(screen.getByText('6')).toBeInTheDocument();
 		expect(screen.queryByText('7')).toBeNull();
+	});
+
+	it('stacks our optimistic like on a concurrent like during the pending window', async () => {
+		const query = createReactiveQuery({ data: { count: 5, liked: false } });
+		useQuery.mockReturnValue(query);
+
+		render(LikeButton);
+		const btn = await screen.findByRole('button', { name: 'Like' });
+		await waitFor(() => expect(btn).toBeEnabled());
+
+		// Optimistic like: 5 -> 6.
+		await fireEvent.click(btn);
+		expect(screen.getByText('6')).toBeInTheDocument();
+
+		// Someone else likes before our write lands: the global count rises but our
+		// per-IP `liked` is still false. Our +1 rides on top of the live count -> 7.
+		query.set({ data: { count: 6, liked: false } });
+		await tick();
+		expect(screen.getByText('7')).toBeInTheDocument();
+
+		// Our like lands on top of theirs: server settles at 7, still no double count.
+		query.set({ data: { count: 7, liked: true } });
+		await tick();
+		await waitFor(() => expect(screen.getByText('7')).toBeInTheDocument());
+		expect(screen.getByRole('button', { name: 'Liked' })).toBeInTheDocument();
 	});
 
 	it('reflects a concurrent like once the optimistic intent settles', async () => {
@@ -114,5 +135,62 @@ describe('LikeButton optimistic count (realtime echo)', () => {
 		query.set({ data: { count: 7, liked: true } });
 		await tick();
 		await waitFor(() => expect(screen.getByText('7')).toBeInTheDocument());
+	});
+});
+
+describe('LikeButton under rapid clicking', () => {
+	it('an odd burst settles Liked and collapses to a single request', async () => {
+		const query = createReactiveQuery({ data: { count: 5, liked: false } });
+		useQuery.mockReturnValue(query);
+
+		render(LikeButton);
+		const btn = await screen.findByRole('button', { name: 'Like' });
+		await waitFor(() => expect(btn).toBeEnabled());
+
+		// Five synchronous toggles from unliked -> ends liked. They all land while
+		// the first request is still in flight.
+		for (let i = 0; i < 5; i++) fireEvent.click(btn);
+		await tick();
+
+		// The button reflects the *last* click, never an intermediate one.
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Liked' })).toBeInTheDocument());
+		expect(screen.getByText('6')).toBeInTheDocument();
+
+		// The whole burst collapsed to one POST for the final state.
+		await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+		expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ liked: true });
+
+		// Server confirms: no drift, no double count.
+		query.set({ data: { count: 6, liked: true } });
+		await tick();
+		expect(screen.getByRole('button', { name: 'Liked' })).toBeInTheDocument();
+		expect(screen.getByText('6')).toBeInTheDocument();
+	});
+
+	it('an even burst settles back to Like with a trailing correction', async () => {
+		const query = createReactiveQuery({ data: { count: 5, liked: false } });
+		useQuery.mockReturnValue(query);
+
+		render(LikeButton);
+		const btn = await screen.findByRole('button', { name: 'Like' });
+		await waitFor(() => expect(btn).toBeEnabled());
+
+		// Four synchronous toggles from unliked -> ends unliked.
+		for (let i = 0; i < 4; i++) fireEvent.click(btn);
+
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Like' })).toBeInTheDocument());
+		expect(screen.getByText('5')).toBeInTheDocument();
+
+		// First request was the optimistic like; a single trailing request corrects
+		// the server to the final unliked state — at most two requests for the burst.
+		await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+		expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({ liked: true });
+		expect(JSON.parse(fetch.mock.calls.at(-1)[1].body)).toMatchObject({ liked: false });
+
+		// Server settles unliked: button and count stay consistent.
+		query.set({ data: { count: 5, liked: false } });
+		await tick();
+		expect(screen.getByRole('button', { name: 'Like' })).toBeInTheDocument();
+		expect(screen.getByText('5')).toBeInTheDocument();
 	});
 });

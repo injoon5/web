@@ -29,22 +29,25 @@
 	});
 	const ready = $derived(!query.isStale && !!query.data && freshPath === path);
 
-	// Authoritative server state for this page (count is global; liked is per-IP).
+	// Authoritative server state for this page. `count` is global; `liked` is
+	// per-IP and therefore only ever changes in response to *our own* requests —
+	// nobody else's like can flip it. convex-svelte swaps the whole `{count,
+	// liked}` result in atomically, and Convex computes it from one consistent
+	// snapshot, so the two fields always move together.
 	const serverCount = $derived(ready ? (query.data.count ?? 0) : 0);
 	const serverLiked = $derived(ready && !!ipHash ? !!query.data.liked : false);
 
 	// Optimistic intent: the liked state the user picked but the server hasn't
-	// confirmed yet. `null` means "no pending intent, trust the server".
-	let desired = $state(null);
+	// confirmed yet. `null` means "no pending intent, trust the server outright".
+	// `pendingPath` pins the intent to the page it was made on so an in-flight
+	// request can't bleed onto a page navigated to mid-flight.
+	let pending = $state(null);
 	let pendingPath = $state(null);
-	let inFlight = $state(false);
-	// Server count with our own like removed, captured when an optimistic intent
-	// starts. The pending display is built from this frozen base so it can never
-	// stack on top of the server's realtime echo of our like (which would briefly
-	// show the count jump by 2 before settling).
-	let optimisticBase = $state(0);
-	// The intent value most recently persisted to the server. Lets the sync loop
-	// tell "synced, waiting for realtime" apart from "still needs to be sent".
+	// True while the single-flight persist loop holds the lock.
+	let sending = $state(false);
+	// The intent value most recently POSTed. Persists across loop runs so a fresh
+	// click after a send knows whether the server already has its value. Reset
+	// only when the intent is abandoned (settle / revert / navigation).
 	let lastSent = null;
 	let likeError = $state('');
 	let likeErrorTimer = null;
@@ -62,31 +65,35 @@
 	$effect(() => {
 		if (path !== trackedPath) {
 			trackedPath = path;
-			desired = null;
+			pending = null;
 			pendingPath = null;
 			lastSent = null;
 		}
 	});
 
 	// Drop the optimistic override only once nothing is in flight AND realtime
-	// reflects our latest intent, so the button can never settle out of sync.
+	// reflects our intent. Because `serverLiked` is per-IP it can only reach our
+	// `pending` value once the server has actually applied our write, so this can
+	// never settle the button into a state the server disagrees with.
 	$effect(() => {
-		if (desired !== null && pendingPath === path && !inFlight && ready && serverLiked === desired) {
-			desired = null;
+		if (pending !== null && pendingPath === path && !sending && ready && serverLiked === pending) {
+			pending = null;
 			pendingPath = null;
 			lastSent = null;
 		}
 	});
 
-	const activePending = $derived(desired !== null && pendingPath === path ? desired : null);
-	const isLiked = $derived(activePending !== null ? activePending : serverLiked);
-	// While an intent is pending, show the frozen base plus our intent so the
-	// count can't double up when the server echoes our like back through
-	// `serverCount`. Once settled, trust the live server count outright.
+	const optimistic = $derived(pending !== null && pendingPath === path);
+	const isLiked = $derived(optimistic ? pending : serverLiked);
+	// Adjust the live server count by our own un-acknowledged ±1, and only while
+	// our intent actually diverges from what the server records for us. Once the
+	// server echoes our like (`serverLiked === pending`) the delta is zero, so the
+	// count never double-counts; a concurrent like from someone else still shows
+	// through immediately because we track the live `serverCount`, not a snapshot.
 	const likeCount = $derived(
-		activePending !== null ? optimisticBase + (activePending ? 1 : 0) : serverCount
+		serverCount + (optimistic && pending !== serverLiked ? (pending ? 1 : -1) : 0)
 	);
-	const showCount = $derived(ready || activePending !== null);
+	const showCount = $derived(ready || optimistic);
 	const interactive = $derived(ready && !!ipHash);
 
 	function showLikeError(message) {
@@ -121,27 +128,26 @@
 
 	function toggleLike() {
 		if (!interactive) return;
-		// Freeze the baseline (count without our own like) when a fresh intent
-		// begins; keep it across rapid toggles within the same pending session.
-		if (desired === null) optimisticBase = serverCount - (serverLiked ? 1 : 0);
 		const next = !isLiked;
-		desired = next;
+		pending = next;
 		pendingPath = path;
 		if (next) spawnHearts();
 		sync();
 	}
 
-	// Persist the user's latest intent. One request in flight at a time; after each
-	// send the loop re-reads `desired`, so the final state always reaches the server
-	// (setLike is idempotent, so overlapping clicks converge instead of fighting).
+	// Persist the user's intent. Single-flight: at most one request in flight, and
+	// every click just updates `pending` then pokes the loop. After each send the
+	// loop re-reads `pending`, so a rapid burst of clicks collapses to a single
+	// trailing request for the final state — `setLike` takes an absolute desired
+	// state and is idempotent, so overlapping toggles converge instead of fighting.
 	// On failure the optimistic state reverts and an error is shown, so the button
-	// can never settle in a state different from the server.
+	// can never settle into a state the server disagrees with.
 	async function sync() {
-		if (inFlight) return;
-		inFlight = true;
+		if (sending) return;
+		sending = true;
 		try {
-			while (desired !== null && desired !== lastSent && pendingPath === path) {
-				const sending = desired;
+			while (pending !== null && pending !== lastSent && pendingPath === path) {
+				const value = pending;
 				const targetPath = path;
 				let res = null;
 				let threw = false;
@@ -149,7 +155,7 @@
 					res = await fetch('/api/likes', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ url: targetPath, liked: sending })
+						body: JSON.stringify({ url: targetPath, liked: value })
 					});
 				} catch {
 					threw = true;
@@ -168,21 +174,15 @@
 					revert(data.message ?? 'Could not save like.');
 					break;
 				}
-				lastSent = sending;
+				lastSent = value;
 			}
 		} finally {
-			inFlight = false;
-		}
-
-		// A newer intent may have arrived while the lock was held (e.g. a click that
-		// landed during navigation). Drive it now that we have released the lock.
-		if (desired !== null && desired !== lastSent && pendingPath === path) {
-			sync();
+			sending = false;
 		}
 	}
 
 	function revert(message) {
-		desired = null;
+		pending = null;
 		pendingPath = null;
 		lastSent = null;
 		showLikeError(message);
