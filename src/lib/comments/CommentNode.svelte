@@ -124,7 +124,8 @@
 	async function submitReply() {
 		replyError = '';
 		if (!replyText.trim()) return (replyError = 'Reply cannot be empty.');
-		if (replyPassword.length < MIN_PASSWORD_LENGTH) return (replyError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+		if (replyPassword.length < MIN_PASSWORD_LENGTH)
+			return (replyError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
 		if (replyText.length > MAX_LENGTH) return (replyError = `Max ${MAX_LENGTH} characters.`);
 
 		replySubmitting = true;
@@ -155,7 +156,8 @@
 
 	async function confirmDelete() {
 		deleteError = '';
-		if (deletePassword.length < MIN_PASSWORD_LENGTH) return (deleteError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+		if (deletePassword.length < MIN_PASSWORD_LENGTH)
+			return (deleteError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
 
 		deleteSubmitting = true;
 		try {

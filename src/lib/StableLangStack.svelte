@@ -23,12 +23,7 @@
 		</svelte:element>
 	{/each}
 	{#each [displayLang] as l (l)}
-		<svelte:element
-			this={as}
-			style="grid-area: 1 / 1"
-			in:blurT={transition}
-			out:blurT={transition}
-		>
+		<svelte:element this={as} style="grid-area: 1 / 1" in:blurT={transition} out:blurT={transition}>
 			{text(l)}
 		</svelte:element>
 	{/each}

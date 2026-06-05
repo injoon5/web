@@ -24,8 +24,13 @@ export const POST: RequestHandler = async ({ request }) => {
 	const ipHash = requestIpHash(request);
 	const admin = verifyAdminSecret(request);
 
-	const { url: pageUrl, username, password, text, parentId } =
-		await parseBody(request, createCommentSchema);
+	const {
+		url: pageUrl,
+		username,
+		password,
+		text,
+		parentId
+	} = await parseBody(request, createCommentSchema);
 
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 

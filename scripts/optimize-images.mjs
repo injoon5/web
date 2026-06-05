@@ -31,13 +31,7 @@ const JPEG_QUALITY = Number.parseInt(process.env.JPEG_QUALITY ?? '88', 10);
 const PNG_COMPRESSION = Number.parseInt(process.env.PNG_COMPRESSION ?? '9', 10);
 const WEBP_QUALITY = Number.parseInt(process.env.WEBP_QUALITY ?? '85', 10);
 
-const SETTINGS_KEY = [
-	MAX_WIDTH,
-	MAX_HEIGHT,
-	JPEG_QUALITY,
-	PNG_COMPRESSION,
-	WEBP_QUALITY
-].join(':');
+const SETTINGS_KEY = [MAX_WIDTH, MAX_HEIGHT, JPEG_QUALITY, PNG_COMPRESSION, WEBP_QUALITY].join(':');
 
 const dryRun = process.argv.includes('--dry-run');
 const force = process.argv.includes('--force');
@@ -126,11 +120,7 @@ async function optimizeFile(rel, inputHash, sourceBuf) {
 	const cached = manifest[rel];
 	const mirror = mirrorPath(rel);
 
-	if (
-		!force &&
-		cached?.input === inputHash &&
-		cached?.settings === SETTINGS_KEY
-	) {
+	if (!force && cached?.input === inputHash && cached?.settings === SETTINGS_KEY) {
 		try {
 			const mirrorStat = await stat(mirror);
 			if (mirrorStat.isFile()) {

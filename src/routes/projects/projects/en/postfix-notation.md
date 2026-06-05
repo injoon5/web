@@ -11,7 +11,7 @@ published: true
 
 In math class you write `3 + 4` — operator between operands. That's **infix** notation. But if you've ever looked at a compiler or a HP calculator, you've seen `3 4 +` instead. **Postfix** (reverse Polish) notation puts operators after operands.
 
-I wanted to know *why* computers prefer it, not just that they do.
+I wanted to know _why_ computers prefer it, not just that they do.
 
 ## What I found
 

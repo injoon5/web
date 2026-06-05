@@ -55,13 +55,13 @@ Two data sources, which took me a while to figure out:
 
 Endpoints:
 
-| Route | What it does |
-| ----- | ------------ |
+| Route            | What it does                                  |
+| ---------------- | --------------------------------------------- |
 | `GET /timetable` | Grade, class, week (0/1), school code or name |
-| `GET /lunch` | `startdate` / `enddate` as `YYYYMMDD` |
-| `GET /schedule` | School calendar events in a date range |
-| `GET /school` | Lookup by school name |
-| `GET /classes` | Class numbers for a grade |
+| `GET /lunch`     | `startdate` / `enddate` as `YYYYMMDD`         |
+| `GET /schedule`  | School calendar events in a date range        |
+| `GET /school`    | Lookup by school name                         |
+| `GET /classes`   | Class numbers for a grade                     |
 
 CORS is locked to `timetable.injoon5.com` and localhost. Lives at [api.timefor.school](https://api.timefor.school).
 
@@ -78,8 +78,8 @@ Still experimenting with whether I use this daily or it's just a cool demo. Jury
 
 ## Repos
 
-| Piece | GitHub |
-| ----- | ------ |
-| Notice board + cached data | [injoon5/class-info](https://github.com/injoon5/class-info) |
-| NEIS + comci API | [injoon5/school-api](https://github.com/injoon5/school-api) |
-| MCP server | [injoon5/timeforschool-mcp](https://github.com/injoon5/timeforschool-mcp) |
+| Piece                      | GitHub                                                                    |
+| -------------------------- | ------------------------------------------------------------------------- |
+| Notice board + cached data | [injoon5/class-info](https://github.com/injoon5/class-info)               |
+| NEIS + comci API           | [injoon5/school-api](https://github.com/injoon5/school-api)               |
+| MCP server                 | [injoon5/timeforschool-mcp](https://github.com/injoon5/timeforschool-mcp) |

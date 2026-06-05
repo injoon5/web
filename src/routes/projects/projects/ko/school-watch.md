@@ -15,7 +15,7 @@ aiTranslated: true
 
 ## 왜 워치 앱인가
 
-나는 거의 매일 애플 워치를 찬다. 시간표 보거나 교시 얼마 남았나 확인하려고 쉬는 시간마다 폰 꺼내는 게, 화면이 *바로* 손목에 있는데도 좀 바보 같았다.
+나는 거의 매일 애플 워치를 찬다. 시간표 보거나 교시 얼마 남았나 확인하려고 쉬는 시간마다 폰 꺼내는 게, 화면이 _바로_ 손목에 있는데도 좀 바보 같았다.
 
 [SchoolWatch](https://github.com/injoon5/SchoolWatch)는 그걸 고쳐보려고 만든 거다. 다른 거랑 똑같은 [school API](/projects/timefor-school)를 부르는데, 45mm 화면에서 돈다는 게 다르다.
 
@@ -27,12 +27,12 @@ aiTranslated: true
 
 `ContentView`는 세로로 넘기는 `TabView`고, 탭이 네 개다:
 
-| 탭 | 뷰 | 보여주는 것 |
-| --- | ---- | ------------- |
-| Today | `TodayView` | 오늘 수업 + 급식 메뉴 |
-| Timetable | `TimetableView` | 이번 주 전체 시간표 |
-| Meals | `MealView` | 앞으로 15일 급식 |
-| Settings | `SettingsView` | 학년 + 반 번호 |
+| 탭        | 뷰              | 보여주는 것           |
+| --------- | --------------- | --------------------- |
+| Today     | `TodayView`     | 오늘 수업 + 급식 메뉴 |
+| Timetable | `TimetableView` | 이번 주 전체 시간표   |
+| Meals     | `MealView`      | 앞으로 15일 급식      |
+| Settings  | `SettingsView`  | 학년 + 반 번호        |
 
 학년이랑 반은 `UserDefaults`에 저장한다(안 정하면 2학년 6반이 기본). 네트워크 호출은 다 이런 식의 URL을 만든다:
 

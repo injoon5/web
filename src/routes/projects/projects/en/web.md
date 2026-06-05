@@ -25,13 +25,13 @@ The homepage fetches two external JSON files client-side on mount — [now-playi
 
 Anything live goes through Convex (`convex-svelte` subscriptions on the client):
 
-| Table | Purpose |
-| ----- | ------- |
-| `comments` | Threaded comments per page URL, max depth 2 |
-| `commentVotes` | Up/down votes keyed on SHA-256 IP hash |
-| `likes` | Page-level like toggles |
-| `bannedIps` | IP ban list |
-| `nowPage` | Editable `/now` page content |
+| Table          | Purpose                                     |
+| -------------- | ------------------------------------------- |
+| `comments`     | Threaded comments per page URL, max depth 2 |
+| `commentVotes` | Up/down votes keyed on SHA-256 IP hash      |
+| `likes`        | Page-level like toggles                     |
+| `bannedIps`    | IP ban list                                 |
+| `nowPage`      | Editable `/now` page content                |
 
 Comments are sorted by **score** (upvotes − downvotes), then recency. Passwords are bcrypt-hashed for edit/delete. Rate limiting runs inside Convex via `@convex-dev/rate-limiter` — survives cold starts, applies to both HTTP routes and direct mutations. Admin requests with a valid `ADMIN_SECRET` bypass everything.
 
