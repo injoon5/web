@@ -14,7 +14,7 @@ published: true
 
 ## Why a watch app
 
-I wear an Apple Watch most days. Pulling out my phone between classes to check the timetable or see how much time was left in the period felt dumb when the screen was *right there* on my wrist.
+I wear an Apple Watch most days. Pulling out my phone between classes to check the timetable or see how much time was left in the period felt dumb when the screen was _right there_ on my wrist.
 
 [SchoolWatch](https://github.com/injoon5/SchoolWatch) is my attempt to fix that — a watchOS app that hits the same [school API](/projects/timefor-school) as everything else, just on a 45mm display.
 
@@ -26,12 +26,12 @@ I wear an Apple Watch most days. Pulling out my phone between classes to check t
 
 `ContentView` is a vertical-page `TabView` with four tabs:
 
-| Tab | View | What it shows |
-| --- | ---- | ------------- |
-| Today | `TodayView` | Today's classes + lunch menu |
-| Timetable | `TimetableView` | Full week schedule |
-| Meals | `MealView` | Next 15 days of lunch |
-| Settings | `SettingsView` | Grade + class number |
+| Tab       | View            | What it shows                |
+| --------- | --------------- | ---------------------------- |
+| Today     | `TodayView`     | Today's classes + lunch menu |
+| Timetable | `TimetableView` | Full week schedule           |
+| Meals     | `MealView`      | Next 15 days of lunch        |
+| Settings  | `SettingsView`  | Grade + class number         |
 
 Grade and class are stored in `UserDefaults` (defaults to 2학년 6반 if unset). Every network call builds a URL like:
 

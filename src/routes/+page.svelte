@@ -144,7 +144,7 @@
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			{#each data.posts.slice(0, 4) as post}
+			{#each data.posts.slice(0, 4) as post (post.slug)}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/blog/{post.slug}"
@@ -207,7 +207,7 @@
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
 		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-			{#each data.projects.slice(0, 4) as post}
+			{#each data.projects.slice(0, 4) as post (post.slug)}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/projects/{post.slug}"
@@ -386,7 +386,7 @@
 					</div>
 				</div>
 			{:else}
-				{#each (photos?.photos ?? []).slice(0, 6) as photo}
+				{#each (photos?.photos ?? []).slice(0, 6) as photo (photo.url)}
 					<a
 						href={photo.url}
 						class="group border-opacity-50 relative block aspect-square w-full overflow-hidden rounded-xl border border-neutral-300 bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"

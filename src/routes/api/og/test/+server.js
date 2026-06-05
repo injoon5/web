@@ -6,7 +6,6 @@ export async function GET({ url }) {
 	const cards = OG_FIXTURE_IDS.map((id) => {
 		const fixture = OG_FIXTURES[id];
 		const src = `${origin}/api/og?fixture=${encodeURIComponent(id)}`;
-		const title = fixture.title || fixture.template;
 		const sub = fixture.description
 			? fixture.description.slice(0, 100) + (fixture.description.length > 100 ? '\u2026' : '')
 			: '';

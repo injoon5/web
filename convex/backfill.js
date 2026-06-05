@@ -2,7 +2,6 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api.js';
 import { internalMutation, mutation } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
-import { paginateCommentBatches } from './lib/commentsScan.js';
 import {
 	setLikeCountsBackfillComplete,
 	setUrlCountsBackfillComplete,

@@ -8,7 +8,9 @@
 	onDestroy(destroy);
 
 	let mounted = $state(false);
-	onMount(() => { mounted = true; });
+	onMount(() => {
+		mounted = true;
+	});
 
 	const navItems = [
 		{ label: 'projects', href: '/projects' },

@@ -49,9 +49,11 @@ async function main() {
 		myVote: c?.myVote
 	});
 
-	const bad = results.some((r) => r.json?.upvotes > 1 || r.json?.downvotes > 1 || r.json?.upvotes < 0 || r.json?.downvotes < 0);
-	const finalBad =
-		c && (c.upvotes > 1 || c.downvotes > 1 || c.upvotes < 0 || c.downvotes < 0);
+	const bad = results.some(
+		(r) =>
+			r.json?.upvotes > 1 || r.json?.downvotes > 1 || r.json?.upvotes < 0 || r.json?.downvotes < 0
+	);
+	const finalBad = c && (c.upvotes > 1 || c.downvotes > 1 || c.upvotes < 0 || c.downvotes < 0);
 
 	if (bad || finalBad) {
 		console.error('FAIL: inflated or negative counts');

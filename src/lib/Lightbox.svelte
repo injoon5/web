@@ -36,6 +36,51 @@
 
 	// Focus trap bookkeeping
 	let previouslyFocused = null;
+	let wasVisible = false;
+
+	// While the lightbox is open, darken the browser chrome (mobile address bar)
+	// to match the dark blurred backdrop instead of the page's light/dark theme.
+	const LIGHTBOX_THEME_COLOR = '#0a0a0a';
+	let savedThemeColor = null;
+
+	function applyLightboxThemeColor() {
+		if (typeof document === 'undefined' || savedThemeColor) return;
+		const metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
+		if (metas.length === 0) {
+			// Nothing to override — inject a temporary meta we remove on close.
+			const el = document.createElement('meta');
+			el.setAttribute('name', 'theme-color');
+			el.setAttribute('content', LIGHTBOX_THEME_COLOR);
+			document.head.appendChild(el);
+			savedThemeColor = [{ el, content: null, media: null, injected: true }];
+			return;
+		}
+		// Drop the media gate and force dark so the override wins in any scheme.
+		savedThemeColor = metas.map((el) => ({
+			el,
+			content: el.getAttribute('content'),
+			media: el.getAttribute('media')
+		}));
+		for (const { el } of savedThemeColor) {
+			el.removeAttribute('media');
+			el.setAttribute('content', LIGHTBOX_THEME_COLOR);
+		}
+	}
+
+	function restoreThemeColor() {
+		if (!savedThemeColor) return;
+		for (const entry of savedThemeColor) {
+			if (entry.injected) {
+				entry.el.remove();
+				continue;
+			}
+			if (entry.content === null) entry.el.removeAttribute('content');
+			else entry.el.setAttribute('content', entry.content);
+			if (entry.media === null) entry.el.removeAttribute('media');
+			else entry.el.setAttribute('media', entry.media);
+		}
+		savedThemeColor = null;
+	}
 
 	// Viewport size — used to reserve the image box before the src loads,
 	// which prevents a layout shift when the image arrives after the open.
@@ -76,18 +121,28 @@
 		}
 	}
 
-	// When the lightbox becomes visible, capture focus and move it inside.
-	$: if (visible && typeof document !== 'undefined') {
-		previouslyFocused = document.activeElement;
-		queueMicrotask(() => closeBtn?.focus());
-	} else if (!visible && previouslyFocused && typeof document !== 'undefined') {
-		// Restore focus when closing
-		try {
-			previouslyFocused.focus();
-		} catch {
-			// Element may have been removed from the DOM.
+	// Capture/restore focus only on the actual open<->close transition. Gating on
+	// `wasVisible` stops a re-run (e.g. when `closeBtn` binds) from re-capturing
+	// `previouslyFocused` as the close button itself, which would otherwise break
+	// focus restoration to the element that opened the lightbox.
+	$: if (typeof document !== 'undefined') {
+		if (visible && !wasVisible) {
+			previouslyFocused = document.activeElement;
+			applyLightboxThemeColor();
+			queueMicrotask(() => closeBtn?.focus());
+			wasVisible = true;
+		} else if (!visible && wasVisible) {
+			restoreThemeColor();
+			if (previouslyFocused) {
+				try {
+					previouslyFocused.focus();
+				} catch {
+					// Element may have been removed from the DOM.
+				}
+				previouslyFocused = null;
+			}
+			wasVisible = false;
 		}
-		previouslyFocused = null;
 	}
 
 	function close() {
@@ -240,6 +295,7 @@
 	}
 
 	onDestroy(() => {
+		restoreThemeColor();
 		previouslyFocused = null;
 	});
 

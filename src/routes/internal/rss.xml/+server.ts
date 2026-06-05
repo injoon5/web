@@ -24,6 +24,8 @@ const collectMdFiles = (dir) => {
 // feed items that point at the same /blog/{slug} URL.
 const getPosts = () => {
 	const files = collectMdFiles(postsDir);
+	// Frontmatter is dynamically shaped; `any` is intentional for parsed metadata.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const bySlug: Record<string, any> = {};
 
 	for (const file of files) {
@@ -31,6 +33,7 @@ const getPosts = () => {
 		const match = /---\s*([\s\S]+?)\s*---/.exec(content);
 		if (!match) continue;
 
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const meta: any = parseFrontmatter(match[1]);
 		if (meta.published !== true) continue;
 

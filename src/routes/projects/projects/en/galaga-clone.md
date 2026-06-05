@@ -28,12 +28,12 @@ Hit an enemy → +1 score, both objects deleted. Enemy reaches your ship → gam
 
 Four classes in one loop:
 
-| Class | Job |
-| ----- | --- |
-| `Enermy` | Spawn, move, bounce, collide with missiles |
-| `Forces` | Player ship — move, draw, fire, collision with enemies |
-| `Missile` | Fly upward at 5 px/frame, delete when off screen |
-| `Button` | Hit-test for the restart image |
+| Class     | Job                                                    |
+| --------- | ------------------------------------------------------ |
+| `Enermy`  | Spawn, move, bounce, collide with missiles             |
+| `Forces`  | Player ship — move, draw, fire, collision with enemies |
+| `Missile` | Fly upward at 5 px/frame, delete when off screen       |
+| `Button`  | Hit-test for the restart image                         |
 
 Collision is gloriously manual — nested `while` loops deleting from lists with index decrements. No pygame sprite groups, no physics engine. Just rects and `collidepoint`, held together by hope.
 

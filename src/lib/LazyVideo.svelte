@@ -22,7 +22,9 @@
 </script>
 
 <div class="not-prose my-8">
-	<div class="relative overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900">
+	<div
+		class="relative overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
+	>
 		{#if !loaded}
 			<button
 				type="button"

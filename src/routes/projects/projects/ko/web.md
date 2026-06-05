@@ -26,13 +26,13 @@ aiTranslated: true
 
 실시간으로 도는 건 다 Convex를 거친다(클라이언트는 `convex-svelte` 구독):
 
-| 테이블 | 용도 |
-| ----- | ------- |
-| `comments` | 페이지 URL별 스레드 댓글, 최대 깊이 2 |
+| 테이블         | 용도                                  |
+| -------------- | ------------------------------------- |
+| `comments`     | 페이지 URL별 스레드 댓글, 최대 깊이 2 |
 | `commentVotes` | SHA-256 IP 해시를 키로 한 추천/비추천 |
-| `likes` | 페이지 단위 좋아요 토글 |
-| `bannedIps` | IP 차단 목록 |
-| `nowPage` | 편집 가능한 `/now` 페이지 콘텐츠 |
+| `likes`        | 페이지 단위 좋아요 토글               |
+| `bannedIps`    | IP 차단 목록                          |
+| `nowPage`      | 편집 가능한 `/now` 페이지 콘텐츠      |
 
 댓글은 **점수**(추천 − 비추천) 순으로 정렬하고, 같으면 최신순이다. 비밀번호는 수정/삭제용으로 bcrypt 해싱한다. 속도 제한은 `@convex-dev/rate-limiter`로 Convex 안에서 도는데, 콜드 스타트에도 안 풀리고 HTTP 라우트랑 직접 mutation 양쪽에 다 걸린다. `ADMIN_SECRET`이 맞는 관리자 요청은 이 전부를 건너뛴다.
 
