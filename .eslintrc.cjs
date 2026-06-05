@@ -26,6 +26,20 @@ module.exports = {
 			parserOptions: {
 				parser: '@typescript-eslint/parser'
 			}
+		},
+		{
+			// Svelte 5 rune modules (`.svelte.js` / `.svelte.ts`) use compiler macros
+			// that aren't lexical globals; declare them so no-undef doesn't fire.
+			files: ['*.svelte.js', '*.svelte.ts'],
+			globals: {
+				$state: 'readonly',
+				$derived: 'readonly',
+				$effect: 'readonly',
+				$props: 'readonly',
+				$bindable: 'readonly',
+				$inspect: 'readonly',
+				$host: 'readonly'
+			}
 		}
 	]
 };

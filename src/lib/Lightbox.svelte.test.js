@@ -62,3 +62,47 @@ describe('Lightbox focus management', () => {
 		trigger.remove();
 	});
 });
+
+describe('Lightbox theme-color', () => {
+	function addThemeMetas() {
+		const light = document.createElement('meta');
+		light.setAttribute('name', 'theme-color');
+		light.setAttribute('content', '#ffffff');
+		light.setAttribute('media', '(prefers-color-scheme: light)');
+		const dark = document.createElement('meta');
+		dark.setAttribute('name', 'theme-color');
+		dark.setAttribute('content', '#000000');
+		dark.setAttribute('media', '(prefers-color-scheme: dark)');
+		document.head.append(light, dark);
+		return { light, dark };
+	}
+
+	it('darkens the browser chrome while open and restores it on close', async () => {
+		const { light, dark } = addThemeMetas();
+		try {
+			render(Lightbox);
+			lightboxStore.set(openValue);
+			await tick();
+
+			// Both metas forced dark with the media gate dropped so it wins in any scheme.
+			await waitFor(() => {
+				expect(light.getAttribute('content')).toBe('#0a0a0a');
+				expect(light.hasAttribute('media')).toBe(false);
+				expect(dark.getAttribute('content')).toBe('#0a0a0a');
+			});
+
+			lightboxStore.set(null);
+			await tick();
+
+			await waitFor(() => {
+				expect(light.getAttribute('content')).toBe('#ffffff');
+				expect(light.getAttribute('media')).toBe('(prefers-color-scheme: light)');
+				expect(dark.getAttribute('content')).toBe('#000000');
+				expect(dark.getAttribute('media')).toBe('(prefers-color-scheme: dark)');
+			});
+		} finally {
+			light.remove();
+			dark.remove();
+		}
+	});
+});

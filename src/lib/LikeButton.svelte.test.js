@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { tick } from 'svelte';
 
 // convex-svelte's useQuery needs a live Convex client/context; replace it with a
 // controllable stub that returns fixed server state.
@@ -7,6 +8,7 @@ vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
 import { setPage } from '$app/stores';
+import { createReactiveQuery } from '../test/mocks/reactive-query.svelte.js';
 import LikeButton from './LikeButton.svelte';
 
 beforeEach(() => {
@@ -66,5 +68,51 @@ describe('LikeButton', () => {
 		expect(await screen.findByText('You have been banned')).toBeInTheDocument();
 		// Reverted back to the un-liked server state.
 		await waitFor(() => expect(screen.getByRole('button', { name: 'Like' })).toBeInTheDocument());
+	});
+});
+
+describe('LikeButton optimistic count (realtime echo)', () => {
+	it('never double-counts when the server echoes the like back', async () => {
+		const query = createReactiveQuery({ data: { count: 5, liked: false } });
+		useQuery.mockReturnValue(query);
+
+		render(LikeButton);
+		const btn = await screen.findByRole('button', { name: 'Like' });
+		await waitFor(() => expect(btn).toBeEnabled());
+		expect(screen.getByText('5')).toBeInTheDocument();
+
+		// Optimistic like: 5 -> 6.
+		await fireEvent.click(btn);
+		expect(screen.getByText('6')).toBeInTheDocument();
+
+		// Realtime echo where `count` has absorbed our like but `liked` hasn't
+		// caught up yet (the window that used to render a transient 7).
+		query.set({ data: { count: 6, liked: false } });
+		await tick();
+		expect(screen.queryByText('7')).toBeNull();
+		expect(screen.getByText('6')).toBeInTheDocument();
+
+		// `liked` catches up -> settles, still 6.
+		query.set({ data: { count: 6, liked: true } });
+		await tick();
+		await waitFor(() => expect(screen.getByText('6')).toBeInTheDocument());
+		expect(screen.queryByText('7')).toBeNull();
+	});
+
+	it('reflects a concurrent like once the optimistic intent settles', async () => {
+		const query = createReactiveQuery({ data: { count: 5, liked: false } });
+		useQuery.mockReturnValue(query);
+
+		render(LikeButton);
+		const btn = await screen.findByRole('button', { name: 'Like' });
+		await waitFor(() => expect(btn).toBeEnabled());
+
+		await fireEvent.click(btn);
+		expect(screen.getByText('6')).toBeInTheDocument();
+
+		// Our like lands and someone else also liked: server settles at 7.
+		query.set({ data: { count: 7, liked: true } });
+		await tick();
+		await waitFor(() => expect(screen.getByText('7')).toBeInTheDocument());
 	});
 });

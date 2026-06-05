@@ -38,6 +38,11 @@
 	let desired = $state(null);
 	let pendingPath = $state(null);
 	let inFlight = $state(false);
+	// Server count with our own like removed, captured when an optimistic intent
+	// starts. The pending display is built from this frozen base so it can never
+	// stack on top of the server's realtime echo of our like (which would briefly
+	// show the count jump by 2 before settling).
+	let optimisticBase = $state(0);
 	// The intent value most recently persisted to the server. Lets the sync loop
 	// tell "synced, waiting for realtime" apart from "still needs to be sent".
 	let lastSent = null;
@@ -75,9 +80,12 @@
 
 	const activePending = $derived(desired !== null && pendingPath === path ? desired : null);
 	const isLiked = $derived(activePending !== null ? activePending : serverLiked);
-	// Adjust the global count by our own optimistic delta only; other visitors'
-	// likes already flow through `serverCount`.
-	const likeCount = $derived(serverCount + ((isLiked ? 1 : 0) - (serverLiked ? 1 : 0)));
+	// While an intent is pending, show the frozen base plus our intent so the
+	// count can't double up when the server echoes our like back through
+	// `serverCount`. Once settled, trust the live server count outright.
+	const likeCount = $derived(
+		activePending !== null ? optimisticBase + (activePending ? 1 : 0) : serverCount
+	);
 	const showCount = $derived(ready || activePending !== null);
 	const interactive = $derived(ready && !!ipHash);
 
@@ -113,6 +121,9 @@
 
 	function toggleLike() {
 		if (!interactive) return;
+		// Freeze the baseline (count without our own like) when a fresh intent
+		// begins; keep it across rapid toggles within the same pending session.
+		if (desired === null) optimisticBase = serverCount - (serverLiked ? 1 : 0);
 		const next = !isLiked;
 		desired = next;
 		pendingPath = path;
