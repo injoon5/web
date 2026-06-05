@@ -201,7 +201,16 @@
 		</span>
 	{/if}
 
-	<div class="relative">
+	<!--
+		`overflow-clip` keeps the absolutely-positioned particles from contributing
+		to the document's scrollable overflow (they fly up to ~74px past this box,
+		and on mobile this wrapper sits at the right edge of a full-width row, so
+		that overflow would widen the page and cause layout shift). This wrapper is
+		the particles' containing block, so clipping here bounds them. The large
+		`overflow-clip-margin` lets them still PAINT outside the box, preserving the
+		confetti effect.
+	-->
+	<div class="relative overflow-clip [overflow-clip-margin:80px]">
 		<!-- Heart confetti particles -->
 		{#each particles as p (p.id)}
 			<span
