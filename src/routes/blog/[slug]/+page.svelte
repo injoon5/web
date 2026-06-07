@@ -10,7 +10,6 @@
 	import NumberFlow from '@number-flow/svelte';
 	import { autoHeight } from '$lib/autoHeight.js';
 	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
-	import StableLangStack from '$lib/StableLangStack.svelte';
 
 	import { onMount, tick } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -226,12 +225,7 @@
 								<NumberFlow value={readingMinutes} />
 							</span>
 						</span>
-						<StableLangStack
-							langs={data.availableLangs}
-							{displayLang}
-							transition={titleBlur}
-							text={(l) => (l === 'ko' ? '분 읽기' : ' min read')}
-						/>
+						<span> min read</span>
 					</span>
 				{/if}
 			</div>
