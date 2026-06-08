@@ -8,7 +8,7 @@ import {
 	setVoteCountsBackfillComplete
 } from './lib/migration.js';
 import { incrementUrlCount } from './lib/urlCounts.js';
-import { incrementLikeCount } from './lib/likeCounts.js';
+import { syncLikeCountForUrl } from './lib/likeCounts.js';
 import { countAllVotes } from './lib/votes.js';
 
 const BATCH_SIZE = 100;
@@ -91,8 +91,9 @@ export const backfillLikeCountsBatch = internalMutation({
 			cursor
 		});
 
-		for (const doc of batch.page) {
-			await incrementLikeCount(ctx, doc.url);
+		const urls = new Set(batch.page.map((doc) => doc.url));
+		for (const url of urls) {
+			await syncLikeCountForUrl(ctx, url);
 		}
 
 		if (!batch.isDone) {
