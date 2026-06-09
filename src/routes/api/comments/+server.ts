@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
 import { requestIpHash } from '$lib/server/ip';
+import { createIpProof } from '$lib/server/ipProof';
 import { createCommentSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { isValidPageUrl } from '$lib/server/valid-urls';
@@ -22,6 +23,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
 
 export const POST: RequestHandler = async ({ request }) => {
 	const ipHash = requestIpHash(request);
+	const ipProof = createIpProof(ipHash);
 	const admin = verifyAdminSecret(request);
 
 	const {
@@ -44,6 +46,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				text,
 				parentId,
 				ipHash,
+				ipProof,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
 		(comment) => json({ comment }, { status: 201 })
