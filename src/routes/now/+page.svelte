@@ -120,7 +120,11 @@
 	>
 		Now
 	</h1>
-	{#if !nowQuery.isLoading && updatedAt}
+	{#if nowQuery.isLoading}
+		<p class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500">
+			Loading...
+		</p>
+	{:else if updatedAt}
 		<p
 			class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500"
 			title={formatFull(updatedAt)}
@@ -129,7 +133,7 @@
 		</p>
 	{:else}
 		<p class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500">
-			Loading...
+			What I'm doing these days.
 		</p>
 	{/if}
 

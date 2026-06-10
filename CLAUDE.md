@@ -50,10 +50,10 @@ src/
     +page.ts               # Home (prerendered)
     blog/
       +page.ts             # Blog listing (prerendered)
-      [slug]/+page.ts      # Blog post (prerendered, loads md via import.meta.glob)
+      [slug]/+page.ts      # Blog post (SSR for ?lang=/cookie language, loads md via import.meta.glob)
     projects/
       +page.ts             # Projects listing (prerendered)
-      [slug]/+page.ts      # Project detail (prerendered)
+      [slug]/+page.ts      # Project detail (SSR for ?lang=/cookie language)
     now/+page.svelte       # /now page, Convex-backed, markdown via marked
     admin/                 # Admin dashboard + auth
     api/
@@ -61,7 +61,6 @@ src/
         +server.ts                  # GET (public), POST (public, rate-limited)
         [id]/+server.ts             # PATCH (edit), DELETE (admin or user)
         [id]/vote/+server.ts        # POST (vote, rate-limited)
-        [id]/reply/+server.ts       # POST (admin reply — legacy, prefer admin route)
       likes/
         +server.ts                  # GET (count + did-I-like), POST (toggle)
       now/+server.ts                # POST (admin only) — write /now page content
@@ -88,13 +87,16 @@ convex/
 
 ## Convex Schema (`convex/schema.js`)
 
-| Table          | Key fields                                                                                         | Indexes                       |
-| -------------- | -------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `comments`     | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt | `by_url`, `by_parent`         |
-| `commentVotes` | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                     | `by_comment`, `by_comment_ip` |
-| `likes`        | url, ipHash                                                                                        | `by_url`, `by_url_ip`         |
-| `bannedIps`    | ipHash, reason                                                                                     | `by_ip`                       |
-| `nowPage`      | content, updatedAt                                                                                 | —                             |
+| Table              | Key fields                                                                                                               | Indexes                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes?, downvotes? | `by_url`, `by_parent`         |
+| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                           | `by_comment`, `by_comment_ip` |
+| `commentUrlCounts` | url, count (denormalized active-comment counter)                                                                         | `by_url`                      |
+| `likes`            | url, ipHash                                                                                                              | `by_url`, `by_url_ip`         |
+| `likeCounts`       | url, count (denormalized like counter)                                                                                   | `by_url`                      |
+| `bannedIps`        | ipHash, reason                                                                                                           | `by_ip`                       |
+| `migrationMeta`    | key, complete (backfill completion flags)                                                                                | `by_key`                      |
+| `nowPage`          | content, updatedAt                                                                                                       | —                             |
 
 `createdAt` is Convex's built-in `_creationTime` on every doc.
 
@@ -103,9 +105,9 @@ convex/
 ## Authentication & Admin
 
 - **Admin secret** stored in env var `ADMIN_SECRET`.
-- **API auth:** `verifyAdminSecret(request)` checks the `x-admin-secret` request header (`src/lib/server/admin.ts`).
-- **Page auth:** `src/routes/admin/+page.server.ts` compares the `admin_token` cookie to `ADMIN_SECRET`; sets an httpOnly cookie for 24 h on login. Exposes `adminSecret` to the page so the Svelte client can attach it to API calls.
-- All `/api/admin/*` routes require the header; they return 401 otherwise.
+- **API auth:** `verifyAdminSecret(request)` checks the `x-admin-secret` request header, falling back to the signed `admin_token` session cookie (`src/lib/server/admin.ts`). The raw secret is never sent to the browser.
+- **Page auth:** `src/routes/admin/+page.server.ts` verifies the password with an HMAC compare and sets a signed, expiring `admin_token` httpOnly cookie for 24 h on login. The admin dashboard's API calls authenticate via that cookie.
+- All `/api/admin/*` routes require the header or a valid session cookie; they return 401 otherwise.
 - Convex mutations also accept an optional `adminSecret` argument; when present and valid, they bypass rate limits and per-IP checks.
 
 ---
@@ -195,6 +197,7 @@ Edit `convex/schema.js` and run `npx convex dev` (or `npx convex deploy` for pro
 | ------------------- | ---------------------------------------------------------------------------------------------- |
 | `PUBLIC_CONVEX_URL` | Convex client — both browser (root layout) and server-side HTTP client                         |
 | `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                           |
+| `IP_HASH_SECRET`    | HMAC key for visitor IP hashing (`src/lib/server/ip.ts`) — required at runtime                 |
 | `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically. |
 
 <!-- convex-ai-start -->

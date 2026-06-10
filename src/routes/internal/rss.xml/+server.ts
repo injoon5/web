@@ -52,11 +52,13 @@ const getPosts = () => {
 // Function to clean up content by stripping non-text elements (e.g., images, embeds)
 const cleanText = (content) => {
 	return content
-		.replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
-		.replace(/\[.*?\]\(.*?\)/g, '') // Remove links
-		.replace(/<[^>]*>/g, '') // Remove HTML tags
-		.replace(/`{3}[\s\S]*?`{3}/g, '') // Remove code blocks
+		.replace(/`{3}[\s\S]*?`{3}/g, '') // Remove code blocks (before inline code)
 		.replace(/`.*?`/g, '') // Remove inline code
+		.replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+		.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Links → keep the label text
+		.replace(/^#{1,6}\s+/gm, '') // Remove heading markers
+		.replace(/[*_~]+/g, '') // Remove bold/italic/strikethrough markers
+		.replace(/<[^>]*>/g, '') // Remove HTML tags
 		.trim();
 };
 
@@ -85,8 +87,10 @@ export const GET = async () => {
 		.ele('title')
 		.txt("Injoon Oh's Website")
 		.up()
+		// Per the RSS 2.0 spec the channel <link> is the website URL, not the feed
+		// URL (and /rss.xml doesn't exist — the feed lives at /internal/rss.xml).
 		.ele('link')
-		.txt('https://www.injoon5.com/rss.xml')
+		.txt('https://www.injoon5.com')
 		.up()
 		.ele('description')
 		.txt('Latest blog articles')
@@ -109,6 +113,9 @@ export const GET = async () => {
 			.up()
 			.ele('description')
 			.txt(description)
+			.up()
+			.ele('guid', { isPermaLink: 'true' })
+			.txt(postUrl)
 			.up()
 			.ele('pubDate')
 			.txt(new Date(post.date).toUTCString())

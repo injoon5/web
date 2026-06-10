@@ -220,7 +220,7 @@
 								? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
 								: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
 						>
-							{#if isVoting && votingAnim.side === 'up'}
+							{#if isVoting && votingAnim.id === comment.id && votingAnim.side === 'up'}
 								<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 							{:else}
 								<ArrowUp size="16" strokeWidth="2.25" aria-hidden="true" />
@@ -238,7 +238,7 @@
 								? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
 								: 'bg-rose-100 text-rose-700 hover:bg-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/60'}"
 						>
-							{#if isVoting && votingAnim.side === 'down'}
+							{#if isVoting && votingAnim.id === comment.id && votingAnim.side === 'down'}
 								<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 							{:else}
 								<ArrowDown size="16" strokeWidth="2.25" aria-hidden="true" />

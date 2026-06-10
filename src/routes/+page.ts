@@ -1,5 +1,3 @@
-// export const prerender = true;
-
 import type { LoadEvent } from '@sveltejs/kit';
 
 export const prerender = true;
@@ -10,70 +8,6 @@ export const load = async ({ fetch }: LoadEvent) => {
 		fetch(`/api/projects`)
 	]);
 	const [posts, projects] = await Promise.all([postResponse.json(), projectsResponse.json()]);
-
-	// Load tech stack descriptions
-	const techstackDescriptions = {
-		Svelte:
-			'A modern web framework that compiles your components to vanilla JavaScript at build time, resulting in smaller bundles and better performance.',
-		'Next.js':
-			'A React framework for production with features like server-side rendering, static site generation, and API routes built-in.',
-		'Tailwind CSS':
-			'A utility-first CSS framework that allows you to build custom designs without leaving your HTML.',
-		SWR: 'A data fetching library for React that provides caching, revalidation, and error handling out of the box.',
-		'shadcn/ui':
-			'A collection of reusable components built using Radix UI and Tailwind CSS, designed to be copy-pasted into your project.',
-		Zod: 'A TypeScript-first schema validation library that helps you validate data at runtime and provides type safety.',
-		Swift:
-			"Apple's programming language for iOS, macOS, watchOS, and tvOS development, known for its safety and performance.",
-		SwiftUI:
-			"Apple's declarative UI framework for building user interfaces across all Apple platforms using Swift.",
-		'Core Data':
-			"Apple's object graph and persistence framework for managing model layer objects in your application.",
-		Alamofire:
-			'An HTTP networking library for iOS and macOS that provides an elegant interface for making network requests.',
-		Pow: 'A Swift library that provides a clean API for making HTTP requests with built-in support for authentication and error handling.',
-		Python:
-			'A high-level programming language known for its simplicity and readability, widely used in data science, web development, and automation.',
-		PyGame:
-			'A cross-platform set of Python modules designed for writing video games, providing functionality for graphics, sound, and input handling.',
-		PyQt: 'A set of Python bindings for the Qt application framework, used for creating desktop applications with native look and feel.',
-		Pandas:
-			'A powerful data manipulation and analysis library for Python, providing data structures and functions for working with structured data.',
-		NumPy:
-			'A fundamental package for scientific computing in Python, providing support for large, multi-dimensional arrays and matrices.',
-		Matplotlib:
-			'A plotting library for Python that provides an object-oriented API for embedding plots into applications.',
-		YOLOv8:
-			'The latest version of the YOLO (You Only Look Once) object detection algorithm, known for its speed and accuracy.',
-		TensorFlow:
-			'An open-source machine learning platform developed by Google, used for building and deploying ML models.',
-		C: 'A general-purpose programming language that provides low-level access to memory and is widely used in system programming.',
-		'C++':
-			'An extension of C with object-oriented programming features, commonly used in game development and system programming.',
-		JavaScript:
-			'A high-level programming language that is one of the core technologies of the World Wide Web, alongside HTML and CSS.',
-		Vercel:
-			'A cloud platform for static sites and serverless functions, optimized for frontend frameworks like Next.js.',
-		'Raspberry Pi':
-			'A series of small single-board computers that can be used for various projects, from home automation to robotics.',
-		Docker:
-			'A containerization platform that allows you to package applications and their dependencies into lightweight, portable containers.',
-		PocketBase:
-			'A lightweight backend-as-a-service that provides a real-time database, authentication, and file storage.',
-		Supabase:
-			'An open-source Firebase alternative that provides a PostgreSQL database, authentication, and real-time subscriptions.',
-		Git: 'A distributed version control system designed to handle everything from small to very large projects with speed and efficiency.',
-		GitHub:
-			'A web-based platform for version control and collaboration using Git, hosting millions of open-source projects.',
-		Figma:
-			'A collaborative interface design tool that runs in the browser, allowing teams to design, prototype, and iterate together.',
-		Cursor:
-			'An AI-powered code editor built on VS Code that helps developers write code faster and more efficiently.',
-		Obsidian:
-			'A powerful knowledge management tool that uses markdown files and creates a graph of connections between your notes.',
-		'MacBook Pro':
-			"Apple's professional laptop series, known for its performance, build quality, and integration with the Apple ecosystem."
-	};
 
 	const techstack = [
 		{
@@ -197,7 +131,6 @@ export const load = async ({ fetch }: LoadEvent) => {
 	return {
 		posts,
 		projects,
-		techstack,
-		techstackDescriptions
+		techstack
 	};
 };

@@ -11,10 +11,14 @@ export function resolvePublished(
 	enPaths: Record<string, unknown>,
 	koPaths: Record<string, unknown>
 ): Record<string, unknown>[] {
+	// Only published English versions count toward the EN badge — the detail
+	// page hides unpublished translations, so an unpublished en/ file must not
+	// advertise an English version that isn't actually available.
 	const enSlugs = new Set<string>();
 	for (const path in enPaths) {
+		const file = enPaths[path] as MarkdownModule;
 		const slug = path.split('/').at(-1)?.replace('.md', '');
-		if (slug) enSlugs.add(slug);
+		if (slug && file?.metadata?.published) enSlugs.add(slug);
 	}
 
 	const bySlug: Record<string, Record<string, unknown>> = {};
