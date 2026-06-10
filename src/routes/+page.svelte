@@ -75,7 +75,6 @@
 
 <svelte:head>
 	<title>Injoon Oh</title>
-	<meta charset="UTF-8" />
 	<meta property="og:title" content="Injoon Oh" />
 	<meta name="description" content="A student who is interested in math, science, and computers." />
 	<meta

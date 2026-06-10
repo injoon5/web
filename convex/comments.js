@@ -80,7 +80,8 @@ export const create = mutation({
 		// Enforce limits server-side: this mutation is part of the public Convex
 		// API, so direct callers must not be able to bypass the SvelteKit/Zod layer.
 		const username = args.username.trim() || 'Anonymous';
-		if (args.text.length < 1 || args.text.length > MAX_TEXT_LENGTH) {
+		const text = args.text.trim();
+		if (text.length < 1 || text.length > MAX_TEXT_LENGTH) {
 			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
 		}
 		if (username.length > MAX_USERNAME_LENGTH) {
@@ -110,7 +111,7 @@ export const create = mutation({
 			url: args.url,
 			username,
 			passwordHash: args.passwordHash,
-			text: args.text,
+			text,
 			ipHash: args.ipHash,
 			parentId,
 			depth,
@@ -171,9 +172,16 @@ export const applyEdit = internalMutation({
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
+		// Same server-side bound as `create`: the wrapping action is part of the
+		// public Convex API, so direct callers must not bypass the SvelteKit/Zod layer.
+		const text = args.text.trim();
+		if (text.length < 1 || text.length > MAX_TEXT_LENGTH) {
+			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
+		}
+
 		const updatedAt = Date.now();
-		await ctx.db.patch(args.commentId, { text: args.text, updatedAt });
-		return { id: args.commentId, text: args.text, updatedAt };
+		await ctx.db.patch(args.commentId, { text, updatedAt });
+		return { id: args.commentId, text, updatedAt };
 	}
 });
 
