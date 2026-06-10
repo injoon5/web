@@ -6,6 +6,8 @@ import { isBanned } from './lib/bans.js';
 import { publicComment } from './lib/serialize.js';
 import { applyVoteChange, commentScore, getVoteCounts } from './lib/votes.js';
 import { decrementUrlCount, incrementUrlCount } from './lib/urlCounts.js';
+import { assertIpProof } from './lib/ipProof.js';
+import { selectTopWithAncestors } from './lib/commentListSelection.js';
 
 const MAX_DEPTH = 2;
 const MAX_COMMENTS = 200;
@@ -34,13 +36,7 @@ export const list = query({
 
 		const active = docs.filter((d) => d.deletedAt === null);
 
-		active.sort((a, b) => {
-			const scoreDiff = commentScore(b) - commentScore(a);
-			if (scoreDiff !== 0) return scoreDiff;
-			return b._creationTime - a._creationTime;
-		});
-
-		const top = active.slice(0, MAX_COMMENTS);
+		const top = selectTopWithAncestors(active, MAX_COMMENTS, commentScore);
 
 		return await Promise.all(
 			top.map(async (doc) => {
@@ -68,10 +64,12 @@ export const create = mutation({
 		text: v.string(),
 		parentId: v.optional(v.id('comments')),
 		ipHash: v.string(),
+		ipProof: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
 		const admin = await isAdmin(args.adminSecret);
+		if (!admin) await assertIpProof(args.ipHash, args.ipProof);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });
@@ -133,10 +131,12 @@ export const vote = mutation({
 		commentId: v.id('comments'),
 		voteType: v.union(v.literal('up'), v.literal('down')),
 		ipHash: v.string(),
+		ipProof: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
 		const admin = await isAdmin(args.adminSecret);
+		if (!admin) await assertIpProof(args.ipHash, args.ipProof);
 
 		if (await isBanned(ctx, args.ipHash)) {
 			throw new ConvexError({ kind: 'Banned' });
