@@ -27,7 +27,7 @@ export default defineConfig({
 				test: {
 					name: 'unit',
 					environment: 'node',
-					include: ['src/**/*.test.js'],
+					include: ['src/**/*.test.js', 'convex/**/*.test.js'],
 					exclude: ['src/**/*.svelte.test.js']
 				}
 			},
