@@ -30,24 +30,20 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
 	const admin = verifyAdminSecret(request);
 
-	if (!admin) {
-		const { password } = await parseBody(request, deleteCommentSchema);
-		return runConvex(
-			() =>
-				convex.action(api.commentActions.softDeleteComment, {
-					commentId: params.id,
-					password,
-					ipHash
-				}),
-			() => json({ success: true })
-		);
-	}
+	// Always soft-delete on the public route. Hard-delete is only exposed via
+	// /api/admin/comments/[id] so an active admin session cannot accidentally
+	// wipe a whole thread while browsing the site with the visitor delete UI.
+	const { password } = admin
+		? { password: '' }
+		: await parseBody(request, deleteCommentSchema);
 
 	return runConvex(
 		() =>
-			convex.mutation(api.comments.hardDelete, {
+			convex.action(api.commentActions.softDeleteComment, {
 				commentId: params.id,
-				adminSecret: ADMIN_SECRET
+				password,
+				ipHash,
+				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
 		() => json({ success: true })
 	);
