@@ -50,18 +50,26 @@
 	const fallbackHandle = makeHandle();
 
 	const ipHash = $derived($page.data.ipHash ?? '');
+	const path = $derived($page.url.pathname);
 
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(
 		api.comments.list,
 		() => ({
-			url: $page.url.pathname,
+			url: path,
 			ipHash
 		}),
 		// The runtime ipHash re-subscription swaps the query args on every visit.
 		// Keep the prior result so the comments don't flash back to loading.
 		{ keepPreviousData: true }
 	);
+
+	// Pathname the most recent fresh (non-stale) result belongs to.
+	let freshPath = $state(null);
+	$effect(() => {
+		if (query.data && !query.isStale) freshPath = path;
+	});
+	const listReady = $derived(!query.isStale && !!query.data && freshPath === path);
 
 	// Cross-card form coordination — only one form open at a time
 	let activeFormId = $state(null);
@@ -136,17 +144,17 @@
 			commentText.length > MAX_LENGTH
 	);
 
-	const commentTree = $derived(buildTree(query.data ?? []));
+	const commentTree = $derived(buildTree(listReady ? (query.data ?? []) : []));
 
 	// Trust per-visitor vote state once ipHash is loaded and the subscription is fresh.
-	const voteKnown = $derived(!query.isStale && !!query.data && !!ipHash);
+	const voteKnown = $derived(listReady && !!ipHash);
 	const canVote = $derived(voteKnown);
 
 	// Reset transient form state on path change
-	let currentPath = $state($page.url.pathname);
+	let trackedPath = null;
 	$effect(() => {
-		if ($page.url.pathname !== currentPath) {
-			currentPath = $page.url.pathname;
+		if (path !== trackedPath) {
+			trackedPath = path;
 			commentText = '';
 			username = '';
 			password = '';
@@ -251,7 +259,11 @@
 {/if}
 
 <div class="mt-8">
-	{#if query.isLoading}
+	{#if query.error != null}
+		<div class="flex flex-col items-center gap-3 py-10 text-center">
+			<p class="text-neutral-500 dark:text-neutral-400">Could not load comments.</p>
+		</div>
+	{:else if query.isLoading || !listReady}
 		{#each [1, 2, 3] as skeleton (skeleton)}
 			<div
 				class="mb-4 rounded-xl border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
@@ -262,10 +274,6 @@
 				<div class="shimmer mt-3 h-3 w-20 rounded"></div>
 			</div>
 		{/each}
-	{:else if query.error != null}
-		<div class="flex flex-col items-center gap-3 py-10 text-center">
-			<p class="text-neutral-500 dark:text-neutral-400">Could not load comments.</p>
-		</div>
 	{:else if commentTree.length > 0}
 		{#each commentTree as comment (comment.id)}
 			<div class="mb-4">
