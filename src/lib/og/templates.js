@@ -19,7 +19,7 @@ const textSecondary = '#d0d0d0';
 const textMuted = '#9a9a9a';
 const borderColor = '#2e2e2e';
 const dotColor = '#161616';
-const font = 'Pretendard';
+const font = 'Interlude';
 
 // Non-title type scale — sized for legibility at ~50% display (Twitter/iMessage thumbnails).
 // At 600px display (50% of 1200), a 30px source renders as 15px; 22px would be ~11px.
