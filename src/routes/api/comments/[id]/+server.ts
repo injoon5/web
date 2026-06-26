@@ -5,11 +5,13 @@ import { api } from '$convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { editCommentSchema, deleteCommentSchema } from '$lib/server/validation';
 import { requestIpHash } from '$lib/server/ip';
+import { createIpProof } from '$lib/server/ipProof';
 import { runConvex, parseBody } from '$lib/server/api';
 import { ADMIN_SECRET } from '$env/static/private';
 
 export const PATCH: RequestHandler = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
+	const ipProof = createIpProof(ipHash);
 	const admin = verifyAdminSecret(request);
 	const { text, password } = await parseBody(request, editCommentSchema);
 
@@ -20,6 +22,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 				text,
 				password: admin ? '' : password,
 				ipHash,
+				ipProof,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
 		(updated) => json({ comment: updated })
@@ -28,6 +31,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
+	const ipProof = createIpProof(ipHash);
 	const admin = verifyAdminSecret(request);
 
 	if (!admin) {
@@ -37,7 +41,8 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 				convex.action(api.commentActions.softDeleteComment, {
 					commentId: params.id,
 					password,
-					ipHash
+					ipHash,
+					ipProof
 				}),
 			() => json({ success: true })
 		);
