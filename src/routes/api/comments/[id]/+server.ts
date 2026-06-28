@@ -28,26 +28,17 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 export const DELETE: RequestHandler = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
-	const admin = verifyAdminSecret(request);
+	const { password } = await parseBody(request, deleteCommentSchema);
 
-	if (!admin) {
-		const { password } = await parseBody(request, deleteCommentSchema);
-		return runConvex(
-			() =>
-				convex.action(api.commentActions.softDeleteComment, {
-					commentId: params.id,
-					password,
-					ipHash
-				}),
-			() => json({ success: true })
-		);
-	}
-
+	// Public delete is always soft-delete. Hard-delete is admin-only via
+	// /api/admin/comments/[id] so a logged-in owner using the visitor UI
+	// cannot wipe whole threads by accident.
 	return runConvex(
 		() =>
-			convex.mutation(api.comments.hardDelete, {
+			convex.action(api.commentActions.softDeleteComment, {
 				commentId: params.id,
-				adminSecret: ADMIN_SECRET
+				password,
+				ipHash
 			}),
 		() => json({ success: true })
 	);
