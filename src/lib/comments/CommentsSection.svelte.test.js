@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/svelte';
 
 // useQuery needs a live Convex context; stub it with controllable state.
 vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
@@ -115,11 +115,38 @@ describe('CommentsSection list states', () => {
 		expect(screen.queryByText(/No comments yet/)).toBeNull();
 	});
 
+	it('does not show the empty state while comments for the new page are not ready', () => {
+		mockQuery({ data: [], isStale: true });
+		setPage({ url: new URL('http://localhost/blog/new-page') });
+		render(CommentsSection);
+		expect(screen.queryByText(/No comments yet/)).toBeNull();
+	});
+
 	it('renders a comment from the query', () => {
 		mockQuery({ data: [comment({ username: 'carol', text: 'first!' })] });
 		render(CommentsSection);
 		expect(screen.getByText('carol')).toBeInTheDocument();
 		expect(screen.getByText('first!')).toBeInTheDocument();
+	});
+
+	it('does not show stale comments from a previous page while the new query is stale', async () => {
+		mockQuery({
+			data: [comment({ username: 'old-page', text: 'stale comment' })],
+			isStale: false
+		});
+		render(CommentsSection);
+		expect(screen.getByText('old-page')).toBeInTheDocument();
+		cleanup();
+
+		mockQuery({
+			data: [comment({ username: 'old-page', text: 'stale comment' })],
+			isStale: true
+		});
+		setPage({ url: new URL('http://localhost/blog/new-page') });
+		render(CommentsSection);
+
+		expect(screen.queryByText('old-page')).toBeNull();
+		expect(screen.queryByText('stale comment')).toBeNull();
 	});
 });
 
