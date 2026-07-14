@@ -8,7 +8,7 @@ vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
 import { page, setPage } from '$app/stores';
-import { createReactiveQuery } from '../test/mocks/reactive-query.svelte.js';
+import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
 import CommentsSection from './CommentsSection.svelte';
 
 function comment(overrides = {}) {
