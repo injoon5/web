@@ -312,9 +312,31 @@
 				{/each}
 			</div>
 		{:else if nowState === 'error'}
-			<div class="text-neutral-700 dark:text-neutral-300">
-				<p>Couldn't load Now Listening</p>
-				<div class="mt-1 text-neutral-500">{nowError ?? 'Unknown error'}</div>
+			<div class="flex h-40 items-center gap-4 px-2 lg:h-48">
+				<div
+					class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-neutral-100 dark:bg-neutral-800"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-6 w-6 text-neutral-400 dark:text-neutral-600"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="1.5"
+							d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+						/>
+					</svg>
+				</div>
+				<div>
+					<p class="font-medium text-neutral-700 dark:text-neutral-300">Couldn't load tracks</p>
+					<p class="mt-0.5 text-sm text-neutral-400 dark:text-neutral-600">
+						Data temporarily unavailable
+					</p>
+				</div>
 			</div>
 		{:else if (nowlistening?.recenttracks?.track ?? []).length > 0}
 			<div
@@ -379,10 +401,40 @@
 				{/each}
 			{:else if photosState === 'error'}
 				<div class="col-span-2 sm:col-span-3">
-					<div class="text-neutral-700 dark:text-neutral-300">
-						<p>Couldn't load Photos</p>
-						<div class="mt-1 text-neutral-500 dark:text-neutral-500">
-							{photosError ?? 'Unknown error'}
+					<div
+						class="flex aspect-video items-center justify-center gap-4 rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
+					>
+						<div
+							class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-neutral-200 dark:bg-neutral-800"
+						>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								class="h-6 w-6 text-neutral-400 dark:text-neutral-600"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="1.5"
+									d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+								/>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="1.5"
+									d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+								/>
+							</svg>
+						</div>
+						<div>
+							<p class="font-medium text-neutral-700 dark:text-neutral-300">
+								Couldn't load photos
+							</p>
+							<p class="mt-0.5 text-sm text-neutral-400 dark:text-neutral-600">
+								Data temporarily unavailable
+							</p>
 						</div>
 					</div>
 				</div>
