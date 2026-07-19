@@ -49,18 +49,28 @@
 	const fallbackHandle = makeHandle();
 
 	const ipHash = $derived($page.data.ipHash ?? '');
+	const path = $derived($page.url.pathname);
 
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(
 		api.comments.list,
 		() => ({
-			url: $page.url.pathname,
+			url: path,
 			ipHash
 		}),
 		// The runtime ipHash re-subscription swaps the query args on every visit.
 		// Keep the prior result so the comments don't flash back to loading.
+		// `freshPath` (below) tracks which page the latest non-stale result belongs
+		// to, so retained data from a previous page is never treated as authoritative.
 		{ keepPreviousData: true }
 	);
+
+	// Pathname the most recent fresh (non-stale) result belongs to.
+	let freshPath = $state(null);
+	$effect(() => {
+		if (query.data && !query.isStale) freshPath = path;
+	});
+	const listReady = $derived(!query.isStale && !!query.data && freshPath === path);
 
 	// Cross-card form coordination — only one form open at a time
 	let activeFormId = $state(null);
@@ -130,10 +140,10 @@
 			commentText.length > MAX_COMMENT_LENGTH
 	);
 
-	const commentTree = $derived(buildTree(query.data ?? []));
+	const commentTree = $derived(listReady ? buildTree(query.data) : []);
 
-	// Trust per-visitor vote state once ipHash is loaded and the subscription is fresh.
-	const voteKnown = $derived(!query.isStale && !!query.data && !!ipHash);
+	// Trust per-visitor vote state once ipHash is loaded and the list is for this page.
+	const voteKnown = $derived(listReady && !!ipHash);
 	const canVote = $derived(voteKnown);
 
 	// Reset transient form state on path change
