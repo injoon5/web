@@ -1,4 +1,5 @@
 import type { RequestHandler } from './$types';
+import type { Id } from '$convex/_generated/dataModel';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
 import { requestIpHash } from '$lib/server/ip';
@@ -14,7 +15,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
 	return runConvex(() =>
 		convex.mutation(api.comments.vote, {
-			commentId: params.id,
+			commentId: params.id as Id<'comments'>,
 			voteType,
 			ipHash,
 			adminSecret: admin ? ADMIN_SECRET : undefined

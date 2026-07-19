@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import type { Id } from '$convex/_generated/dataModel';
 import { convex } from '$lib/server/convex';
 import { api } from '$convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin';
@@ -16,7 +17,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.editComment, {
-				commentId: params.id,
+				commentId: params.id as Id<'comments'>,
 				text,
 				password: admin ? '' : password,
 				ipHash,
@@ -35,7 +36,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		return runConvex(
 			() =>
 				convex.action(api.commentActions.softDeleteComment, {
-					commentId: params.id,
+					commentId: params.id as Id<'comments'>,
 					password,
 					ipHash
 				}),
@@ -46,7 +47,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	return runConvex(
 		() =>
 			convex.mutation(api.comments.hardDelete, {
-				commentId: params.id,
+				commentId: params.id as Id<'comments'>,
 				adminSecret: ADMIN_SECRET
 			}),
 		() => json({ success: true })

@@ -3,6 +3,7 @@
 	import { onDestroy } from 'svelte';
 	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
 	import { buildTree } from '$lib/comments/buildTree.js';
+	import { apiFetch } from '$lib/api-client.js';
 
 	let { data, form } = $props();
 
@@ -41,53 +42,35 @@
 
 	async function loadUrls() {
 		loadingUrls = true;
-		try {
-			const res = await fetch('/api/admin/comments');
-			if (!res.ok) {
-				showError('Failed to load posts.');
-				return;
-			}
-			const body = await res.json();
-			urlList = body.urls ?? [];
-		} catch {
+		const res = await apiFetch('/api/admin/comments');
+		loadingUrls = false;
+		if (!res.ok) {
 			showError('Failed to load posts.');
-		} finally {
-			loadingUrls = false;
+			return;
 		}
+		urlList = res.data.urls ?? [];
 	}
 
 	async function loadComments(url) {
 		loadingComments = true;
-		try {
-			const res = await fetch(`/api/admin/comments?url=${encodeURIComponent(url)}`);
-			if (!res.ok) {
-				showError('Failed to load comments.');
-				return;
-			}
-			const body = await res.json();
-			selectedComments = body.comments ?? [];
-		} catch {
+		const res = await apiFetch(`/api/admin/comments?url=${encodeURIComponent(url)}`);
+		loadingComments = false;
+		if (!res.ok) {
 			showError('Failed to load comments.');
-		} finally {
-			loadingComments = false;
+			return;
 		}
+		selectedComments = res.data.comments ?? [];
 	}
 
 	async function loadBans() {
 		loadingBans = true;
-		try {
-			const res = await fetch('/api/admin/bans');
-			if (!res.ok) {
-				showError('Failed to load bans.');
-				return;
-			}
-			const body = await res.json();
-			bans = body.bans ?? [];
-		} catch {
+		const res = await apiFetch('/api/admin/bans');
+		loadingBans = false;
+		if (!res.ok) {
 			showError('Failed to load bans.');
-		} finally {
-			loadingBans = false;
+			return;
 		}
+		bans = res.data.bans ?? [];
 	}
 
 	// Reactive fetches when auth/tab/view changes
@@ -96,6 +79,12 @@
 		if (tab === 'comments' && view === 'urls') loadUrls();
 		if (tab === 'comments' && view === 'comments' && selectedUrl) loadComments(selectedUrl);
 		if (tab === 'bans') loadBans();
+	});
+
+	// Load bans once up front too, so the "Bans" stat tile isn't stuck at 0
+	// until the tab is first opened.
+	$effect(() => {
+		if (data.authenticated) loadBans();
 	});
 
 	const statsTotal = $derived({
@@ -122,17 +111,12 @@
 	}
 
 	async function unban(id) {
-		try {
-			const res = await fetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
-			if (!res.ok) {
-				const body = await res.json().catch(() => ({}));
-				showError(body.message ?? 'Failed to unban.');
-				return;
-			}
-			loadBans();
-		} catch {
-			showError('Something went wrong.');
+		const res = await apiFetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
+		if (!res.ok) {
+			showError(res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to unban.'));
+			return;
 		}
+		loadBans();
 	}
 
 	function formatDate(d) {

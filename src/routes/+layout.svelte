@@ -116,9 +116,7 @@
 					class=" hover:text-neutral-900 dark:hover:text-neutral-100">injoon5 (GitHub)</a
 				>
 				<br />
-				<a href="/internal/rss.xml" class=" hover:text-neutral-900 dark:hover:text-neutral-100"
-					>RSS Feed</a
-				>
+				<a href="/rss.xml" class=" hover:text-neutral-900 dark:hover:text-neutral-100">RSS Feed</a>
 			</div>
 			<div class="col-span-12 sm:col-span-6 lg:col-span-5">
 				<p class="text-neutral-900 dark:text-neutral-100">Made in</p>

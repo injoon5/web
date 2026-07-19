@@ -4,6 +4,7 @@
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 	import { browser } from '$app/environment';
+	import { apiFetch } from '$lib/api-client.js';
 
 	const { data } = $props();
 
@@ -73,23 +74,13 @@
 	async function save() {
 		saving = true;
 		saveError = '';
-		try {
-			const res = await fetch('/api/now', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ content: editContent })
-			});
-			if (!res.ok) {
-				const d = await res.json().catch(() => ({}));
-				saveError = d.message ?? 'Failed to save.';
-				return;
-			}
-			editing = false;
-		} catch {
-			saveError = 'Something went wrong.';
-		} finally {
-			saving = false;
+		const res = await apiFetch('/api/now', { method: 'POST', body: { content: editContent } });
+		saving = false;
+		if (!res.ok) {
+			saveError = res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to save.');
+			return;
 		}
+		editing = false;
 	}
 
 	function autoResize(node) {

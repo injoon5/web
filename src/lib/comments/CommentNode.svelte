@@ -6,9 +6,9 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import Self from './CommentNode.svelte';
+	import StrayParentGhost from './StrayParentGhost.svelte';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
-
-	const MAX_LENGTH = MAX_COMMENT_LENGTH;
+	import { apiFetch } from '$lib/api-client.js';
 
 	let {
 		comment,
@@ -48,14 +48,14 @@
 	// otherwise show neutral arrows so a stale/unknown state can't be mis-toggled.
 	const myVote = $derived(voteKnown ? comment.myVote : null);
 	const voteDisabled = $derived(isVoting || !canVote);
-	const replyCharsLeft = $derived(MAX_LENGTH - replyText.length);
-	const showReplyCharsLeft = $derived(replyText.length > MAX_LENGTH - CHAR_THRESHOLD);
+	const replyCharsLeft = $derived(MAX_COMMENT_LENGTH - replyText.length);
+	const showReplyCharsLeft = $derived(replyText.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
 	const replyDisabled = $derived(
 		replySubmitting ||
 			!replyText.trim() ||
 			!replyPassword ||
 			replyPassword.length < MIN_PASSWORD_LENGTH ||
-			replyText.length > MAX_LENGTH
+			replyText.length > MAX_COMMENT_LENGTH
 	);
 
 	// Close own form when another card claims the active slot
@@ -98,27 +98,21 @@
 	async function saveEdit() {
 		editError = '';
 		if (!editText.trim()) return (editError = 'Comment cannot be empty.');
-		if (editText.length > MAX_LENGTH) return (editError = `Max ${MAX_LENGTH} characters.`);
+		if (editText.length > MAX_COMMENT_LENGTH)
+			return (editError = `Max ${MAX_COMMENT_LENGTH} characters.`);
 		if (!editPassword) return (editError = 'Password is required.');
 
 		editSubmitting = true;
-		try {
-			const res = await fetch(`/api/comments/${comment.id}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ text: editText.trim(), password: editPassword })
-			});
-			const data = await res.json().catch(() => ({}));
-			if (!res.ok) {
-				editError = data.message ?? 'Failed to save.';
-				return;
-			}
-			closeForm();
-		} catch {
-			editError = 'Something went wrong.';
-		} finally {
-			editSubmitting = false;
+		const res = await apiFetch(`/api/comments/${comment.id}`, {
+			method: 'PATCH',
+			body: { text: editText.trim(), password: editPassword }
+		});
+		editSubmitting = false;
+		if (!res.ok) {
+			editError = res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to save.');
+			return;
 		}
+		closeForm();
 	}
 
 	async function submitReply() {
@@ -126,32 +120,28 @@
 		if (!replyText.trim()) return (replyError = 'Reply cannot be empty.');
 		if (replyPassword.length < MIN_PASSWORD_LENGTH)
 			return (replyError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-		if (replyText.length > MAX_LENGTH) return (replyError = `Max ${MAX_LENGTH} characters.`);
+		if (replyText.length > MAX_COMMENT_LENGTH)
+			return (replyError = `Max ${MAX_COMMENT_LENGTH} characters.`);
 
 		replySubmitting = true;
-		try {
-			const res = await fetch('/api/comments', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					url: comment.url,
-					username: replyUsername.trim() || undefined,
-					password: replyPassword,
-					text: replyText.trim(),
-					parentId: comment.id
-				})
-			});
-			const data = await res.json().catch(() => ({}));
-			if (!res.ok) {
-				replyError = data.message ?? data.error ?? 'Failed to submit reply.';
-				return;
+		const res = await apiFetch('/api/comments', {
+			method: 'POST',
+			body: {
+				url: comment.url,
+				username: replyUsername.trim() || undefined,
+				password: replyPassword,
+				text: replyText.trim(),
+				parentId: comment.id
 			}
-			closeForm();
-		} catch {
-			replyError = 'Something went wrong. Please try again.';
-		} finally {
-			replySubmitting = false;
+		});
+		replySubmitting = false;
+		if (!res.ok) {
+			replyError =
+				res.message ??
+				(res.networkError ? 'Something went wrong. Please try again.' : 'Failed to submit reply.');
+			return;
 		}
+		closeForm();
 	}
 
 	async function confirmDelete() {
@@ -160,23 +150,17 @@
 			return (deleteError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
 
 		deleteSubmitting = true;
-		try {
-			const res = await fetch(`/api/comments/${comment.id}`, {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ password: deletePassword })
-			});
-			const data = await res.json().catch(() => ({}));
-			if (!res.ok) {
-				deleteError = data.message ?? 'Failed to delete comment.';
-				return;
-			}
-			closeForm();
-		} catch {
-			deleteError = 'Something went wrong.';
-		} finally {
-			deleteSubmitting = false;
+		const res = await apiFetch(`/api/comments/${comment.id}`, {
+			method: 'DELETE',
+			body: { password: deletePassword }
+		});
+		deleteSubmitting = false;
+		if (!res.ok) {
+			deleteError =
+				res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to delete comment.');
+			return;
 		}
+		closeForm();
 	}
 
 	function handleVote(side) {
@@ -270,7 +254,7 @@
 					<textarea
 						bind:value={editText}
 						rows="3"
-						maxlength={MAX_LENGTH}
+						maxlength={MAX_COMMENT_LENGTH}
 						class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
 					></textarea>
 					<input
@@ -370,8 +354,8 @@
 					<div>
 						<textarea
 							bind:value={replyText}
-							placeholder="Reply… (max {MAX_LENGTH} characters)"
-							maxlength={MAX_LENGTH}
+							placeholder="Reply… (max {MAX_COMMENT_LENGTH} characters)"
+							maxlength={MAX_COMMENT_LENGTH}
 							rows="2"
 							class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
 						></textarea>
@@ -444,12 +428,7 @@
 
 	{#if comment.stray}
 		<!-- Ghost placeholder for the deleted parent (renders at comment.depth - 1) -->
-		<div
-			class="rounded-xl border border-dashed border-neutral-300/80 p-4 opacity-80 dark:border-neutral-700/80"
-		>
-			<p class="font-semibold text-neutral-400 italic dark:text-neutral-600">[deleted]</p>
-			<p class="mt-1 text-sm text-neutral-400 italic dark:text-neutral-600">[deleted]</p>
-		</div>
+		<StrayParentGhost />
 		<div
 			class="mt-2 ml-4 space-y-2 border-l-2 pl-4 {comment.depth === 1
 				? 'border-neutral-200 dark:border-neutral-700'

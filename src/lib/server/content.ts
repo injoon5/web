@@ -23,7 +23,7 @@ export function resolvePublished(
 			const file = paths[path] as MarkdownModule;
 			const slug = path.split('/').at(-1)?.replace('.md', '');
 			if (file?.metadata && slug) {
-				const item = { ...file.metadata, slug, hasEn: enSlugs.has(slug) };
+				const item: Record<string, unknown> = { ...file.metadata, slug, hasEn: enSlugs.has(slug) };
 				if (item.published) bySlug[slug] = item;
 			}
 		}

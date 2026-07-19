@@ -24,9 +24,23 @@ export async function parseBody(request, schema) {
  * Handles structured ConvexError payloads (`{ kind, message?, retryAfter? }`)
  * and falls back to a generic 500 for anything else.
  */
+/**
+ * Extract a structured `{ kind, message?, retryAfter? }` payload from a thrown
+ * Convex error. Handles real ConvexError instances and the duck-typed
+ * `{ name: 'ConvexError', data: ... }` shape Convex sometimes surfaces across
+ * the HTTP boundary.
+ */
+function convexErrorData(err) {
+	if (err instanceof ConvexError) return err.data ?? {};
+	if (err && typeof err === 'object' && 'data' in err && err.data && typeof err.data === 'object') {
+		return typeof err.data.kind === 'string' ? err.data : null;
+	}
+	return null;
+}
+
 export function convexErrorToResponse(err) {
-	if (err instanceof ConvexError) {
-		const data = err.data ?? {};
+	const data = convexErrorData(err);
+	if (data) {
 		const kind = data.kind ?? 'Unknown';
 		const message = data.message ?? defaultMessage(kind);
 
@@ -41,27 +55,7 @@ export function convexErrorToResponse(err) {
 			});
 		}
 
-		const status = statusForKind(kind);
-		throw error(status, message);
-	}
-
-	// Convex sometimes surfaces ConvexError via { name: 'ConvexError', data: ... }
-	// across the HTTP boundary; check for that too.
-	if (err && typeof err === 'object' && 'data' in err && err.data && typeof err.data === 'object') {
-		const data = err.data;
-		if (data.kind === 'RateLimited') {
-			const retryAfter = Math.max(1, Math.ceil((data.retryAfter ?? 1000) / 1000));
-			return new Response(JSON.stringify({ message: defaultMessage('RateLimited') }), {
-				status: 429,
-				headers: {
-					'Content-Type': 'application/json',
-					'Retry-After': String(retryAfter)
-				}
-			});
-		}
-		if (typeof data.kind === 'string') {
-			throw error(statusForKind(data.kind), data.message ?? defaultMessage(data.kind));
-		}
+		throw error(statusForKind(kind), message);
 	}
 
 	const message = err instanceof Error ? err.message : String(err);

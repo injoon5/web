@@ -5,6 +5,11 @@
 			"source": "/.well-known/webfinger",
 			"destination": "https://mastodon.injoon5.com/.well-known/webfinger",
 			"permanent": true
+		},
+		{
+			"source": "/internal/rss.xml",
+			"destination": "/rss.xml",
+			"permanent": true
 		}
 	],
 	"headers": [

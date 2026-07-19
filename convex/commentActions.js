@@ -6,28 +6,26 @@ import { action } from './_generated/server.js';
 import { internal } from './_generated/api.js';
 import { isAdmin } from './lib/auth.js';
 
-async function requirePassword(ctx, commentId, password) {
-	const auth = await ctx.runQuery(internal.comments.getCommentAuth, { commentId });
-	if (!auth || auth.deletedAt !== null) {
-		throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
-	}
-	const valid = await bcrypt.compare(password, auth.passwordHash);
-	if (!valid) {
-		throw new ConvexError({ kind: 'Unauthorized', message: 'Incorrect password' });
-	}
-}
-
 /** Rate limit + password for non-admin callers. */
 async function authorizeOwner(ctx, { commentId, password, ipHash, adminSecret }) {
 	if (await isAdmin(adminSecret)) return;
 
-	await ctx.runMutation(internal.comments.consumeEditRateLimit, { ipHash });
+	// One internal mutation consumes the rate-limit token and returns the auth
+	// payload, keeping this action's sequential transactional calls to two
+	// (this + the actual edit/delete).
+	const auth = await ctx.runMutation(internal.comments.beginOwnerAction, { commentId, ipHash });
 
 	if (!password) {
 		throw new ConvexError({ kind: 'Unauthorized', message: 'Incorrect password' });
 	}
+	if (!auth || auth.deletedAt !== null) {
+		throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+	}
 
-	await requirePassword(ctx, commentId, password);
+	const valid = await bcrypt.compare(password, auth.passwordHash);
+	if (!valid) {
+		throw new ConvexError({ kind: 'Unauthorized', message: 'Incorrect password' });
+	}
 }
 
 export const editComment = action({

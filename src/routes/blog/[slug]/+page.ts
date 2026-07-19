@@ -3,26 +3,20 @@
 export const prerender = false;
 
 import { error } from '@sveltejs/kit';
+import { resolveBilingualEntry, bilingualPageData, slugFromPath } from '$lib/content/bilingual.js';
 
 const enModules = import.meta.glob('../posts/en/*.md');
 const koModules = import.meta.glob('../posts/ko/*.md');
 
-const slugFromPath = (p) => p.split('/').at(-1)?.replace('.md', '') ?? '';
-
 export async function load({ params, data }) {
-	const enKey = `../posts/en/${params.slug}.md`;
-	const koKey = `../posts/ko/${params.slug}.md`;
+	const { en: enPost, ko: koPost } = await resolveBilingualEntry(
+		enModules,
+		koModules,
+		`../posts/en/${params.slug}.md`,
+		`../posts/ko/${params.slug}.md`
+	);
 
-	const [enMod, koMod] = await Promise.all([
-		enModules[enKey] ? enModules[enKey]() : Promise.resolve(null),
-		koModules[koKey] ? koModules[koKey]() : Promise.resolve(null)
-	]);
-
-	const enPost = enMod?.metadata?.published ? enMod : null;
-	const koPost = koMod?.metadata?.published ? koMod : null;
-
-	const primaryPost = enPost || koPost;
-	if (!primaryPost) {
+	if (!enPost && !koPost) {
 		throw error(404, `Could not find ${params.slug}`);
 	}
 
@@ -40,14 +34,14 @@ export async function load({ params, data }) {
 
 		const entries = await Promise.all(
 			[...candidateSlugs].map(async (slug) => {
-				const eKey = `../posts/en/${slug}.md`;
-				const kKey = `../posts/ko/${slug}.md`;
-				const [eMod, kMod] = await Promise.all([
-					enModules[eKey] ? enModules[eKey]() : Promise.resolve(null),
-					koModules[kKey] ? koModules[kKey]() : Promise.resolve(null)
-				]);
-				const eMeta = eMod?.metadata?.published ? { ...eMod.metadata, slug } : null;
-				const kMeta = kMod?.metadata?.published ? { ...kMod.metadata, slug } : null;
+				const { en, ko } = await resolveBilingualEntry(
+					enModules,
+					koModules,
+					`../posts/en/${slug}.md`,
+					`../posts/ko/${slug}.md`
+				);
+				const eMeta = en ? { ...en.metadata, slug } : null;
+				const kMeta = ko ? { ...ko.metadata, slug } : null;
 				return { slug, eMeta, kMeta };
 			})
 		);
@@ -57,7 +51,7 @@ export async function load({ params, data }) {
 			return series && seriesNames.has(series);
 		});
 
-		const dateOf = (m) => (m ? new Date(m.date).getTime() : 0);
+		const dateOf = (m: { date?: string } | null) => (m?.date ? new Date(m.date).getTime() : 0);
 		matched.sort((a, b) => dateOf(b.eMeta ?? b.kMeta) - dateOf(a.eMeta ?? a.kMeta));
 
 		for (const { eMeta, kMeta } of matched) {
@@ -66,19 +60,9 @@ export async function load({ params, data }) {
 		}
 	}
 
-	const availableLangs = [...(koPost ? ['ko'] : []), ...(enPost ? ['en'] : [])];
-
 	return {
-		enContent: enPost?.default ?? null,
-		koContent: koPost?.default ?? null,
-		enMeta: enPost?.metadata ?? null,
-		koMeta: koPost?.metadata ?? null,
-		meta: primaryPost.metadata,
+		...bilingualPageData(enPost, koPost, data),
 		enSeries,
-		koSeries,
-		availableLangs,
-		enReadingTime: enPost?.metadata?.readingTime ?? null,
-		koReadingTime: koPost?.metadata?.readingTime ?? null,
-		prefLang: data?.prefLang ?? null
+		koSeries
 	};
 }

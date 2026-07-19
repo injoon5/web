@@ -24,7 +24,7 @@ export const backfillVoteCountsBatch = internalMutation({
 		for (const doc of batch.page) {
 			if (doc.upvotes !== undefined && doc.downvotes !== undefined) continue;
 			const { upvotes, downvotes } = await countAllVotes(ctx, doc._id);
-			await ctx.db.patch(doc._id, { upvotes, downvotes });
+			await ctx.db.patch('comments', doc._id, { upvotes, downvotes });
 		}
 
 		if (!batch.isDone) {
@@ -47,7 +47,7 @@ export const backfillUrlCountsBatch = internalMutation({
 		if (reset) {
 			const existing = await ctx.db.query('commentUrlCounts').collect();
 			for (const row of existing) {
-				await ctx.db.delete(row._id);
+				await ctx.db.delete('commentUrlCounts', row._id);
 			}
 		}
 
@@ -82,7 +82,7 @@ export const backfillLikeCountsBatch = internalMutation({
 		if (reset) {
 			const existing = await ctx.db.query('likeCounts').collect();
 			for (const row of existing) {
-				await ctx.db.delete(row._id);
+				await ctx.db.delete('likeCounts', row._id);
 			}
 		}
 

@@ -6,11 +6,15 @@ import { ADMIN_SECRET } from '$env/static/private';
 
 export const SESSION_MAX_AGE_MS = 60 * 60 * 24 * 1000;
 
+// HMAC(secret, secret) is constant per process — compute it once, lazily so an
+// unconfigured secret doesn't throw at import time.
+let selfDigest: Buffer | null = null;
+
 export function secretsMatch(candidate: string): boolean {
 	if (!ADMIN_SECRET) return false;
 	const a = createHmac('sha256', ADMIN_SECRET).update(candidate).digest();
-	const b = createHmac('sha256', ADMIN_SECRET).update(ADMIN_SECRET).digest();
-	return timingSafeEqual(a, b);
+	selfDigest ??= createHmac('sha256', ADMIN_SECRET).update(ADMIN_SECRET).digest();
+	return timingSafeEqual(a, selfDigest);
 }
 
 export function createAdminSessionToken(): string {
