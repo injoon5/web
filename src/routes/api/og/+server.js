@@ -8,7 +8,7 @@ const ONE_WEEK = ONE_DAY * 7;
 export async function GET({ url }) {
 	const input = resolveOgInput(url.searchParams);
 	const element = buildOgElement(input);
-	const png = await renderOgImage(element);
+	const png = await renderOgImage(element, url.origin);
 
 	const isFixture = url.searchParams.has('fixture');
 

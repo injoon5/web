@@ -11,11 +11,11 @@ shipped on `claude/codebase-design-review-w329m` are intentionally not listed.
 All of this was held back to avoid stacked changes; let's tackle it as a
 single pass so the type system stays coherent.
 
-- **Reorder font stack** — `src/app.css:13-16` puts `-apple-system` before
-  `'Pretendard Variable'`. On Apple devices that means San Francisco wins
-  and Pretendard never renders. Pretendard should come first; SF / Segoe
+- **Reorder font stack** — `src/app.css:12-14` puts `-apple-system` before
+  `'Interlude Variable'`. On Apple devices that means San Francisco wins
+  and Interlude never renders. Interlude should come first; SF / Segoe
   stay as fallbacks for users who lack the variable font.
-- **Preload Pretendard** — currently loaded via `@import` inside `app.css`,
+- **Preload Interlude** — currently loaded via `@import` inside `app.css`,
   which is render-blocking through a CSS dependency chain. Move to a
   `<link rel="preload" as="style">` in `app.html` so the font request kicks
   off in parallel with the rest of the page.

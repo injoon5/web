@@ -1,4 +1,4 @@
-@import url('/fonts/pretendard/pretendardvariable-dynamic-subset.css');
+@import url('/fonts/interlude/interlude-variable-dynamic-subset.css');
 @import 'tailwindcss';
 
 @plugin '@tailwindcss/typography';
@@ -9,7 +9,7 @@
 @theme {
 	--font-*: initial;
 	--font-sans:
-		'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+		'Interlude Variable', 'Interlude', -apple-system, BlinkMacSystemFont, system-ui, Roboto,
 		'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic',
 		'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
 	--font-serif: ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
