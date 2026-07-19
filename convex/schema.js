@@ -34,14 +34,16 @@ export default defineSchema({
 		ipHash: v.string(),
 		voteType: v.union(v.literal('up'), v.literal('down'))
 	})
-		.index('by_comment', ['commentId'])
-		.index('by_comment_ip', ['commentId', 'ipHash']),
+		// by_comment_ip also serves plain by-comment scans (index prefix), so a
+		// separate by_comment index would be redundant.
+		.index('by_comment_ip', ['commentId', 'ipHash'])
+		.index('by_ip', ['ipHash']),
 
 	likes: defineTable({
 		url: v.string(),
 		ipHash: v.string()
 	})
-		.index('by_url', ['url'])
+		// by_url_ip also serves plain by-url scans (index prefix).
 		.index('by_url_ip', ['url', 'ipHash']),
 
 	likeCounts: defineTable({

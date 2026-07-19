@@ -8,8 +8,7 @@
 	import CommentNode from './CommentNode.svelte';
 	import { buildTree } from './buildTree.js';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
-
-	const MAX_LENGTH = MAX_COMMENT_LENGTH;
+	import { apiFetch } from '$lib/api-client.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -91,21 +90,16 @@
 
 	async function performVote(commentId, voteType) {
 		votingIds.add(commentId);
-		try {
-			const res = await fetch(`/api/comments/${commentId}/vote`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ voteType })
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				showVoteError(data.message ?? 'Could not register vote.');
-			}
-		} catch {
-			showVoteError('Something went wrong.');
-		} finally {
-			votingIds.delete(commentId);
+		const res = await apiFetch(`/api/comments/${commentId}/vote`, {
+			method: 'POST',
+			body: { voteType }
+		});
+		if (!res.ok) {
+			showVoteError(
+				res.message ?? (res.networkError ? 'Something went wrong.' : 'Could not register vote.')
+			);
 		}
+		votingIds.delete(commentId);
 	}
 
 	function vote(commentId, voteType) {
@@ -126,14 +120,14 @@
 		});
 	}
 
-	const charsLeft = $derived(MAX_LENGTH - commentText.length);
-	const showCharsLeft = $derived(commentText.length > MAX_LENGTH - CHAR_THRESHOLD);
+	const charsLeft = $derived(MAX_COMMENT_LENGTH - commentText.length);
+	const showCharsLeft = $derived(commentText.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
 	const isSubmitDisabled = $derived(
 		submitting ||
 			!commentText.trim() ||
 			!password ||
 			password.length < MIN_PASSWORD_LENGTH ||
-			commentText.length > MAX_LENGTH
+			commentText.length > MAX_COMMENT_LENGTH
 	);
 
 	const commentTree = $derived(buildTree(query.data ?? []));
@@ -161,34 +155,31 @@
 		submitError = '';
 		if (!commentText.trim()) return;
 		if (password.length < MIN_PASSWORD_LENGTH) return;
-		if (commentText.length > MAX_LENGTH) return;
+		if (commentText.length > MAX_COMMENT_LENGTH) return;
 
 		submitting = true;
-		try {
-			const res = await fetch('/api/comments', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					url: $page.url.pathname,
-					username: username.trim() || fallbackHandle,
-					password,
-					text: commentText.trim()
-				})
-			});
-			const data = await res.json().catch(() => ({}));
-			if (!res.ok) {
-				submitError = data.message ?? data.error ?? 'Failed to submit comment.';
-				return;
+		const res = await apiFetch('/api/comments', {
+			method: 'POST',
+			body: {
+				url: $page.url.pathname,
+				username: username.trim() || fallbackHandle,
+				password,
+				text: commentText.trim()
 			}
-			commentText = '';
-			username = '';
-			password = '';
-			formSubmitted = false;
-		} catch {
-			submitError = 'Something went wrong. Please try again.';
-		} finally {
-			submitting = false;
+		});
+		submitting = false;
+		if (!res.ok) {
+			submitError =
+				res.message ??
+				(res.networkError
+					? 'Something went wrong. Please try again.'
+					: 'Failed to submit comment.');
+			return;
 		}
+		commentText = '';
+		username = '';
+		password = '';
+		formSubmitted = false;
 	}
 </script>
 
@@ -207,8 +198,8 @@
 		<div>
 			<textarea
 				bind:value={commentText}
-				placeholder="Say something… (max {MAX_LENGTH} characters)"
-				maxlength={MAX_LENGTH}
+				placeholder="Say something… (max {MAX_COMMENT_LENGTH} characters)"
+				maxlength={MAX_COMMENT_LENGTH}
 				rows="3"
 				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			></textarea>

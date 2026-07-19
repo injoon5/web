@@ -43,7 +43,7 @@ export const setLike = mutation({
 
 		// Dedup any stray rows from a past race so membership is exactly one or zero.
 		for (let i = 1; i < rows.length; i++) {
-			await ctx.db.delete(rows[i]._id);
+			await ctx.db.delete('likes', rows[i]._id);
 			await decrementLikeCount(ctx, args.url);
 		}
 		const existing = rows[0] ?? null;
@@ -61,7 +61,7 @@ export const setLike = mutation({
 				await ctx.db.insert('likes', { url: args.url, ipHash: args.ipHash });
 				await incrementLikeCount(ctx, args.url);
 			} else {
-				await ctx.db.delete(existing._id);
+				await ctx.db.delete('likes', existing._id);
 				await decrementLikeCount(ctx, args.url);
 			}
 		}

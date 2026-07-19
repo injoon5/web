@@ -13,7 +13,7 @@ export function voteCountsFromDoc(doc) {
 export async function countAllVotes(ctx, commentId) {
 	const votes = await ctx.db
 		.query('commentVotes')
-		.withIndex('by_comment', (q) => q.eq('commentId', commentId))
+		.withIndex('by_comment_ip', (q) => q.eq('commentId', commentId))
 		.collect();
 
 	let upvotes = 0;
@@ -23,6 +23,25 @@ export async function countAllVotes(ctx, commentId) {
 		else downvotes++;
 	}
 	return { upvotes, downvotes };
+}
+
+/**
+ * Map of commentId -> voteType for everything one visitor has voted on.
+ * One `by_ip` index scan instead of a `by_comment_ip` lookup per comment,
+ * bounded by the visitor's own vote count.
+ */
+export async function visitorVoteMap(ctx, ipHash) {
+	const map = new Map();
+	if (!ipHash) return map;
+
+	const rows = await ctx.db
+		.query('commentVotes')
+		.withIndex('by_ip', (q) => q.eq('ipHash', ipHash))
+		.collect();
+	for (const row of rows) {
+		map.set(row.commentId, row.voteType);
+	}
+	return map;
 }
 
 /** All vote rows for one visitor on a comment (normally 0–1; dedupe races). */
@@ -43,20 +62,20 @@ export async function applyVoteChange(ctx, comment, voteType, ipHash) {
 	let existing = rows[0] ?? null;
 
 	for (let i = 1; i < rows.length; i++) {
-		await ctx.db.delete(rows[i]._id);
+		await ctx.db.delete('commentVotes', rows[i]._id);
 	}
 
 	if (existing && existing.voteType === voteType) {
-		await ctx.db.delete(existing._id);
+		await ctx.db.delete('commentVotes', existing._id);
 		existing = null;
 	} else if (existing) {
-		await ctx.db.patch(existing._id, { voteType });
+		await ctx.db.patch('commentVotes', existing._id, { voteType });
 	} else {
 		await ctx.db.insert('commentVotes', { commentId, ipHash, voteType });
 	}
 
 	const { upvotes, downvotes } = await countAllVotes(ctx, commentId);
-	await ctx.db.patch(commentId, { upvotes, downvotes });
+	await ctx.db.patch('comments', commentId, { upvotes, downvotes });
 
 	const after = await votesForVisitor(ctx, commentId, ipHash);
 	const myVote = after[0]?.voteType ?? null;

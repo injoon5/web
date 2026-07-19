@@ -38,6 +38,8 @@ src/
       api.js               # convexErrorToResponse helper
       convex.js            # Server-side Convex HTTP client
       ip.ts                # getClientIp(request), hashIp(ip) — SHA-256 IP hashing
+      content-modules.js   # Single home for the eager content md globs
+      content-page.js      # Shared server load for blog/projects [slug] (prefLang + ipHash)
       valid-urls.js        # isValidPageUrl — guards comment/like writes to known pages
       validation.ts        # Zod schemas for all inputs
     types.ts               # Shared frontend types
@@ -72,7 +74,7 @@ src/
         bans/[id]/+server.ts        # DELETE unban (admin only)
       posts/+server.ts              # Blog post metadata API (prerendered)
       projects/+server.ts           # Projects metadata API (prerendered)
-    internal/rss.xml/+server.ts     # RSS feed (prerendered)
+    rss.xml/+server.ts              # RSS feed (prerendered; /internal/rss.xml redirects here)
 convex/
   schema.js                # Convex table definitions
   comments.js              # comments.list / create / edit / softDelete / hardDelete / vote
@@ -88,13 +90,26 @@ convex/
 
 ## Convex Schema (`convex/schema.js`)
 
-| Table          | Key fields                                                                                         | Indexes                       |
-| -------------- | -------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `comments`     | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt | `by_url`, `by_parent`         |
-| `commentVotes` | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                     | `by_comment`, `by_comment_ip` |
-| `likes`        | url, ipHash                                                                                        | `by_url`, `by_url_ip`         |
-| `bannedIps`    | ipHash, reason                                                                                     | `by_ip`                       |
-| `nowPage`      | content, updatedAt                                                                                 | —                             |
+| Table              | Key fields                                                                                                             | Indexes                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes | `by_url`, `by_parent`    |
+| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                         | `by_comment_ip`, `by_ip` |
+| `likes`            | url, ipHash                                                                                                            | `by_url_ip`              |
+| `commentUrlCounts` | url, count (denormalized active-comment counter)                                                                       | `by_url`                 |
+| `likeCounts`       | url, count (denormalized like counter)                                                                                 | `by_url`                 |
+| `migrationMeta`    | key, complete (one-time backfill completion flags)                                                                     | `by_key`                 |
+| `bannedIps`        | ipHash, reason                                                                                                         | `by_ip`                  |
+| `nowPage`          | content, updatedAt                                                                                                     | —                        |
+
+Prefix rule: an index whose fields are a prefix of another (e.g. `by_comment`
+vs `by_comment_ip`) is redundant — bind only the leading fields of the longer
+index instead.
+
+`ipHash` for the comment/like components is served by the shared
+`src/lib/server/content-page.js` load on the SSR `[slug]` routes (and forwarded
+by their universal loads). Do NOT move it into a root layout load: the root
+pages are prerendered, which would bake the build machine's hash into the
+static payload and never re-run on client-side navigation.
 
 `createdAt` is Convex's built-in `_creationTime` on every doc.
 

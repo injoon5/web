@@ -1,4 +1,4 @@
-import { query, mutation } from './_generated/server';
+import { query, mutation } from './_generated/server.js';
 import { v } from 'convex/values';
 import { assertAdmin } from './lib/auth.js';
 
@@ -18,7 +18,7 @@ export const update = mutation({
 		await assertAdmin(args.adminSecret);
 		const existing = await ctx.db.query('nowPage').first();
 		if (existing) {
-			await ctx.db.patch(existing._id, {
+			await ctx.db.patch('nowPage', existing._id, {
 				content: args.content,
 				updatedAt: Date.now()
 			});

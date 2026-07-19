@@ -13,7 +13,7 @@ export async function readLikeCount(ctx, url) {
 	if (!(await isLikeCountsBackfillComplete(ctx))) {
 		const rows = await ctx.db
 			.query('likes')
-			.withIndex('by_url', (q) => q.eq('url', url))
+			.withIndex('by_url_ip', (q) => q.eq('url', url))
 			.collect();
 		return rows.length;
 	}

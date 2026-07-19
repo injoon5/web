@@ -1,10 +1,17 @@
 import { ConvexError, v } from 'convex/values';
-import { internalMutation, internalQuery, mutation, query } from './_generated/server.js';
+import { internal } from './_generated/api.js';
+import { internalMutation, mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
 import { assertAdmin, isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
 import { publicComment } from './lib/serialize.js';
-import { applyVoteChange, commentScore, getVoteCounts } from './lib/votes.js';
+import {
+	applyVoteChange,
+	commentScore,
+	countAllVotes,
+	visitorVoteMap,
+	voteCountsFromDoc
+} from './lib/votes.js';
 import { decrementUrlCount, incrementUrlCount } from './lib/urlCounts.js';
 
 const MAX_DEPTH = 2;
@@ -17,10 +24,18 @@ async function consumeRateLimit(ctx, name, ipHash) {
 	await limiter.limit(ctx, name, { key: ipHash, throws: true });
 }
 
-export const consumeEditRateLimit = internalMutation({
-	args: { ipHash: v.string() },
-	handler: async (ctx, { ipHash }) => {
+/**
+ * Combined rate-limit gate + auth payload for owner (password) actions.
+ * One internal mutation instead of separate limit/auth calls keeps the Node
+ * action's sequential ctx.run* calls to a minimum (see Convex best practices).
+ */
+export const beginOwnerAction = internalMutation({
+	args: { commentId: v.id('comments'), ipHash: v.string() },
+	handler: async (ctx, { commentId, ipHash }) => {
 		await consumeRateLimit(ctx, 'edit', ipHash);
+		const doc = await ctx.db.get('comments', commentId);
+		if (!doc) return null;
+		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt };
 	}
 });
 
@@ -34,29 +49,54 @@ export const list = query({
 
 		const active = docs.filter((d) => d.deletedAt === null);
 
-		active.sort((a, b) => {
+		// Rank whole threads, not individual comments: slicing a flat score-sorted
+		// list could keep a reply while dropping its still-alive parent, which the
+		// client would then mis-render as an orphan of a deleted comment.
+		const byId = new Map(active.map((d) => [d._id, d]));
+		const childrenOf = new Map();
+		const roots = [];
+		for (const doc of active) {
+			if (doc.parentId && byId.has(doc.parentId)) {
+				let siblings = childrenOf.get(doc.parentId);
+				if (!siblings) childrenOf.set(doc.parentId, (siblings = []));
+				siblings.push(doc);
+			} else {
+				// True top-level comments, plus replies whose parent was hard-deleted
+				// (rendered as strays) — both rank as thread roots.
+				roots.push(doc);
+			}
+		}
+
+		roots.sort((a, b) => {
 			const scoreDiff = commentScore(b) - commentScore(a);
 			if (scoreDiff !== 0) return scoreDiff;
 			return b._creationTime - a._creationTime;
 		});
 
-		const top = active.slice(0, MAX_COMMENTS);
+		// Take threads in rank order until the cap is reached; the last thread is
+		// always included whole so replies never lose their parent.
+		const top = [];
+		for (const root of roots) {
+			if (top.length >= MAX_COMMENTS) break;
+			const stack = [root];
+			while (stack.length > 0) {
+				const doc = stack.pop();
+				top.push(doc);
+				for (const child of childrenOf.get(doc._id) ?? []) stack.push(child);
+			}
+		}
+
+		// One indexed scan for everything this visitor voted on, instead of a
+		// per-comment lookup. Denormalized doc counts cover the totals; the
+		// countAllVotes fallback only runs for legacy rows before the backfill.
+		const myVotes = await visitorVoteMap(ctx, ipHash);
 
 		return await Promise.all(
 			top.map(async (doc) => {
-				const counts = await getVoteCounts(ctx, doc, ipHash);
-				return publicComment(doc, counts);
+				const counts = voteCountsFromDoc(doc) ?? (await countAllVotes(ctx, doc._id));
+				return publicComment(doc, { ...counts, myVote: myVotes.get(doc._id) ?? null });
 			})
 		);
-	}
-});
-
-export const getCommentAuth = internalQuery({
-	args: { commentId: v.id('comments') },
-	handler: async (ctx, { commentId }) => {
-		const doc = await ctx.db.get(commentId);
-		if (!doc) return null;
-		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt };
 	}
 });
 
@@ -90,12 +130,10 @@ export const create = mutation({
 			});
 		}
 
-		if (!admin) await consumeRateLimit(ctx, 'comment', args.ipHash);
-
 		let depth = 0;
 		let parentId = null;
 		if (args.parentId) {
-			const parent = await ctx.db.get(args.parentId);
+			const parent = await ctx.db.get('comments', args.parentId);
 			if (!parent || parent.deletedAt !== null) {
 				throw new ConvexError({ kind: 'NotFound', message: 'Parent comment not found' });
 			}
@@ -105,6 +143,10 @@ export const create = mutation({
 			depth = parent.depth + 1;
 			parentId = args.parentId;
 		}
+
+		// Consume the token only after validation so a rejected request (bad
+		// parent, bad input) doesn't burn part of the caller's budget.
+		if (!admin) await consumeRateLimit(ctx, 'comment', args.ipHash);
 
 		const id = await ctx.db.insert('comments', {
 			url: args.url,
@@ -123,7 +165,7 @@ export const create = mutation({
 
 		await incrementUrlCount(ctx, args.url);
 
-		const doc = await ctx.db.get(id);
+		const doc = await ctx.db.get('comments', id);
 		return publicComment(doc, { upvotes: 0, downvotes: 0, myVote: null });
 	}
 });
@@ -144,7 +186,7 @@ export const vote = mutation({
 
 		if (!admin) await consumeRateLimit(ctx, 'vote', args.ipHash);
 
-		const comment = await ctx.db.get(args.commentId);
+		const comment = await ctx.db.get('comments', args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
@@ -166,13 +208,13 @@ export const applyEdit = internalMutation({
 		text: v.string()
 	},
 	handler: async (ctx, args) => {
-		const comment = await ctx.db.get(args.commentId);
+		const comment = await ctx.db.get('comments', args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
 		const updatedAt = Date.now();
-		await ctx.db.patch(args.commentId, { text: args.text, updatedAt });
+		await ctx.db.patch('comments', args.commentId, { text: args.text, updatedAt });
 		return { id: args.commentId, text: args.text, updatedAt };
 	}
 });
@@ -182,16 +224,76 @@ export const softDelete = internalMutation({
 		commentId: v.id('comments')
 	},
 	handler: async (ctx, args) => {
-		const comment = await ctx.db.get(args.commentId);
+		const comment = await ctx.db.get('comments', args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
-		await ctx.db.patch(args.commentId, {
+		await ctx.db.patch('comments', args.commentId, {
 			text: '[deleted]',
 			username: '[deleted]',
 			updatedAt: Date.now()
 		});
+	}
+});
+
+// Per-mutation cap on hard-deleted comments, so one call can't blow past
+// Convex transaction limits on a huge thread. Overflow continues via the
+// scheduler (same pattern as backfill.js).
+const HARD_DELETE_BATCH = 200;
+
+/**
+ * Hard-delete up to HARD_DELETE_BATCH still-active comments in the subtree
+ * rooted at `rootId` (votes removed, url counts decremented, deletedAt set).
+ * Schedules a continuation when the subtree is larger than one batch.
+ */
+async function hardDeleteSubtree(ctx, rootId) {
+	// BFS the subtree, collecting active docs until one batch is full. Already
+	// hard-deleted nodes are skipped but still traversed, so continuations can
+	// reach active grandchildren under a deleted parent.
+	const toDelete = [];
+	const queue = [rootId];
+	for (let i = 0; i < queue.length && toDelete.length <= HARD_DELETE_BATCH; i++) {
+		const doc = await ctx.db.get('comments', queue[i]);
+		if (doc && doc.deletedAt === null) toDelete.push(doc);
+
+		const children = await ctx.db
+			.query('comments')
+			.withIndex('by_parent', (q) => q.eq('parentId', queue[i]))
+			.collect();
+		for (const child of children) {
+			queue.push(child._id);
+		}
+	}
+
+	const hasOverflow = toDelete.length > HARD_DELETE_BATCH;
+	const batch = hasOverflow ? toDelete.slice(0, HARD_DELETE_BATCH) : toDelete;
+
+	const now = Date.now();
+	for (const doc of batch) {
+		await decrementUrlCount(ctx, doc.url);
+
+		const votes = await ctx.db
+			.query('commentVotes')
+			.withIndex('by_comment_ip', (q) => q.eq('commentId', doc._id))
+			.collect();
+		for (const vote of votes) {
+			await ctx.db.delete('commentVotes', vote._id);
+		}
+		await ctx.db.patch('comments', doc._id, { deletedAt: now });
+	}
+
+	if (hasOverflow) {
+		await ctx.scheduler.runAfter(0, internal.comments.hardDeleteContinue, {
+			commentId: rootId
+		});
+	}
+}
+
+export const hardDeleteContinue = internalMutation({
+	args: { commentId: v.id('comments') },
+	handler: async (ctx, { commentId }) => {
+		await hardDeleteSubtree(ctx, commentId);
 	}
 });
 
@@ -202,38 +304,10 @@ export const hardDelete = mutation({
 
 		// Already hard-deleted (or missing): descendants and votes were handled by
 		// the original call, so a retry/double-click has nothing left to do.
-		const root = await ctx.db.get(commentId);
+		const root = await ctx.db.get('comments', commentId);
 		if (!root || root.deletedAt !== null) return;
 
-		// Recursively collect all descendant comment IDs
-		const toDelete = [commentId];
-		for (let i = 0; i < toDelete.length; i++) {
-			const children = await ctx.db
-				.query('comments')
-				.withIndex('by_parent', (q) => q.eq('parentId', toDelete[i]))
-				.collect();
-			for (const child of children) {
-				toDelete.push(child._id);
-			}
-		}
-
-		const now = Date.now();
-		for (const id of toDelete) {
-			const doc = await ctx.db.get(id);
-			if (doc?.deletedAt === null) {
-				await decrementUrlCount(ctx, doc.url);
-			}
-
-			const votes = await ctx.db
-				.query('commentVotes')
-				.withIndex('by_comment', (q) => q.eq('commentId', id))
-				.collect();
-			for (const vote of votes) {
-				await ctx.db.delete(vote._id);
-			}
-			// Set deletedAt
-			await ctx.db.patch(id, { deletedAt: now });
-		}
+		await hardDeleteSubtree(ctx, commentId);
 	}
 });
 
@@ -246,7 +320,7 @@ export const setReply = mutation({
 	handler: async (ctx, { commentId, reply, adminSecret }) => {
 		await assertAdmin(adminSecret);
 
-		const comment = await ctx.db.get(commentId);
+		const comment = await ctx.db.get('comments', commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
@@ -259,6 +333,6 @@ export const setReply = mutation({
 			});
 		}
 
-		await ctx.db.patch(commentId, { reply: trimmed || null });
+		await ctx.db.patch('comments', commentId, { reply: trimmed || null });
 	}
 });

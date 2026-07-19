@@ -24,7 +24,7 @@ async function setBackfillComplete(ctx, key) {
 		.unique();
 
 	if (existing) {
-		await ctx.db.patch(existing._id, { complete: true });
+		await ctx.db.patch('migrationMeta', existing._id, { complete: true });
 		return;
 	}
 

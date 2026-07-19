@@ -1,7 +1,9 @@
 <script>
 	import Self from './AdminCommentNode.svelte';
+	import StrayParentGhost from './StrayParentGhost.svelte';
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
+	import { apiFetch } from '$lib/api-client.js';
 
 	let { comment, activeFormId, setActiveForm, onChange, onError } = $props();
 
@@ -43,67 +45,46 @@
 
 	async function saveReply() {
 		replySubmitting = true;
-		try {
-			const res = await fetch(`/api/admin/comments/${comment.id}`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ reply: replyText })
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				onError(data.message ?? 'Failed to save reply.');
-				return;
-			}
-			closeForm();
-			onChange();
-		} catch {
-			onError('Something went wrong.');
-		} finally {
-			replySubmitting = false;
+		const res = await apiFetch(`/api/admin/comments/${comment.id}`, {
+			method: 'POST',
+			body: { reply: replyText }
+		});
+		replySubmitting = false;
+		if (!res.ok) {
+			onError(
+				res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to save reply.')
+			);
+			return;
 		}
+		closeForm();
+		onChange();
 	}
 
 	async function confirmBan() {
 		banSubmitting = true;
-		try {
-			const res = await fetch('/api/admin/bans', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ commentId: comment.id, reason: banReason || undefined })
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				onError(data.message ?? 'Failed to ban.');
-				return;
-			}
-			closeForm();
-			onChange();
-		} catch {
-			onError('Something went wrong.');
-		} finally {
-			banSubmitting = false;
+		const res = await apiFetch('/api/admin/bans', {
+			method: 'POST',
+			body: { commentId: comment.id, reason: banReason || undefined }
+		});
+		banSubmitting = false;
+		if (!res.ok) {
+			onError(res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to ban.'));
+			return;
 		}
+		closeForm();
+		onChange();
 	}
 
 	async function doDelete() {
 		deleteSubmitting = true;
-		try {
-			const res = await fetch(`/api/admin/comments/${comment.id}`, {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' }
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				onError(data.message ?? 'Failed to delete.');
-				return;
-			}
-			closeForm();
-			onChange();
-		} catch {
-			onError('Something went wrong.');
-		} finally {
-			deleteSubmitting = false;
+		const res = await apiFetch(`/api/admin/comments/${comment.id}`, { method: 'DELETE' });
+		deleteSubmitting = false;
+		if (!res.ok) {
+			onError(res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to delete.'));
+			return;
 		}
+		closeForm();
+		onChange();
 	}
 </script>
 
@@ -244,12 +225,7 @@
 	{/snippet}
 
 	{#if comment.stray}
-		<div
-			class="rounded-lg border border-neutral-200 bg-neutral-100 p-4 opacity-70 dark:border-neutral-800 dark:bg-neutral-900"
-		>
-			<p class="font-semibold text-neutral-400 italic dark:text-neutral-600">[deleted]</p>
-			<p class="mt-1 text-sm text-neutral-400 italic dark:text-neutral-600">[deleted]</p>
-		</div>
+		<StrayParentGhost admin />
 		<div
 			class="mt-2 ml-4 space-y-2 border-l-2 pl-4 {comment.depth === 1
 				? 'border-neutral-200 dark:border-neutral-700'

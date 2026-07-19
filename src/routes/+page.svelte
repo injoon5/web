@@ -3,6 +3,7 @@
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 	import TechStack from '$lib/TechStack.svelte';
+	import { techstack } from '$lib/techstack-data.js';
 
 	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
 	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
@@ -265,7 +266,7 @@
 		</div>
 	</div>
 	<div class="col-span-10 mt-4 justify-center lg:mt-0">
-		<TechStack techstack={data.techstack} />
+		<TechStack {techstack} />
 	</div>
 </div>
 
