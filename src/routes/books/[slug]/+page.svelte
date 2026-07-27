@@ -80,6 +80,10 @@
 	}
 
 	let bodyWidth = 0;
+	// The hero book grows with the viewport but stops before it starts pushing
+	// the title column into a column of single words.
+	let viewportWidth = 0;
+	$: coverHeight = viewportWidth >= 1024 ? 340 : viewportWidth >= 640 ? 300 : 260;
 
 	$: animate = mounted && !reduceMotion;
 	$: titleBlur = { amount: 8, opacity: 0, duration: animate ? 420 : 0, easing: cubicOut };
@@ -144,15 +148,21 @@
 	/>
 </svelte:head>
 
+<svelte:window bind:innerWidth={viewportWidth} />
+
 <Lightbox />
 
 <div class="grid grid-cols-1 gap-4 md:grid-cols-12">
 	<article
 		class="col-span-1 justify-center pt-10 md:col-span-10 md:col-start-2 lg:col-span-8 lg:col-start-3"
 	>
-		<div class="flex flex-col items-start gap-8 tracking-tight sm:flex-row sm:gap-10">
-			<div class="shrink-0 pt-1 pl-1">
-				<BookCover book={object} height={260} />
+		<!-- Side by side, the book is centred against the block of text rather
+		     than hung from its first line — the two are one unit. -->
+		<div
+			class="flex flex-col items-start gap-8 tracking-tight sm:flex-row sm:items-center sm:gap-10"
+		>
+			<div class="shrink-0">
+				<BookCover book={object} height={coverHeight} />
 			</div>
 
 			<div class="min-w-0 flex-1">

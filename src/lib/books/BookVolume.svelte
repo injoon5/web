@@ -24,6 +24,7 @@
 	style:--foil={cloth.foil}
 	style:--t="{geom.thickness}cqw"
 	style:--w="{geom.width}%"
+	style:--w-n={geom.width}
 	style:--dx="{geom.shift}px"
 	style:--yaw="{geom.yaw}deg"
 	style:--yaw-n={geom.yaw}
@@ -136,7 +137,6 @@
 		);
 		/* The seam where the board meets the spine. */
 		box-shadow: inset 0 -1px 0 rgb(0 0 0 / 0.4);
-		pointer-events: none;
 	}
 
 	.lid img {
@@ -297,8 +297,8 @@
 	   pile's job, so those rules live in BookPile. */
 	@media (hover: hover) {
 		.vol:hover {
-			--pull: 26px;
-			--grow: 1.045;
+			--pull: calc(4cqw + var(--w-n) * 0.025 * 1cqw);
+			--grow: 1.05;
 			z-index: 5;
 			box-shadow:
 				inset 0 0 0 1px rgb(0 0 0 / 0.2),
@@ -307,8 +307,8 @@
 	}
 
 	.vol:focus-visible {
-		--pull: 26px;
-		--grow: 1.045;
+		--pull: calc(4cqw + var(--w-n) * 0.025 * 1cqw);
+		--grow: 1.05;
 		outline: none;
 		z-index: 5;
 		box-shadow:

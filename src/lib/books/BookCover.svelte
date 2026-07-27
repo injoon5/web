@@ -57,6 +57,11 @@
 		height: var(--h);
 		perspective: 1600px;
 		flex: none;
+		/* The spine is folded back at 19 degrees, so it paints only sin(19°) of
+		   its width and the book's visible left edge lands inside the box.
+		   Cancelling that here is what lets the hero align optically with the
+		   text below instead of by its bounding box. */
+		margin-left: calc(var(--d) * -0.78);
 	}
 
 	.body {
@@ -110,21 +115,30 @@
 
 	.plate {
 		position: absolute;
-		inset: 22px 24px;
+		inset: 8% 9%;
 		display: flex;
 		flex-direction: column;
 		justify-content: space-between;
-		padding: 20px 18px 16px;
+		gap: 8%;
+		padding: 8% 7% 6%;
 		border: 1px solid color-mix(in srgb, var(--foil) 40%, transparent);
 	}
 
 	.plate-title {
-		font-size: 20px;
+		font-size: calc(var(--h) * 0.072);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: -0.015em;
 		text-wrap: balance;
 		text-shadow: 0 1px 0 rgb(0 0 0 / 0.2);
+		/* A title long enough to run past the boards gets cut at the boards,
+		   the way a jacket designer would have cut it. */
+		display: -webkit-box;
+		-webkit-line-clamp: 6;
+		line-clamp: 6;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		min-height: 0;
 	}
 
 	.pale .plate-title,
@@ -135,7 +149,10 @@
 	}
 
 	.plate-author {
-		font-size: 11px;
+		font-size: calc(var(--h) * 0.036);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 		font-weight: 500;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;

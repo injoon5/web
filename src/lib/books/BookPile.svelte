@@ -72,20 +72,20 @@
 	   column-reverse, a *later* sibling is a book *higher up*. */
 	@media (hover: hover) {
 		.pile :global(.vol:hover ~ .vol) {
-			--lift: -13px;
+			--lift: -6cqw;
 		}
 
 		.pile :global(.vol:has(~ .vol:hover)) {
-			--lift: 7px;
+			--lift: 3cqw;
 		}
 	}
 
 	.pile :global(.vol:focus-visible ~ .vol) {
-		--lift: -13px;
+		--lift: -6cqw;
 	}
 
 	.pile :global(.vol:has(~ .vol:focus-visible)) {
-		--lift: 7px;
+		--lift: 3cqw;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
