@@ -350,6 +350,30 @@ export function blogPostTemplate({ title, description, date }) {
 	]);
 }
 
+export function booksListTemplate() {
+	return container([
+		mainColumn([
+			label('Injoon Oh'),
+			displayText('Books'),
+			bodyText('Everything I have read and had something to say about.', { marginTop: 22 })
+		]),
+		bottomBar()
+	]);
+}
+
+export function bookTemplate({ title, description, author, date }) {
+	return container([
+		mainColumn([
+			label('책'),
+			titleText(title),
+			...(author ? [descriptionText(author)] : []),
+			...(description ? [descriptionText(description)] : []),
+			...(date ? [metaText(formatDate(date))] : [])
+		]),
+		bottomBar()
+	]);
+}
+
 export function projectsListTemplate() {
 	return container([
 		mainColumn([

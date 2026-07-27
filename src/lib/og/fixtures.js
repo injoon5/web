@@ -2,7 +2,7 @@
  * Dummy OG card data for /api/og/test and ?fixture=… previews.
  */
 
-/** @type {Record<string, { template: string, title?: string, description?: string, date?: string, year?: string, tags?: string[] }>} */
+/** @type {Record<string, { template: string, title?: string, description?: string, author?: string, date?: string, year?: string, tags?: string[] }>} */
 export const OG_FIXTURES = {
 	'lg-ai-blog': {
 		template: 'blog-post',
@@ -33,9 +33,18 @@ export const OG_FIXTURES = {
 		year: '2025',
 		tags: ['SvelteKit', 'Convex', 'TypeScript', 'AI-assisted']
 	},
+	'ddia-book': {
+		template: 'book',
+		title: 'Designing Data-Intensive Applications',
+		author: 'Martin Kleppmann',
+		description:
+			'What actually happens under a database, explained without pretending it is simple.',
+		date: '2026-07-08'
+	},
 	home: { template: 'home' },
 	blog: { template: 'blog' },
 	projects: { template: 'projects' },
+	books: { template: 'books' },
 	now: { template: 'now' }
 };
 

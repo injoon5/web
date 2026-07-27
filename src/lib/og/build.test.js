@@ -20,6 +20,7 @@ describe('resolveOgInput', () => {
 			template: 'home',
 			title: '',
 			description: '',
+			author: '',
 			date: '',
 			year: '',
 			tags: []

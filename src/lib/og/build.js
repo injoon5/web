@@ -5,6 +5,8 @@ import {
 	blogPostTemplate,
 	projectsListTemplate,
 	projectTemplate,
+	booksListTemplate,
+	bookTemplate,
 	nowTemplate
 } from './templates.js';
 
@@ -28,6 +30,7 @@ export function resolveOgInput(searchParams) {
 		template: searchParams.get('template') || 'home',
 		title: (searchParams.get('title') || '').slice(0, MAX_OG_TEXT),
 		description: (searchParams.get('description') || '').slice(0, MAX_OG_TEXT),
+		author: (searchParams.get('author') || '').slice(0, MAX_OG_TEXT),
 		date: (searchParams.get('date') || '').slice(0, MAX_OG_TEXT),
 		year: (searchParams.get('year') || '').slice(0, MAX_OG_TEXT),
 		tags: searchParams.get('tags')
@@ -42,10 +45,18 @@ export function resolveOgInput(searchParams) {
 }
 
 /**
- * @param {{ template: string, title?: string, description?: string, date?: string, year?: string, tags?: string[] }} input
+ * @param {{ template: string, title?: string, description?: string, author?: string, date?: string, year?: string, tags?: string[] }} input
  */
 export function buildOgElement(input) {
-	const { template, title = '', description = '', date = '', year = '', tags = [] } = input;
+	const {
+		template,
+		title = '',
+		description = '',
+		author = '',
+		date = '',
+		year = '',
+		tags = []
+	} = input;
 
 	switch (template) {
 		case 'home':
@@ -58,6 +69,10 @@ export function buildOgElement(input) {
 			return projectsListTemplate();
 		case 'project':
 			return projectTemplate({ title, description, year, tags });
+		case 'books':
+			return booksListTemplate();
+		case 'book':
+			return bookTemplate({ title, description, author, date });
 		case 'now':
 			return nowTemplate();
 		default:

@@ -3,6 +3,7 @@
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 	import TechStack from '$lib/TechStack.svelte';
+	import BookPiles from '$lib/books/BookPiles.svelte';
 	import { techstack } from '$lib/techstack-data.js';
 
 	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
@@ -253,6 +254,46 @@
 		</div>
 	</div>
 </div>
+
+<!-- Nothing to show if the shelf is empty, and an empty pile is not a design. -->
+{#if data.books.length}
+	<div
+		id="books"
+		class="mt-20 mb-12 grid grid-cols-3 text-lg tracking-tight sm:grid-cols-5 sm:text-xl md:grid-cols-10 lg:grid-cols-12"
+	>
+		<div class="col-span-3 flex flex-col justify-start md:col-span-10 lg:col-span-2">
+			<div class="top-20 md:sticky md:top-24" style="height: max-content;">
+				<a href="/books" class="group">
+					<h2
+						class="mb-4 text-xl font-medium tracking-tight text-balance text-neutral-900 group-hover:text-neutral-600 dark:text-neutral-100 dark:group-hover:text-neutral-400"
+					>
+						Books
+					</h2>
+				</a>
+				<p class="text-sm leading-tight font-medium text-neutral-500 dark:text-neutral-500">
+					The pile by the desk.<br />Whatever is on top is what I am in.
+				</p>
+			</div>
+		</div>
+		<div class="col-span-10 mt-6 justify-center lg:mt-0">
+			<BookPiles books={data.books.slice(0, 6)} />
+			<div class="mt-6 mb-4 flex justify-end">
+				<a
+					class="group relative inline-flex items-center text-base font-medium tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+					href="/books"
+				>
+					<span class="transition-transform duration-200 group-hover:-translate-x-5"
+						>Browse the pile</span
+					>
+					<span
+						class="absolute right-0 mr-1 translate-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+						>→</span
+					>
+				</a>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <div
 	id="tech-stack"

@@ -25,6 +25,28 @@ export type Project = {
 	hasEn?: boolean;
 };
 
+export type Book = {
+	title: string;
+	slug: string;
+	author: string;
+	description: string;
+	/** When the book was finished (or started, for one still being read). */
+	date: string;
+	/** 0–5, half steps allowed. */
+	rating?: number;
+	/** Cloth name from `CLOTHS` in `$lib/books/bookStyle.js`, or a raw hex. */
+	color?: string;
+	/** Page count — drives how thick the spine is on the shelf. */
+	pages?: number;
+	/** Front cover artwork; falls back to a stamped cloth cover when absent. */
+	cover?: string;
+	/** Spine artwork; falls back to stamped cloth + foil type when absent. */
+	spine?: string;
+	reading?: boolean;
+	published: boolean;
+	hasEn?: boolean;
+};
+
 export type Tags = {
 	name: string;
 	slug: string;
