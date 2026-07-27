@@ -2,7 +2,9 @@ import {
 	blogEnModules,
 	blogKoModules,
 	projectEnModules,
-	projectKoModules
+	projectKoModules,
+	bookEnModules,
+	bookKoModules
 } from './content-modules.js';
 import { resolvePublished } from './content';
 
@@ -13,6 +15,9 @@ for (const item of resolvePublished(blogEnModules, blogKoModules)) {
 }
 for (const item of resolvePublished(projectEnModules, projectKoModules)) {
 	validUrls.add('/projects/' + item.slug);
+}
+for (const item of resolvePublished(bookEnModules, bookKoModules)) {
+	validUrls.add('/books/' + item.slug);
 }
 
 /** @param {string} url */

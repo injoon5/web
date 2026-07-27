@@ -12,3 +12,5 @@ export const projectEnModules = import.meta.glob('/src/routes/projects/projects/
 export const projectKoModules = import.meta.glob('/src/routes/projects/projects/ko/*.md', {
 	eager: true
 });
+export const bookEnModules = import.meta.glob('/src/routes/books/books/en/*.md', { eager: true });
+export const bookKoModules = import.meta.glob('/src/routes/books/books/ko/*.md', { eager: true });
