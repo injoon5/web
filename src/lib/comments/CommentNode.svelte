@@ -9,7 +9,7 @@
 	import StrayParentGhost from './StrayParentGhost.svelte';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
 	import { apiFetch } from '$lib/api-client.js';
-	import { formIn, formOut, bodySwap } from './formMotion.js';
+	import { formPanel, bodySwap } from './formMotion.js';
 
 	let {
 		comment,
@@ -260,7 +260,7 @@
 
 			<!-- Body or edit form -->
 			{#if mode === 'edit' && !isDeleted}
-				<div class="mt-2" in:formIn out:formOut>
+				<div class="mt-2" transition:formPanel>
 					<textarea
 						bind:value={editText}
 						rows="3"
@@ -305,8 +305,7 @@
 			{#if mode === 'delete' && !isDeleted}
 				<div
 					class="mt-3 space-y-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/20"
-					in:formIn
-					out:formOut
+					transition:formPanel
 				>
 					<p class="text-sm font-medium text-red-700 dark:text-red-400">
 						Enter your password to permanently delete this comment.
@@ -359,8 +358,7 @@
 			{#if mode === 'reply'}
 				<div
 					class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700"
-					in:formIn
-					out:formOut
+					transition:formPanel
 				>
 					<input
 						bind:value={replyUsername}

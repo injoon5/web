@@ -4,6 +4,7 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import { apiFetch } from '$lib/api-client.js';
+	import { formPanel } from './formMotion.js';
 
 	let { comment, activeFormId, setActiveForm, onChange, onError } = $props();
 
@@ -133,26 +134,29 @@
 			<div class="mt-3 flex flex-wrap gap-2">
 				<button
 					onclick={() => (mode === 'reply' ? closeForm() : openReply())}
-					class="rounded-lg border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-200 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+					class="rounded-lg border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-600 transition-[background-color,color,transform] duration-150 hover:bg-neutral-200 active:scale-[0.96] dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 				>
 					{mode === 'reply' ? 'Cancel' : comment.reply ? 'Edit reply' : 'Reply'}
 				</button>
 				<button
 					onclick={() => (mode === 'ban' ? closeForm() : openBan())}
-					class="rounded-lg border border-amber-300 px-3 py-1 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/40"
+					class="rounded-lg border border-amber-300 px-3 py-1 text-xs font-medium text-amber-600 transition-[background-color,color,transform] duration-150 hover:bg-amber-50 active:scale-[0.96] dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/40"
 				>
 					{mode === 'ban' ? 'Cancel' : 'Ban'}
 				</button>
 				<button
 					onclick={() => (mode === 'delete' ? closeForm() : openDelete())}
-					class="rounded-lg border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/40"
+					class="rounded-lg border border-red-300 px-3 py-1 text-xs font-medium text-red-600 transition-[background-color,color,transform] duration-150 hover:bg-red-50 active:scale-[0.96] dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/40"
 				>
 					{mode === 'delete' ? 'Cancel' : 'Delete'}
 				</button>
 			</div>
 
 			{#if mode === 'reply'}
-				<div class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700">
+				<div
+					class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700"
+					transition:formPanel
+				>
 					<textarea
 						bind:value={replyText}
 						rows="3"
@@ -163,7 +167,7 @@
 						<button
 							onclick={saveReply}
 							disabled={replySubmitting}
-							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-700 active:scale-[0.96] disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 						>
 							{replySubmitting ? 'Saving…' : 'Save reply'}
 						</button>
@@ -172,7 +176,10 @@
 			{/if}
 
 			{#if mode === 'ban'}
-				<div class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700">
+				<div
+					class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700"
+					transition:formPanel
+				>
 					<input
 						bind:value={banReason}
 						type="text"
@@ -183,7 +190,7 @@
 						<button
 							onclick={confirmBan}
 							disabled={banSubmitting}
-							class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+							class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-[background-color,transform] duration-150 hover:bg-amber-600 active:scale-[0.96] disabled:opacity-50"
 						>
 							{banSubmitting ? 'Banning…' : 'Confirm ban'}
 						</button>
@@ -192,7 +199,10 @@
 			{/if}
 
 			{#if mode === 'delete'}
-				<div class="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-700">
+				<div
+					class="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-700"
+					transition:formPanel
+				>
 					<p class="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
 						Permanently remove this comment? Replies will become orphaned.
 					</p>
@@ -200,7 +210,7 @@
 						<button
 							onclick={doDelete}
 							disabled={deleteSubmitting}
-							class="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+							class="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-[background-color,transform] duration-150 hover:bg-red-600 active:scale-[0.96] disabled:opacity-50"
 						>
 							{deleteSubmitting ? 'Deleting…' : 'Delete'}
 						</button>
