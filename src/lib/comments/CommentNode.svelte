@@ -9,6 +9,7 @@
 	import StrayParentGhost from './StrayParentGhost.svelte';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
 	import { apiFetch } from '$lib/api-client.js';
+	import { formIn, formOut, bodySwap } from './formMotion.js';
 
 	let {
 		comment,
@@ -23,6 +24,15 @@
 	} = $props();
 
 	let mode = $state(null); // 'edit' | 'reply' | 'delete' | null
+
+	// Skip intros on first paint so already-visible comments don't animate in.
+	let motionReady = $state(false);
+	$effect(() => {
+		const id = requestAnimationFrame(() => {
+			motionReady = true;
+		});
+		return () => cancelAnimationFrame(id);
+	});
 
 	// Edit form state
 	let editText = $state('');
@@ -198,7 +208,7 @@
 							disabled={voteDisabled}
 							aria-label="Upvote"
 							aria-pressed={myVote === 'up'}
-							class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+							class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
 						{myVote === 'up'
 								? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
@@ -216,7 +226,7 @@
 							disabled={voteDisabled}
 							aria-label="Downvote"
 							aria-pressed={myVote === 'down'}
-							class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+							class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
 						{myVote === 'down'
 								? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
@@ -232,7 +242,7 @@
 						<button
 							onclick={openEdit}
 							aria-label="Edit comment"
-							class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-neutral-900 active:scale-90 dark:text-neutral-400 dark:hover:text-neutral-100"
+							class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-neutral-900 active:scale-[0.96] dark:text-neutral-400 dark:hover:text-neutral-100"
 						>
 							<Pencil size="16" strokeWidth="2" aria-hidden="true" />
 						</button>
@@ -240,7 +250,7 @@
 						<button
 							onclick={openDelete}
 							aria-label="Delete comment"
-							class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-rose-600 active:scale-90 dark:text-neutral-400 dark:hover:text-rose-400"
+							class="rounded-full p-2 text-neutral-500 transition-[background-color,color,transform] duration-150 ease-out hover:text-rose-600 active:scale-[0.96] dark:text-neutral-400 dark:hover:text-rose-400"
 						>
 							<Trash2 size="16" strokeWidth="2" aria-hidden="true" />
 						</button>
@@ -250,7 +260,7 @@
 
 			<!-- Body or edit form -->
 			{#if mode === 'edit' && !isDeleted}
-				<div class="mt-2">
+				<div class="mt-2" in:formIn out:formOut>
 					<textarea
 						bind:value={editText}
 						rows="3"
@@ -271,13 +281,13 @@
 						<button
 							onclick={saveEdit}
 							disabled={editSubmitting}
-							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-95 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-[0.96] disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 						>
 							{editSubmitting ? 'Saving…' : 'Save'}
 						</button>
 						<button
 							onclick={closeForm}
-							class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+							class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-[0.96] dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 						>
 							Cancel
 						</button>
@@ -286,13 +296,17 @@
 			{:else if isDeleted}
 				<p class="mt-1 text-sm text-neutral-400 italic dark:text-neutral-600">[deleted]</p>
 			{:else}
-				<p class="mt-1 font-medium break-words">{comment.text}</p>
+				<p class="mt-1 font-medium break-words" transition:bodySwap={{ skip: !motionReady }}>
+					{comment.text}
+				</p>
 			{/if}
 
 			<!-- Delete confirm -->
 			{#if mode === 'delete' && !isDeleted}
 				<div
 					class="mt-3 space-y-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/20"
+					in:formIn
+					out:formOut
 				>
 					<p class="text-sm font-medium text-red-700 dark:text-red-400">
 						Enter your password to permanently delete this comment.
@@ -311,13 +325,13 @@
 						<button
 							onclick={confirmDelete}
 							disabled={deleteSubmitting || deletePassword.length < MIN_PASSWORD_LENGTH}
-							class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+							class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-red-700 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50"
 						>
 							{deleteSubmitting ? 'Deleting…' : 'Delete'}
 						</button>
 						<button
 							onclick={closeForm}
-							class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+							class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-[0.96] dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 						>
 							Cancel
 						</button>
@@ -343,7 +357,11 @@
 
 			<!-- Reply form / reply button -->
 			{#if mode === 'reply'}
-				<div class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700">
+				<div
+					class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700"
+					in:formIn
+					out:formOut
+				>
 					<input
 						bind:value={replyUsername}
 						type="text"
@@ -379,13 +397,13 @@
 						<button
 							onclick={submitReply}
 							disabled={replyDisabled}
-							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
 						>
 							{replySubmitting ? 'Replying…' : 'Reply'}
 						</button>
 						<button
 							onclick={closeForm}
-							class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-95 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+							class="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-600 transition-[background-color,transform] duration-150 hover:bg-neutral-100 active:scale-[0.96] dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
 						>
 							Cancel
 						</button>
@@ -394,7 +412,8 @@
 			{:else if comment.depth < 2 && mode === null && !isDeleted}
 				<button
 					onclick={openReply}
-					class="mt-2 text-sm font-medium text-neutral-400 transition-colors duration-150 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-200"
+					class="mt-2 text-sm font-medium text-neutral-400 transition-[color,transform] duration-150 hover:text-neutral-700 active:scale-[0.96] dark:text-neutral-500 dark:hover:text-neutral-200"
+					transition:bodySwap={{ skip: !motionReady }}
 				>
 					Reply
 				</button>
