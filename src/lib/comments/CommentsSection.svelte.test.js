@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
+import { tick } from 'svelte';
+import { get } from 'svelte/store';
 
 // useQuery needs a live Convex context; stub it with controllable state.
 vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
-import { setPage } from '$app/stores';
+import { page, setPage } from '$app/stores';
+import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
 import CommentsSection from './CommentsSection.svelte';
 
 function comment(overrides = {}) {
@@ -136,5 +139,56 @@ describe('CommentsSection voting', () => {
 				expect.objectContaining({ method: 'POST', body: JSON.stringify({ voteType: 'up' }) })
 			)
 		);
+	});
+});
+
+describe('CommentsSection SPA navigation', () => {
+	it('does not render stale comments from the previous page while the new list loads', async () => {
+		const query = createReactiveQuery({
+			data: [comment({ username: 'page-a', text: 'from page A' })],
+			isStale: false,
+			isLoading: false
+		});
+		useQuery.mockReturnValue(query);
+
+		render(CommentsSection);
+		expect(screen.getByText('page-a')).toBeInTheDocument();
+
+		page.set({
+			...get(page),
+			url: new URL('http://localhost/blog/other')
+		});
+		query.set({ isStale: true });
+		await tick();
+
+		expect(screen.queryByText('page-a')).toBeNull();
+		expect(screen.queryByText('No comments yet')).toBeNull();
+	});
+
+	it('shows the new page comments once the subscription is fresh', async () => {
+		const query = createReactiveQuery({
+			data: [comment({ username: 'page-a', text: 'from page A' })],
+			isStale: false,
+			isLoading: false
+		});
+		useQuery.mockReturnValue(query);
+
+		render(CommentsSection);
+
+		page.set({
+			...get(page),
+			url: new URL('http://localhost/blog/other')
+		});
+		query.set({ isStale: true });
+		await tick();
+
+		query.set({
+			data: [comment({ username: 'page-b', text: 'from page B' })],
+			isStale: false
+		});
+		await tick();
+
+		expect(screen.queryByText('page-a')).toBeNull();
+		expect(screen.getByText('page-b')).toBeInTheDocument();
 	});
 });
