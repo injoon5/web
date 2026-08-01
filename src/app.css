@@ -145,12 +145,92 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/* =========================
+   /health charts
+
+   Every chart color is a variable so the site's OS-driven dark mode switch
+   carries the charts with it — nothing hardcodes a hex into a chart prop.
+   ========================= */
+:root {
+	/* One accent for the whole page. `color-mix` toward transparent in oklab
+	   fades the accent without drifting through grey, which is what a plain
+	   `transparent` stop would do in an SVG gradient. */
+	--chart-accent: var(--color-orange-500);
+	--chart-accent-0: color-mix(in oklab, var(--color-orange-500), transparent 100%);
+	/* Kept faint on purpose: a series with gaps draws the wash with vertical
+	   edges where the data stops, and a heavy fill turns those into walls. */
+	--chart-wash-top: color-mix(in oklab, var(--color-orange-500), transparent 93%);
+	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-500), transparent 100%);
+	--chart-muted: var(--color-neutral-400);
+}
+
+.dark {
+	--chart-accent: var(--color-orange-400);
+	--chart-accent-0: color-mix(in oklab, var(--color-orange-400), transparent 100%);
+	--chart-wash-top: color-mix(in oklab, var(--color-orange-400), transparent 93%);
+	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-400), transparent 100%);
+	--chart-muted: var(--color-neutral-600);
+}
+
+/* Draw the line in once on mount. `pathLength="1"` normalizes the dash math, so
+   the same rule works whatever the path's real length is — including the broken
+   subpaths a series with gaps produces. */
+@keyframes health-line-draw {
+	from {
+		stroke-dashoffset: 1;
+	}
+	to {
+		stroke-dashoffset: 0;
+	}
+}
+
+.health-line {
+	stroke-dasharray: 1;
+	animation: health-line-draw 180ms var(--ease-out-fast) both;
+}
+
+/* The wash can't be drawn stroke-first, so it just fades up behind the line. */
+@keyframes health-area-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.health-area {
+	animation: health-area-in 180ms var(--ease-out-fast) both;
+}
+
+/* Sections settle in ~100ms apart rather than one container animating as a block. */
+@keyframes health-section-in {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.health-section {
+	animation: health-section-in 200ms var(--ease-out-fast) both;
+	animation-delay: var(--stagger, 0ms);
+}
+
 /* Honor reduced-motion globally for our keyframe utilities */
 @media (prefers-reduced-motion: reduce) {
 	.shimmer,
 	.heart-particle,
 	.vote-pop,
-	.marquee-track {
+	.marquee-track,
+	/* Cancelled outright rather than sped up: the staggered delay would otherwise
+	   still hold each section invisible for up to half a second. */
+	.health-line,
+	.health-area,
+	.health-section {
 		animation: none !important;
 	}
 	*,

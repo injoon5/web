@@ -27,8 +27,21 @@ export default defineConfig({
 				test: {
 					name: 'unit',
 					environment: 'node',
-					include: ['src/**/*.test.js'],
+					// convex/lib holds pure helpers (no ctx, no Convex imports), so they
+					// run here alongside the SvelteKit server helpers.
+					include: ['src/**/*.test.js', 'convex/lib/**/*.test.js'],
 					exclude: ['src/**/*.svelte.test.js']
+				}
+			},
+			{
+				// Convex functions — convex-test runs them against an in-memory
+				// deployment, which needs the edge runtime.
+				resolve: { alias: sharedAlias },
+				test: {
+					name: 'convex',
+					environment: 'edge-runtime',
+					include: ['convex/*.test.js'],
+					server: { deps: { inline: ['convex-test'] } }
 				}
 			},
 			{

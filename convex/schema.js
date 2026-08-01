@@ -59,5 +59,71 @@ export default defineSchema({
 	nowPage: defineTable({
 		content: v.string(),
 		updatedAt: v.number()
+	}),
+
+	// ---------------------------------------------------------------------------
+	// Apple Health
+	//
+	// Three tiers of the same data, so a read touches about as many rows as the
+	// chart plots points: day rollups for multi-day charts, hour buckets for
+	// intraday, raw samples only for export/debug (pruned at 30 days).
+	// ---------------------------------------------------------------------------
+
+	// One row per (metric, date). The hourly Shortcut re-sends the whole day, so
+	// this is upserted rather than appended.
+	healthDaily: defineTable({
+		date: v.string(), // YYYY-MM-DD — sorts lexicographically, so no numeric twin
+		metric: v.string(),
+		value: v.number(),
+		unit: v.string(),
+		source: v.optional(v.string()),
+		updatedAt: v.number()
 	})
+		.index('by_metric_date', ['metric', 'date'])
+		.index('by_date', ['date']),
+
+	// Hourly rollup of `healthSamples`. Stores the components rather than an
+	// average: a mean can't be re-averaged without weights, and min/max gives
+	// intraday charts a range band.
+	healthBuckets: defineTable({
+		metric: v.string(),
+		hour: v.number(), // epoch ms floored to the hour
+		count: v.number(),
+		sum: v.number(),
+		min: v.number(),
+		max: v.number(),
+		unit: v.string()
+	})
+		.index('by_metric_hour', ['metric', 'hour'])
+		.index('by_hour', ['hour']),
+
+	healthSamples: defineTable({
+		metric: v.string(),
+		value: v.number(),
+		time: v.number(),
+		unit: v.string(),
+		source: v.optional(v.string())
+	})
+		.index('by_metric_time', ['metric', 'time'])
+		.index('by_time', ['time']),
+
+	// Workouts are events, not a time series — a handful a day at most, always
+	// read as a list or a per-type history — so `by_start` / `by_type_start`
+	// range scans are already proportional to what renders. No rollup tier.
+	healthWorkouts: defineTable({
+		externalId: v.string(), // `${type}:${startMs}` — Shortcuts exposes no workout UUID
+		type: v.string(),
+		start: v.number(),
+		end: v.number(),
+		duration: v.number(), // seconds
+		distance: v.optional(v.number()),
+		activeEnergy: v.optional(v.number()),
+		avgHeartRate: v.optional(v.number()),
+		maxHeartRate: v.optional(v.number()),
+		elevation: v.optional(v.number()),
+		source: v.optional(v.string())
+	})
+		.index('by_start', ['start'])
+		.index('by_type_start', ['type', 'start'])
+		.index('by_external', ['externalId'])
 });

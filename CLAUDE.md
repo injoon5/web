@@ -18,7 +18,7 @@
 
 ## Project Overview
 
-A SvelteKit personal site with a blog, projects section, a `/now` page, and a full comment system including voting, admin replies, IP bans, and rate limiting.
+A SvelteKit personal site with a blog, projects section, a `/now` page, a `/health` page fed by Apple Health, and a full comment system including voting, admin replies, IP bans, and rate limiting.
 
 **Stack:** SvelteKit · Convex (database + functions + realtime) · bcryptjs (comment passwords) · Zod (input validation)
 
@@ -57,6 +57,9 @@ src/
       +page.ts             # Projects listing (prerendered)
       [slug]/+page.ts      # Project detail (prerendered)
     now/+page.svelte       # /now page, Convex-backed, markdown via marked
+    health/
+      +page.server.js      # SSR load — fetches the Convex /health HTTP routes with HEALTH_API_KEY
+      +page.svelte         # /health page — sparkline sections + workout list
     admin/                 # Admin dashboard + auth
     api/
       comments/
@@ -83,6 +86,10 @@ convex/
   now.js                   # now.get / set
   admin.js                 # admin-only helpers (URL listing, etc.)
   rateLimits.js            # Convex rate-limiter component config
+  health.js                # Apple Health — ingest mutation + internal reads (all internal)
+  healthPublic.js          # The one public health query — see "Apple Health" below
+  http.js                  # HTTP actions: /health/* (Bearer HEALTH_API_KEY)
+  crons.js                 # Daily prune of raw health samples
   lib/                     # Shared Convex helpers
 ```
 
@@ -90,16 +97,20 @@ convex/
 
 ## Convex Schema (`convex/schema.js`)
 
-| Table              | Key fields                                                                                                             | Indexes                  |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes | `by_url`, `by_parent`    |
-| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                         | `by_comment_ip`, `by_ip` |
-| `likes`            | url, ipHash                                                                                                            | `by_url_ip`              |
-| `commentUrlCounts` | url, count (denormalized active-comment counter)                                                                       | `by_url`                 |
-| `likeCounts`       | url, count (denormalized like counter)                                                                                 | `by_url`                 |
-| `migrationMeta`    | key, complete (one-time backfill completion flags)                                                                     | `by_key`                 |
-| `bannedIps`        | ipHash, reason                                                                                                         | `by_ip`                  |
-| `nowPage`          | content, updatedAt                                                                                                     | —                        |
+| Table              | Key fields                                                                                                             | Indexes                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes | `by_url`, `by_parent`                      |
+| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                         | `by_comment_ip`, `by_ip`                   |
+| `likes`            | url, ipHash                                                                                                            | `by_url_ip`                                |
+| `commentUrlCounts` | url, count (denormalized active-comment counter)                                                                       | `by_url`                                   |
+| `likeCounts`       | url, count (denormalized like counter)                                                                                 | `by_url`                                   |
+| `migrationMeta`    | key, complete (one-time backfill completion flags)                                                                     | `by_key`                                   |
+| `bannedIps`        | ipHash, reason                                                                                                         | `by_ip`                                    |
+| `nowPage`          | content, updatedAt                                                                                                     | —                                          |
+| `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                           | `by_metric_date`, `by_date`                |
+| `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                    | `by_metric_hour`, `by_hour`                |
+| `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                | `by_metric_time`, `by_time`                |
+| `healthWorkouts`   | externalId, type, start, end, duration, distance?, activeEnergy?, avgHeartRate?, maxHeartRate?, elevation?, source?    | `by_start`, `by_type_start`, `by_external` |
 
 Prefix rule: an index whose fields are a prefix of another (e.g. `by_comment`
 vs `by_comment_ip`) is redundant — bind only the leading fields of the longer
@@ -198,6 +209,85 @@ When a parent comment is hard-deleted, its children still carry the original `pa
 
 ---
 
+## Apple Health (`/health`)
+
+Data arrives from an iOS Shortcut, is aggregated at write time, and is read back
+in ranges sized to the visible window — a chart read touches about as many rows
+as the chart plots points. A Watch produces 1000+ heart-rate samples a day;
+reading all of them to draw 24 points is the failure mode the three tiers avoid.
+
+### Endpoints (Convex HTTP actions, `<deployment>.convex.site`)
+
+All require `Authorization: Bearer $HEALTH_API_KEY`.
+
+| Method | Route              | Description                                                                           |
+| ------ | ------------------ | ------------------------------------------------------------------------------------- |
+| POST   | `/health/ingest`   | `{ date?, source?, metrics?, samples?, workouts? }` — all keys optional               |
+| GET    | `/health/series`   | `?metrics=steps,restingHeartRate&days=90` or `?metric=heartRate&bucket=hour&hours=24` |
+| GET    | `/health/workouts` | `?days=90&type=running&limit=50` — newest first                                       |
+| GET    | `/health`          | Latest value per metric                                                               |
+| GET    | `/health/day`      | `?date=YYYY-MM-DD`                                                                    |
+| GET    | `/health/samples`  | `?metric=heartRate&hours=24` — debug/export                                           |
+
+Series responses are dense arrays (`{ metric, unit, step, start, count, values, min?, max? }`)
+with `null` for gaps and x implied by `start + index * step`, so dates never ship.
+Past `maxPoints` (400) days merge into weeks — summed or averaged per
+`metricKind()` — so a 5-year window returns ~260 points.
+
+### Rules this code follows
+
+- **Everything is internal**, because a query can't see an HTTP header and there
+  is no `ctx.auth` identity here. The key-checking HTTP action is the entry
+  point. `api.*` does not appear anywhere under `convex/`.
+  - The one exception is `convex/healthPublic.js`, which backs the live
+    subscription on `/health`. It serves _only_ what that public page already
+    renders: a fixed metric allowlist (`PUBLIC_METRICS`) that arguments cannot
+    widen, and only the range picker's own steps. No raw samples, no hourly
+    buckets, no other metrics.
+- **No `Date.now()` in queries.** A query doesn't re-run when the clock moves,
+  so a time-derived bound goes stale and churns the cache. The HTTP action
+  computes bounds at day or hour granularity and passes them as arguments.
+- **No `.collect()`, no `.filter()`** — bounded `.take()` and index conditions.
+- **One mutation per ingest**, so day rows, rollups and workouts commit
+  atomically.
+
+### Things that will bite
+
+- **Rollup double-counting.** `appendSamples` does one range read per touched
+  hour to collect the timestamps already stored, and folds only _newly inserted_
+  samples into the bucket. A sample added to a bucket sum twice can never be
+  backed out. `convex/health.test.js` posts the same 100 samples twice and
+  asserts `count` stays 100 — keep that test.
+- **Step double-counting in Shortcuts.** "Find Health Samples" returns raw
+  samples from every source, so summing steps without a `Source is <Apple Watch>`
+  filter counts iPhone and Watch separately. The Health app deduplicates on
+  display; Shortcuts does not.
+- **Cache granularity.** Keep the range picker coarse (7/30/90/365) — every
+  distinct `days` value is a distinct query argument, and so a distinct cache
+  entry.
+- **Ingest is capped per request:** 1000 samples spanning at most 12 metric-hours
+  (the dedupe read per hour is what bounds the transaction), 64 metrics, 100
+  workouts. Over that the endpoint returns 400 asking the caller to split.
+
+### The Shortcut
+
+Build steps live in `shortcuts/README.md`. The payloads both shortcuts post are
+checked in at `shortcuts/payloads/*.json` and replayed through the real endpoint
+by `convex/http.test.js`, so an app-side problem can be told apart from a
+backend one. `shortcuts/smoke.mjs` posts them at a live deployment.
+
+Metrics: Find Health Samples per metric (with the source filter) → Calculate
+Statistics (Sum for steps/distance/energy/minutes; Average/Min/Max for heart
+rate; sort-desc + Limit 1 for resting HR) → Format Date `yyyy-MM-dd` →
+Dictionary → POST. Automation: hourly, Run Immediately, plus one at 23:55.
+
+Workouts: a separate shortcut on a daily automation — Find Workouts filtered to
+the last day, Repeat over the results building the workout dictionaries. Re-runs
+are safe: `externalId` is `${type}:${startMs}`, which is stable across re-syncs
+since Shortcuts exposes no workout UUID.
+
+---
+
 ## Schema Changes
 
 Edit `convex/schema.js` and run `npx convex dev` (or `npx convex deploy` for prod). Convex generates indexes and types automatically — there are no SQL migration files to write or commit.
@@ -206,11 +296,13 @@ Edit `convex/schema.js` and run `npx convex dev` (or `npx convex deploy` for pro
 
 ## Environment Variables
 
-| Variable            | Used in                                                                                        |
-| ------------------- | ---------------------------------------------------------------------------------------------- |
-| `PUBLIC_CONVEX_URL` | Convex client — both browser (root layout) and server-side HTTP client                         |
-| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                           |
-| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically. |
+| Variable            | Used in                                                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_CONVEX_URL` | Convex client — both browser (root layout) and server-side HTTP client                                         |
+| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                                           |
+| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically.                 |
+| `HEALTH_API_KEY`    | Apple Health API — the Shortcut's bearer token and the `/health` SSR load. Must match Convex env.              |
+| `CONVEX_SITE_URL`   | Optional override. Convex HTTP actions live on the `.site` twin of `PUBLIC_CONVEX_URL`, derived automatically. |
 
 <!-- convex-ai-start -->
 

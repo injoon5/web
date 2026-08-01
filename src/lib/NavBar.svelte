@@ -16,6 +16,7 @@
 		{ label: 'projects', href: '/projects' },
 		{ label: 'blog', href: '/blog' },
 		{ label: 'now', href: '/now' }
+		// /health is live at its URL but unlinked for now.
 	];
 
 	// On the home page the hero owns the name, so the navbar name stays hidden
