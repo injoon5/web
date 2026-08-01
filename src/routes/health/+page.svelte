@@ -77,7 +77,9 @@
 			<span class="text-sm text-neutral-400 dark:text-neutral-600">days</span>
 		</nav>
 
-		<div class="my-12 flex flex-col gap-14">
+		<!-- Two columns from lg up, where each still gets ~440px — enough that a
+		     90-day line reads. Below that they stack rather than cramp. -->
+		<div class="my-12 grid grid-cols-1 gap-x-12 gap-y-14 lg:grid-cols-2">
 			{#each sections as section, i (section.metric.key)}
 				<MetricSection metric={section.metric} series={section.series} index={i} />
 			{/each}
