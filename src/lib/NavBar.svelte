@@ -15,7 +15,8 @@
 	const navItems = [
 		{ label: 'projects', href: '/projects' },
 		{ label: 'blog', href: '/blog' },
-		{ label: 'now', href: '/now' }
+		{ label: 'now', href: '/now' },
+		{ label: 'health', href: '/health' }
 	];
 
 	// On the home page the hero owns the name, so the navbar name stays hidden
