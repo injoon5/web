@@ -6,6 +6,7 @@ vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
 import { setPage } from '$app/stores';
+import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
 import CommentsSection from './CommentsSection.svelte';
 
 function comment(overrides = {}) {
@@ -120,6 +121,60 @@ describe('CommentsSection list states', () => {
 		render(CommentsSection);
 		expect(screen.getByText('carol')).toBeInTheDocument();
 		expect(screen.getByText('first!')).toBeInTheDocument();
+	});
+});
+
+describe('CommentsSection SPA navigation', () => {
+	// Regression: with `keepPreviousData`, the previous page's comments stayed on
+	// screen while the new page's list loaded, so a visitor could vote on (or
+	// edit/delete) a comment that belongs to the page they just left.
+	it('hides the previous page comments once the query goes stale', async () => {
+		const query = createReactiveQuery({ data: [comment({ text: 'post-a comment' })] });
+		useQuery.mockReturnValue(query);
+		render(CommentsSection);
+		expect(await screen.findByText('post-a comment')).toBeInTheDocument();
+
+		// Navigate: the args change, so convex-svelte hands back the retained
+		// post-a result flagged stale.
+		setPage({ url: new URL('http://localhost/blog/post-b') });
+		query.set({ isStale: true });
+
+		await waitFor(() => expect(screen.queryByText('post-a comment')).toBeNull());
+		expect(screen.queryByRole('button', { name: 'Upvote' })).toBeNull();
+	});
+
+	it('renders the new page comments once its own result arrives', async () => {
+		const query = createReactiveQuery({ data: [comment({ text: 'post-a comment' })] });
+		useQuery.mockReturnValue(query);
+		render(CommentsSection);
+		expect(await screen.findByText('post-a comment')).toBeInTheDocument();
+
+		setPage({ url: new URL('http://localhost/blog/post-b') });
+		query.set({ isStale: true });
+		await waitFor(() => expect(screen.queryByText('post-a comment')).toBeNull());
+
+		query.set({ data: [comment({ id: 'c2', text: 'post-b comment' })], isStale: false });
+
+		expect(await screen.findByText('post-b comment')).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Upvote' })).toBeEnabled();
+	});
+
+	it('does not send a vote for a comment from the page just left', async () => {
+		const query = createReactiveQuery({ data: [comment({ id: 'abc' })] });
+		useQuery.mockReturnValue(query);
+		render(CommentsSection);
+		const upvote = await screen.findByRole('button', { name: 'Upvote' });
+		fetch.mockClear();
+
+		setPage({ url: new URL('http://localhost/blog/post-b') });
+		query.set({ isStale: true });
+		await waitFor(() => expect(screen.queryByText('hello world')).toBeNull());
+
+		// The node is detached, but a click that raced the navigation must be a
+		// no-op rather than a vote against post-a.
+		await fireEvent.click(upvote);
+
+		expect(fetch).not.toHaveBeenCalled();
 	});
 });
 
