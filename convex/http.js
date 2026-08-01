@@ -91,13 +91,30 @@ function guarded(handler) {
 // Parsing
 // ---------------------------------------------------------------------------
 
-/** Shortcuts dictionaries stringify numbers often enough to just accept both. */
+/**
+ * Digits grouped the way Calculate Statistics formats them: `8,421`, `1,234.5`.
+ * Only this exact shape is unpicked — a bare `8,4` stays a parse failure rather
+ * than being guessed at as either 84 or 8.4.
+ */
+const GROUPED_NUMBER = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/;
+
+/**
+ * Shortcuts dictionaries stringify numbers often enough to just accept both,
+ * and a number that passed through a Text action arrives with its thousands
+ * separators still in it — `Number('8,421')` is NaN, which would 400 the whole
+ * hourly sync over a comma.
+ */
 function toNumber(value, label) {
-	const num = typeof value === 'string' ? Number(value.trim()) : value;
-	if (typeof num !== 'number' || !Number.isFinite(num)) {
+	let raw = value;
+	if (typeof raw === 'string') {
+		raw = raw.trim();
+		if (GROUPED_NUMBER.test(raw)) raw = raw.replaceAll(',', '');
+		raw = Number(raw);
+	}
+	if (typeof raw !== 'number' || !Number.isFinite(raw)) {
 		throw new BadRequest(`${label} must be a number`);
 	}
-	return num;
+	return raw;
 }
 
 function optionalNumber(value, label) {

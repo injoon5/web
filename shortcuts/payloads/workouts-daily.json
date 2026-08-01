@@ -1,0 +1,21 @@
+{
+	"source": "Apple Watch",
+	"workouts": [
+		{
+			"type": "Running",
+			"start": "2026-08-01T06:12:00Z",
+			"end": "2026-08-01T06:47:30Z",
+			"distance": "6.2",
+			"activeEnergy": "410",
+			"avgHeartRate": "158",
+			"maxHeartRate": "176"
+		},
+		{
+			"type": "Traditional Strength Training",
+			"start": "2026-08-01T18:00:00Z",
+			"end": "2026-08-01T18:45:00Z",
+			"activeEnergy": "250",
+			"avgHeartRate": "118"
+		}
+	]
+}

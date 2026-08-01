@@ -1,0 +1,17 @@
+{
+	"date": "2026-08-01",
+	"source": "Apple Watch",
+	"metrics": {
+		"steps": "8,421",
+		"distance": "6.2",
+		"activeEnergy": "512",
+		"exerciseMinutes": "43",
+		"restingHeartRate": "54"
+	},
+	"samples": [
+		{ "metric": "heartRate", "value": "72", "timestamp": "2026-08-01T09:04:00Z" },
+		{ "metric": "heartRate", "value": "76", "timestamp": "2026-08-01T09:19:00Z" },
+		{ "metric": "heartRate", "value": "81", "timestamp": "2026-08-01T09:34:00Z" },
+		{ "metric": "heartRate", "value": "69", "timestamp": "2026-08-01T09:49:00Z" }
+	]
+}

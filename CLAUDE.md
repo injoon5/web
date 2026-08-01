@@ -271,6 +271,11 @@ Past `maxPoints` (400) days merge into weeks — summed or averaged per
 
 ### The Shortcut
 
+Build steps live in `shortcuts/README.md`. The payloads both shortcuts post are
+checked in at `shortcuts/payloads/*.json` and replayed through the real endpoint
+by `convex/http.test.js`, so an app-side problem can be told apart from a
+backend one. `shortcuts/smoke.mjs` posts them at a live deployment.
+
 Metrics: Find Health Samples per metric (with the source filter) → Calculate
 Statistics (Sum for steps/distance/energy/minutes; Average/Min/Max for heart
 rate; sort-desc + Limit 1 for resting HR) → Format Date `yyyy-MM-dd` →
