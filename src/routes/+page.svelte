@@ -1,27 +1,44 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$convex/_generated/api';
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 	import TechStack from '$lib/TechStack.svelte';
 	import { techstack } from '$lib/techstack-data.js';
 
+	const { data } = $props();
+
 	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
 	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
 	// there's no per-frame scroll math.
-	let heroNameEl;
+	let heroNameEl = $state(null);
 	let heroObserver;
 
-	// LoadState: 'loading' | 'ready' | 'error'
-	let nowlistening = null;
-	let photos = null;
+	// Both feeds are refreshed by a Convex cron every 5 minutes, so these are
+	// live subscriptions rather than a fetch on mount.
+	const nowQuery = useQuery(api.feeds.nowPlaying, () => ({}));
+	const photosQuery = useQuery(api.feeds.photos, () => ({}));
 
-	let nowState = 'loading';
-	let photosState = 'loading';
+	const tracks = $derived(nowQuery.data?.tracks ?? []);
+	const photos = $derived(photosQuery.data?.photos ?? []);
 
-	let nowError = null;
-	let photosError = null;
+	// The label is "last scrobbled", so the currently-playing track — which has no
+	// timestamp — isn't what it should read from.
+	const lastScrobbledAt = $derived(
+		tracks.find((track) => track.playedAt !== null)?.playedAt ?? null
+	);
 
-	onMount(async () => {
+	// Last.fm's own '30 Jul 2026' wording, and in UTC as it sent it, so the label
+	// doesn't shift by a day for readers in another timezone.
+	const scrobbleDate = new Intl.DateTimeFormat('en-GB', {
+		day: '2-digit',
+		month: 'short',
+		year: 'numeric',
+		timeZone: 'UTC'
+	});
+
+	onMount(() => {
 		// Flip once the hero name passes behind the ~64px-tall sticky nav, so the
 		// navbar name fades in right as the hero tucks away.
 		heroObserver = new IntersectionObserver(
@@ -29,49 +46,12 @@
 			{ rootMargin: '-64px 0px 0px 0px', threshold: 0 }
 		);
 		if (heroNameEl) heroObserver.observe(heroNameEl);
-
-		nowState = 'loading';
-		photosState = 'loading';
-		nowError = null;
-		photosError = null;
-
-		const loadPhotos = fetch(`https://raw.githubusercontent.com/injoon5/data/main/photos.json`)
-			.then(async (r) => {
-				if (!r.ok) throw new Error(`photos.json HTTP ${r.status}`);
-				return r.json();
-			})
-			.then((j) => {
-				photos = j;
-				photosState = 'ready';
-			})
-			.catch((e) => {
-				photosState = 'error';
-				photosError = e?.message ?? 'Failed to load photos';
-			});
-
-		const loadNow = fetch(`https://raw.githubusercontent.com/injoon5/data/main/now-playing.json`)
-			.then(async (r) => {
-				if (!r.ok) throw new Error(`now-playing.json HTTP ${r.status}`);
-				return r.json();
-			})
-			.then((j) => {
-				nowlistening = j;
-				nowState = 'ready';
-			})
-			.catch((e) => {
-				nowState = 'error';
-				nowError = e?.message ?? 'Failed to load now playing';
-			});
-
-		await Promise.allSettled([loadPhotos, loadNow]);
 	});
 
 	onDestroy(() => {
 		heroObserver?.disconnect();
 		heroNameVisible.set(true);
 	});
-
-	export let data;
 </script>
 
 <svelte:head>
@@ -288,14 +268,12 @@
 			>
 				Last updated on
 				<span class="inline lg:block">
-					{#if nowState === 'loading'}
+					{#if nowQuery.isLoading}
 						<span class="inline-flex items-center gap-2"> Loading… </span>
-					{:else if nowState === 'error'}
+					{:else if nowQuery.error != null || lastScrobbledAt === null}
 						<span class="text-neutral-400 dark:text-neutral-600">—</span>
 					{:else}
-						{nowlistening?.recenttracks?.track?.[
-							nowlistening?.recenttracks?.track?.[0]?.['@attr']?.nowplaying === 'true' ? 1 : 0
-						]?.date?.['#text']?.slice(0, 11) ?? '—'}
+						{scrobbleDate.format(new Date(lastScrobbledAt))}
 					{/if}
 				</span>
 			</p>
@@ -305,24 +283,24 @@
 	<div
 		class="relative left-1/2 col-span-full mt-4 w-screen -translate-x-1/2 overflow-hidden pb-4 lg:col-span-12 lg:mt-0"
 	>
-		{#if nowState === 'loading'}
+		{#if nowQuery.isLoading}
 			<div class="flex gap-3">
 				{#each Array.from({ length: 20 }, (_, index) => index) as index (index)}
 					<div class="shimmer aspect-square w-40 shrink-0 rounded-xl lg:w-48"></div>
 				{/each}
 			</div>
-		{:else if nowState === 'error'}
+		{:else if nowQuery.error != null}
 			<div class="text-neutral-700 dark:text-neutral-300">
 				<p>Couldn't load Now Listening</p>
-				<div class="mt-1 text-neutral-500">{nowError ?? 'Unknown error'}</div>
+				<div class="mt-1 text-neutral-500">{nowQuery.error.message ?? 'Unknown error'}</div>
 			</div>
-		{:else if (nowlistening?.recenttracks?.track ?? []).length > 0}
+		{:else if tracks.length > 0}
 			<div
 				use:marqueePauseWhenOffscreen
 				use:marqueeConstantSpeed
 				class="now-marquee marquee-track flex"
 			>
-				{#each [...(nowlistening?.recenttracks?.track ?? []), ...(nowlistening?.recenttracks?.track ?? [])] as track}
+				{#each [...tracks, ...tracks] as track}
 					<a
 						class=" border-opacity-50 group relative mr-3 aspect-square w-40 shrink-0 overflow-hidden rounded-xl border border-neutral-300 shadow-md lg:w-48 dark:border dark:border-neutral-800"
 						href={track.url}
@@ -330,8 +308,8 @@
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
 						<img
 							loading="lazy"
-							src={track?.image?.[2]?.['#text'] ?? ''}
-							alt={track?.name ?? 'Album cover'}
+							src={track.image}
+							alt={track.name || 'Album cover'}
 							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
 						/>
 						<div
@@ -344,7 +322,7 @@
 								{track.name}
 							</p>
 							<p class="truncate text-sm font-normal text-white/60 lg:text-base">
-								{track?.artist?.['#text'] === 'Lany' ? 'LANY' : track?.artist?.['#text']}
+								{track.artist === 'Lany' ? 'LANY' : track.artist}
 							</p>
 						</div>
 					</a>
@@ -373,29 +351,29 @@
 
 	<div class="col-span-10 mt-4 justify-center lg:mt-0">
 		<div class="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-3">
-			{#if photosState === 'loading'}
+			{#if photosQuery.isLoading}
 				{#each Array.from({ length: 6 }, (_, index) => index) as index (index)}
 					<div class="shimmer aspect-square w-full"></div>
 				{/each}
-			{:else if photosState === 'error'}
+			{:else if photosQuery.error != null}
 				<div class="col-span-2 sm:col-span-3">
 					<div class="text-neutral-700 dark:text-neutral-300">
 						<p>Couldn't load Photos</p>
 						<div class="mt-1 text-neutral-500 dark:text-neutral-500">
-							{photosError ?? 'Unknown error'}
+							{photosQuery.error.message ?? 'Unknown error'}
 						</div>
 					</div>
 				</div>
 			{:else}
-				{#each (photos?.photos ?? []).slice(0, 6) as photo (photo.url)}
+				{#each photos.slice(0, 6) as photo (photo.url)}
 					<a
 						href={photo.url}
 						class="group border-opacity-50 relative block aspect-square w-full overflow-hidden rounded-xl border border-neutral-300 bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
 					>
 						<img
 							loading="lazy"
-							src={photo?.src?.medium?.url ?? ''}
-							alt={photo?.title || 'Photo'}
+							src={photo.image}
+							alt={photo.title || 'Photo'}
 							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
 						/>
 
@@ -403,7 +381,7 @@
 							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
 						>
 							<p class="tabular truncate text-sm font-medium text-white/30">
-								{photo.takenAtNaive}
+								{photo.takenAt}
 							</p>
 						</div>
 					</a>
