@@ -64,7 +64,7 @@ src/
     api/
       comments/
         +server.ts                  # GET (public), POST (public, rate-limited)
-        [id]/+server.ts             # PATCH (edit), DELETE (admin or user)
+        [id]/+server.ts             # PATCH (edit), DELETE (soft-delete only)
         [id]/vote/+server.ts        # POST (vote, rate-limited)
         [id]/reply/+server.ts       # POST (admin reply — legacy, prefer admin route)
       likes/
@@ -156,7 +156,6 @@ When a limiter rejects, mutations throw; `convexErrorToResponse` in `src/lib/ser
 | POST   | `/api/comments`           | —        | Create comment (ban check, rate-limited)       |
 | PATCH  | `/api/comments/[id]`      | password | Edit own comment (bcrypt password check)       |
 | DELETE | `/api/comments/[id]`      | password | Soft-delete: sets text+username to `[deleted]` |
-| DELETE | `/api/comments/[id]`      | admin    | Hard-delete: sets `deletedAt`                  |
 | POST   | `/api/comments/[id]/vote` | —        | Toggle up/down vote (ban check, rate-limited)  |
 | GET    | `/api/likes?url=`         | —        | Get like count + whether current IP liked      |
 | POST   | `/api/likes`              | —        | Toggle like (ban check, rate-limited)          |
@@ -181,11 +180,26 @@ When a limiter rejects, mutations throw; `convexErrorToResponse` in `src/lib/ser
 
 Public surfaces (CommentsSection, LikeButton, /now) subscribe to Convex via `convex-svelte`'s `useQuery`. Updates push over WebSocket, so no manual polling. `setupConvex(PUBLIC_CONVEX_URL)` runs once in the root layout.
 
+CommentsSection and LikeButton pass `keepPreviousData: true` so their content
+doesn't flash back to a skeleton when the `ipHash` re-subscription swaps the
+query args. Because that also retains the _previous page's_ result across a
+client-side navigation, both components track `freshPath` — the pathname the
+latest non-stale result belongs to — and gate rendering and every write on
+`freshPath === $page.url.pathname`. Any new `keepPreviousData` subscription
+keyed on the pathname needs the same guard, or visitors can act on the page
+they just left.
+
 ---
 
 ## Comment Deletion Semantics
 
 - **Soft delete** — sets `text = '[deleted]'` and `username = '[deleted]'`. Row stays in the table; thread nesting is preserved. Shown to public as `[deleted]`.
+  The public `DELETE /api/comments/[id]` route always soft-deletes and never
+  inspects admin auth. The site owner browses their own posts holding an
+  `admin_token` cookie, so branching on admin there turned an ordinary
+  visitor-side delete into a hard delete of the whole subtree. Hard delete is
+  reachable only through `DELETE /api/admin/comments/[id]`.
+
 - **Hard delete** — sets `deletedAt` to a timestamp. Filtered out of all public queries. Children of a hard-deleted comment keep their `parentId` referencing the now-hidden row, which is surfaced as "stray" in the admin tree.
 
 ---

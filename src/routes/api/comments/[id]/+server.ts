@@ -27,28 +27,22 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	);
 };
 
+// This is the visitor-facing delete used by the comment UI on public pages, so
+// it ALWAYS soft-deletes. It must not branch on admin auth: the site owner
+// browses their own posts while holding an admin_token cookie, and branching
+// here turned their ordinary "delete my comment" click into a hard delete that
+// wiped the whole reply subtree. Hard delete is reachable only through the
+// deliberate admin surface, DELETE /api/admin/comments/[id].
 export const DELETE: RequestHandler = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
-	const admin = verifyAdminSecret(request);
-
-	if (!admin) {
-		const { password } = await parseBody(request, deleteCommentSchema);
-		return runConvex(
-			() =>
-				convex.action(api.commentActions.softDeleteComment, {
-					commentId: params.id as Id<'comments'>,
-					password,
-					ipHash
-				}),
-			() => json({ success: true })
-		);
-	}
+	const { password } = await parseBody(request, deleteCommentSchema);
 
 	return runConvex(
 		() =>
-			convex.mutation(api.comments.hardDelete, {
+			convex.action(api.commentActions.softDeleteComment, {
 				commentId: params.id as Id<'comments'>,
-				adminSecret: ADMIN_SECRET
+				password,
+				ipHash
 			}),
 		() => json({ success: true })
 	);
