@@ -1,5 +1,6 @@
 <script>
 	import MetricSection from '$lib/health/MetricSection.svelte';
+	import RangePicker from '$lib/health/RangePicker.svelte';
 	import ScoreDial from '$lib/health/ScoreDial.svelte';
 	import {
 		DEFAULT_RANGE,
@@ -134,26 +135,9 @@
 	</div>
 
 	{#if sections.length}
-		<!-- `-ml-3` pulls the first pill's text back onto the page's left edge, so
-		     the row optically aligns with the title above it despite its padding.
-		     The `after` block is invisible hit slop: a 32px pill is comfortable to
-		     look at and too small to tap, so the target reaches 48px instead. -->
-		<nav aria-label="Range" class="mt-10 -ml-3 flex items-center gap-1 text-sm">
-			{#each RANGES as range}
-				<button
-					type="button"
-					onclick={() => selectRange(range)}
-					aria-pressed={range === days}
-					class="relative rounded-full px-3 py-1.5 font-medium tabular-nums transition-[background-color,color,transform] duration-150 ease-out select-none after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 active:scale-95 {range ===
-					days
-						? 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100'
-						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100'}"
-				>
-					{range}
-				</button>
-			{/each}
-			<span class="ml-2 text-neutral-400 dark:text-neutral-600">days</span>
-		</nav>
+		<div class="mt-10">
+			<RangePicker ranges={RANGES} value={days} onselect={selectRange} />
+		</div>
 
 		<!-- Two columns from lg up, where each still gets ~440px — enough that a
 		     90-day line reads. Below that they stack rather than cramp. -->
