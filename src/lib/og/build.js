@@ -5,7 +5,8 @@ import {
 	blogPostTemplate,
 	projectsListTemplate,
 	projectTemplate,
-	nowTemplate
+	nowTemplate,
+	healthTemplate
 } from './templates.js';
 
 // Bound every free-form input before it reaches satori/resvg. This route is
@@ -60,6 +61,8 @@ export function buildOgElement(input) {
 			return projectTemplate({ title, description, year, tags });
 		case 'now':
 			return nowTemplate();
+		case 'health':
+			return healthTemplate();
 		default:
 			return homeTemplate();
 	}

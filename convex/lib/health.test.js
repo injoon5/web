@@ -12,6 +12,7 @@ import {
 	foldSamples,
 	hourFloor,
 	isDateKey,
+	latestSeriesUpdate,
 	mergeValues,
 	metricKind,
 	metricUnit,
@@ -206,6 +207,35 @@ describe('buildDailySeries', () => {
 		expect(series.values).toEqual([null, 7, null]);
 	});
 
+	// "Updated 3 hours ago" describes the window on screen, so a row that fell
+	// outside it must not be what the page reports.
+	it('reports the newest write inside the window only', () => {
+		const series = buildDailySeries({
+			metric: 'steps',
+			unit: 'count',
+			rows: [
+				{ date: '2026-07-20', value: 999, updatedAt: 5000 },
+				{ date: '2026-07-26', value: 100, updatedAt: 1000 },
+				{ date: '2026-07-27', value: 200, updatedAt: 3000 }
+			],
+			startDate,
+			days: 3
+		});
+
+		expect(series.updatedAt).toBe(3000);
+	});
+
+	it('has no update stamp for an empty window', () => {
+		const series = buildDailySeries({
+			metric: 'steps',
+			unit: 'count',
+			rows: [],
+			startDate,
+			days: 3
+		});
+		expect(series.updatedAt).toBeNull();
+	});
+
 	it('merges a long window into weekly points and widens the step', () => {
 		const days = 1825;
 		const rows = Array.from({ length: days }, (_, i) => ({
@@ -219,6 +249,19 @@ describe('buildDailySeries', () => {
 		expect(series.values).toHaveLength(261);
 		expect(series.step).toBe(7 * DAY_MS);
 		expect(series.values[0]).toBe(70); // seven days of ten steps, summed
+	});
+});
+
+describe('latestSeriesUpdate', () => {
+	it('takes the newest stamp across the page and ignores series without one', () => {
+		expect(latestSeriesUpdate([{ updatedAt: 10 }, { updatedAt: null }, { updatedAt: 90 }])).toBe(
+			90
+		);
+	});
+
+	it('is null when nothing in the window was ever written', () => {
+		expect(latestSeriesUpdate([{ updatedAt: null }, {}])).toBeNull();
+		expect(latestSeriesUpdate([])).toBeNull();
 	});
 });
 

@@ -162,6 +162,8 @@
 	--chart-wash-top: color-mix(in oklab, var(--color-orange-500), transparent 93%);
 	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-500), transparent 100%);
 	--chart-muted: var(--color-neutral-400);
+	/* Unfilled part of the score ring. Reads as a groove, not a second arc. */
+	--chart-track: var(--color-neutral-200);
 }
 
 .dark {
@@ -170,6 +172,7 @@
 	--chart-wash-top: color-mix(in oklab, var(--color-orange-400), transparent 93%);
 	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-400), transparent 100%);
 	--chart-muted: var(--color-neutral-600);
+	--chart-track: var(--color-neutral-800);
 }
 
 /* Draw the line in once on mount. `pathLength="1"` normalizes the dash math, so
@@ -203,6 +206,28 @@
 	animation: health-area-in 180ms var(--ease-out-fast) both;
 }
 
+/* A reading with a gap on both sides has no line to draw, so it gets a dot.
+   Same fade as the wash — it belongs to the same chart, not on top of it. */
+.health-dot {
+	animation: health-area-in 180ms var(--ease-out-fast) both;
+}
+
+/* The score ring winds up from empty on load (2*pi*40, the arc's full length),
+   then transitions between values as the hovered day changes. Omitting the `to`
+   frame lets the animation land on whatever the current score sets. */
+@keyframes health-ring-in {
+	from {
+		stroke-dashoffset: 251.33;
+	}
+}
+
+/* Short on purpose: the ring re-aims on every scrubbed day, and anything
+   slower reads as the score lagging behind the pointer. */
+.health-ring {
+	animation: health-ring-in 700ms var(--ease-out-fast);
+	transition: stroke-dashoffset 180ms var(--ease-out-fast);
+}
+
 /* Sections settle in ~100ms apart rather than one container animating as a block. */
 @keyframes health-section-in {
 	from {
@@ -230,6 +255,8 @@
 	   still hold each section invisible for up to half a second. */
 	.health-line,
 	.health-area,
+	.health-dot,
+	.health-ring,
 	.health-section {
 		animation: none !important;
 	}
