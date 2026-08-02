@@ -289,12 +289,43 @@ describe('public page query', () => {
 
 		expect(series.map((s) => s.metric)).toEqual([
 			'steps',
-			'restingHeartRate',
+			'sleepHours',
 			'activeEnergy',
 			'exerciseMinutes',
 			'distance'
 		]);
 		expect(series.find((s) => s.metric === 'steps').values.at(-1)).toBe(8421);
+	});
+
+	// Workouts are ingested and readable through the key-gated route, but the
+	// page doesn't render them, so the unauthenticated query must not carry them.
+	it('serves no workouts', async () => {
+		const t = setup();
+		await t.mutation(internal.health.ingest, {
+			workouts: [
+				{
+					externalId: 'running:1',
+					type: 'running',
+					start: Date.parse('2026-08-01T07:00:00Z'),
+					end: Date.parse('2026-08-01T07:30:00Z'),
+					duration: 1800
+				}
+			]
+		});
+
+		const result = await t.query(publicPage, { startDate: '2026-07-03', days: 30 });
+		expect(result.workouts).toBeUndefined();
+	});
+
+	it('reports when the window was last written', async () => {
+		const t = setup();
+		await t.mutation(internal.health.ingest, {
+			date: '2026-08-01',
+			metrics: [{ metric: 'steps', value: 8421, unit: 'count' }]
+		});
+
+		const { updatedAt } = await t.query(publicPage, { startDate: '2026-07-03', days: 30 });
+		expect(updatedAt).toBeTypeOf('number');
 	});
 
 	it('rejects a range the picker does not offer', async () => {

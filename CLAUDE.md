@@ -59,7 +59,7 @@ src/
     now/+page.svelte       # /now page, Convex-backed, markdown via marked
     health/
       +page.server.js      # SSR load — fetches the Convex /health HTTP routes with HEALTH_API_KEY
-      +page.svelte         # /health page — sparkline sections + workout list
+      +page.svelte         # /health page — score dial + sparkline sections
     admin/                 # Admin dashboard + auth
     api/
       comments/
@@ -243,7 +243,7 @@ Past `maxPoints` (400) days merge into weeks — summed or averaged per
     subscription on `/health`. It serves _only_ what that public page already
     renders: a fixed metric allowlist (`PUBLIC_METRICS`) that arguments cannot
     widen, and only the range picker's own steps. No raw samples, no hourly
-    buckets, no other metrics.
+    buckets, no workouts, no other metrics.
 - **No `Date.now()` in queries.** A query doesn't re-run when the clock moves,
   so a time-derived bound goes stale and churns the cache. The HTTP action
   computes bounds at day or hour granularity and passes them as arguments.
@@ -264,27 +264,29 @@ Past `maxPoints` (400) days merge into weeks — summed or averaged per
   display; Shortcuts does not.
 - **Cache granularity.** Keep the range picker coarse (7/30/90/365) — every
   distinct `days` value is a distinct query argument, and so a distinct cache
-  entry.
+  entry. The range is client state, deliberately not a `?days=` query string:
+  a URL parameter is a lever anyone can pull, and it forked the SSR cache too.
+  The server renders one window and echoes back the `endDate` it resolved; the
+  picker pivots the live subscription on that rather than on the visitor's
+  clock.
 - **Ingest is capped per request:** 1000 samples spanning at most 12 metric-hours
   (the dedupe read per hour is what bounds the transaction), 64 metrics, 100
   workouts. Over that the endpoint returns 400 asking the caller to split.
 
 ### The Shortcut
 
-Build steps live in `shortcuts/README.md`. The payloads both shortcuts post are
-checked in at `shortcuts/payloads/*.json` and replayed through the real endpoint
-by `convex/http.test.js`, so an app-side problem can be told apart from a
-backend one. `shortcuts/smoke.mjs` posts them at a live deployment.
+Build steps live in `shortcuts/README.md`. The payloads it posts are checked in
+at `shortcuts/payloads/*.json` and replayed through the real endpoint by
+`convex/http.test.js`, so an app-side problem can be told apart from a backend
+one. `shortcuts/smoke.mjs` posts them at a live deployment.
 
 Metrics: Find Health Samples per metric (with the source filter) → Calculate
-Statistics (Sum for steps/distance/energy/minutes; Average/Min/Max for heart
-rate; sort-desc + Limit 1 for resting HR) → Format Date `yyyy-MM-dd` →
-Dictionary → POST. Automation: hourly, Run Immediately, plus one at 23:55.
+Statistics (Sum) → Format Date `yyyy-MM-dd` → Dictionary → POST. Automation:
+hourly, Run Immediately, plus one at 23:55.
 
-Workouts: a separate shortcut on a daily automation — Find Workouts filtered to
-the last day, Repeat over the results building the workout dictionaries. Re-runs
-are safe: `externalId` is `${type}:${startMs}`, which is stable across re-syncs
-since Shortcuts exposes no workout UUID.
+**Workouts are not synced.** The ingest mutation, the `healthWorkouts` table and
+`GET /health/workouts` all still work and stay tested — Shortcuts just can't
+build the payload, so nothing posts it and `/health` renders no workout list.
 
 ---
 

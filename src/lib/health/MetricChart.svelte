@@ -1,24 +1,33 @@
 <script>
-	import { Area, Chart, Highlight, LinearGradient, Spline, Svg } from 'layerchart';
+	import { Area, Chart, Highlight, LinearGradient, Points, Spline, Svg } from 'layerchart';
 	import { scaleLinear } from 'd3-scale';
-	import { valueDomain } from '$lib/health/metrics.js';
+	import { isFilled, isolatedPoints, valueDomain } from '$lib/health/metrics.js';
 
 	/**
-	 * A sparkline, not a graph: no axes, no gridlines, no tooltip box. Scrubbing
-	 * reports the hovered index back up so the section headline changes in place.
+	 * A sparkline, not a graph: no axes, no gridlines, no tooltip box.
+	 *
+	 * Scrubbing is reported up rather than handled here, and the marker is drawn
+	 * from the `active` index handed back down — so every chart on the page marks
+	 * the same day, whichever one the pointer is over.
 	 */
-	let { values, label, delay = 0, onscrub } = $props();
+	let { values, label, delay = 0, active = null, onscrub } = $props();
 
 	const points = $derived(values.map((value, i) => ({ i, value })));
+
+	// A reading with a gap on both sides has no segment to stroke. Without these
+	// dots a single day of data draws an empty box.
+	const orphans = $derived(isolatedPoints(values));
+
 	const domain = $derived(valueDomain(values));
 
 	let context = $state();
-	const active = $derived(context?.tooltip?.data ?? null);
+	const hovered = $derived(context?.tooltip?.data ?? null);
 
-	const defined = (d) => d.value !== null;
+	const marked = $derived(active === null ? null : points[active]);
+	const defined = (d) => isFilled(d.value);
 
 	$effect(() => {
-		onscrub?.(active === null ? null : active.i);
+		onscrub?.(hovered === null ? null : hovered.i);
 	});
 </script>
 
@@ -79,9 +88,28 @@
 					{/snippet}
 				</LinearGradient>
 
-				<!-- A day with no data breaks the line; there is nothing to point at either. -->
-				{#if active !== null && active.value !== null}
-					<Highlight axis="none" points={{ r: 3, fill: 'var(--chart-accent)' }} />
+				{#if orphans.length}
+					<Points
+						class="health-dot"
+						style="animation-delay: {delay}ms"
+						data={orphans}
+						r={2.5}
+						fill="var(--chart-accent)"
+					/>
+				{/if}
+
+				<!-- The rule marks the day on every chart; the dot only appears where
+				     that day actually has a reading. -->
+				{#if marked}
+					<Highlight data={marked} axis="x" motion="none" lines />
+					{#if isFilled(marked.value)}
+						<Highlight
+							data={marked}
+							axis="none"
+							motion="none"
+							points={{ r: 3, fill: 'var(--chart-accent)' }}
+						/>
+					{/if}
 				{/if}
 			</Svg>
 		{/snippet}

@@ -35,7 +35,7 @@ export const MAX_SERIES_HOURS = 24 * 90;
  */
 export const PUBLIC_METRICS = [
 	'steps',
-	'restingHeartRate',
+	'sleepHours',
 	'activeEnergy',
 	'exerciseMinutes',
 	'distance'
@@ -43,8 +43,6 @@ export const PUBLIC_METRICS = [
 
 /** Range picker steps. Coarse on purpose: each distinct value is a distinct cache entry. */
 export const PUBLIC_RANGES = [7, 30, 90, 365];
-
-export const PUBLIC_WORKOUT_LIMIT = 20;
 
 /**
  * How a metric composes across time.
@@ -271,10 +269,17 @@ function round(value) {
  */
 export function buildDailySeries({ metric, unit, rows, startDate, days, maxPoints }) {
 	const values = new Array(days).fill(null);
+	// Newest write inside the window, so the page can say when the data last
+	// moved. Rows outside the window don't count — they aren't being shown.
+	let updatedAt = null;
 
 	for (const row of rows) {
 		const i = dateKeyDiff(startDate, row.date);
-		if (i >= 0 && i < days) values[i] = row.value;
+		if (i < 0 || i >= days) continue;
+		values[i] = row.value;
+		if (typeof row.updatedAt === 'number' && (updatedAt === null || row.updatedAt > updatedAt)) {
+			updatedAt = row.updatedAt;
+		}
 	}
 
 	const size = bucketSizeFor(days, maxPoints);
@@ -287,8 +292,25 @@ export function buildDailySeries({ metric, unit, rows, startDate, days, maxPoint
 		start: dateKeyToMs(startDate),
 		step: size * DAY_MS,
 		count: Math.ceil(days / size),
+		updatedAt,
 		values: mergeValues(values, size, kind).map(round)
 	};
+}
+
+/**
+ * Newest write across a set of series, or null when none of them holds one.
+ *
+ * Shared by the public query and the SSR load so "Updated 3 hours ago" means the
+ * same thing whichever path rendered the page.
+ */
+export function latestSeriesUpdate(series) {
+	let newest = null;
+	for (const one of series) {
+		const at = one?.updatedAt;
+		if (typeof at !== 'number') continue;
+		if (newest === null || at > newest) newest = at;
+	}
+	return newest;
 }
 
 /**

@@ -36,7 +36,8 @@ export const OG_FIXTURES = {
 	home: { template: 'home' },
 	blog: { template: 'blog' },
 	projects: { template: 'projects' },
-	now: { template: 'now' }
+	now: { template: 'now' },
+	health: { template: 'health' }
 };
 
 export const OG_FIXTURE_IDS = Object.keys(OG_FIXTURES);

@@ -56,7 +56,7 @@ describe('resolveOgInput', () => {
 });
 
 describe('buildOgElement', () => {
-	it.each(['home', 'blog', 'blog-post', 'projects', 'project', 'now'])(
+	it.each(['home', 'blog', 'blog-post', 'projects', 'project', 'now', 'health'])(
 		'returns a satori element tree for the %s template',
 		(template) => {
 			const el = buildOgElement({ template, title: 't', description: 'd', tags: ['x'] });
