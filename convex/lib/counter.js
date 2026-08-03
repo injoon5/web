@@ -1,6 +1,6 @@
 /**
- * Generic denormalized counter helpers for tables with { url, count } rows
- * and a `by_url` index. Both `commentUrlCounts` and `likeCounts` share this logic.
+ * Denormalized counter for tables with { url, count } rows and a `by_url`
+ * index. Both `commentUrlCounts` and `likeCounts` share this logic.
  */
 
 /** Merge duplicate rows for the same URL (rare race on concurrent first inserts). */
@@ -21,21 +21,29 @@ async function canonicalCountRow(ctx, table, url) {
 	return { ...rows[0], count: total };
 }
 
-export async function incrementCount(ctx, table, url) {
+/**
+ * Move a URL's counter by `delta` in one read-modify-write, and return the
+ * count it settled on.
+ *
+ * Takes a delta rather than stepping by one because the callers that matter
+ * move it in bulk: hard-deleting a thread retires up to 200 comments that all
+ * share a URL, and a backfill batch is 100 rows over a handful of URLs. Stepping
+ * one at a time meant re-reading and re-patching the same row once per comment.
+ */
+export async function adjustCount(ctx, table, url, delta) {
 	const row = await canonicalCountRow(ctx, table, url);
-	if (row) {
-		await ctx.db.patch(table, row._id, { count: row.count + 1 });
-		return;
-	}
-	await ctx.db.insert(table, { url, count: 1 });
-}
 
-export async function decrementCount(ctx, table, url) {
-	const row = await canonicalCountRow(ctx, table, url);
-	if (!row) return;
-	if (row.count <= 1) {
-		await ctx.db.delete(table, row._id);
-		return;
+	if (!row) {
+		if (delta <= 0) return 0;
+		await ctx.db.insert(table, { url, count: delta });
+		return delta;
 	}
-	await ctx.db.patch(table, row._id, { count: row.count - 1 });
+
+	const next = row.count + delta;
+	if (next <= 0) {
+		await ctx.db.delete(table, row._id);
+		return 0;
+	}
+	if (next !== row.count) await ctx.db.patch(table, row._id, { count: next });
+	return next;
 }

@@ -93,3 +93,30 @@ export function normalizePhotos(payload) {
 		takenAt: str(photo?.takenAtNaive)
 	}));
 }
+
+/**
+ * Whether a freshly-fetched feed list matches the one already stored.
+ *
+ * The crons run every five minutes; the feeds change far less often than that.
+ * Writing an identical row anyway still changes the document (`updatedAt` moves
+ * if nothing else), and Convex invalidates on the document — so every open home
+ * page took a websocket push 288 times a day per feed to be told nothing had
+ * happened. Both lists are short, flat and same-shaped, so this comparison is
+ * cheap enough to run before every write.
+ *
+ * @param {Array<Record<string, unknown>> | undefined} stored
+ * @param {Array<Record<string, unknown>>} fetched
+ */
+export function sameFeedRows(stored, fetched) {
+	if (!Array.isArray(stored) || stored.length !== fetched.length) return false;
+
+	for (let i = 0; i < fetched.length; i++) {
+		const before = stored[i];
+		const after = fetched[i];
+		if (!before) return false;
+		for (const key of Object.keys(after)) {
+			if (before[key] !== after[key]) return false;
+		}
+	}
+	return true;
+}

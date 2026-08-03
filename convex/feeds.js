@@ -14,7 +14,13 @@
 import { v } from 'convex/values';
 import { internalAction, internalMutation, query } from './_generated/server.js';
 import { internal } from './_generated/api.js';
-import { PHOTOS_FEED_URL, lastfmUrl, normalizePhotos, normalizeTracks } from './lib/feeds.js';
+import {
+	PHOTOS_FEED_URL,
+	lastfmUrl,
+	normalizePhotos,
+	normalizeTracks,
+	sameFeedRows
+} from './lib/feeds.js';
 
 const trackValidator = v.object({
 	name: v.string(),
@@ -56,18 +62,27 @@ export const photos = query({
 //
 // One row per feed, patched in place — a feed has no history worth keeping, and
 // an insert-per-refresh would add 288 rows a day per feed.
+//
+// An unchanged feed is not written at all. Convex invalidates subscriptions on
+// the document, so re-patching an identical row pushed a websocket update to
+// every open home page every five minutes to say nothing had changed. The page
+// reads `lastScrobbledAt` off the tracks and never renders `updatedAt`, so
+// holding the row still when the list matches is invisible to it.
 // ---------------------------------------------------------------------------
 
 export const saveNowPlaying = internalMutation({
 	args: { tracks: v.array(trackValidator) },
 	handler: async (ctx, args) => {
 		const existing = await ctx.db.query('nowPlaying').first();
+		if (existing && sameFeedRows(existing.tracks, args.tracks)) return { changed: false };
+
 		const doc = { tracks: args.tracks, updatedAt: Date.now() };
 		if (existing) {
 			await ctx.db.patch('nowPlaying', existing._id, doc);
 		} else {
 			await ctx.db.insert('nowPlaying', doc);
 		}
+		return { changed: true };
 	}
 });
 
@@ -75,12 +90,15 @@ export const savePhotos = internalMutation({
 	args: { photos: v.array(photoValidator) },
 	handler: async (ctx, args) => {
 		const existing = await ctx.db.query('photos').first();
+		if (existing && sameFeedRows(existing.photos, args.photos)) return { changed: false };
+
 		const doc = { photos: args.photos, updatedAt: Date.now() };
 		if (existing) {
 			await ctx.db.patch('photos', existing._id, doc);
 		} else {
 			await ctx.db.insert('photos', doc);
 		}
+		return { changed: true };
 	}
 });
 
@@ -118,8 +136,8 @@ export const refreshNowPlaying = internalAction({
 			throw new Error('Last.fm returned no tracks');
 		}
 
-		await ctx.runMutation(internal.feeds.saveNowPlaying, { tracks });
-		return { count: tracks.length };
+		const { changed } = await ctx.runMutation(internal.feeds.saveNowPlaying, { tracks });
+		return { count: tracks.length, changed };
 	}
 });
 
@@ -132,7 +150,7 @@ export const refreshPhotos = internalAction({
 			throw new Error('Photos feed returned no photos');
 		}
 
-		await ctx.runMutation(internal.feeds.savePhotos, { photos: list });
-		return { count: list.length };
+		const { changed } = await ctx.runMutation(internal.feeds.savePhotos, { photos: list });
+		return { count: list.length, changed };
 	}
 });

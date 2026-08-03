@@ -5,8 +5,9 @@ import { execSync } from 'node:child_process';
 
 function gitInfo() {
 	try {
-		const sha = execSync('git rev-parse --short HEAD').toString().trim();
-		const isoDate = execSync('git log -1 --format=%cI').toString().trim();
+		// One `git log` for both fields — this config is evaluated more than once
+		// per build, and each spawn is a process.
+		const [sha, isoDate] = execSync('git log -1 --format=%h%n%cI').toString().trim().split('\n');
 		return { sha, isoDate };
 	} catch {
 		return { sha: '', isoDate: '' };

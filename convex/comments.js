@@ -12,7 +12,7 @@ import {
 	visitorVoteMap,
 	voteCountsFromDoc
 } from './lib/votes.js';
-import { decrementUrlCount, incrementUrlCount } from './lib/urlCounts.js';
+import { applyUrlCountDeltas, incrementUrlCount } from './lib/urlCounts.js';
 
 const MAX_DEPTH = 2;
 const MAX_COMMENTS = 200;
@@ -79,12 +79,12 @@ export const beginOwnerAction = internalMutation({
 export const list = query({
 	args: { url: v.string(), ipHash: v.string() },
 	handler: async (ctx, { url, ipHash }) => {
-		const docs = await ctx.db
+		// Bound on `deletedAt` too, so hard-deleted tombstones — which stay in the
+		// table forever — are skipped at the index rather than read and filtered.
+		const active = await ctx.db
 			.query('comments')
-			.withIndex('by_url', (q) => q.eq('url', url))
+			.withIndex('by_url_deleted', (q) => q.eq('url', url).eq('deletedAt', null))
 			.collect();
-
-		const active = docs.filter((d) => d.deletedAt === null);
 
 		// Rank whole threads, not individual comments: slicing a flat score-sorted
 		// list could keep a reply while dropping its still-alive parent, which the
@@ -202,6 +202,9 @@ export const create = mutation({
 
 		await incrementUrlCount(ctx, args.url);
 
+		// Read back rather than serialized from the arguments: `_creationTime` is
+		// Convex's to set, and this get is served from the transaction's own write
+		// set, so it costs no round trip.
 		const doc = await ctx.db.get('comments', id);
 		return publicComment(doc, { upvotes: 0, downvotes: 0, myVote: null });
 	}
@@ -280,19 +283,24 @@ export const softDelete = internalMutation({
 const HARD_DELETE_BATCH = 200;
 
 /**
- * Hard-delete up to HARD_DELETE_BATCH still-active comments in the subtree
- * rooted at `rootId` (votes removed, url counts decremented, deletedAt set).
- * Schedules a continuation when the subtree is larger than one batch.
+ * Hard-delete up to HARD_DELETE_BATCH still-active comments reachable from
+ * `frontier` (votes removed, url counts decremented, deletedAt set).
+ *
+ * The continuation resumes from the nodes this walk did not reach, rather than
+ * restarting at the root. Restarting re-issued a `by_parent` query for every
+ * node already retired by an earlier batch, so the reads to delete a subtree
+ * grew with the square of its size.
  */
-async function hardDeleteSubtree(ctx, rootId) {
-	// BFS the subtree, collecting active docs until one batch is full. Already
-	// hard-deleted nodes are skipped but still traversed, so continuations can
-	// reach active grandchildren under a deleted parent.
-	const toDelete = [];
-	const queue = [rootId];
-	for (let i = 0; i < queue.length && toDelete.length <= HARD_DELETE_BATCH; i++) {
+async function hardDeleteFrom(ctx, frontier) {
+	// BFS, collecting active docs until one batch is full. Already hard-deleted
+	// nodes are skipped but still traversed, so the walk reaches active
+	// grandchildren under a deleted parent.
+	const batch = [];
+	const queue = [...frontier];
+	let i = 0;
+	for (; i < queue.length && batch.length < HARD_DELETE_BATCH; i++) {
 		const doc = await ctx.db.get('comments', queue[i]);
-		if (doc && doc.deletedAt === null) toDelete.push(doc);
+		if (doc && doc.deletedAt === null) batch.push(doc);
 
 		const children = await ctx.db
 			.query('comments')
@@ -303,12 +311,12 @@ async function hardDeleteSubtree(ctx, rootId) {
 		}
 	}
 
-	const hasOverflow = toDelete.length > HARD_DELETE_BATCH;
-	const batch = hasOverflow ? toDelete.slice(0, HARD_DELETE_BATCH) : toDelete;
-
 	const now = Date.now();
+	// One counter write per URL instead of one per comment — every comment in a
+	// subtree shares a URL, so this was 200 reads and 200 patches of one row.
+	const urlDeltas = new Map();
 	for (const doc of batch) {
-		await decrementUrlCount(ctx, doc.url);
+		urlDeltas.set(doc.url, (urlDeltas.get(doc.url) ?? 0) - 1);
 
 		const votes = await ctx.db
 			.query('commentVotes')
@@ -319,18 +327,20 @@ async function hardDeleteSubtree(ctx, rootId) {
 		}
 		await ctx.db.patch('comments', doc._id, { deletedAt: now });
 	}
+	await applyUrlCountDeltas(ctx, urlDeltas);
 
-	if (hasOverflow) {
+	const rest = queue.slice(i);
+	if (rest.length > 0) {
 		await ctx.scheduler.runAfter(0, internal.comments.hardDeleteContinue, {
-			commentId: rootId
+			frontier: rest
 		});
 	}
 }
 
 export const hardDeleteContinue = internalMutation({
-	args: { commentId: v.id('comments') },
-	handler: async (ctx, { commentId }) => {
-		await hardDeleteSubtree(ctx, commentId);
+	args: { frontier: v.array(v.id('comments')) },
+	handler: async (ctx, { frontier }) => {
+		await hardDeleteFrom(ctx, frontier);
 	}
 });
 
@@ -344,7 +354,7 @@ export const hardDelete = mutation({
 		const root = await ctx.db.get('comments', commentId);
 		if (!root || root.deletedAt !== null) return;
 
-		await hardDeleteSubtree(ctx, commentId);
+		await hardDeleteFrom(ctx, [commentId]);
 	}
 });
 

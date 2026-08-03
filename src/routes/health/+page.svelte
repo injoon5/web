@@ -60,20 +60,28 @@
 	 * Sections for a resolved page payload, live or streamed.
 	 *
 	 * A plain function rather than a `$derived`, because the streamed half only
-	 * exists inside an `{#await}` block. It is called from a `{@const}` in each
-	 * block, which re-runs when `live.data` changes — four map lookups, so
-	 * running it twice costs nothing worth threading state around to avoid.
+	 * exists inside an `{#await}` block — and it is called from a `{@const}` in
+	 * two of them, for the dial and for the grid. Memoized on the payload
+	 * identity so those two calls share one result: `trimToLatest` slices four
+	 * series that run to 365 points on the widest range.
 	 */
+	let memoInput;
+	let memoSections = [];
+
 	function sectionsOf(page) {
+		if (page === memoInput) return memoSections;
+
 		const byMetric = new Map((page?.series ?? []).map((s) => [s.metric, s]));
 		const sections = PAGE_METRICS.map((metric) => ({
 			metric,
 			series: byMetric.get(metric.key)
 		})).filter((s) => s.series);
 
+		memoInput = page;
 		// The window runs a day past UTC-today to catch a phone filing tomorrow's
 		// date; until something lands there, that day is not on the axis.
-		return trimToLatest(sections);
+		memoSections = trimToLatest(sections);
+		return memoSections;
 	}
 
 	/**

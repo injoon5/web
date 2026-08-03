@@ -1,17 +1,12 @@
-import {
-	blogEnModules,
-	blogKoModules,
-	projectEnModules,
-	projectKoModules
-} from './content-modules.js';
+import { blogEnMeta, blogKoMeta, projectEnMeta, projectKoMeta } from './content-modules.js';
 import { resolvePublished } from './content';
 
 const validUrls = new Set();
 
-for (const item of resolvePublished(blogEnModules, blogKoModules)) {
+for (const item of resolvePublished(blogEnMeta, blogKoMeta)) {
 	validUrls.add('/blog/' + item.slug);
 }
-for (const item of resolvePublished(projectEnModules, projectKoModules)) {
+for (const item of resolvePublished(projectEnMeta, projectKoMeta)) {
 	validUrls.add('/projects/' + item.slug);
 }
 

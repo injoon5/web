@@ -8,6 +8,31 @@ import { resolveBilingualEntry, bilingualPageData, slugFromPath } from '$lib/con
 const enModules = import.meta.glob('../posts/en/*.md');
 const koModules = import.meta.glob('../posts/ko/*.md');
 
+// Metadata only, eagerly, for resolving the series list. Building that list used
+// to dynamically import every post in both languages just to read
+// `metadata.series` — on a client-side navigation that fetched the chunk for
+// every article on the site. `import: 'metadata'` leaves the components behind,
+// so what ships is a handful of small records.
+const enMeta = import.meta.glob('../posts/en/*.md', { eager: true, import: 'metadata' });
+const koMeta = import.meta.glob('../posts/ko/*.md', { eager: true, import: 'metadata' });
+
+type Metadata = { published?: boolean; series?: string; date?: string; slug?: string };
+
+/** Published metadata by slug, from one of the eager metadata globs. */
+function publishedBySlug(metaByPath: Record<string, unknown>) {
+	const bySlug = new Map<string, Metadata>();
+	for (const path in metaByPath) {
+		const meta = metaByPath[path] as Metadata | undefined;
+		if (!meta?.published) continue;
+		const slug = slugFromPath(path);
+		bySlug.set(slug, { ...meta, slug });
+	}
+	return bySlug;
+}
+
+const enBySlug = publishedBySlug(enMeta);
+const koBySlug = publishedBySlug(koMeta);
+
 export async function load({ params, data }) {
 	const { en: enPost, ko: koPost } = await resolveBilingualEntry(
 		enModules,
@@ -26,30 +51,15 @@ export async function load({ params, data }) {
 	const koSeries = [];
 
 	if (seriesNames.size > 0) {
-		// Walk both globs once, load only modules that might belong to the series
-		// in parallel.
-		const candidateSlugs = new Set();
-		for (const path in enModules) candidateSlugs.add(slugFromPath(path));
-		for (const path in koModules) candidateSlugs.add(slugFromPath(path));
-
-		const entries = await Promise.all(
-			[...candidateSlugs].map(async (slug) => {
-				const { en, ko } = await resolveBilingualEntry(
-					enModules,
-					koModules,
-					`../posts/en/${slug}.md`,
-					`../posts/ko/${slug}.md`
-				);
-				const eMeta = en ? { ...en.metadata, slug } : null;
-				const kMeta = ko ? { ...ko.metadata, slug } : null;
-				return { slug, eMeta, kMeta };
-			})
-		);
-
-		const matched = entries.filter(({ eMeta, kMeta }) => {
+		// Straight off the eager metadata globs — no module loading, so this is
+		// synchronous and costs nothing beyond the records already in the bundle.
+		const matched = [];
+		for (const slug of new Set([...enBySlug.keys(), ...koBySlug.keys()])) {
+			const eMeta = enBySlug.get(slug) ?? null;
+			const kMeta = koBySlug.get(slug) ?? null;
 			const series = eMeta?.series ?? kMeta?.series;
-			return series && seriesNames.has(series);
-		});
+			if (series && seriesNames.has(series)) matched.push({ eMeta, kMeta });
+		}
 
 		const dateOf = (m: { date?: string } | null) => (m?.date ? new Date(m.date).getTime() : 0);
 		matched.sort((a, b) => dateOf(b.eMeta ?? b.kMeta) - dateOf(a.eMeta ?? a.kMeta));
