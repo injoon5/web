@@ -39,12 +39,21 @@ export function marqueePauseWhenOffscreen(node) {
 // moves at ~40px/s regardless of how many items are loaded.
 export function marqueeConstantSpeed(node) {
 	const PX_PER_SECOND = 40;
+
+	// Read rather than hard-coded, so the tuning panel can move it by setting
+	// `--marquee-speed` on the track. Unset — every production build — this is
+	// the same 40 it always was.
+	function speed() {
+		const declared = Number(getComputedStyle(node).getPropertyValue('--marquee-speed'));
+		return Number.isFinite(declared) && declared > 0 ? declared : PX_PER_SECOND;
+	}
+
 	function tune() {
 		// Track list is duplicated; we translate by -50%, so the distance
 		// travelled equals half the full scrollWidth.
 		const distance = node.scrollWidth / 2;
 		if (distance <= 0) return;
-		node.style.animationDuration = `${distance / PX_PER_SECOND}s`;
+		node.style.animationDuration = `${distance / speed()}s`;
 	}
 	// Wait for images to settle so scrollWidth is final.
 	const imgs = node.querySelectorAll('img');
@@ -63,5 +72,16 @@ export function marqueeConstantSpeed(node) {
 	tune();
 	const ro = new ResizeObserver(tune);
 	ro.observe(node);
-	return { destroy: () => ro.disconnect() };
+
+	// A speed change moves no boxes, so the observer above never hears about it.
+	// The tuning panel says so directly instead; nothing in production ever
+	// fires this.
+	document.addEventListener('marquee:retune', tune);
+
+	return {
+		destroy: () => {
+			ro.disconnect();
+			document.removeEventListener('marquee:retune', tune);
+		}
+	};
 }

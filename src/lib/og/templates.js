@@ -424,6 +424,17 @@ export function projectTemplate({ title, description, year, tags }) {
 	]);
 }
 
+export function healthTemplate() {
+	return container([
+		mainColumn([
+			label('Injoon Oh'),
+			displayText('Health'),
+			bodyText('Steps, movement and energy, straight off an Apple Watch.', { marginTop: 22 })
+		]),
+		bottomBar()
+	]);
+}
+
 export function nowTemplate() {
 	return container([
 		mainColumn([

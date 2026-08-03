@@ -156,20 +156,60 @@
 	   fades the accent without drifting through grey, which is what a plain
 	   `transparent` stop would do in an SVG gradient. */
 	--chart-accent: var(--color-orange-500);
-	--chart-accent-0: color-mix(in oklab, var(--color-orange-500), transparent 100%);
-	/* Kept faint on purpose: a series with gaps draws the wash with vertical
-	   edges where the data stops, and a heavy fill turns those into walls. */
-	--chart-wash-top: color-mix(in oklab, var(--color-orange-500), transparent 93%);
-	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-500), transparent 100%);
+	/* The wash is mixed off this accent stop by stop in `MetricChart`, along
+	   `WASH_RAMP` — it is a six-stop ease-out rather than two colours, so it
+	   dissolves into the page instead of ending at the baseline. Nothing to
+	   declare here: change the accent and the fill follows. */
 	--chart-muted: var(--color-neutral-400);
+	/* Unfilled part of the score ring. Reads as a groove, not a second arc. */
+	--chart-track: var(--color-neutral-200);
+
+	/* The score ring's bands, green through to rose. The arc is the one thing on
+	   /health that reports the day without being read, so the ramp has to run in
+	   one direction and the steps have to be far enough apart in hue to tell
+	   apart at 6px wide — which is why "good" is not a second orange. */
+	--score-excellent: #10b750;
+	--score-good: var(--color-lime-500);
+	--score-fair: var(--color-amber-500);
+	--score-light: var(--color-rose-400);
+	--score-none: var(--color-neutral-300);
 }
 
 .dark {
 	--chart-accent: var(--color-orange-400);
-	--chart-accent-0: color-mix(in oklab, var(--color-orange-400), transparent 100%);
-	--chart-wash-top: color-mix(in oklab, var(--color-orange-400), transparent 93%);
-	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-400), transparent 100%);
 	--chart-muted: var(--color-neutral-600);
+	--chart-track: var(--color-neutral-800);
+
+	--score-excellent: #10b750;
+	--score-good: var(--color-lime-400);
+	--score-fair: var(--color-amber-400);
+	--score-light: var(--color-rose-400);
+	--score-none: var(--color-neutral-700);
+}
+
+/* The y axis is text and nothing else — no rule, no ticks, no grid.
+   layerchart paints a 2px halo behind tick labels so they stay legible on top of
+   gridlines; with no gridlines to sit on, that halo is just a smudge. The rule
+   is unlayered on purpose, so it outranks the component-layer default. */
+.health-axis-label {
+	fill: var(--chart-muted);
+	stroke: none;
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+
+/* Plot height, shorter on a phone: below `sm` the four sections stack into one
+   column, and the full height turned /health into five thousand pixels of
+   scrolling. Both values come from `chart-settings.svelte.js` as custom
+   properties, so the tuning panel moves them and the CSS just picks. */
+.health-plot-box {
+	height: var(--chart-h-sm);
+}
+
+@media (min-width: 40rem) {
+	.health-plot-box {
+		height: var(--chart-h);
+	}
 }
 
 /* Draw the line in once on mount. `pathLength="1"` normalizes the dash math, so
@@ -203,6 +243,32 @@
 	animation: health-area-in 180ms var(--ease-out-fast) both;
 }
 
+/* A reading with a gap on both sides has no line to draw, so it gets a dot.
+   Same fade as the wash — it belongs to the same chart, not on top of it. */
+.health-dot {
+	animation: health-area-in 180ms var(--ease-out-fast) both;
+}
+
+/* The score ring winds up from empty on load (2*pi*40, the arc's full length),
+   then transitions between values as the hovered day changes. Omitting the `to`
+   frame lets the animation land on whatever the current score sets. */
+@keyframes health-ring-in {
+	from {
+		stroke-dashoffset: 251.33;
+	}
+}
+
+/* Short on purpose: the ring re-aims on every scrubbed day, and anything
+   slower reads as the score lagging behind the pointer. */
+.health-ring {
+	animation: health-ring-in 700ms var(--ease-out-fast);
+	/* The color crosses a band boundary on some scrubs and not others, so it
+	   fades rather than cuts — a hard swap reads as a glitch mid-drag. */
+	transition:
+		stroke-dashoffset 180ms var(--ease-out-fast),
+		stroke 220ms var(--ease-out-fast);
+}
+
 /* Sections settle in ~100ms apart rather than one container animating as a block. */
 @keyframes health-section-in {
 	from {
@@ -230,6 +296,8 @@
 	   still hold each section invisible for up to half a second. */
 	.health-line,
 	.health-area,
+	.health-dot,
+	.health-ring,
 	.health-section {
 		animation: none !important;
 	}
@@ -293,6 +361,26 @@
 	& :where(iframe):not(:where([class~='not-prose'] *)) {
 		@apply aspect-video h-auto w-full rounded-sm;
 	}
+}
+
+/* The handful of prose values the article tuning panel can move.
+   Each keeps the utility's own value above as its fallback, so a page that sets
+   nothing — every production page — renders exactly as it did before. Unlayered
+   on purpose: that is what lets these outrank the `@apply`ed utilities, which
+   Tailwind puts in a layer. */
+.prose-post {
+	max-width: var(--prose-measure, none);
+	font-size: var(--prose-size, 1rem);
+}
+
+.prose-post :where(p, li) {
+	line-height: var(--prose-leading, 1.625);
+}
+
+.prose-post :where(a) {
+	text-decoration-line: var(--prose-underline, underline);
+	text-underline-offset: var(--prose-underline-offset, 2px);
+	text-decoration-thickness: var(--prose-underline-thickness, 1px);
 }
 
 /* =========================

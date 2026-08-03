@@ -5,6 +5,8 @@
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 	import TechStack from '$lib/TechStack.svelte';
+	import HomeDialsMount from '$lib/home/HomeDialsMount.svelte';
+	import { homeSettings, homeStyle } from '$lib/home/home-settings.svelte.js';
 	import { techstack } from '$lib/techstack-data.js';
 
 	const { data } = $props();
@@ -282,11 +284,12 @@
 
 	<div
 		class="relative left-1/2 col-span-full mt-4 w-screen -translate-x-1/2 overflow-hidden pb-4 lg:col-span-12 lg:mt-0"
+		style={homeStyle(homeSettings)}
 	>
 		{#if nowQuery.isLoading}
 			<div class="flex gap-3">
 				{#each Array.from({ length: 20 }, (_, index) => index) as index (index)}
-					<div class="shimmer aspect-square w-40 shrink-0 rounded-xl lg:w-48"></div>
+					<div class="now-cover shimmer aspect-square shrink-0"></div>
 				{/each}
 			</div>
 		{:else if nowQuery.error != null}
@@ -302,7 +305,7 @@
 			>
 				{#each [...tracks, ...tracks] as track}
 					<a
-						class=" border-opacity-50 group relative mr-3 aspect-square w-40 shrink-0 overflow-hidden rounded-xl border border-neutral-300 shadow-md lg:w-48 dark:border dark:border-neutral-800"
+						class="now-cover border-opacity-50 group relative aspect-square shrink-0 overflow-hidden border border-neutral-300 shadow-md dark:border dark:border-neutral-800"
 						href={track.url}
 					>
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
@@ -313,7 +316,7 @@
 							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
 						/>
 						<div
-							class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-0"
+							class="now-cover-scrim absolute inset-0 transition-opacity duration-300 group-hover:opacity-0"
 						></div>
 						<div
 							class="absolute inset-x-0 bottom-0 ml-1 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
@@ -349,11 +352,11 @@
 		</div>
 	</div>
 
-	<div class="col-span-10 mt-4 justify-center lg:mt-0">
-		<div class="mt-1 grid grid-cols-2 gap-4 sm:grid-cols-3">
+	<div class="col-span-10 mt-4 justify-center lg:mt-0" style={homeStyle(homeSettings)}>
+		<div class="photo-grid mt-1 grid grid-cols-2">
 			{#if photosQuery.isLoading}
 				{#each Array.from({ length: 6 }, (_, index) => index) as index (index)}
-					<div class="shimmer aspect-square w-full"></div>
+					<div class="photo-tile shimmer aspect-square w-full"></div>
 				{/each}
 			{:else if photosQuery.error != null}
 				<div class="col-span-2 sm:col-span-3">
@@ -365,10 +368,10 @@
 					</div>
 				</div>
 			{:else}
-				{#each photos.slice(0, 6) as photo (photo.url)}
+				{#each photos.slice(0, homeSettings.photoCount) as photo (photo.url)}
 					<a
 						href={photo.url}
-						class="group border-opacity-50 relative block aspect-square w-full overflow-hidden rounded-xl border border-neutral-300 bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+						class="photo-tile group border-opacity-50 relative block aspect-square w-full overflow-hidden border border-neutral-300 bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
 					>
 						<img
 							loading="lazy"
@@ -409,7 +412,50 @@
 	</div>
 </div>
 
+<!-- Preview deployments only, and compiled out entirely everywhere else. -->
+<HomeDialsMount />
+
 <style>
+	/* Each of these keeps the value the class used to hard-code as its fallback,
+	   so the page renders identically when nothing sets the variable — which is
+	   every production build. */
+	.now-cover {
+		width: var(--cover-size, 10rem);
+		margin-right: var(--cover-gap, 0.75rem);
+		border-radius: var(--media-radius, 0.75rem);
+	}
+
+	@media (min-width: 64rem) {
+		.now-cover {
+			width: var(--cover-size-lg, 12rem);
+		}
+	}
+
+	/* Was `bg-gradient-to-t from-black/70 via-black/20`. Keeping the midpoint at
+	   a fixed fraction of the floor holds the curve's shape as it is dialled. */
+	.now-cover-scrim {
+		background-image: linear-gradient(
+			to top,
+			rgb(0 0 0 / var(--cover-scrim, 0.7)),
+			rgb(0 0 0 / calc(var(--cover-scrim, 0.7) * 0.29)),
+			transparent
+		);
+	}
+
+	.photo-grid {
+		gap: var(--photo-gap, 1rem);
+	}
+
+	@media (min-width: 40rem) {
+		.photo-grid {
+			grid-template-columns: repeat(var(--photo-columns, 3), minmax(0, 1fr));
+		}
+	}
+
+	.photo-tile {
+		border-radius: var(--media-radius, 0.75rem);
+	}
+
 	.now-marquee {
 		width: max-content;
 		will-change: transform;

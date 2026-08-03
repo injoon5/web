@@ -386,15 +386,13 @@
 	}
 
 	/* --- Tabs --- */
+	/* No rule under the tabs: the active tab already carries its own indicator,
+	   and a hairline spanning the full width made the strip read as the top of a
+	   table the section does not have. */
 	.ts-tabs-scroll-wrap {
 		position: relative;
 		padding-bottom: 0.2rem;
 		margin-bottom: 0.75rem;
-		border-bottom: 1px solid var(--color-neutral-200);
-	}
-
-	:global(.dark) .ts-tabs-scroll-wrap {
-		border-bottom-color: var(--color-neutral-800);
 	}
 
 	.ts-tabs-scroll {

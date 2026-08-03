@@ -1,6 +1,7 @@
 <script>
 	import '../app.css';
 	import NavBar from '$lib/NavBar.svelte';
+	import DialsMount from '$lib/dev/DialsMount.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
@@ -99,6 +100,11 @@
 <div class="mx-auto max-w-6xl px-4 pt-4 pb-4 text-sm sm:px-12">
 	{@render children()}
 </div>
+
+<!-- Every public page gets the tuning panel, and production gets no trace of it:
+     `__DIALS__` is a build-time literal, so this folds away and DialKit is never
+     emitted. Page-level panels register into it as folders. -->
+<DialsMount />
 
 <footer class="mt-10 mb-20 w-full pt-24 tracking-tight">
 	<div class="text-xs">
