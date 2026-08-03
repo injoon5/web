@@ -27,8 +27,11 @@ process.env.PUBLIC_GIT_COMMIT_DATE = isoDate;
  *
  * Preview deployments and `vite dev` get it; production never does.
  */
+// `VERCEL_ENV` is `production` | `preview` | `development`, and is set at build
+// time as well as runtime — so everything that isn't production gets the panel,
+// including `vercel dev`. Off Vercel entirely, fall back to the Node env.
 const healthDials = process.env.VERCEL_ENV
-	? process.env.VERCEL_ENV === 'preview'
+	? process.env.VERCEL_ENV !== 'production'
 	: process.env.NODE_ENV !== 'production';
 
 export default defineConfig({

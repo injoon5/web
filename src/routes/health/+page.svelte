@@ -12,7 +12,8 @@
 		formatRelative,
 		formatStamp,
 		latestIndex,
-		rangeStartDate
+		rangeStartDate,
+		trimToLatest
 	} from '$lib/health/metrics.js';
 
 	import { chartSettings } from '$lib/health/chart-settings.svelte.js';
@@ -65,9 +66,14 @@
 	 */
 	function sectionsOf(page) {
 		const byMetric = new Map((page?.series ?? []).map((s) => [s.metric, s]));
-		return PAGE_METRICS.map((metric) => ({ metric, series: byMetric.get(metric.key) })).filter(
-			(s) => s.series
-		);
+		const sections = PAGE_METRICS.map((metric) => ({
+			metric,
+			series: byMetric.get(metric.key)
+		})).filter((s) => s.series);
+
+		// The window runs a day past UTC-today to catch a phone filing tomorrow's
+		// date; until something lands there, that day is not on the axis.
+		return trimToLatest(sections);
 	}
 
 	/**

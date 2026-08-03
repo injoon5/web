@@ -93,7 +93,10 @@ export function formatCompact(value, decimals = 0) {
 	const abs = Math.abs(value);
 	if (abs >= 10000) return `${Math.round(value / 1000)}k`;
 	if (abs >= 1000) return `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-	return numberFormat(abs >= 100 ? 0 : decimals).format(value);
+	// Decimals only where they carry information. `6.2` says something about a
+	// day's distance; `20.0` at the top of an axis is a decimal point and a zero
+	// spent saying "twenty".
+	return numberFormat(abs >= 10 ? 0 : decimals).format(value);
 }
 
 const dateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
@@ -234,6 +237,30 @@ export function latestIndex(sections) {
 		if (at > newest) newest = at;
 	}
 	return newest;
+}
+
+/**
+ * Cut every series at the newest day any metric reported.
+ *
+ * The window reaches one day past UTC-today on purpose: a phone writes day keys
+ * in its own calendar, so a Watch in Seoul files "the 4th" while UTC is still on
+ * the 3rd. That slot is empty for anyone at or behind UTC, and an empty slot on
+ * the right-hand edge put a date on the axis that hasn't happened yet.
+ *
+ * Trimming here rather than narrowing the query keeps the slot — it just stops
+ * being drawn until something lands in it. Every section is cut to the same
+ * length, because the charts share one x domain and a ragged right edge would
+ * put the same day at four different pixels.
+ */
+export function trimToLatest(sections) {
+	const end = latestIndex(sections) + 1;
+	if (end <= 0) return sections;
+
+	return sections.map(({ metric, series }) =>
+		series.values.length <= end
+			? { metric, series }
+			: { metric, series: { ...series, values: series.values.slice(0, end), count: end } }
+	);
 }
 
 /**

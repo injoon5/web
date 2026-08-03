@@ -8,6 +8,7 @@ import {
 	lastFilledIndex,
 	latestIndex,
 	rangeStartDate,
+	trimToLatest,
 	scoreLabel,
 	scoreTone,
 	valueAt,
@@ -90,6 +91,10 @@ describe('formatCompact', () => {
 		expect(formatCompact(430)).toBe('430');
 		expect(formatCompact(6.2, 1)).toBe('6.2');
 		expect(formatCompact(0)).toBe('0');
+		// Decimals only where they carry information — `20.0 km` spends a decimal
+		// point saying "twenty".
+		expect(formatCompact(20, 1)).toBe('20');
+		expect(formatCompact(0, 1)).toBe('0');
 	});
 });
 
@@ -103,6 +108,39 @@ describe('lastFilledIndex / latestIndex', () => {
 		const sections = [section('steps', [1, 2, null]), section('exerciseMinutes', [7, null, null])];
 		expect(latestIndex(sections)).toBe(1);
 		expect(latestIndex([])).toBe(-1);
+	});
+});
+
+/**
+ * The window runs a day past UTC-today so a phone filing tomorrow's date has
+ * somewhere to land. Until it does, that day is not on the axis — it was putting
+ * a date that hasn't happened yet under the right-hand edge of every chart.
+ */
+describe('trimToLatest', () => {
+	const at = (values) => ({ metric: PAGE_METRICS[0], series: { values, count: values.length } });
+
+	it('cuts the empty slot off the end of the window', () => {
+		const [trimmed] = trimToLatest([at([1, 2, 3, null])]);
+		expect(trimmed.series.values).toEqual([1, 2, 3]);
+		expect(trimmed.series.count).toBe(3);
+	});
+
+	// One length for every section, or the shared x domain puts the same day at
+	// four different pixels.
+	it('cuts every section to the same length', () => {
+		const trimmed = trimToLatest([at([1, 2, 3, null]), at([9, null, null, null])]);
+		expect(trimmed.map((s) => s.series.values.length)).toEqual([3, 3]);
+		expect(trimmed[1].series.values).toEqual([9, null, null]);
+	});
+
+	it('leaves a window that already ends on a reading alone', () => {
+		const [trimmed] = trimToLatest([at([1, 2, 3])]);
+		expect(trimmed.series.values).toEqual([1, 2, 3]);
+	});
+
+	it('leaves an empty window alone', () => {
+		const [trimmed] = trimToLatest([at([null, null])]);
+		expect(trimmed.series.values).toEqual([null, null]);
 	});
 });
 

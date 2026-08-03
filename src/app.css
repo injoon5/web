@@ -156,10 +156,11 @@
 	   fades the accent without drifting through grey, which is what a plain
 	   `transparent` stop would do in an SVG gradient. */
 	--chart-accent: var(--color-orange-500);
-	/* Kept faint on purpose: the wash is weight under the line, not a second
-	   shape, and a heavy fill turns the baseline into a wall. */
-	--chart-wash-top: color-mix(in oklab, var(--color-orange-500), transparent 93%);
-	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-500), transparent 100%);
+	/* The wash reads as weight under the line rather than a second shape, so it
+	   still falls away to nothing at the baseline — but it starts with enough
+	   colour to actually be seen. At 93% it was a rumour. */
+	--chart-wash-top: color-mix(in oklab, var(--color-orange-500), transparent 76%);
+	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-500), transparent 98%);
 	--chart-muted: var(--color-neutral-400);
 	/* Unfilled part of the score ring. Reads as a groove, not a second arc. */
 	--chart-track: var(--color-neutral-200);
@@ -177,8 +178,10 @@
 
 .dark {
 	--chart-accent: var(--color-orange-400);
-	--chart-wash-top: color-mix(in oklab, var(--color-orange-400), transparent 93%);
-	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-400), transparent 100%);
+	/* A touch lighter than the light-mode wash: the same mix reads brighter
+	   against near-black than it does against white. */
+	--chart-wash-top: color-mix(in oklab, var(--color-orange-400), transparent 80%);
+	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-400), transparent 98%);
 	--chart-muted: var(--color-neutral-600);
 	--chart-track: var(--color-neutral-800);
 
