@@ -78,6 +78,41 @@ describe('now playing', () => {
 		expect(rows[0].tracks.map((track) => track.name)).toEqual(['two']);
 	});
 
+	it('does not touch the row when the feed comes back unchanged', async () => {
+		const t = setup();
+
+		respond(lastfmResponse(['one', 'two']));
+		await t.action(internal.feeds.refreshNowPlaying, {});
+		const first = await t.query(api.feeds.nowPlaying, {});
+
+		// Same tracks five minutes later, which is the ordinary case. Writing an
+		// identical row anyway would move `updatedAt`, and Convex invalidates on
+		// the document — so every open home page would take a websocket push to
+		// be told nothing had happened.
+		respond(lastfmResponse(['one', 'two']));
+		const result = await t.action(internal.feeds.refreshNowPlaying, {});
+
+		expect(result.changed).toBe(false);
+		const second = await t.query(api.feeds.nowPlaying, {});
+		expect(second.updatedAt).toBe(first.updatedAt);
+	});
+
+	it('writes when a new scrobble lands', async () => {
+		const t = setup();
+
+		respond(lastfmResponse(['one']));
+		await t.action(internal.feeds.refreshNowPlaying, {});
+		const first = await t.query(api.feeds.nowPlaying, {});
+
+		respond(lastfmResponse(['two', 'one']));
+		const result = await t.action(internal.feeds.refreshNowPlaying, {});
+
+		expect(result.changed).toBe(true);
+		const second = await t.query(api.feeds.nowPlaying, {});
+		expect(second.tracks.map((track) => track.name)).toEqual(['two', 'one']);
+		expect(second.updatedAt).toBeGreaterThanOrEqual(first.updatedAt);
+	});
+
 	it('keeps the last good feed when Last.fm errors', async () => {
 		const t = setup();
 
@@ -125,6 +160,21 @@ describe('photos', () => {
 		const doc = await t.query(api.feeds.photos, {});
 		expect(doc.photos.map((photo) => photo.id)).toEqual(['a', 'b']);
 		expect(doc.photos[0].image).toBe('https://photos.example/a');
+	});
+
+	it('does not touch the row when the feed comes back unchanged', async () => {
+		const t = setup();
+
+		respond(photosResponse(['a', 'b']));
+		await t.action(internal.feeds.refreshPhotos, {});
+		const first = await t.query(api.feeds.photos, {});
+
+		respond(photosResponse(['a', 'b']));
+		const result = await t.action(internal.feeds.refreshPhotos, {});
+
+		expect(result.changed).toBe(false);
+		const second = await t.query(api.feeds.photos, {});
+		expect(second.updatedAt).toBe(first.updatedAt);
 	});
 
 	it('keeps the last good feed when the photo site errors', async () => {

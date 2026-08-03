@@ -92,3 +92,47 @@ describe('checkCanCreate', () => {
 		).resolves.toBeNull();
 	});
 });
+
+/**
+ * `list` binds `deletedAt` on the index rather than collecting the URL and
+ * filtering. Tombstones never leave the table, so this is what stops a
+ * moderated page from paying for its whole history on every read.
+ */
+describe('list', () => {
+	it('serves live comments and omits hard-deleted ones', async () => {
+		const t = setup();
+		await t.mutation(api.comments.create, newComment({ text: 'kept' }));
+		const doomed = await t.mutation(api.comments.create, newComment({ text: 'gone' }));
+
+		process.env.ADMIN_SECRET = 'test-admin-secret';
+		await t.mutation(api.comments.hardDelete, {
+			commentId: doomed.id,
+			adminSecret: 'test-admin-secret'
+		});
+
+		const list = await t.query(api.comments.list, { url: '/blog/test', ipHash: IP });
+		expect(list.map((c) => c.text)).toEqual(['kept']);
+	});
+
+	it('still serves a soft-deleted comment, as the placeholder it became', async () => {
+		const t = setup();
+		const comment = await t.mutation(api.comments.create, newComment({ text: 'original' }));
+		await t.run(async (ctx) => {
+			await ctx.db.patch('comments', comment.id, { text: '[deleted]', username: '[deleted]' });
+		});
+
+		const list = await t.query(api.comments.list, { url: '/blog/test', ipHash: IP });
+		expect(list).toHaveLength(1);
+		expect(list[0].text).toBe('[deleted]');
+	});
+
+	it('keeps a reply attached to a parent that is still alive', async () => {
+		const t = setup();
+		const parent = await t.mutation(api.comments.create, newComment({ text: 'parent' }));
+		await t.mutation(api.comments.create, newComment({ text: 'reply', parentId: parent.id }));
+
+		const list = await t.query(api.comments.list, { url: '/blog/test', ipHash: IP });
+		expect(list).toHaveLength(2);
+		expect(list.find((c) => c.text === 'reply').parentId).toBe(parent.id);
+	});
+});

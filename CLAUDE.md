@@ -38,7 +38,8 @@ src/
       api.js               # convexErrorToResponse helper
       convex.js            # Server-side Convex HTTP client
       ip.ts                # getClientIp(request), hashIp(ip) — SHA-256 IP hashing
-      content-modules.js   # Single home for the eager content md globs
+      content-modules.js   # Eager metadata-only globs for the content md
+      content.js           # resolvePublished + publishedPosts/publishedProjects
       content-page.js      # Shared server load for blog/projects [slug] (prefLang + ipHash)
       valid-urls.js        # isValidPageUrl — guards comment/like writes to known pages
       validation.ts        # Zod schemas for all inputs
@@ -49,13 +50,13 @@ src/
       CommentNode.svelte       # Individual user-facing comment + reply tree
       AdminCommentNode.svelte  # Admin dashboard comment node (admin only)
   routes/
-    +page.ts               # Home (prerendered)
+    +page.server.ts        # Home (prerendered) — reads the lists directly
     blog/
-      +page.ts             # Blog listing (prerendered)
-      [slug]/+page.ts      # Blog post (prerendered, loads md via import.meta.glob)
+      +page.server.ts      # Blog listing (prerendered)
+      [slug]/+page.ts      # Blog post (SSR, loads md via import.meta.glob)
     projects/
-      +page.ts             # Projects listing (prerendered)
-      [slug]/+page.ts      # Project detail (prerendered)
+      +page.server.ts      # Projects listing (prerendered)
+      [slug]/+page.ts      # Project detail (SSR)
     now/+page.svelte       # /now page, Convex-backed, markdown via marked
     health/
       +page.server.js      # SSR load — streams api.healthPublic.page (no key, not awaited)
@@ -100,7 +101,7 @@ convex/
 
 | Table              | Key fields                                                                                                             | Indexes                                    |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes | `by_url`, `by_parent`                      |
+| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes | `by_url_deleted`, `by_parent`              |
 | `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                         | `by_comment_ip`, `by_ip`                   |
 | `likes`            | url, ipHash                                                                                                            | `by_url_ip`                                |
 | `commentUrlCounts` | url, count (denormalized active-comment counter)                                                                       | `by_url`                                   |
@@ -117,7 +118,10 @@ convex/
 
 Prefix rule: an index whose fields are a prefix of another (e.g. `by_comment`
 vs `by_comment_ip`) is redundant — bind only the leading fields of the longer
-index instead.
+index instead. `by_url` on `comments` is gone for this reason: hard delete only
+sets `deletedAt`, so tombstones stay in the table forever, and every public read
+binds `by_url_deleted` with `.eq('deletedAt', null)` to skip them at the index
+rather than collecting the URL and filtering in JS.
 
 `ipHash` for the comment/like components is served by the shared
 `src/lib/server/content-page.js` load on the SSR `[slug]` routes (and forwarded
@@ -212,6 +216,13 @@ a data repo and a browser fetch of those raw files.
 - **A failed or empty upstream response throws instead of writing.** The stored
   row survives, so the page keeps showing the last good feed rather than emptying
   out. `convex/feeds.test.js` asserts this — keep those cases.
+- **An unchanged feed is not written either.** Convex invalidates subscriptions
+  on the document, so re-patching an identical row pushed a websocket update to
+  every open home page every five minutes to say nothing had happened — 288 a
+  day per feed. `sameFeedRows` compares the normalized list against the stored
+  one and the mutation returns `{ changed: false }` without touching it. The page
+  reads `lastScrobbledAt` off the tracks and never renders `updatedAt`, which is
+  what makes holding the row still invisible to it.
 - `api.feeds.nowPlaying` / `api.feeds.photos` are public queries. They can be:
   both feeds are already public at the source, and the home page renders exactly
   what they return.
@@ -228,13 +239,80 @@ a data repo and a browser fetch of those raw files.
   visitor-side delete into a hard delete of the whole subtree. Hard delete is
   reachable only through `DELETE /api/admin/comments/[id]`.
 
-- **Hard delete** — sets `deletedAt` to a timestamp. Filtered out of all public queries. Children of a hard-deleted comment keep their `parentId` referencing the now-hidden row, which is surfaced as "stray" in the admin tree.
+- **Hard delete** — sets `deletedAt` to a timestamp. Excluded from every public query by the `by_url_deleted` index bound to `deletedAt: null`. Children of a hard-deleted comment keep their `parentId` referencing the now-hidden row, which is surfaced as "stray" in the admin tree.
+
+  A hard delete walks the subtree in batches of 200. **The continuation resumes
+  from the nodes the previous batch did not reach, not from the root** — it is
+  handed that frontier as a scheduler argument. Restarting at the root re-issued
+  a `by_parent` query for every node an earlier batch had already retired, so the
+  reads to delete a thread grew with the square of its size.
+
+---
+
+## Denormalized Counts
+
+Four counters are kept beside the data they count, and all of them are stepped
+by a delta rather than recomputed:
+
+- `comments.upvotes` / `downvotes` — moved by what the vote toggle actually
+  changed. **Do not "fix" this back to a recount.** Convex mutations are
+  serializable transactions, so a read-modify-write cannot lose an update; the
+  recount was not buying safety, and it read every vote row on the comment per
+  vote (500 votes → 500 reads to record one). It also widened the read set to
+  that whole range, which makes OCC conflicts _more_ likely, not less. Rows
+  written before the backfill carry no counts and still fall back to one count.
+- `commentUrlCounts` / `likeCounts` — one `adjustCount(ctx, table, url, delta)`
+  per distinct URL. Every comment in a subtree shares a URL, so stepping by one
+  meant 200 reads and 200 patches of a single row inside one transaction. The
+  batch helpers (`applyUrlCountDeltas`, `applyLikeCountDeltas`) take a
+  `Map<url, delta>`.
+
+`convex/votes.test.js` checks every path through the toggle — including the
+stray-row dedupe and a drifted count — against a full recount of the votes
+table. Keep those: they are the only thing standing between a delta bug and a
+count that is silently wrong forever.
+
+A **sharded counter** (`@convex-dev/sharded-counter`) is the wrong tool here and
+was considered. It solves write contention, which this site does not have, and
+pays for it on reads: `count()` reads all 16 shards, so `likes.get` — which runs
+on every page view and every subscription — would go from one read to sixteen.
+It also has no way to enumerate keys, which `admin.listUrls` needs.
 
 ---
 
 ## Stray Comments (Admin Page)
 
 When a parent comment is hard-deleted, its children still carry the original `parentId` but the parent is filtered out of public queries. The admin page's `buildTree()` function surfaces those children as root-level nodes with `stray: true` and renders them with an amber "orphaned reply — parent deleted" badge.
+
+---
+
+## Content Lists (`src/lib/server/content-modules.js`)
+
+The blog/project metadata comes from eager globs, and both halves of the options
+matter:
+
+```js
+import.meta.glob('/src/routes/blog/posts/en/*.md', { eager: true, import: 'metadata' });
+```
+
+- `import: 'metadata'` yields the metadata records themselves rather than whole
+  module namespace objects. A namespace object gets passed around as a value, and
+  Rollup cannot drop exports it can't see through — so the compiled Svelte
+  component for every post rode along with anything that imported this.
+- **The options object has to be written out at each call.** `import.meta.glob`
+  is a compile-time transform, so Vite reads the options literally. Hoisting them
+  into a shared `const` makes it fall back to a _lazy_ glob, whose values are
+  import functions — and nothing throws, because `metadata.published` is
+  `undefined` on a function. Every post reads as unpublished, and the RSS feed,
+  the listing APIs and the valid-URL guard all quietly go empty. This has already
+  happened once; `npm run build` and check `prerendered/pages/rss.xml` has items.
+
+The listing pages read `publishedPosts()` / `publishedProjects()` from
+`content.js` directly in a **server** load. They used to `fetch('/api/posts')`,
+which resolved the same records twice, wrote them into the build twice, and cost
+a request on every client-side navigation to a listing page. `/api/posts` and
+`/api/projects` still exist as public endpoints — they are just no longer how the
+site's own pages get the list.
 
 ---
 

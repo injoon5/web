@@ -1,5 +1,5 @@
 import { isLikeCountsBackfillComplete } from './migration.js';
-import { incrementCount, decrementCount } from './counter.js';
+import { adjustCount } from './counter.js';
 
 const TABLE = 'likeCounts';
 
@@ -24,10 +24,19 @@ export async function readLikeCount(ctx, url) {
 	return rows.reduce((sum, row) => sum + row.count, 0);
 }
 
-export function incrementLikeCount(ctx, url) {
-	return incrementCount(ctx, TABLE, url);
+/** Move a URL's like count by `delta` in one read-modify-write. */
+export function adjustLikeCount(ctx, url, delta) {
+	return adjustCount(ctx, TABLE, url, delta);
 }
 
-export function decrementLikeCount(ctx, url) {
-	return decrementCount(ctx, TABLE, url);
+/**
+ * Apply a whole batch of counted URLs at once — one read-modify-write per
+ * distinct URL rather than per like row.
+ *
+ * @param {Map<string, number>} deltas  url -> signed change
+ */
+export async function applyLikeCountDeltas(ctx, deltas) {
+	for (const [url, delta] of deltas) {
+		if (delta !== 0) await adjustCount(ctx, TABLE, url, delta);
+	}
 }

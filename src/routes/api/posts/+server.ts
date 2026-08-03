@@ -1,14 +1,11 @@
+// Kept as a public endpoint in its own right. The site's own pages no longer
+// read the list through it — they call `publishedPosts()` directly — so this
+// exists for anything outside the app that wants the feed as JSON.
 export const prerender = true;
 
 import { json } from '@sveltejs/kit';
-import type { Post } from '$lib/types';
-import { resolvePublished, CONTENT_CACHE_CONTROL } from '$lib/server/content';
-import { blogEnModules, blogKoModules } from '$lib/server/content-modules.js';
+import { publishedPosts, CONTENT_CACHE_CONTROL } from '$lib/server/content';
 
 export async function GET() {
-	const posts = (resolvePublished(blogEnModules, blogKoModules) as Post[]).sort(
-		(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-	);
-
-	return json(posts, { headers: { 'Cache-Control': CONTENT_CACHE_CONTROL } });
+	return json(publishedPosts(), { headers: { 'Cache-Control': CONTENT_CACHE_CONTROL } });
 }

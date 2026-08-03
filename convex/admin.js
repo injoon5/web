@@ -33,12 +33,13 @@ export const listForUrl = query({
 	handler: async (ctx, { url, adminSecret }) => {
 		await assertAdmin(adminSecret);
 
-		const docs = await ctx.db
+		// Tombstones are skipped at the index — see the `by_url_deleted` note in
+		// convex/schema.js.
+		const active = await ctx.db
 			.query('comments')
-			.withIndex('by_url', (q) => q.eq('url', url))
+			.withIndex('by_url_deleted', (q) => q.eq('url', url).eq('deletedAt', null))
 			.collect();
 
-		const active = docs.filter((d) => d.deletedAt === null);
 		active.sort((a, b) => a._creationTime - b._creationTime);
 
 		return await Promise.all(

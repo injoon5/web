@@ -3,7 +3,7 @@ import { mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
 import { isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
-import { decrementLikeCount, incrementLikeCount, readLikeCount } from './lib/likeCounts.js';
+import { adjustLikeCount, readLikeCount } from './lib/likeCounts.js';
 
 async function aggregate(ctx, url, ipHash) {
 	const mine = await ctx.db
@@ -41,10 +41,13 @@ export const setLike = mutation({
 			.withIndex('by_url_ip', (q) => q.eq('url', args.url).eq('ipHash', args.ipHash))
 			.collect();
 
-		// Dedup any stray rows from a past race so membership is exactly one or zero.
+		// Dedup any stray rows from a past race so membership is exactly one or
+		// zero. Their counter corrections ride along with the real change below,
+		// rather than each re-reading and re-patching the same row.
+		let delta = 0;
 		for (let i = 1; i < rows.length; i++) {
 			await ctx.db.delete('likes', rows[i]._id);
-			await decrementLikeCount(ctx, args.url);
+			delta--;
 		}
 		const existing = rows[0] ?? null;
 		const currentlyLiked = existing !== null;
@@ -59,13 +62,19 @@ export const setLike = mutation({
 
 			if (desired) {
 				await ctx.db.insert('likes', { url: args.url, ipHash: args.ipHash });
-				await incrementLikeCount(ctx, args.url);
+				delta++;
 			} else {
 				await ctx.db.delete('likes', existing._id);
-				await decrementLikeCount(ctx, args.url);
+				delta--;
 			}
 		}
 
-		return aggregate(ctx, args.url, args.ipHash);
+		if (delta !== 0) await adjustLikeCount(ctx, args.url, delta);
+
+		// `liked` is `desired` by construction, so this returns without re-running
+		// the `by_url_ip` lookup the mutation already did. The count still goes
+		// through `readLikeCount`, which is the only thing that knows whether the
+		// denormalized counter is authoritative yet.
+		return { count: await readLikeCount(ctx, args.url), liked: desired };
 	}
 });

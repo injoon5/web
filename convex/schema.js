@@ -16,7 +16,11 @@ export default defineSchema({
 		upvotes: v.optional(v.number()),
 		downvotes: v.optional(v.number())
 	})
-		.index('by_url', ['url'])
+		// Hard delete only sets `deletedAt`, so tombstones stay in the table
+		// forever. Binding `deletedAt` too lets every public read skip them at the
+		// index instead of collecting them and filtering in JS. `by_url` alone
+		// would be a prefix of this one, and so redundant.
+		.index('by_url_deleted', ['url', 'deletedAt'])
 		.index('by_parent', ['parentId']),
 
 	commentUrlCounts: defineTable({

@@ -1,7 +1,7 @@
 export const prerender = true;
 
 import { create } from 'xmlbuilder2';
-import { blogEnModules, blogKoModules } from '$lib/server/content-modules.js';
+import { blogEnMeta, blogKoMeta } from '$lib/server/content-modules.js';
 
 const SITE_URL = 'https://www.injoon5.com';
 
@@ -26,13 +26,13 @@ const getPosts = () => {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const bySlug: Record<string, any> = {};
 
-	for (const [modules, raws] of [
-		[blogEnModules, rawEn],
-		[blogKoModules, rawKo]
+	for (const [metaByPath, raws] of [
+		[blogEnMeta, rawEn],
+		[blogKoMeta, rawKo]
 	] as const) {
-		for (const path in modules) {
+		for (const path in metaByPath) {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const meta = (modules[path] as any)?.metadata;
+			const meta = metaByPath[path] as any;
 			if (meta?.published !== true) continue;
 
 			const slug = path.split('/').at(-1)?.replace('.md', '') ?? '';

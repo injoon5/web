@@ -7,8 +7,8 @@ import {
 	setUrlCountsBackfillComplete,
 	setVoteCountsBackfillComplete
 } from './lib/migration.js';
-import { incrementUrlCount } from './lib/urlCounts.js';
-import { incrementLikeCount } from './lib/likeCounts.js';
+import { applyUrlCountDeltas } from './lib/urlCounts.js';
+import { applyLikeCountDeltas } from './lib/likeCounts.js';
 import { countAllVotes } from './lib/votes.js';
 
 const BATCH_SIZE = 100;
@@ -56,10 +56,15 @@ export const backfillUrlCountsBatch = internalMutation({
 			cursor
 		});
 
+		// Tally the page first, then one read-modify-write per distinct URL. A
+		// batch is 100 comments over a handful of URLs, so stepping the counter
+		// once per comment re-read and re-patched the same rows ~100 times.
+		const deltas = new Map();
 		for (const doc of batch.page) {
 			if (doc.deletedAt !== null) continue;
-			await incrementUrlCount(ctx, doc.url);
+			deltas.set(doc.url, (deltas.get(doc.url) ?? 0) + 1);
 		}
+		await applyUrlCountDeltas(ctx, deltas);
 
 		if (!batch.isDone) {
 			await ctx.scheduler.runAfter(0, internal.backfill.backfillUrlCountsBatch, {
@@ -91,9 +96,11 @@ export const backfillLikeCountsBatch = internalMutation({
 			cursor
 		});
 
+		const deltas = new Map();
 		for (const doc of batch.page) {
-			await incrementLikeCount(ctx, doc.url);
+			deltas.set(doc.url, (deltas.get(doc.url) ?? 0) + 1);
 		}
+		await applyLikeCountDeltas(ctx, deltas);
 
 		if (!batch.isDone) {
 			await ctx.scheduler.runAfter(0, internal.backfill.backfillLikeCountsBatch, {
