@@ -156,23 +156,48 @@
 	   fades the accent without drifting through grey, which is what a plain
 	   `transparent` stop would do in an SVG gradient. */
 	--chart-accent: var(--color-orange-500);
-	--chart-accent-0: color-mix(in oklab, var(--color-orange-500), transparent 100%);
-	/* Kept faint on purpose: a series with gaps draws the wash with vertical
-	   edges where the data stops, and a heavy fill turns those into walls. */
+	/* Kept faint on purpose: the wash is weight under the line, not a second
+	   shape, and a heavy fill turns the baseline into a wall. */
 	--chart-wash-top: color-mix(in oklab, var(--color-orange-500), transparent 93%);
 	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-500), transparent 100%);
 	--chart-muted: var(--color-neutral-400);
 	/* Unfilled part of the score ring. Reads as a groove, not a second arc. */
 	--chart-track: var(--color-neutral-200);
+
+	/* The score ring's bands, green through to rose. The arc is the one thing on
+	   /health that reports the day without being read, so the ramp has to run in
+	   one direction and the steps have to be far enough apart in hue to tell
+	   apart at 6px wide — which is why "good" is not a second orange. */
+	--score-excellent: var(--color-emerald-500);
+	--score-good: var(--color-lime-500);
+	--score-fair: var(--color-amber-500);
+	--score-light: var(--color-rose-400);
+	--score-none: var(--color-neutral-300);
 }
 
 .dark {
 	--chart-accent: var(--color-orange-400);
-	--chart-accent-0: color-mix(in oklab, var(--color-orange-400), transparent 100%);
 	--chart-wash-top: color-mix(in oklab, var(--color-orange-400), transparent 93%);
 	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-400), transparent 100%);
 	--chart-muted: var(--color-neutral-600);
 	--chart-track: var(--color-neutral-800);
+
+	--score-excellent: var(--color-emerald-400);
+	--score-good: var(--color-lime-400);
+	--score-fair: var(--color-amber-400);
+	--score-light: var(--color-rose-400);
+	--score-none: var(--color-neutral-700);
+}
+
+/* The y axis is text and nothing else — no rule, no ticks, no grid.
+   layerchart paints a 2px halo behind tick labels so they stay legible on top of
+   gridlines; with no gridlines to sit on, that halo is just a smudge. The rule
+   is unlayered on purpose, so it outranks the component-layer default. */
+.health-axis-label {
+	fill: var(--chart-muted);
+	stroke: none;
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
 }
 
 /* Draw the line in once on mount. `pathLength="1"` normalizes the dash math, so
@@ -225,7 +250,11 @@
    slower reads as the score lagging behind the pointer. */
 .health-ring {
 	animation: health-ring-in 700ms var(--ease-out-fast);
-	transition: stroke-dashoffset 180ms var(--ease-out-fast);
+	/* The color crosses a band boundary on some scrubs and not others, so it
+	   fades rather than cuts — a hard swap reads as a glitch mid-drag. */
+	transition:
+		stroke-dashoffset 180ms var(--ease-out-fast),
+		stroke 220ms var(--ease-out-fast);
 }
 
 /* Sections settle in ~100ms apart rather than one container animating as a block. */

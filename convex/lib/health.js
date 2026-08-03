@@ -33,13 +33,7 @@ export const MAX_SERIES_HOURS = 24 * 90;
  * thing the realtime subscription is allowed to serve. Everything else — other
  * metrics, hourly buckets, raw samples — stays behind the key.
  */
-export const PUBLIC_METRICS = [
-	'steps',
-	'sleepHours',
-	'activeEnergy',
-	'exerciseMinutes',
-	'distance'
-];
+export const PUBLIC_METRICS = ['steps', 'activeEnergy', 'exerciseMinutes', 'distance'];
 
 /** Range picker steps. Coarse on purpose: each distinct value is a distinct cache entry. */
 export const PUBLIC_RANGES = [7, 30, 90, 365];
@@ -59,7 +53,6 @@ export function metricKind(metric) {
 		case 'exerciseMinutes':
 		case 'standHours':
 		case 'flightsClimbed':
-		case 'sleepHours':
 		case 'mindfulMinutes':
 			return 'sum';
 		default:
@@ -86,8 +79,6 @@ export function metricUnit(metric) {
 		case 'exerciseMinutes':
 		case 'mindfulMinutes':
 			return 'min';
-		case 'sleepHours':
-			return 'h';
 		case 'heartRate':
 		case 'restingHeartRate':
 		case 'walkingHeartRateAverage':

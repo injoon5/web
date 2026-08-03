@@ -289,7 +289,6 @@ describe('public page query', () => {
 
 		expect(series.map((s) => s.metric)).toEqual([
 			'steps',
-			'sleepHours',
 			'activeEnergy',
 			'exerciseMinutes',
 			'distance'

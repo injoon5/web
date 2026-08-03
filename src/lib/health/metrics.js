@@ -18,7 +18,6 @@ import { PUBLIC_METRICS, PUBLIC_RANGES, shiftDateKey } from '$convex/lib/health.
  */
 const PRESENTATION = {
 	steps: { label: 'Steps', unit: '', decimals: 0, goal: 10000 },
-	sleepHours: { label: 'Sleep', unit: 'h', decimals: 1, goal: 8 },
 	activeEnergy: { label: 'Active energy', unit: 'kcal', decimals: 0, goal: 500 },
 	exerciseMinutes: { label: 'Exercise', unit: 'min', decimals: 0, goal: 30 },
 	distance: { label: 'Walking + running distance', unit: 'km', decimals: 1, goal: 7 }
@@ -72,10 +71,29 @@ export function isFilled(value) {
 	return value !== null && value !== undefined && Number.isFinite(value);
 }
 
-/** An em dash for a missing value — a gap is never dressed up as a zero. */
+/** An em dash for a value outside the tracked window; a gap inside it reads as 0. */
 export function formatValue(value, decimals = 0) {
 	if (!isFilled(value)) return '—';
 	return numberFormat(decimals).format(value);
+}
+
+/**
+ * Short form for an axis label: `12k`, `1.2k`, `430`.
+ *
+ * The headline above the chart already carries the exact number, so the axis
+ * only has to say roughly how high the line is — and it has a ~30px gutter to
+ * say it in.
+ */
+export function formatCompact(value, decimals = 0) {
+	if (!isFilled(value)) return '';
+	// The floor of most of these domains, and it is a zero however many decimals
+	// the metric carries — `0.0 km` on an axis is just noise.
+	if (value === 0) return '0';
+
+	const abs = Math.abs(value);
+	if (abs >= 10000) return `${Math.round(value / 1000)}k`;
+	if (abs >= 1000) return `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+	return numberFormat(abs >= 100 ? 0 : decimals).format(value);
 }
 
 const dateFormat = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
@@ -149,27 +167,44 @@ export function lastFilledIndex(values) {
 }
 
 /**
- * Points a line cannot draw: a reading with a gap on both sides.
+ * A day that reported nothing is a day the metric was zero.
  *
- * A stroke needs two points, so a single day of data — or a day marooned
- * between gaps — leaves the chart blank however good the data is. Those get a
- * dot instead, which is why one ingest is enough to see something.
+ * The window always reaches to the newest reading on the page, so a gap inside
+ * it is a real "you did none of this" rather than missing information — a day
+ * with no steps recorded is a day with no steps. Drawing that as a break in the
+ * line made a rest day look like an outage, and a series of one reading drew
+ * nothing at all.
+ *
+ * The trailing edge is the exception: everything after a metric's newest
+ * reading is cut rather than zeroed, so a metric that hasn't synced today
+ * doesn't dive to the floor on the right-hand side of its own chart.
  */
-export function isolatedPoints(values) {
-	const points = [];
-	for (let i = 0; i < values.length; i++) {
-		if (!isFilled(values[i])) continue;
-		if (isFilled(values[i - 1]) || isFilled(values[i + 1])) continue;
-		points.push({ i, value: values[i] });
-	}
-	return points;
+export function zeroFilled(values) {
+	const last = lastFilledIndex(values);
+	if (last < 0) return [];
+	const filled = new Array(last + 1);
+	for (let i = 0; i <= last; i++) filled[i] = isFilled(values[i]) ? values[i] : 0;
+	return filled;
+}
+
+/**
+ * The value to show for one slot: a reading, a zero inside the tracked window,
+ * or nothing at all past the newest reading.
+ */
+export function valueAt(values, index) {
+	if (index < 0 || index > lastFilledIndex(values)) return null;
+	return isFilled(values[index]) ? values[index] : 0;
 }
 
 /**
  * y-domain with a little breathing room, so a line never sits flush against the
  * top or bottom of its box. A flat series still gets a band to sit in.
+ *
+ * The floor stops at zero for data that never goes negative — none of these
+ * metrics can — so the bottom of the box is a number the axis can name rather
+ * than an arbitrary negative one.
  */
-export function valueDomain(values) {
+export function valueDomain(values, headroom = 0.12) {
 	let min = Infinity;
 	let max = -Infinity;
 	for (const value of values) {
@@ -178,9 +213,11 @@ export function valueDomain(values) {
 		if (value > max) max = value;
 	}
 	if (min === Infinity) return [0, 1];
-	if (min === max) return [min - Math.abs(min) * 0.1 - 1, max + Math.abs(max) * 0.1 + 1];
-	const pad = (max - min) * 0.12;
-	return [min - pad, max + pad];
+
+	// A flat series has no range to take a fraction of, so it gets a band scaled
+	// to the value itself — plus one, so a flat zero still has somewhere to sit.
+	const pad = min === max ? Math.abs(max) * 0.1 + 1 : (max - min) * headroom;
+	return [min >= 0 ? Math.max(0, min - pad) : min - pad, max + pad];
 }
 
 /**
@@ -201,15 +238,16 @@ export function latestIndex(sections) {
 
 /**
  * One number for a day: how close each metric came to its goal, averaged over
- * the metrics that actually reported.
+ * the metrics the day is inside the tracked window for.
  *
- * Averaging only what reported is the point. A day whose sleep hasn't synced
- * shouldn't read as a day with no sleep — it scores on what it has, and
- * `counted` says how much that was, so the page can be honest about a partial
- * day rather than quietly scoring it out of five.
+ * A gap inside that window counts as the zero it is — a day with no exercise
+ * recorded is a day with no exercise, and dropping it from the average would
+ * quietly score a rest day as if it never happened. What still drops out is a
+ * metric whose newest reading is older than the day being scored: that one has
+ * nothing to say yet, and `counted` reports how many did.
  *
  * Each metric is capped at its goal: a 30 km walk banks a perfect distance
- * score, it does not pay for a night of no sleep.
+ * score, it does not pay for a day of no exercise.
  */
 export function dayScore(sections, index) {
 	let total = 0;
@@ -217,8 +255,8 @@ export function dayScore(sections, index) {
 
 	for (const { metric, series } of sections) {
 		if (!metric.goal) continue;
-		const value = (series?.values ?? [])[index];
-		if (!isFilled(value)) continue;
+		const value = valueAt(series?.values ?? [], index);
+		if (value === null) continue;
 		total += Math.min(value / metric.goal, 1);
 		counted++;
 	}
@@ -228,11 +266,32 @@ export function dayScore(sections, index) {
 	return { score: Math.round((total / counted) * 100), counted, of };
 }
 
+/**
+ * The bands a score reads in, as one word and one color.
+ *
+ * Kept together so the word and the ring can never disagree: `scoreLabel` and
+ * `scoreTone` are two views of the same threshold, not two lists to keep in
+ * sync. The ramp runs green → amber → orange → rose, so the ring says roughly
+ * how the day went before the number is read.
+ */
+const SCORE_BANDS = [
+	{ from: 85, label: 'Excellent', tone: 'excellent' },
+	{ from: 65, label: 'Good', tone: 'good' },
+	{ from: 40, label: 'Fair', tone: 'fair' },
+	{ from: -Infinity, label: 'Light', tone: 'light' }
+];
+
+function scoreBand(score) {
+	if (score === null) return { label: 'No data', tone: 'none' };
+	return SCORE_BANDS.find((band) => score >= band.from);
+}
+
 /** How a score reads in one word. Bands are wide on purpose — this is a mood, not a grade. */
 export function scoreLabel(score) {
-	if (score === null) return 'No data';
-	if (score >= 85) return 'Excellent';
-	if (score >= 65) return 'Good';
-	if (score >= 40) return 'Fair';
-	return 'Light';
+	return scoreBand(score).label;
+}
+
+/** The CSS custom property the score ring is stroked with. */
+export function scoreTone(score) {
+	return `var(--score-${scoreBand(score).tone})`;
 }

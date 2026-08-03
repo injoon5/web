@@ -17,7 +17,24 @@ const { sha, isoDate } = gitInfo();
 process.env.PUBLIC_GIT_COMMIT = sha;
 process.env.PUBLIC_GIT_COMMIT_DATE = isoDate;
 
+/**
+ * Whether this build ships the /health tuning panel.
+ *
+ * Deliberately not an env var read at runtime: a runtime check still bundles
+ * DialKit for everyone and pays for it on production's first load. Baked in as a
+ * literal, `if (__HEALTH_DIALS__)` folds to `if (false)` and the dynamic import
+ * inside it becomes unreachable, so Rollup emits no chunk for the panel at all.
+ *
+ * Preview deployments and `vite dev` get it; production never does.
+ */
+const healthDials = process.env.VERCEL_ENV
+	? process.env.VERCEL_ENV === 'preview'
+	: process.env.NODE_ENV !== 'production';
+
 export default defineConfig({
+	define: {
+		__HEALTH_DIALS__: JSON.stringify(healthDials)
+	},
 	server: {
 		fs: {
 			// Allow serving files from one level up to the project root
