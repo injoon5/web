@@ -58,7 +58,7 @@ src/
       [slug]/+page.ts      # Project detail (prerendered)
     now/+page.svelte       # /now page, Convex-backed, markdown via marked
     health/
-      +page.server.js      # SSR load — fetches the Convex /health HTTP routes with HEALTH_API_KEY
+      +page.server.js      # SSR load — streams api.healthPublic.page (no key, not awaited)
       +page.svelte         # /health page — score dial + sparkline sections
     admin/                 # Admin dashboard + auth
     api/
@@ -253,11 +253,14 @@ Past `maxPoints` (400) days merge into weeks — summed or averaged per
 - **Everything is internal**, because a query can't see an HTTP header and there
   is no `ctx.auth` identity here. The key-checking HTTP action is the entry
   point. `api.*` does not appear anywhere under `convex/`.
-  - The one exception is `convex/healthPublic.js`, which backs the live
-    subscription on `/health`. It serves _only_ what that public page already
-    renders: a fixed metric allowlist (`PUBLIC_METRICS`) that arguments cannot
-    widen, and only the range picker's own steps. No raw samples, no hourly
-    buckets, no workouts, no other metrics.
+  - The one exception is `convex/healthPublic.js`, which backs both the server
+    render and the live subscription on `/health`. It serves _only_ what that
+    public page already renders: a fixed metric allowlist (`PUBLIC_METRICS`)
+    that arguments cannot widen, and only the range picker's own steps. No raw
+    samples, no hourly buckets, no workouts, no other metrics.
+    The SSR load calls it through `ConvexHttpClient` rather than the key-gated
+    HTTP action, so the render and every visitor's subscription land on one
+    query cache entry instead of an action plus four separate ones.
 - **No `Date.now()` in queries.** A query doesn't re-run when the clock moves,
   so a time-derived bound goes stale and churns the cache. The HTTP action
   computes bounds at day or hour granularity and passes them as arguments.
@@ -302,6 +305,93 @@ hourly, Run Immediately, plus one at 23:55.
 `GET /health/workouts` all still work and stay tested — Shortcuts just can't
 build the payload, so nothing posts it and `/health` renders no workout list.
 
+### The page (`src/lib/health/`)
+
+- **A gap inside the window is a zero, not a hole.** `zeroFilled()` fills every
+  missing day up to a metric's newest reading — a day with no exercise recorded
+  is a day with no exercise, and drawing it as a break made a rest day look like
+  an outage. Everything _after_ the newest reading is cut instead, so a metric
+  that hasn't synced today doesn't dive to the floor on its own right-hand edge.
+  `valueAt()` is the same rule for the headline number.
+- **The score is the one place a zero is _not_ counted.** `dayScore()` skips any
+  metric that reads zero for the day, because a Watch left on the charger and a
+  day in bed produce the same zero and only one of them deserves a worse ring.
+  So a rest day scores on whatever else moved, or reads "No data" when nothing
+  did, and `counted`/`of` drives the dial's "N of 4 metrics" caption. Do not
+  "fix" this to match the charts — they are answering different questions.
+- **All four charts share one x domain**, spanning the whole window even where a
+  line stops early. Index 12 has to be the same day and the same pixel on every
+  chart, or the shared marker lands in four different places.
+- **Scrubbing does not use layerchart's tooltip layer.** That layer re-targets by
+  hit test on every pointer move, so on touch a finger dragging toward the edge
+  of one chart handed the page's marker to whichever chart it crossed into.
+  `MetricChart` captures the pointer on `pointerdown` and maps x to an index
+  itself; `tooltipContext={false}` turns the library's version off. Keep it that
+  way — this is the mobile bug, not a preference.
+- **The y axis is text only.** `<Axis placement="left" tickMarks={false}>` with
+  `rule`/`grid` left at their `false` defaults, two round numbers sampled out of
+  d3's tick hint, and `.health-axis-label` in `app.css` cancelling layerchart's
+  halo (it exists to sit on gridlines there are none of here).
+- **The SSR load is not awaited.** `+page.server.js` returns the Convex promise
+  and SvelteKit streams it, so the shell flushes in ~60ms instead of waiting on
+  four series. `endDate` resolves from the clock in the first chunk, which is
+  what lets the client subscribe at hydration rather than after the stream. The
+  cost is that chart markup is client-rendered — keep the placeholder in the
+  `{#await}` pending branch matching the real grid, or the page shifts when the
+  second chunk lands.
+- **Chart dimensions live in `chart-settings.svelte.js`.** On preview
+  deployments `HealthDials.svelte` binds a DialKit panel to that same object, so
+  the sliders move the real charts. Colours are the exception: they are already
+  CSS custom properties, so the panel overrides those on `:root` instead, and a
+  control still on its default writes nothing — which is what keeps dark mode's
+  own palette. Whatever settles gets copied back into `CHART_DEFAULTS` or
+  `app.css` by hand; nothing persists.
+
+---
+
+## DialKit (preview only)
+
+`src/lib/dev/DialsMount.svelte` is mounted once from the root layout and loads
+`DialsHost.svelte`, which is the single `<DialRoot />` for the site and nothing
+else. There is deliberately no site-wide panel: one meant tuning tokens that only
+some pages actually show, which is how you get sliders that appear to do nothing.
+
+Every control lives on the page it affects, as a folder that comes and goes with
+the route:
+
+| Panel          | Registered by                     | Moves                                                            |
+| -------------- | --------------------------------- | ---------------------------------------------------------------- |
+| `Home`         | `lib/home/HomeDials.svelte`       | marquee speed, cover size/gap/scrim, photo columns/count/gap     |
+| `Article`      | `lib/article/ArticleDials.svelte` | link underline + offset + thickness, body size, leading, measure |
+| `Health chart` | `lib/health/HealthDials.svelte`   | chart geometry and colours                                       |
+
+Each writes into a `$state` settings module (`*-settings.svelte.js`) whose
+values reach the DOM as custom properties on the section they affect — so a
+Tailwind-classed page stays Tailwind-classed, and only the one value worth
+moving comes from a variable. **Every rule that reads one keeps the class's
+original value as its fallback**, so a page that sets nothing renders exactly as
+it did before. That is what makes this safe to leave in the shipped CSS.
+
+`marqueeConstantSpeed` reads `--marquee-speed` and listens for a
+`marquee:retune` event, because a speed change moves no boxes and its
+`ResizeObserver` never fires. Nothing in production dispatches it.
+
+`__DIALS__` is a literal baked in by `vite.config.ts`: `VERCEL_ENV !==
+'production'`, falling back to `NODE_ENV` off Vercel. Because it is a literal
+and not an env read, Rollup folds `if (__DIALS__)` to `if (false)` in a
+production build, the dynamic import becomes unreachable, and no DialKit chunk
+or stylesheet is emitted. A runtime check would still have shipped the bundle.
+
+Two traps, both already sprung:
+
+- `DialRoot` hides itself when `NODE_ENV` is `production`, and a Vercel preview
+  _is_ a production build — so it needs `productionEnabled`. Without it the
+  chunk loads and renders nothing.
+- The site-wide controls act through rules injected from `SiteDials.svelte`'s
+  `<svelte:head>`, not from `app.css`, so production carries no trace of them.
+  They are unlayered on purpose: that is what lets the measure rule outrank
+  Tailwind's own `.max-w-6xl` in `@layer utilities`.
+
 ---
 
 ## Schema Changes
@@ -317,7 +407,7 @@ Edit `convex/schema.js` and run `npx convex dev` (or `npx convex deploy` for pro
 | `PUBLIC_CONVEX_URL` | Convex client — both browser (root layout) and server-side HTTP client                                         |
 | `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                                           |
 | `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically.                 |
-| `HEALTH_API_KEY`    | Apple Health API — the Shortcut's bearer token and the `/health` SSR load. Must match Convex env.              |
+| `HEALTH_API_KEY`    | Apple Health ingest — the Shortcut's bearer token. Convex-side only; `/health` no longer reads it.             |
 | `CONVEX_SITE_URL`   | Optional override. Convex HTTP actions live on the `.site` twin of `PUBLIC_CONVEX_URL`, derived automatically. |
 
 <!-- convex-ai-start -->

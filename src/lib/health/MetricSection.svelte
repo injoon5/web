@@ -1,11 +1,13 @@
 <script>
 	import MetricChart from '$lib/health/MetricChart.svelte';
+	import { chartSettings } from '$lib/health/chart-settings.svelte.js';
 	import {
 		formatDay,
 		formatPointLabel,
 		formatValue,
 		isFilled,
-		lastFilledIndex
+		lastFilledIndex,
+		valueAt
 	} from '$lib/health/metrics.js';
 
 	/**
@@ -18,11 +20,12 @@
 	const values = $derived(series?.values ?? []);
 	const latest = $derived(lastFilledIndex(values));
 
-	// A hovered day reads across the whole page, so a metric with no reading that
-	// day shows a dash rather than quietly falling back to its own latest value.
+	// A hovered day reads across the whole page. Inside the tracked window a day
+	// this metric skipped is a zero, the same as the chart draws it; past the
+	// newest reading there is nothing to report yet, so it dashes.
 	const shown = $derived(active !== null && active < values.length ? active : latest);
 
-	const value = $derived(shown >= 0 ? values[shown] : null);
+	const value = $derived(valueAt(values, shown));
 	const when = $derived(
 		shown >= 0 ? formatPointLabel(series.start, series.step, shown) : 'No data yet'
 	);
@@ -54,11 +57,15 @@
 
 	<!-- Height is reserved up front: the chart only draws after hydration, and the
 	     page must not shift underneath the numbers when it does. -->
-	<div class="mt-4 h-[120px] w-full">
+	<div
+		class="health-plot-box mt-4 w-full"
+		style="--chart-h: {chartSettings.height}px; --chart-h-sm: {chartSettings.heightSm}px"
+	>
 		{#if hasData}
 			<MetricChart
 				{values}
 				{active}
+				decimals={metric.decimals}
 				label="{metric.label} over the last {values.length} points"
 				delay={index * 100}
 				{onscrub}
@@ -67,6 +74,10 @@
 	</div>
 
 	{#if hasData}
+		<!-- Flush with the section, not indented to the plot: the heading, the
+		     number, the axis labels and this row all start on one column, which
+		     reads as alignment. The 34px between this date and the first point is
+		     a gap nobody measures; four staggered left edges is one anybody sees. -->
 		<div
 			class="mt-1 flex justify-between text-xs text-neutral-400 tabular-nums dark:text-neutral-600"
 		>

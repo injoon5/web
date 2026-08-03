@@ -429,7 +429,7 @@ export function healthTemplate() {
 		mainColumn([
 			label('Injoon Oh'),
 			displayText('Health'),
-			bodyText('Steps, sleep and movement, straight off an Apple Watch.', { marginTop: 22 })
+			bodyText('Steps, movement and energy, straight off an Apple Watch.', { marginTop: 22 })
 		]),
 		bottomBar()
 	]);

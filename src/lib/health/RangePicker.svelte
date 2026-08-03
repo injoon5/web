@@ -44,15 +44,24 @@
 
 	function measure(instant) {
 		const el = buttons[ranges.indexOf(value)];
+		if (!el || !container) return;
+
+		// `offsetLeft`/`offsetWidth` round to whole pixels, and the buttons rarely
+		// land on them: a pill measured that way sits up to a pixel narrow or a
+		// pixel off-centre, which is exactly the sliver of background that shows
+		// on one side of the label and not the other. Rects are fractional.
+		const box = el.getBoundingClientRect();
+		const origin = container.getBoundingClientRect();
+
 		// A box of zero width is not a measurement — it is a subtree with no
 		// layout yet. Taking it would hand the pill nothing to draw and drop the
 		// button's own background at the same time, leaving no selection visible
 		// at all. Hold the fallback until there is a real box; the resize observer
 		// re-measures the moment there is one.
-		if (!el?.offsetWidth) return;
+		if (!box.width) return;
 
-		x.set(el.offsetLeft, { instant });
-		width.set(el.offsetWidth, { instant });
+		x.set(box.left - origin.left, { instant });
+		width.set(box.width, { instant });
 		measured = true;
 	}
 
@@ -111,7 +120,10 @@
 	}
 </script>
 
-<div class="-ml-3 flex items-center text-sm">
+<!-- `-ml-2.5` pulls the first pill's own padding back so the `7` lines up with
+     the column edge, not the pill. `max-w-full` keeps the row inside the column
+     on the narrowest phones, where four pills plus the word run close. -->
+<div class="-ml-2.5 flex max-w-full items-center text-sm sm:-ml-3">
 	<!-- A radio group, not a row of toggles: exactly one is always chosen, and
 	     arrow keys are the expected way through it. Roving tabindex keeps the
 	     group a single tab stop. -->
@@ -120,7 +132,7 @@
 		role="radiogroup"
 		aria-label="Range in days"
 		tabindex="-1"
-		class="relative flex items-center gap-1 focus:outline-none"
+		class="relative flex min-w-0 items-center gap-0.5 focus:outline-none sm:gap-1"
 		{onkeydown}
 	>
 		<div
@@ -138,7 +150,7 @@
 				aria-checked={range === value}
 				tabindex={range === value ? 0 : -1}
 				onclick={() => select(range)}
-				class="relative rounded-full px-3 py-1.5 font-medium tabular-nums transition-colors duration-150 ease-out select-none after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 {range ===
+				class="relative rounded-full px-2.5 py-1.5 font-medium tabular-nums transition-colors duration-150 ease-out select-none after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-neutral-400 sm:px-3 {range ===
 				value
 					? `text-neutral-900 dark:text-neutral-100 ${measured ? '' : 'bg-neutral-100 dark:bg-neutral-800'}`
 					: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100'}"

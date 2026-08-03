@@ -1,5 +1,5 @@
 <script>
-	import { scoreLabel } from '$lib/health/metrics.js';
+	import { scoreLabel, scoreTone } from '$lib/health/metrics.js';
 
 	/**
 	 * One number for the day, next to the page title.
@@ -7,6 +7,10 @@
 	 * The ring is the whole design: a track, an arc, and the number inside it. It
 	 * follows the same scrub as the charts, so hovering a day up-ends the score
 	 * with it rather than leaving a second, contradictory headline on the page.
+	 *
+	 * The text leads and the ring sits on the outside edge of the row, so the ring
+	 * lands hard against the margin on both layouts — beside the title from `md`
+	 * up, and at the right edge of the column below it.
 	 */
 	let { score = null, counted = 0, of = 0, when = '' } = $props();
 
@@ -18,14 +22,26 @@
 	const offset = $derived(CIRCUMFERENCE * (1 - fraction));
 	const label = $derived(scoreLabel(score));
 
-	// The count only earns a place when the day is short a metric — "5 of 5" on
+	// The arc is the one thing on the page that says how the day went without
+	// being read, so it carries the band's color. Everything around it stays
+	// neutral — two things changing color would just be noise.
+	const tone = $derived(scoreTone(score));
+
+	// The count only earns a place when the day is short a metric — "4 of 4" on
 	// every full day is noise, and it is the partial day that needs explaining.
 	const caption = $derived(
 		counted > 0 && counted < of ? `${when} · ${counted} of ${of} metrics` : when
 	);
 </script>
 
-<div class="flex items-center gap-4">
+<div class="flex items-center justify-between gap-4 md:justify-end">
+	<div class="min-w-0">
+		<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">{label}</p>
+		<p class="text-sm text-neutral-500 tabular-nums dark:text-neutral-500">
+			{caption}
+		</p>
+	</div>
+
 	<div
 		class="relative shrink-0"
 		role="img"
@@ -41,7 +57,7 @@
 				cy="44"
 				r={RADIUS}
 				fill="none"
-				stroke="var(--chart-accent)"
+				stroke={tone}
 				stroke-width="6"
 				stroke-linecap="round"
 				stroke-dasharray={CIRCUMFERENCE}
@@ -53,12 +69,5 @@
 		>
 			{score === null ? '—' : score}
 		</span>
-	</div>
-
-	<div class="min-w-0">
-		<p class="text-sm font-medium text-neutral-900 dark:text-neutral-100">{label}</p>
-		<p class="text-sm text-neutral-500 tabular-nums dark:text-neutral-500">
-			{caption}
-		</p>
 	</div>
 </div>

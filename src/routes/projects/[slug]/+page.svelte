@@ -1,4 +1,6 @@
 <script>
+	import ArticleDialsMount from '$lib/article/ArticleDialsMount.svelte';
+	import { articleSettings, articleStyle } from '$lib/article/article-settings.svelte.js';
 	import LikeButton from '$lib/LikeButton.svelte';
 	import { page } from '$app/stores';
 	import Lightbox from '../../../lib/Lightbox.svelte';
@@ -254,7 +256,7 @@
 							</div>
 						</div>
 					{/if}
-					<div use:lightboxAction class="prose-post">
+					<div use:lightboxAction class="prose-post" style={articleStyle(articleSettings)}>
 						{#if content}
 							<svelte:component this={content} class="prose" />
 						{/if}
@@ -264,3 +266,6 @@
 		</div>
 	</article>
 </div>
+
+<!-- Preview deployments only, and compiled out entirely everywhere else. -->
+<ArticleDialsMount />

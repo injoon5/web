@@ -20,14 +20,11 @@ HEALTH_API_KEY=<key> node shortcuts/smoke.mjs https://<deployment>.convex.site
 
 ## Build it
 
-For each of `steps`, `distance`, `activeEnergy`, `exerciseMinutes`,
-`sleepHours`:
+For each of `steps`, `distance`, `activeEnergy`, `exerciseMinutes`:
 
 1. **Find Health Samples** — the matching sample type, `Start Date` `Today`,
    and **`Source` is `<your Apple Watch>`**.
-2. **Calculate Statistics** — `Sum`. Sleep is summed over sample durations; if
-   yours come back in minutes, divide by 60 first, since the value is stored as
-   hours.
+2. **Calculate Statistics** — `Sum`.
 3. **Set Variable**, named after the metric key exactly.
 
 Then, once:
@@ -47,7 +44,7 @@ Re-sending a day is free: rows are upserted on `(metric, date)`.
 ### Optional extras
 
 Any metric key in `metricUnit()` can be added the same way — the endpoint stores
-it, and `/health` renders only the five above. `restingHeartRate` is a useful
+it, and `/health` renders only the four above. `restingHeartRate` is a useful
 one: sort descending, `Limit 1`, then `Average`.
 
 For the hourly heart-rate chart, add a `samples` key: **Repeat with Each** over

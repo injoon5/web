@@ -56,7 +56,7 @@ describe('POST /health/ingest — the metrics shortcut', () => {
 		expect(res.status).toBe(200);
 
 		const body = await res.json();
-		expect(body).toMatchObject({ ok: true, metrics: 6, samplesInserted: 4 });
+		expect(body).toMatchObject({ ok: true, metrics: 5, samplesInserted: 4 });
 
 		const rows = await t.run(async (ctx) => ctx.db.query('healthDaily').take(50));
 		const byMetric = Object.fromEntries(rows.map((r) => [r.metric, r]));
@@ -69,7 +69,6 @@ describe('POST /health/ingest — the metrics shortcut', () => {
 			source: 'Apple Watch'
 		});
 		expect(byMetric.distance.value).toBe(6.2);
-		expect(byMetric.sleepHours).toMatchObject({ value: 7.4, unit: 'h' });
 		expect(byMetric.restingHeartRate).toMatchObject({ value: 54, unit: 'bpm' });
 	});
 
@@ -86,7 +85,7 @@ describe('POST /health/ingest — the metrics shortcut', () => {
 		const samples = await t.run(async (ctx) => ctx.db.query('healthSamples').take(50));
 		const buckets = await t.run(async (ctx) => ctx.db.query('healthBuckets').take(50));
 
-		expect(daily).toHaveLength(6);
+		expect(daily).toHaveLength(5);
 		expect(samples).toHaveLength(4);
 		expect(buckets).toHaveLength(1);
 		expect(buckets[0].count).toBe(4);
