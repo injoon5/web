@@ -1,10 +1,6 @@
 {
 	"$schema": "https://turbo.build/schema.json",
-	"globalEnv": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"],
 	"globalPassThroughEnv": [
-		"DATABASE_URL",
-		"UPSTASH_REDIS_REST_URL",
-		"UPSTASH_REDIS_REST_TOKEN",
 		"ADMIN_SECRET",
 		"CONVEX_DEPLOY_KEY",
 		"IP_HASH_SECRET",
@@ -12,9 +8,16 @@
 	],
 	"tasks": {
 		"fingerprint-images": {
-			"inputs": ["scripts/fingerprint-images.mjs"],
-			"outputs": [".cache/source-fingerprints.json"],
-			"env": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"]
+			// Reads image bytes out of `git show HEAD:`, which turbo cannot see, so
+			// no input glob describes what this task depends on. It is also ~1s.
+			// Always run it, and let its output — a content hash per tracked image —
+			// be the cache key for the expensive task below.
+			//
+			// The commit SHA is deliberately NOT in the hash, here or in globalEnv.
+			// It changes on every deploy, and anything it touches can never hit the
+			// remote cache: that is what made every deploy re-encode all 108 images.
+			"cache": false,
+			"outputs": [".cache/source-fingerprints.json"]
 		},
 		"build-image-cache": {
 			"dependsOn": ["fingerprint-images"],

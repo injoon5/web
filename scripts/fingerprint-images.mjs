@@ -40,22 +40,17 @@ async function main() {
 			const blob = await git('git', ['show', `HEAD:${rel}`]);
 			fingerprints[rel] = createHash('sha256').update(blob).digest('hex');
 		} catch {
-			// Untracked or deleted in HEAD — fall back to working tree below.
+			// Staged but not yet committed, or deleted in HEAD. `optimize-images`
+			// reads from HEAD too, so a file that isn't there has nothing to
+			// optimize — leaving it out here keeps the two in step.
 		}
 	}
 
+	// This file is the turbo cache key for image optimization, so it holds content
+	// hashes and nothing else. A commit SHA in here would change on every deploy
+	// and force a re-encode of every image even when none of them moved.
 	await mkdir(path.dirname(OUT_PATH), { recursive: true });
-	await writeFile(
-		OUT_PATH,
-		JSON.stringify(
-			{
-				commit: (await git('git', ['rev-parse', 'HEAD'])).trim(),
-				files: fingerprints
-			},
-			null,
-			2
-		)
-	);
+	await writeFile(OUT_PATH, JSON.stringify({ files: fingerprints }, null, 2));
 }
 
 main().catch((err) => {
