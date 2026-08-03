@@ -442,8 +442,8 @@
 .light .prose code[data-theme='dark'],
 .dark .prose pre[data-theme='light'],
 .dark .prose code[data-theme='light'],
-.light .prose div[data-rehype-pretty-code-title][data-theme='dark'],
-.dark .prose div[data-rehype-pretty-code-title][data-theme='light'] {
+.light :is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title][data-theme='dark'],
+.dark :is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title][data-theme='light'] {
 	display: none;
 }
 
@@ -463,11 +463,13 @@
 	@apply bg-sky-400/25;
 }
 
-/* Code block title */
-.prose div[data-rehype-pretty-code-title] {
+/* Code block title. rehype-pretty-code emits a <figcaption> here, not a <div> —
+   these rules matched nothing until the selector was corrected, so a titled
+   block rendered its filename as bare prose above the code. */
+:is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title] {
 	@apply rounded-t-lg border-b border-neutral-700 bg-neutral-800 px-5 py-3 font-mono text-sm font-bold text-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
 }
-.prose div[data-rehype-pretty-code-title] + pre {
+:is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title] + pre {
 	@apply mt-0 rounded-t-none;
 }
 

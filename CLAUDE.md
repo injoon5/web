@@ -133,7 +133,7 @@ static payload and never re-run on client-side navigation.
 
 - **Admin secret** stored in env var `ADMIN_SECRET`.
 - **API auth:** `verifyAdminSecret(request)` checks the `x-admin-secret` request header (`src/lib/server/admin.ts`).
-- **Page auth:** `src/routes/admin/+page.server.ts` compares the `admin_token` cookie to `ADMIN_SECRET`; sets an httpOnly cookie for 24 h on login. Exposes `adminSecret` to the page so the Svelte client can attach it to API calls.
+- **Page auth:** `src/routes/admin/+page.server.ts` checks the password with `secretsMatch` (HMAC, constant-time) and issues a signed `expiresAt.nonce.signature` session token, set as an httpOnly, sameSite=strict cookie for 24 h. The secret itself never reaches the page — `load` returns only `{ authenticated }`, and `verifyAdminSecret` accepts either the `x-admin-secret` header or that cookie.
 - All `/api/admin/*` routes require the header; they return 401 otherwise.
 - Convex mutations also accept an optional `adminSecret` argument; when present and valid, they bypass rate limits and per-IP checks.
 
