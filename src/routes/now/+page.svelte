@@ -127,7 +127,7 @@
 	<div class="my-12">
 		{#if nowQuery.isLoading}
 			<div class="space-y-3">
-				{#each [75, 55, 90, 40, 70, 50] as w}
+				{#each [75, 55, 90, 40, 70, 50] as w, i (i)}
 					<div class="shimmer h-4 rounded" style="width: {w}%"></div>
 				{/each}
 			</div>
@@ -139,8 +139,7 @@
 				class="min-h-[320px] w-full resize-none rounded-none border-0 bg-neutral-50 px-4 py-3 font-mono text-sm leading-relaxed text-neutral-900 transition-colors outline-none focus:ring-1 focus:ring-neutral-300 disabled:opacity-50 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:ring-neutral-700"
 				placeholder="Write in markdown…"
 				spellcheck="false"
-				autocomplete="off"
-			></textarea>
+				autocomplete="off"></textarea>
 		{:else if html}
 			<div
 				class="prose prose-neutral dark:prose-invert prose-p:text-neutral-900

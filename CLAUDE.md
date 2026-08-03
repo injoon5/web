@@ -133,7 +133,7 @@ static payload and never re-run on client-side navigation.
 
 - **Admin secret** stored in env var `ADMIN_SECRET`.
 - **API auth:** `verifyAdminSecret(request)` checks the `x-admin-secret` request header (`src/lib/server/admin.ts`).
-- **Page auth:** `src/routes/admin/+page.server.ts` compares the `admin_token` cookie to `ADMIN_SECRET`; sets an httpOnly cookie for 24 h on login. Exposes `adminSecret` to the page so the Svelte client can attach it to API calls.
+- **Page auth:** `src/routes/admin/+page.server.ts` checks the password with `secretsMatch` (HMAC, constant-time) and issues a signed `expiresAt.nonce.signature` session token, set as an httpOnly, sameSite=strict cookie for 24 h. The secret itself never reaches the page — `load` returns only `{ authenticated }`, and `verifyAdminSecret` accepts either the `x-admin-secret` header or that cookie.
 - All `/api/admin/*` routes require the header; they return 401 otherwise.
 - Convex mutations also accept an optional `adminSecret` argument; when present and valid, they bypass rate limits and per-IP checks.
 
@@ -410,8 +410,15 @@ and not an env read, Rollup folds `if (__DIALS__)` to `if (false)` in a
 production build, the dynamic import becomes unreachable, and no DialKit chunk
 or stylesheet is emitted. A runtime check would still have shipped the bundle.
 
-Two traps, both already sprung:
+Three traps, all already sprung:
 
+- **`VERCEL_ENV` has to be listed in `turbo.json`.** The Vercel build runs
+  through `turbo`, which uses strict env mode: a variable the task does not
+  declare is not merely unhashed, it is _absent_. So `vite.config.ts` read
+  `undefined`, fell through to its `NODE_ENV` branch, and `vite build` sets
+  `NODE_ENV=production` — which made `__DIALS__` false on preview deploys too,
+  and no panel had ever actually shipped. Anything the build reads off
+  `process.env` needs to be in the `build` task's `env` list.
 - `DialRoot` hides itself when `NODE_ENV` is `production`, and a Vercel preview
   _is_ a production build — so it needs `productionEnabled`. Without it the
   chunk loads and renders nothing.

@@ -1,5 +1,5 @@
 <script>
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createWebHaptics } from 'web-haptics/svelte';
@@ -48,8 +48,8 @@
 	}
 	const fallbackHandle = makeHandle();
 
-	const ipHash = $derived($page.data.ipHash ?? '');
-	const path = $derived($page.url.pathname);
+	const ipHash = $derived(page.data.ipHash ?? '');
+	const path = $derived(page.url.pathname);
 
 	// Reactive comments query — live updates across tabs
 	const query = useQuery(
@@ -86,6 +86,9 @@
 	// One in-flight vote per comment; extra clicks are queued (not dropped).
 	const votingIds = new SvelteSet();
 	/** @type {Map<string, Promise<void>>} */
+	// A promise-chain registry, never read during render: SvelteMap would only
+	// add proxy overhead.
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
 	const voteQueues = new Map();
 	let votingAnim = $state({ id: null, side: null });
 	let votingAnimTimer = null;
@@ -152,7 +155,7 @@
 	const canVote = $derived(voteKnown);
 
 	// Reset transient form state on path change
-	let currentPath = $state($page.url.pathname);
+	let currentPath = $state(page.url.pathname);
 	$effect(() => {
 		if (path !== currentPath) {
 			currentPath = path;

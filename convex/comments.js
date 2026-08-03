@@ -25,6 +25,43 @@ async function consumeRateLimit(ctx, name, ipHash) {
 }
 
 /**
+ * Ban + rate-limit gate for a would-be comment, consuming nothing.
+ *
+ * `create` takes a bcrypt hash as an argument, so the caller has to spend
+ * ~100ms of CPU hashing the password *before* this mutation can tell it the IP
+ * is banned or out of budget. That inverts the point of a rate limit: the
+ * expensive work happened first, and a banned visitor could still burn a
+ * serverless function's CPU on every request, unbounded. The owner (edit and
+ * delete) path already has this shape via `beginOwnerAction` — it takes its
+ * token before bcrypt runs. This gives creates the same ordering.
+ *
+ * `limiter.check` rather than `limiter.limit`: the token is consumed by
+ * `create` itself, which stays the authority. This only front-runs the
+ * rejection so nothing expensive happens on the way to it. A caller that skips
+ * this and goes straight to `create` is checked there exactly as before.
+ *
+ * A mutation, not a query, deliberately. A token bucket refills with the clock,
+ * and Convex freezes time inside a query and caches the result until the data
+ * it read changes — so a cached `ok: false` would outlive the window that
+ * produced it and lock the visitor out with no write to invalidate it.
+ */
+export const checkCanCreate = mutation({
+	args: { ipHash: v.string(), adminSecret: v.optional(v.string()) },
+	handler: async (ctx, { ipHash, adminSecret }) => {
+		if (await isAdmin(adminSecret)) return;
+
+		if (await isBanned(ctx, ipHash)) {
+			throw new ConvexError({ kind: 'Banned' });
+		}
+
+		const { ok, retryAfter } = await limiter.check(ctx, 'comment', { key: ipHash });
+		if (!ok) {
+			throw new ConvexError({ kind: 'RateLimited', name: 'comment', retryAfter });
+		}
+	}
+});
+
+/**
  * Combined rate-limit gate + auth payload for owner (password) actions.
  * One internal mutation instead of separate limit/auth calls keeps the Node
  * action's sequential ctx.run* calls to a minimum (see Convex best practices).

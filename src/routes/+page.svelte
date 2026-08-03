@@ -303,7 +303,7 @@
 				use:marqueeConstantSpeed
 				class="now-marquee marquee-track flex"
 			>
-				{#each [...tracks, ...tracks] as track}
+				{#each [...tracks, ...tracks] as track, i (i)}
 					<a
 						class="now-cover border-opacity-50 group relative aspect-square shrink-0 overflow-hidden border border-neutral-300 shadow-md dark:border dark:border-neutral-800"
 						href={track.url}

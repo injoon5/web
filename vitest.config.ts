@@ -10,7 +10,7 @@ const r = (p) => fileURLToPath(new URL(p, import.meta.url));
 // can be imported directly, without spinning up the full SvelteKit/Vite plugin.
 const sharedAlias = {
 	'$env/static/private': r('./src/test/mocks/env-static-private.js'),
-	'$app/stores': r('./src/test/mocks/app-stores.js'),
+	'$app/state': r('./src/test/mocks/app-state.svelte.js'),
 	'$app/environment': r('./src/test/mocks/app-environment.js'),
 	'web-haptics/svelte': r('./src/test/mocks/web-haptics.js'),
 	'@number-flow/svelte': r('./src/test/mocks/NumberFlow.svelte'),

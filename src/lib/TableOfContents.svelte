@@ -23,6 +23,9 @@
 
 		// Pick the heading nearest to the top of the viewport (but not below it)
 		// by tracking each heading's intersection with a top sliver of the viewport.
+		// Observer-local bookkeeping; the rendered value is `activeId`, which is
+		// already state.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const visible = new Map();
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -69,10 +72,10 @@
 			On this page
 		</p>
 		<ul class="space-y-0">
-			{#each headings as heading}
+			{#each headings as heading (heading.id)}
 				<li>
 					<button
-						on:click={() => scrollTo(heading.id)}
+						onclick={() => scrollTo(heading.id)}
 						class="group relative flex w-full items-baseline py-0.5 text-left transition-colors duration-150 {indent[
 							heading.level
 						] ?? 'pl-5'}"

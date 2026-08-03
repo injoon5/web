@@ -1,4 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { execSync } from 'node:child_process';
 
@@ -44,5 +45,8 @@ export default defineConfig({
 		},
 		allowedHosts: true
 	},
-	plugins: [sveltekit()]
+	// Tailwind runs as a Vite plugin rather than through PostCSS: Vite's own
+	// postcss-import pass resolves `@import 'tailwindcss'` as a file path and
+	// fails before `@tailwindcss/postcss` ever sees it.
+	plugins: [tailwindcss(), sveltekit()]
 });

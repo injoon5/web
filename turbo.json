@@ -1,10 +1,6 @@
 {
 	"$schema": "https://turbo.build/schema.json",
-	"globalEnv": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"],
 	"globalPassThroughEnv": [
-		"DATABASE_URL",
-		"UPSTASH_REDIS_REST_URL",
-		"UPSTASH_REDIS_REST_TOKEN",
 		"ADMIN_SECRET",
 		"CONVEX_DEPLOY_KEY",
 		"IP_HASH_SECRET",
@@ -12,9 +8,16 @@
 	],
 	"tasks": {
 		"fingerprint-images": {
-			"inputs": ["scripts/fingerprint-images.mjs"],
-			"outputs": [".cache/source-fingerprints.json"],
-			"env": ["VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"]
+			// Reads image bytes out of `git show HEAD:`, which turbo cannot see, so
+			// no input glob describes what this task depends on. It is also ~1s.
+			// Always run it, and let its output — a content hash per tracked image —
+			// be the cache key for the expensive task below.
+			//
+			// The commit SHA is deliberately NOT in the hash, here or in globalEnv.
+			// It changes on every deploy, and anything it touches can never hit the
+			// remote cache: that is what made every deploy re-encode all 108 images.
+			"cache": false,
+			"outputs": [".cache/source-fingerprints.json"]
 		},
 		"build-image-cache": {
 			"dependsOn": ["fingerprint-images"],
@@ -33,9 +36,34 @@
 			"cache": false
 		},
 		"build": {
+			// Not cached, and `outputs` is empty for the same reason. `.svelte-kit`
+			// plus `.vercel` is ~313MB, and turbo tried to tar and PUT all of it to
+			// the remote cache on every deploy — for an entry nothing can ever read,
+			// since the hash covers every source file and so changes with each
+			// commit. That upload is what returned
+			//   400 Bad Request for .../v8/artifacts/<hash>
+			// at the end of the build. The task always ran anyway ("0 cached, 4
+			// total"); this just stops it paying to store the result.
+			//
+			// `.vercel/output` is what Vercel deploys and it reads that from disk,
+			// so declaring it here bought nothing even when the upload worked.
+			//
+			// VERCEL_ENV is what `vite.config.ts` reads to decide whether this build
+			// ships the DialKit panels. Turbo runs tasks in strict env mode, so an
+			// undeclared variable is simply not there — the config fell through to
+			// its `NODE_ENV` branch, and `vite build` sets NODE_ENV=production, so
+			// `__DIALS__` folded to false on *preview* deploys too and the panels
+			// have never actually shipped. It belongs in `env` rather than
+			// `passThroughEnv` because it changes the output.
 			"dependsOn": ["apply-optimized-images"],
-			"outputs": [".svelte-kit/**", ".vercel/**"],
-			"env": ["PUBLIC_CONVEX_URL", "ADMIN_SECRET", "CONVEX_DEPLOY_KEY", "IP_HASH_SECRET"]
+			"cache": false,
+			"env": [
+				"PUBLIC_CONVEX_URL",
+				"ADMIN_SECRET",
+				"CONVEX_DEPLOY_KEY",
+				"IP_HASH_SECRET",
+				"VERCEL_ENV"
+			]
 		}
 	}
 }

@@ -1,5 +1,5 @@
 <script>
-	export let data, slug;
+	let { data, slug } = $props();
 </script>
 
 <a

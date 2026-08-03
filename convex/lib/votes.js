@@ -59,7 +59,7 @@ async function votesForVisitor(ctx, commentId, ipHash) {
 export async function applyVoteChange(ctx, comment, voteType, ipHash) {
 	const commentId = comment._id;
 	const rows = await votesForVisitor(ctx, commentId, ipHash);
-	let existing = rows[0] ?? null;
+	const existing = rows[0] ?? null;
 
 	for (let i = 1; i < rows.length; i++) {
 		await ctx.db.delete('commentVotes', rows[i]._id);
@@ -67,7 +67,6 @@ export async function applyVoteChange(ctx, comment, voteType, ipHash) {
 
 	if (existing && existing.voteType === voteType) {
 		await ctx.db.delete('commentVotes', existing._id);
-		existing = null;
 	} else if (existing) {
 		await ctx.db.patch('commentVotes', existing._id, { voteType });
 	} else {

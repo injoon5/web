@@ -56,6 +56,9 @@ export function autoHeight(node, params = {}) {
 
 		node.style.transition = 'none';
 		node.style.height = `${from}px`;
+		// Forced reflow: commits the start height so the transition below has
+		// something to animate from instead of coalescing into one style change.
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		node.offsetHeight;
 		node.style.transition = `height ${duration}ms cubic-bezier(0.215, 0.61, 0.355, 1)`;
 		node.style.height = `${next}px`;

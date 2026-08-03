@@ -25,20 +25,13 @@ if (!url || url.includes('your-deployment')) {
 
 const client = new ConvexHttpClient(url);
 
+// Read-only by design: this runs against a live deployment, so it never writes.
 async function runQuery(path, args) {
 	const mod = await import('../convex/_generated/api.js');
 	const parts = path.split('.');
 	let ref = mod.api;
 	for (const p of parts) ref = ref[p];
 	return client.query(ref, args);
-}
-
-async function runMutation(path, args) {
-	const mod = await import('../convex/_generated/api.js');
-	const parts = path.split('.');
-	let ref = mod.api;
-	for (const p of parts) ref = ref[p];
-	return client.mutation(ref, args);
 }
 
 async function main() {

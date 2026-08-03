@@ -1,5 +1,5 @@
 <script>
-	export let data;
+	let { data } = $props();
 </script>
 
 <svelte:head>
@@ -33,7 +33,7 @@
 	</h2>
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
-		{#each data.projects as project}
+		{#each data.projects as project (project.slug)}
 			<div class="py-2">
 				<a
 					href={`/projects/${project.slug}`}

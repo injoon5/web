@@ -214,7 +214,8 @@
 
 	function onTabKeydown(e, tabIndex, isFav) {
 		const total = techstack.length;
-		let next = null;
+		// Every branch below either assigns this or returns early.
+		let next;
 
 		if (e.key === 'ArrowRight') {
 			e.preventDefault();
@@ -303,7 +304,7 @@
 				>
 					<span class="ts-tab-label">Favorites</span>
 				</button>
-				{#each techstack as category, index}
+				{#each techstack as category, index (category.name)}
 					<span class="ts-sep" aria-hidden="true">·</span>
 					<button
 						type="button"
@@ -328,7 +329,7 @@
 					aria-hidden="true"
 				>
 					<span class="ts-clip-item"><span class="ts-tab-label">Favorites</span></span>
-					{#each techstack as category}
+					{#each techstack as category (category.name)}
 						<span class="ts-clip-gap" aria-hidden="true">·</span>
 						<span class="ts-clip-item"><span class="ts-tab-label">{category.name}</span></span>
 					{/each}
