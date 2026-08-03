@@ -62,6 +62,41 @@ export default defineSchema({
 	}),
 
 	// ---------------------------------------------------------------------------
+	// Home-page feeds
+	//
+	// One row each, overwritten by the 5-minute cron. Normalized down to what the
+	// page renders (see convex/lib/feeds.js) — the upstream payloads carry four
+	// image sizes, EXIF and mbids the home page never touches.
+	// ---------------------------------------------------------------------------
+
+	nowPlaying: defineTable({
+		tracks: v.array(
+			v.object({
+				name: v.string(),
+				artist: v.string(),
+				url: v.string(),
+				image: v.string(),
+				nowPlaying: v.boolean(),
+				playedAt: v.union(v.number(), v.null()) // null while the track is playing
+			})
+		),
+		updatedAt: v.number()
+	}),
+
+	photos: defineTable({
+		photos: v.array(
+			v.object({
+				id: v.string(),
+				title: v.string(),
+				url: v.string(),
+				image: v.string(),
+				takenAt: v.string() // the feed's own formatted, timezone-naive capture time
+			})
+		),
+		updatedAt: v.number()
+	}),
+
+	// ---------------------------------------------------------------------------
 	// Apple Health
 	//
 	// Three tiers of the same data, so a read touches about as many rows as the

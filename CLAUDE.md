@@ -84,12 +84,13 @@ convex/
   likes.js                 # likes.get / toggle
   bans.js                  # bans.list / ban / unban
   now.js                   # now.get / set
+  feeds.js                 # Home-page feeds — public reads + cron refreshes (Last.fm, photos)
   admin.js                 # admin-only helpers (URL listing, etc.)
   rateLimits.js            # Convex rate-limiter component config
   health.js                # Apple Health — ingest mutation + internal reads (all internal)
   healthPublic.js          # The one public health query — see "Apple Health" below
   http.js                  # HTTP actions: /health/* (Bearer HEALTH_API_KEY)
-  crons.js                 # Daily prune of raw health samples
+  crons.js                 # Daily prune of raw health samples + 5-min home-page feed refreshes
   lib/                     # Shared Convex helpers
 ```
 
@@ -107,6 +108,8 @@ convex/
 | `migrationMeta`    | key, complete (one-time backfill completion flags)                                                                     | `by_key`                                   |
 | `bannedIps`        | ipHash, reason                                                                                                         | `by_ip`                                    |
 | `nowPage`          | content, updatedAt                                                                                                     | —                                          |
+| `nowPlaying`       | tracks[] (name, artist, url, image, nowPlaying, playedAt\|null), updatedAt — one row                                   | —                                          |
+| `photos`           | photos[] (id, title, url, image, takenAt), updatedAt — one row                                                         | —                                          |
 | `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                           | `by_metric_date`, `by_date`                |
 | `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                    | `by_metric_hour`, `by_hour`                |
 | `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                | `by_metric_time`, `by_time`                |
@@ -178,7 +181,11 @@ When a limiter rejects, mutations throw; `convexErrorToResponse` in `src/lib/ser
 
 ## Realtime Queries
 
-Public surfaces (CommentsSection, LikeButton, /now) subscribe to Convex via `convex-svelte`'s `useQuery`. Updates push over WebSocket, so no manual polling. `setupConvex(PUBLIC_CONVEX_URL)` runs once in the root layout.
+Public surfaces (CommentsSection, LikeButton, /now, the home page's Now Listening and Photos sections) subscribe to Convex via `convex-svelte`'s `useQuery`. Updates push over WebSocket, so no manual polling. `setupConvex(PUBLIC_CONVEX_URL)` runs once in the root layout.
+
+The subscriptions never gate a page render: the home page is prerendered, its
+loads fetch nothing from Convex, and each section renders its own skeleton off
+`query.isLoading` while the socket resolves.
 
 CommentsSection and LikeButton pass `keepPreviousData: true` so their content
 doesn't flash back to a skeleton when the `ipHash` re-subscription swaps the
@@ -188,6 +195,27 @@ latest non-stale result belongs to — and gate rendering and every write on
 `freshPath === $page.url.pathname`. Any new `keepPreviousData` subscription
 keyed on the pathname needs the same guard, or visitors can act on the page
 they just left.
+
+---
+
+## Home-Page Feeds (`convex/feeds.js`)
+
+Now Listening (Last.fm) and Photos (`photos.injoon5.com/feed.json`) are pulled by
+a Convex cron every 5 minutes, replacing a GitHub Action that committed JSON to
+a data repo and a browser fetch of those raw files.
+
+- `internal.feeds.refreshNowPlaying` / `refreshPhotos` — one action per feed, so
+  Last.fm being down doesn't hold back photos.
+- Each action normalizes the response down to what the page renders
+  (`convex/lib/feeds.js`) and hands it to a one-row upsert. The raw payloads are
+  ~20x larger and carry `#text`/`@attr` keys the schema shouldn't.
+- **A failed or empty upstream response throws instead of writing.** The stored
+  row survives, so the page keeps showing the last good feed rather than emptying
+  out. `convex/feeds.test.js` asserts this — keep those cases.
+- `api.feeds.nowPlaying` / `api.feeds.photos` are public queries. They can be:
+  both feeds are already public at the source, and the home page renders exactly
+  what they return.
+- Needs `LAST_FM_PUBLIC_API_KEY` in the Convex env (`npx convex env set`).
 
 ---
 
@@ -409,6 +437,9 @@ Edit `convex/schema.js` and run `npx convex dev` (or `npx convex deploy` for pro
 | `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Used by `npx convex deploy`; sets `PUBLIC_CONVEX_URL` automatically.                 |
 | `HEALTH_API_KEY`    | Apple Health ingest — the Shortcut's bearer token. Convex-side only; `/health` no longer reads it.             |
 | `CONVEX_SITE_URL`   | Optional override. Convex HTTP actions live on the `.site` twin of `PUBLIC_CONVEX_URL`, derived automatically. |
+
+`LAST_FM_PUBLIC_API_KEY` is a Convex-only env var — the feed cron reads it inside
+the deployment, so it never needs to reach the SvelteKit app or Vercel.
 
 <!-- convex-ai-start -->
 
