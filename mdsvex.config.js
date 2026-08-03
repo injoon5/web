@@ -9,7 +9,7 @@ import oembedTransformer from '@remark-embedder/transformer-oembed';
 // import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
-import { createHighlighter } from '@svelte-dev/pretty-code';
+import { createHighlighter } from './src/lib/prettyCodeHighlighter.js';
 import { remarkReadingTime } from './src/lib/remarkReadingTime.js';
 import { rehypeStripCodeTabindex } from './src/lib/rehypeStripCodeTabindex.js';
 

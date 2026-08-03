@@ -60,7 +60,7 @@
 	</a>
 
 	<ul class="flex shrink-0 items-center gap-3 sm:gap-4">
-		{#each navItems as item}
+		{#each navItems as item (item.href)}
 			<li>
 				<a
 					href={item.href}

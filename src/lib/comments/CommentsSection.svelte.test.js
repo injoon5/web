@@ -5,7 +5,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
-import { setPage } from '$app/stores';
+import { setPage } from '$app/state';
 import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
 import CommentsSection from './CommentsSection.svelte';
 

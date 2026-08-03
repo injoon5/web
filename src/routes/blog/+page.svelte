@@ -1,7 +1,9 @@
 <script>
-	export let data;
+	let { data } = $props();
 
-	$: groupedPosts = (() => {
+	const groupedPosts = $derived.by(() => {
+		// Scratch set, created and discarded inside this derivation.
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
 		const seenSeries = new Set();
 		const result = [];
 		for (const post of data.posts) {
@@ -10,15 +12,16 @@
 				seenSeries.add(post.series);
 				result.push({
 					type: 'series',
+					key: `series:${post.series}`,
 					name: post.series,
 					posts: data.posts.filter((p) => p.series === post.series)
 				});
 			} else {
-				result.push({ type: 'post', post });
+				result.push({ type: 'post', key: `post:${post.slug}`, post });
 			}
 		}
 		return result;
-	})();
+	});
 </script>
 
 <svelte:head>
@@ -70,7 +73,7 @@
 		-->
 
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
-		{#each groupedPosts as group}
+		{#each groupedPosts as group (group.key)}
 			{#if group.type === 'series'}
 				<div class="py-2">
 					<span
@@ -79,7 +82,7 @@
 						{group.name}
 					</span>
 				</div>
-				{#each group.posts as seriesPost}
+				{#each group.posts as seriesPost (seriesPost.slug)}
 					<div class="py-2">
 						<a
 							href={`/blog/${seriesPost.slug}`}

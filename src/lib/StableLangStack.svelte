@@ -3,17 +3,24 @@
 
 	const blurT = (node, params) => (params?.duration ? blur(node, params) : {});
 
-	/** @type {string[]} */
-	export let langs = [];
-	export let displayLang = '';
-	/** @type {(lang: string) => string} */
-	export let text = () => '';
-	/** @type {Record<string, unknown> | null | undefined} */
-	export let transition = null;
-	/** @type {'p' | 'span'} */
-	export let as = 'span';
-	/** @type {string} */
-	export let className = '';
+	/**
+	 * @type {{
+	 *   langs?: string[];
+	 *   displayLang?: string;
+	 *   text?: (lang: string) => string;
+	 *   transition?: Record<string, unknown> | null;
+	 *   as?: 'p' | 'span';
+	 *   className?: string;
+	 * }}
+	 */
+	let {
+		langs = [],
+		displayLang = '',
+		text = () => '',
+		transition = null,
+		as = 'span',
+		className = ''
+	} = $props();
 </script>
 
 <div class="grid items-center {className}">

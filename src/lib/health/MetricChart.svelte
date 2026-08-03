@@ -169,88 +169,86 @@
 		{padding}
 		tooltipContext={false}
 	>
-		{#snippet children()}
-			<Svg>
-				<!-- Text only: no rule under the labels, no gridlines across the plot,
-				     not even a tick mark. The numbers are there to size the line, and
-				     anything drawn to connect them to it competes with the line.
+		<Svg>
+			<!-- Text only: no rule under the labels, no gridlines across the plot,
+			     not even a tick mark. The numbers are there to size the line, and
+			     anything drawn to connect them to it competes with the line.
 
-				     Left-aligned against the outer edge of the gutter rather than
-				     right-aligned against the plot, so they start on the same column as
-				     the heading, the number and the first date below. Ragged right on
-				     two numbers is invisible; four different left edges is not. -->
-				<Axis
-					placement="left"
-					{ticks}
-					tickMarks={false}
-					stroke="none"
-					tickLabelProps={{ textAnchor: 'start', dx: -chartSettings.gutter }}
-					classes={{ tickLabel: 'health-axis-label' }}
-				>
-					{#snippet tickLabel({ props, index })}
-						<Text {...props} value={formatCompact(ticks[index], decimals)} />
+			     Left-aligned against the outer edge of the gutter rather than
+			     right-aligned against the plot, so they start on the same column as
+			     the heading, the number and the first date below. Ragged right on
+			     two numbers is invisible; four different left edges is not. -->
+			<Axis
+				placement="left"
+				{ticks}
+				tickMarks={false}
+				stroke="none"
+				tickLabelProps={{ textAnchor: 'start', dx: -chartSettings.gutter }}
+				classes={{ tickLabel: 'health-axis-label' }}
+			>
+				{#snippet tickLabel({ props, index })}
+					<Text {...props} value={formatCompact(ticks[index], decimals)} />
+				{/snippet}
+			</Axis>
+
+			<!-- The wash earns its place only as a wash: it fades out downward, so
+			     it reads as weight under the line rather than a second shape. The
+			     `line` variant drops it entirely. -->
+			{#if chartSettings.variant === 'area'}
+				<LinearGradient vertical stops={washStops}>
+					{#snippet children({ gradient })}
+						<Area
+							class="health-area"
+							style="animation-delay: {delay}ms"
+							fill={gradient}
+							{curve}
+							{defined}
+						/>
 					{/snippet}
-				</Axis>
+				</LinearGradient>
+			{/if}
 
-				<!-- The wash earns its place only as a wash: it fades out downward, so
-				     it reads as weight under the line rather than a second shape. The
-				     `line` variant drops it entirely. -->
-				{#if chartSettings.variant === 'area'}
-					<LinearGradient vertical stops={washStops}>
-						{#snippet children({ gradient })}
-							<Area
-								class="health-area"
-								style="animation-delay: {delay}ms"
-								fill={gradient}
-								{curve}
-								{defined}
-							/>
-						{/snippet}
-					</LinearGradient>
-				{/if}
+			<!-- `strokeWidth`, not `stroke-width`: `Path` reads the camelCase one as
+			     a real prop and renders it *after* its rest-spread, so a kebab
+			     attribute lands in that spread and is then wiped by the prop's own
+			     `undefined`. Passed the wrong way it silently never applies. -->
+			<Spline
+				class="health-line"
+				pathLength="1"
+				style="animation-delay: {delay}ms"
+				stroke="var(--chart-accent)"
+				strokeWidth={chartSettings.strokeWidth}
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				fill="none"
+				{curve}
+				{defined}
+			/>
 
-				<!-- `strokeWidth`, not `stroke-width`: `Path` reads the camelCase one as
-				     a real prop and renders it *after* its rest-spread, so a kebab
-				     attribute lands in that spread and is then wiped by the prop's own
-				     `undefined`. Passed the wrong way it silently never applies. -->
-				<Spline
-					class="health-line"
-					pathLength="1"
+			{#if lone.length}
+				<Points
+					class="health-dot"
 					style="animation-delay: {delay}ms"
-					stroke="var(--chart-accent)"
-					strokeWidth={chartSettings.strokeWidth}
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					fill="none"
-					{curve}
-					{defined}
+					data={lone}
+					r={chartSettings.markerRadius}
+					fill="var(--chart-accent)"
 				/>
+			{/if}
 
-				{#if lone.length}
-					<Points
-						class="health-dot"
-						style="animation-delay: {delay}ms"
-						data={lone}
-						r={chartSettings.markerRadius}
-						fill="var(--chart-accent)"
+			<!-- The rule marks the day on every chart; the dot only appears where
+			     that day actually has a reading. -->
+			{#if marked}
+				<Highlight data={marked} axis="x" motion="none" lines />
+				{#if marked.value !== null}
+					<Highlight
+						data={marked}
+						axis="none"
+						motion="none"
+						points={{ r: chartSettings.markerRadius, fill: 'var(--chart-accent)' }}
 					/>
 				{/if}
-
-				<!-- The rule marks the day on every chart; the dot only appears where
-				     that day actually has a reading. -->
-				{#if marked}
-					<Highlight data={marked} axis="x" motion="none" lines />
-					{#if marked.value !== null}
-						<Highlight
-							data={marked}
-							axis="none"
-							motion="none"
-							points={{ r: chartSettings.markerRadius, fill: 'var(--chart-accent)' }}
-						/>
-					{/if}
-				{/if}
-			</Svg>
-		{/snippet}
+			{/if}
+		</Svg>
 	</Chart>
 </div>
 

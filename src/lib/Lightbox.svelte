@@ -2,31 +2,31 @@
 	import { lightboxStore, MAX_LIGHTBOX_HEIGHT } from './lightbox.js';
 	import { onDestroy } from 'svelte';
 
-	let visible = false;
-	let src = '';
-	let alt = '';
-	let naturalWidth = 0;
-	let naturalHeight = 0;
-	let zoomed = false;
-	let imgEl;
-	let backdropEl;
-	let closeBtn;
-	let closing = false;
-	let swipeDismissing = false;
+	let visible = $state(false);
+	let src = $state('');
+	let alt = $state('');
+	let naturalWidth = $state(0);
+	let naturalHeight = $state(0);
+	let zoomed = $state(false);
+	let imgEl = $state(null);
+	let backdropEl = $state(null);
+	let closeBtn = $state(null);
+	let closing = $state(false);
+	let swipeDismissing = $state(false);
 
 	// Touch swipe-to-close (single finger)
 	let touchStartY = 0;
-	let dragY = 0;
-	let dragging = false;
+	let dragY = $state(0);
+	let dragging = $state(false);
 
 	// Pinch-zoom state
-	let pinching = false;
-	let pinchScale = 1; // scale during active pinch
-	let committedScale = 1; // scale we keep after pinch ends
+	let pinching = $state(false);
+	let pinchScale = $state(1); // scale during active pinch
+	let committedScale = $state(1); // scale we keep after pinch ends
 	let pinchStartDist = 0;
 	let touchStartX = 0;
-	let panX = 0;
-	let panY = 0;
+	let panX = $state(0);
+	let panY = $state(0);
 	let lastPanX = 0;
 	let lastPanY = 0;
 
@@ -84,20 +84,20 @@
 
 	// Viewport size — used to reserve the image box before the src loads,
 	// which prevents a layout shift when the image arrives after the open.
-	let winW = typeof window !== 'undefined' ? window.innerWidth : 0;
-	let winH = typeof window !== 'undefined' ? window.innerHeight : 0;
+	let winW = $state(typeof window !== 'undefined' ? window.innerWidth : 0);
+	let winH = $state(typeof window !== 'undefined' ? window.innerHeight : 0);
 
 	// Displayed size, computed the same way object-fit: contain would, but
 	// from the known natural dimensions so the box has its final size up front.
-	$: fit = (() => {
+	const fit = $derived.by(() => {
 		if (!naturalWidth || !naturalHeight || !winW || !winH) return null;
 		const availW = winW - 32; // 1rem padding each side
 		const availH = Math.min(winH - 96, MAX_LIGHTBOX_HEIGHT); // viewport cap + max vertical size
 		const scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
 		return { w: Math.round(naturalWidth * scale), h: Math.round(naturalHeight * scale) };
-	})();
+	});
 
-	$: {
+	$effect(() => {
 		const val = $lightboxStore;
 		if (val) {
 			src = val.src;
@@ -119,13 +119,13 @@
 			closing = false;
 			swipeDismissing = false;
 		}
-	}
+	});
 
 	// Capture/restore focus only on the actual open<->close transition. Gating on
 	// `wasVisible` stops a re-run (e.g. when `closeBtn` binds) from re-capturing
 	// `previouslyFocused` as the close button itself, which would otherwise break
 	// focus restoration to the element that opened the lightbox.
-	$: if (typeof document !== 'undefined') {
+	$effect(() => {
 		if (visible && !wasVisible) {
 			previouslyFocused = document.activeElement;
 			applyLightboxThemeColor();
@@ -143,7 +143,7 @@
 			}
 			wasVisible = false;
 		}
-	}
+	});
 
 	function close() {
 		if (closing) return;
@@ -299,10 +299,10 @@
 		previouslyFocused = null;
 	});
 
-	$: liveScale = pinching ? pinchScale : committedScale;
+	const liveScale = $derived(pinching ? pinchScale : committedScale);
 </script>
 
-<svelte:window on:keydown={handleKeydown} bind:innerWidth={winW} bind:innerHeight={winH} />
+<svelte:window onkeydown={handleKeydown} bind:innerWidth={winW} bind:innerHeight={winH} />
 
 {#if visible}
 	<div
@@ -315,13 +315,13 @@
 		aria-modal="true"
 		aria-label={alt || 'Image preview'}
 		tabindex="-1"
-		on:click={handleBackdropClick}
-		on:keydown={handleBackdropKeydown}
-		on:touchstart={onTouchStart}
-		on:touchmove={onTouchMove}
-		on:touchend={onTouchEnd}
-		on:touchcancel={onTouchCancel}
-		on:wheel={onWheel}
+		onclick={handleBackdropClick}
+		onkeydown={handleBackdropKeydown}
+		ontouchstart={onTouchStart}
+		ontouchmove={onTouchMove}
+		ontouchend={onTouchEnd}
+		ontouchcancel={onTouchCancel}
+		onwheel={onWheel}
 	>
 		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
 		<div
@@ -338,8 +338,8 @@
 				role="button"
 				tabindex="0"
 				aria-label={zoomed ? 'Zoom out image' : 'Zoom in image'}
-				on:click={toggleZoom}
-				on:keydown={handleImageKeydown}
+				onclick={toggleZoom}
+				onkeydown={handleImageKeydown}
 			>
 				<img
 					bind:this={imgEl}
@@ -360,7 +360,7 @@
 
 		<!-- Chrome layer — stays above transformed image content -->
 		<div class="lb-chrome">
-			<button bind:this={closeBtn} class="lb-close" on:click={close} aria-label="Close image">
+			<button bind:this={closeBtn} class="lb-close" onclick={close} aria-label="Close image">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 24 24"

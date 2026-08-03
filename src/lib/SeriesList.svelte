@@ -1,21 +1,26 @@
 <script>
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
-	export let series;
+	let { series } = $props();
 
-	let reduceMotion = false;
-	let mounted = false;
+	let reduceMotion = $state(false);
+	let mounted = $state(false);
 	onMount(() => {
 		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		requestAnimationFrame(() => requestAnimationFrame(() => (mounted = true)));
 	});
-	$: bf = { amount: 8, opacity: 0, duration: mounted && !reduceMotion ? 420 : 0, easing: cubicOut };
+	const bf = $derived({
+		amount: 8,
+		opacity: 0,
+		duration: mounted && !reduceMotion ? 420 : 0,
+		easing: cubicOut
+	});
 	// Empty config when duration is 0 so no opacity-0 start frame blinks on load.
 	const blurT = (node, params) => (params.duration ? blur(node, params) : {});
 	// Reverse a copy — mutating the prop in place flipped the order on every render.
-	$: ordered = [...series].reverse();
+	const ordered = $derived([...series].reverse());
 </script>
 
 <div
@@ -35,8 +40,8 @@
 	</div>
 	{#each ordered as post, index (post.slug)}
 		<a
-			href={post.slug === $page.params.slug ? '' : post.slug}
-			class=" border-t border-neutral-200 dark:border-neutral-800 {post.slug === $page.params.slug
+			href={post.slug === page.params.slug ? '' : post.slug}
+			class=" border-t border-neutral-200 dark:border-neutral-800 {post.slug === page.params.slug
 				? 'cursor-default opacity-50'
 				: 'hover:bg-neutral-200  dark:hover:bg-neutral-800 '}  flex flex-row px-3 py-2 {index ===
 			ordered.length - 1

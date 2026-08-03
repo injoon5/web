@@ -14,7 +14,7 @@ export async function parseBody(request, schema) {
 	}
 	const parsed = schema.safeParse(raw);
 	if (!parsed.success) {
-		throw error(400, parsed.error.errors[0]?.message ?? 'Invalid request');
+		throw error(400, parsed.error.issues[0]?.message ?? 'Invalid request');
 	}
 	return parsed.data;
 }

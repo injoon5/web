@@ -1,10 +1,10 @@
 <script>
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
-	$: status = $page.status;
-	$: pathname = $page.url.pathname;
+	const status = $derived(page.status);
+	const pathname = $derived(page.url.pathname);
 
-	$: heading = (() => {
+	const heading = $derived.by(() => {
 		if (status === 404) {
 			if (pathname.startsWith('/blog/')) return "Couldn't find that post";
 			if (pathname.startsWith('/projects/')) return "Couldn't find that project";
@@ -17,11 +17,11 @@
 		if (status === 401) return 'You need to sign in to see that';
 		if (status >= 500) return 'The server tripped over itself';
 		return 'Something went wrong';
-	})();
+	});
 </script>
 
 <svelte:head>
-	<title>{$page.status} — Error</title>
+	<title>{page.status} — Error</title>
 </svelte:head>
 
 <section class="my-32 flex items-center justify-center">
@@ -29,16 +29,16 @@
 		<p
 			class=" text-7xl font-semibold tracking-tight text-neutral-900 uppercase dark:text-neutral-100"
 		>
-			{$page.status}
+			{page.status}
 		</p>
 		<h1 class="mt-3 text-3xl font-bold tracking-tight text-neutral-500 dark:text-neutral-500">
 			{heading}
 		</h1>
-		{#if $page.error?.message}
+		{#if page.error?.message}
 			<p
 				class="mx-auto mt-4 max-w-xl text-xl font-medium tracking-tight text-neutral-400 dark:text-neutral-600"
 			>
-				{$page.error.message}
+				{page.error.message}
 			</p>
 		{/if}
 

@@ -5,7 +5,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { setupConvex } from 'convex-svelte';
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
 	import { theme } from '$lib/theme.js';
@@ -77,7 +77,7 @@
 </script>
 
 <svelte:head>
-	<link rel="canonical" href="https://www.injoon5.com{$page.url.pathname}" />
+	<link rel="canonical" href="https://www.injoon5.com{page.url.pathname}" />
 	<meta property="og:site_name" content="Injoon Oh" />
 </svelte:head>
 

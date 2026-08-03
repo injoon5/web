@@ -5,7 +5,7 @@
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import Lightbox from '../../../lib/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox.js';
 	import Languages from '@lucide/svelte/icons/languages';
@@ -14,7 +14,7 @@
 	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
 	import StableLangStack from '$lib/StableLangStack.svelte';
 
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 
@@ -24,18 +24,23 @@
 	const blurT = (node, params) => (params.duration ? blur(node, params) : {});
 	const flyT = (node, params) => (params.duration ? fly(node, params) : {});
 
-	export let data;
+	let { data } = $props();
 
 	// `lang` is the selected language (drives the selector pill instantly).
 	// `displayLang` is the content currently shown; it catches up to `lang`
 	// one animation at a time so rapid switches can't stack transitions.
 	// Initialised from the server-resolved preference (cookie / ?lang=) so the
 	// server already rendered this language — no post-hydration flash.
-	let lang =
+	// `untrack` is the point, not a workaround: this is the *initial* language
+	// only. Once the visitor picks one, `lang` is theirs and a later `data`
+	// change must not yank the content back to the server's preference.
+	const initialLang = untrack(() =>
 		data.prefLang && data.availableLangs.includes(data.prefLang)
 			? data.prefLang
-			: (data.availableLangs[0] ?? 'ko');
-	let displayLang = lang;
+			: (data.availableLangs[0] ?? 'ko')
+	);
+	let lang = $state(initialLang);
+	let displayLang = $state(initialLang);
 
 	function persistLang(l) {
 		try {
@@ -47,12 +52,12 @@
 	}
 
 	// Direction of the language swap, used to slide content the right way.
-	let dir = 1;
-	let reduceMotion = false;
+	let dir = $state(1);
+	let reduceMotion = $state(false);
 	// Stays false until after the initial (possibly localStorage-restored) language
 	// is applied, so that first paint and that restore don't animate.
-	let mounted = false;
-	let animating = false;
+	let mounted = $state(false);
+	let animating = $state(false);
 
 	onMount(async () => {
 		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -105,24 +110,29 @@
 		advanceDisplay();
 	}
 
-	let bodyWidth = 0;
+	let bodyWidth = $state(0);
 
-	$: animate = mounted && !reduceMotion;
-	$: titleBlur = { amount: 8, opacity: 0, duration: animate ? 420 : 0, easing: cubicOut };
-	$: headerHeight = { duration: animate ? 420 : 0, enabled: animate };
+	const animate = $derived(mounted && !reduceMotion);
+	const titleBlur = $derived({
+		amount: 8,
+		opacity: 0,
+		duration: animate ? 420 : 0,
+		easing: cubicOut
+	});
+	const headerHeight = $derived({ duration: animate ? 420 : 0, enabled: animate });
 	// Both directions share duration + easing so the panels stay a constant gap apart while sliding.
-	$: bodyIn = {
+	const bodyIn = $derived({
 		x: dir * (bodyWidth + 32),
 		opacity: 1,
 		duration: animate ? 440 : 0,
 		easing: cubicOut
-	};
-	$: bodyOut = {
+	});
+	const bodyOut = $derived({
 		x: -dir * (bodyWidth + 32),
 		opacity: 1,
 		duration: animate ? 440 : 0,
 		easing: cubicOut
-	};
+	});
 
 	function metaFor(l) {
 		return l === 'ko' && data.koMeta ? data.koMeta : (data.enMeta ?? data.meta);
@@ -137,16 +147,20 @@
 		return l === 'ko' ? data.koSeries : data.enSeries;
 	}
 
-	$: currentMeta = metaFor(displayLang);
-	$: currentReadingTime = readingTimeFor(displayLang);
-	$: readingMinutes = parseInt(currentReadingTime ?? '', 10);
-	$: currentSeries = seriesFor(displayLang);
+	const currentMeta = $derived(metaFor(displayLang));
+	const currentReadingTime = $derived(readingTimeFor(displayLang));
+	const readingMinutes = $derived(parseInt(currentReadingTime ?? '', 10));
+	const currentSeries = $derived(seriesFor(displayLang));
 	// Head metadata tracks the language actually being shown so the tab title and
 	// social card match the visible content (and default to Korean for crawlers).
-	$: headMeta = metaFor(displayLang) ?? data.meta;
-	$: ogImageUrl = `https://www.injoon5.com/api/og?template=blog-post&title=${encodeURIComponent(headMeta.title)}&description=${encodeURIComponent(headMeta.description || '')}&date=${encodeURIComponent(headMeta.date || '')}`;
+	const headMeta = $derived(metaFor(displayLang) ?? data.meta);
+	const ogImageUrl = $derived(
+		`https://www.injoon5.com/api/og?template=blog-post&title=${encodeURIComponent(headMeta.title)}&description=${encodeURIComponent(headMeta.description || '')}&date=${encodeURIComponent(headMeta.date || '')}`
+	);
 	// Keep <html lang> in sync with the shown language (SSR sets it via hooks.server.ts).
-	$: if (typeof document !== 'undefined') document.documentElement.lang = displayLang;
+	$effect(() => {
+		document.documentElement.lang = displayLang;
+	});
 </script>
 
 <!-- SEO -->
@@ -158,18 +172,18 @@
 	<meta property="og:image" content={ogImageUrl} />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content={ogImageUrl} />
-	<meta property="og:url" content="https://www.injoon5.com/blog/{$page.params.slug}" />
-	{#each data.availableLangs as l}
+	<meta property="og:url" content="https://www.injoon5.com/blog/{page.params.slug}" />
+	{#each data.availableLangs as l (l)}
 		<link
 			rel="alternate"
 			hreflang={l}
-			href="https://www.injoon5.com/blog/{$page.params.slug}?lang={l}"
+			href="https://www.injoon5.com/blog/{page.params.slug}?lang={l}"
 		/>
 	{/each}
 	<link
 		rel="alternate"
 		hreflang="x-default"
-		href="https://www.injoon5.com/blog/{$page.params.slug}"
+		href="https://www.injoon5.com/blog/{page.params.slug}"
 	/>
 </svelte:head>
 
@@ -251,13 +265,13 @@
 		<!-- Post -->
 		<div class="mt-10 grid min-w-0 overflow-hidden" bind:clientWidth={bodyWidth}>
 			{#each [displayLang] as l (l)}
-				{@const content = contentFor(l)}
+				{@const Content = contentFor(l)}
 				<div
 					class="min-w-0 overflow-x-hidden"
 					style="grid-area: 1 / 1;"
 					in:flyT={bodyIn}
 					out:flyT={bodyOut}
-					on:introend={onSwapEnd}
+					onintroend={onSwapEnd}
 				>
 					{#if metaFor(l)?.aiTranslated}
 						<div
@@ -288,8 +302,8 @@
 						</div>
 					{/if}
 					<div use:lightboxAction class="prose-post" style={articleStyle(articleSettings)}>
-						{#if content}
-							<svelte:component this={content} class="prose" />
+						{#if Content}
+							<Content class="prose" />
 						{/if}
 					</div>
 				</div>

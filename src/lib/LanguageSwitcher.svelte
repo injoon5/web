@@ -1,16 +1,20 @@
 <script>
 	import { onMount, tick } from 'svelte';
 
-	export let availableLangs = [];
-	export let lang = 'ko';
-	export let mounted = false;
-	/** @type {(lang: string) => void} */
-	export let onselect = () => {};
+	/**
+	 * @type {{
+	 *   availableLangs?: string[];
+	 *   lang?: string;
+	 *   mounted?: boolean;
+	 *   onselect?: (lang: string) => void;
+	 * }}
+	 */
+	let { availableLangs = [], lang = 'ko', mounted = false, onselect = () => {} } = $props();
 
 	/** @type {Record<string, HTMLButtonElement>} */
 	let langButtons = {};
-	let pillStyle = '';
-	let clipStyle = '';
+	let pillStyle = $state('');
+	let clipStyle = $state('');
 
 	async function updatePill() {
 		await tick();
@@ -26,7 +30,10 @@
 		clipStyle = `clip-path: inset(4px ${right}px 4px ${left}px round 9999px); opacity: 1;`;
 	}
 
-	$: (lang, updatePill());
+	$effect(() => {
+		lang;
+		updatePill();
+	});
 
 	onMount(() => {
 		updatePill();
@@ -47,10 +54,10 @@
 			style={pillStyle || 'opacity:0;'}
 			aria-hidden="true"
 		></span>
-		{#each availableLangs as l}
+		{#each availableLangs as l (l)}
 			<button
 				bind:this={langButtons[l]}
-				on:click={() => onselect(l)}
+				onclick={() => onselect(l)}
 				class="relative z-10 rounded-full px-3 {l === 'en'
 					? 'mr-0.5'
 					: ''} py-1 text-sm font-semibold text-neutral-500 transition-colors duration-150 hover:text-neutral-900 dark:hover:text-neutral-100"
@@ -64,7 +71,7 @@
 			style={clipStyle || 'clip-path: inset(4px 100% 4px 0 round 9999px);'}
 			aria-hidden="true"
 		>
-			{#each availableLangs as l}
+			{#each availableLangs as l (l)}
 				<span
 					class="rounded-full px-3 {l === 'en'
 						? 'mr-0.5'
