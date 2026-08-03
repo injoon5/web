@@ -21,7 +21,7 @@
 
 	$effect(() => {
 		if (!__DIALS__) return;
-		import('$lib/dev/SiteDials.svelte').then((module) => {
+		import('$lib/dev/DialsHost.svelte').then((module) => {
 			Dials = module.default;
 		});
 	});

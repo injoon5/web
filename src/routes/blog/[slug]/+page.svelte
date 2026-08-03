@@ -1,4 +1,6 @@
 <script>
+	import ArticleDialsMount from '$lib/article/ArticleDialsMount.svelte';
+	import { articleSettings, articleStyle } from '$lib/article/article-settings.svelte.js';
 	import { formatDate } from '$lib/utils';
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
@@ -285,7 +287,7 @@
 							</div>
 						</div>
 					{/if}
-					<div use:lightboxAction class="prose-post">
+					<div use:lightboxAction class="prose-post" style={articleStyle(articleSettings)}>
 						{#if content}
 							<svelte:component this={content} class="prose" />
 						{/if}
@@ -299,3 +301,6 @@
 		</div>
 	</article>
 </div>
+
+<!-- Preview deployments only, and compiled out entirely everywhere else. -->
+<ArticleDialsMount />

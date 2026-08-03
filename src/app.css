@@ -363,6 +363,26 @@
 	}
 }
 
+/* The handful of prose values the article tuning panel can move.
+   Each keeps the utility's own value above as its fallback, so a page that sets
+   nothing — every production page — renders exactly as it did before. Unlayered
+   on purpose: that is what lets these outrank the `@apply`ed utilities, which
+   Tailwind puts in a layer. */
+.prose-post {
+	max-width: var(--prose-measure, none);
+	font-size: var(--prose-size, 1rem);
+}
+
+.prose-post :where(p, li) {
+	line-height: var(--prose-leading, 1.625);
+}
+
+.prose-post :where(a) {
+	text-decoration-line: var(--prose-underline, underline);
+	text-underline-offset: var(--prose-underline-offset, 2px);
+	text-decoration-thickness: var(--prose-underline-thickness, 1px);
+}
+
 /* =========================
    Prose / Code Styling
    ========================= */

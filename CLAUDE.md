@@ -351,12 +351,30 @@ build the payload, so nothing posts it and `/health` renders no workout list.
 
 ## DialKit (preview only)
 
-`src/lib/dev/DialsMount.svelte` is mounted once from the root layout, so every
-public page has the tuning panel. `SiteDials.svelte` owns the single
-`<DialRoot />` plus a site-wide panel (root font size, measure, tracking, body
-weight, motion durations); page-level panels — currently only
-`HealthDials.svelte` — call `createDialKit` and appear inside it as folders that
-come and go with the route.
+`src/lib/dev/DialsMount.svelte` is mounted once from the root layout and loads
+`DialsHost.svelte`, which is the single `<DialRoot />` for the site and nothing
+else. There is deliberately no site-wide panel: one meant tuning tokens that only
+some pages actually show, which is how you get sliders that appear to do nothing.
+
+Every control lives on the page it affects, as a folder that comes and goes with
+the route:
+
+| Panel          | Registered by                     | Moves                                                            |
+| -------------- | --------------------------------- | ---------------------------------------------------------------- |
+| `Home`         | `lib/home/HomeDials.svelte`       | marquee speed, cover size/gap/scrim, photo columns/count/gap     |
+| `Article`      | `lib/article/ArticleDials.svelte` | link underline + offset + thickness, body size, leading, measure |
+| `Health chart` | `lib/health/HealthDials.svelte`   | chart geometry and colours                                       |
+
+Each writes into a `$state` settings module (`*-settings.svelte.js`) whose
+values reach the DOM as custom properties on the section they affect — so a
+Tailwind-classed page stays Tailwind-classed, and only the one value worth
+moving comes from a variable. **Every rule that reads one keeps the class's
+original value as its fallback**, so a page that sets nothing renders exactly as
+it did before. That is what makes this safe to leave in the shipped CSS.
+
+`marqueeConstantSpeed` reads `--marquee-speed` and listens for a
+`marquee:retune` event, because a speed change moves no boxes and its
+`ResizeObserver` never fires. Nothing in production dispatches it.
 
 `__DIALS__` is a literal baked in by `vite.config.ts`: `VERCEL_ENV !==
 'production'`, falling back to `NODE_ENV` off Vercel. Because it is a literal
