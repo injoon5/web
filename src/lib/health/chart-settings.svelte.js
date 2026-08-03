@@ -15,15 +15,25 @@ export const CHART_DEFAULTS = {
 	variant: 'area',
 	/** `smooth` reads better on sparse windows, `linear` is honest on dense ones. */
 	curve: 'linear',
-	strokeWidth: 3,
+	strokeWidth: 2.25,
 	/**
-	 * Plot height in px. The section reserves this before hydration.
+	 * Alpha at the top of the wash, where it meets the line. From there it eases
+	 * to nothing along `WASH_RAMP`.
+	 */
+	washAlpha: 0.24,
+	/**
+	 * Plot height in px, from `sm` up. The section reserves this before hydration.
 	 *
 	 * Tall, because there are only four of these: at 120 the sections left a band
 	 * of empty column under them on anything wider than a phone, and a sparkline
 	 * with more vertical range is a sparkline you can actually read a shape off.
 	 */
 	height: 176,
+	/**
+	 * And shorter below `sm`, where the four sections stack into one column and
+	 * the full height turned the page into five thousand pixels of scrolling.
+	 */
+	heightSm: 140,
 	/** Left gutter the y axis labels are right-aligned into. */
 	gutter: 34,
 	/** Vertical breathing room, so a peak never touches the top of the box. */
@@ -38,6 +48,33 @@ export const CHART_DEFAULTS = {
 
 export const CHART_VARIANTS = ['area', 'line'];
 export const CHART_CURVES = ['linear', 'smooth'];
+
+/**
+ * How the wash falls away under the line, as `[offset, share of washAlpha]`.
+ *
+ * Two stops and a linear ramp did not read as a fade — it dropped off fast near
+ * the line, then held a flat film all the way down and stopped dead at the
+ * baseline, which is a visible edge rather than a gradient. This is an ease-out:
+ * most of the alpha is spent in the top third, and the deltas shrink the whole
+ * way down, so the last of it dissolves into the page instead of ending.
+ *
+ * The final stop is a true zero, and every stop is mixed from the accent rather
+ * than toward the keyword `transparent` — `transparent` is transparent *black*,
+ * so interpolating to it drags the tail through grey and leaves exactly the
+ * muddy halo this ramp exists to avoid. Mixing in oklab at alpha 0 keeps the
+ * hue and takes the alpha to nothing.
+ *
+ * The gradient uses `objectBoundingBox`, so offset 100% is the bottom of the
+ * area shape — the baseline — not the bottom of the chart box.
+ */
+export const WASH_RAMP = [
+	[0, 1],
+	[0.22, 0.68],
+	[0.42, 0.42],
+	[0.62, 0.22],
+	[0.8, 0.08],
+	[1, 0]
+];
 
 /**
  * Colour is the one thing here the charts do _not_ read from this object.
@@ -57,7 +94,7 @@ export const CHART_COLORS = {
 	accent: '#f97316', // orange-500
 	axis: '#a3a3a3', // neutral-400
 	track: '#e5e5e5', // neutral-200
-	excellent: '#10b981', // emerald-500
+	excellent: '#10b750',
 	good: '#84cc16', // lime-500
 	fair: '#f59e0b', // amber-500
 	light: '#fb7185' // rose-400
@@ -73,8 +110,5 @@ export const COLOR_VARS = {
 	fair: '--score-fair',
 	light: '--score-light'
 };
-
-/** Top-of-wash alpha, mirroring `transparent 76%` in `app.css`. */
-export const WASH_OPACITY = 0.24;
 
 export const chartSettings = $state({ ...CHART_DEFAULTS });

@@ -18,25 +18,24 @@ process.env.PUBLIC_GIT_COMMIT = sha;
 process.env.PUBLIC_GIT_COMMIT_DATE = isoDate;
 
 /**
- * Whether this build ships the /health tuning panel.
+ * Whether this build ships the DialKit tuning panels.
  *
  * Deliberately not an env var read at runtime: a runtime check still bundles
  * DialKit for everyone and pays for it on production's first load. Baked in as a
- * literal, `if (__HEALTH_DIALS__)` folds to `if (false)` and the dynamic import
- * inside it becomes unreachable, so Rollup emits no chunk for the panel at all.
+ * literal, `if (__DIALS__)` folds to `if (false)` and the dynamic import inside
+ * it becomes unreachable, so Rollup emits no chunk for the panels at all.
  *
- * Preview deployments and `vite dev` get it; production never does.
+ * `VERCEL_ENV` is `production` | `preview` | `development`, and is set at build
+ * time as well as runtime — so everything that isn't production gets the panel,
+ * including `vercel dev`. Off Vercel entirely, fall back to the Node env.
  */
-// `VERCEL_ENV` is `production` | `preview` | `development`, and is set at build
-// time as well as runtime — so everything that isn't production gets the panel,
-// including `vercel dev`. Off Vercel entirely, fall back to the Node env.
-const healthDials = process.env.VERCEL_ENV
+const dials = process.env.VERCEL_ENV
 	? process.env.VERCEL_ENV !== 'production'
 	: process.env.NODE_ENV !== 'production';
 
 export default defineConfig({
 	define: {
-		__HEALTH_DIALS__: JSON.stringify(healthDials)
+		__DIALS__: JSON.stringify(dials)
 	},
 	server: {
 		fs: {

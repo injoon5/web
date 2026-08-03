@@ -197,7 +197,11 @@
 			aria-hidden="true"
 		>
 			{#each PAGE_METRICS as metric (metric.key)}
-				<div style="height: {chartSettings.height + SECTION_CHROME}px"></div>
+				<div
+					class="health-plot-box"
+					style="--chart-h: {chartSettings.height +
+						SECTION_CHROME}px; --chart-h-sm: {chartSettings.heightSm + SECTION_CHROME}px"
+				></div>
 			{/each}
 		</div>
 	{:then streamed}

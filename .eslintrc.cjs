@@ -26,7 +26,7 @@ module.exports = {
 	globals: {
 		// Baked in by `vite.config.ts` as a literal, so it is never a lexical
 		// binding at lint time — see `src/app.d.ts`.
-		__HEALTH_DIALS__: 'readonly'
+		__DIALS__: 'readonly'
 	},
 	overrides: [
 		{

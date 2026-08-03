@@ -57,7 +57,10 @@
 
 	<!-- Height is reserved up front: the chart only draws after hydration, and the
 	     page must not shift underneath the numbers when it does. -->
-	<div class="mt-4 w-full" style="height: {chartSettings.height}px">
+	<div
+		class="health-plot-box mt-4 w-full"
+		style="--chart-h: {chartSettings.height}px; --chart-h-sm: {chartSettings.heightSm}px"
+	>
 		{#if hasData}
 			<MetricChart
 				{values}
@@ -71,11 +74,12 @@
 	</div>
 
 	{#if hasData}
-		<!-- Indented past the axis gutter so the first date sits under the first
-		     point rather than under the axis labels. -->
+		<!-- Flush with the section, not indented to the plot: the heading, the
+		     number, the axis labels and this row all start on one column, which
+		     reads as alignment. The 34px between this date and the first point is
+		     a gap nobody measures; four staggered left edges is one anybody sees. -->
 		<div
 			class="mt-1 flex justify-between text-xs text-neutral-400 tabular-nums dark:text-neutral-600"
-			style="padding-left: {chartSettings.gutter}px"
 		>
 			<span>{first}</span>
 			<span>{last}</span>

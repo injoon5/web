@@ -22,7 +22,7 @@ export default defineConfig({
 	// Mirrors `vite.config.ts`. Tests exercise the shipped path, so the /health
 	// tuning panel is compiled out here the same way it is in production.
 	define: {
-		__HEALTH_DIALS__: 'false'
+		__DIALS__: 'false'
 	},
 	test: {
 		projects: [

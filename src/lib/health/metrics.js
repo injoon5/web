@@ -240,6 +240,59 @@ export function latestIndex(sections) {
 }
 
 /**
+ * Thin a list of candidate y ticks down to what a box this tall can actually
+ * show.
+ *
+ * d3 picks round numbers inside a domain, which is the right place to start and
+ * the wrong place to stop: it treats the count as a hint and rounds outward
+ * (ask for two on a step domain, get three), it has no idea two of its numbers
+ * will format to the same string once they are rounded for display, and it has
+ * never seen the box. All three produce the same defect — a column of numbers
+ * where a scale was wanted.
+ *
+ * So: sample down to the count, ends first, because the highest and lowest are
+ * the two that say how far the line travels. Then drop anything that would
+ * print a label already on the axis, or land within a line-height of one.
+ */
+export function pickAxisTicks(
+	candidates,
+	{ domain, count = 2, plotHeight, decimals = 0, minGap = 16 }
+) {
+	const [lo, hi] = domain;
+	const span = hi - lo;
+	if (!(span > 0) || !candidates.length) return [];
+
+	const sorted = [...candidates].sort((a, b) => a - b);
+	const wanted = Math.max(1, Math.round(count));
+
+	let ordered;
+	if (wanted === 1) {
+		ordered = [sorted[sorted.length - 1]];
+	} else if (wanted >= sorted.length) {
+		ordered = sorted;
+	} else {
+		const stride = (sorted.length - 1) / (wanted - 1);
+		ordered = Array.from({ length: wanted }, (_, i) => sorted[Math.round(i * stride)]);
+	}
+
+	const y = (value) => (1 - (value - lo) / span) * plotHeight;
+
+	const kept = [];
+	const printed = new Set();
+	for (const value of ordered) {
+		const label = formatCompact(value, decimals);
+		// Two ticks that print the same string are one tick and a rounding error.
+		if (printed.has(label)) continue;
+		// Two that land within a line-height of each other are a smudge.
+		if (kept.some((other) => Math.abs(y(other) - y(value)) < minGap)) continue;
+		printed.add(label);
+		kept.push(value);
+	}
+
+	return kept;
+}
+
+/**
  * Cut every series at the newest day any metric reported.
  *
  * The window reaches one day past UTC-today on purpose: a phone writes day keys

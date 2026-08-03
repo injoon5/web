@@ -12,8 +12,8 @@
 	} from 'layerchart';
 	import { scaleLinear } from 'd3-scale';
 	import { curveLinear, curveMonotoneX } from 'd3-shape';
-	import { chartSettings } from '$lib/health/chart-settings.svelte.js';
-	import { formatCompact, valueDomain, zeroFilled } from '$lib/health/metrics.js';
+	import { WASH_RAMP, chartSettings } from '$lib/health/chart-settings.svelte.js';
+	import { formatCompact, pickAxisTicks, valueDomain, zeroFilled } from '$lib/health/metrics.js';
 
 	/**
 	 * A sparkline, not a graph: no gridlines, no tooltip box, and an axis that is
@@ -65,19 +65,27 @@
 	 * than labelling the extremes, is what keeps `12k` from reading `11,842`.
 	 */
 	const ticks = $derived.by(() => {
-		const count = chartSettings.tickCount;
-		const nice = scaleLinear().domain(domain).ticks(count);
-
-		if (!nice.length) return [domain[1]];
-		// d3 treats the count as a hint and rounds outward — asking for 2 on a step
-		// domain hands back three. On a 120px box that is a column of numbers
-		// rather than a scale, so it gets sampled back down to what was asked for,
-		// ends first: how high the line goes and how low is the whole job.
-		if (nice.length <= count) return nice;
-
-		const stride = (nice.length - 1) / (count - 1);
-		return Array.from({ length: count }, (_, i) => nice[Math.round(i * stride)]);
+		const nice = scaleLinear().domain(domain).ticks(chartSettings.tickCount);
+		return pickAxisTicks(nice.length ? nice : [domain[1]], {
+			domain,
+			count: chartSettings.tickCount,
+			// The shorter of the two heights, so a label pair that clears on desktop
+			// can't collide once the same chart is drawn at the phone height.
+			plotHeight: Math.min(chartSettings.height, chartSettings.heightSm) - 2 * chartSettings.padY,
+			decimals
+		});
 	});
+
+	/**
+	 * The wash, as stops mixed off the accent so it follows the line's colour
+	 * through dark mode and through the tuning panel without being told.
+	 */
+	const washStops = $derived(
+		WASH_RAMP.map(([offset, share]) => [
+			`${offset * 100}%`,
+			`color-mix(in oklab, var(--chart-accent), transparent ${100 - share * chartSettings.washAlpha * 100}%)`
+		])
+	);
 
 	const marked = $derived(active === null ? null : (points[active] ?? null));
 
@@ -165,12 +173,18 @@
 			<Svg>
 				<!-- Text only: no rule under the labels, no gridlines across the plot,
 				     not even a tick mark. The numbers are there to size the line, and
-				     anything drawn to connect them to it competes with the line. -->
+				     anything drawn to connect them to it competes with the line.
+
+				     Left-aligned against the outer edge of the gutter rather than
+				     right-aligned against the plot, so they start on the same column as
+				     the heading, the number and the first date below. Ragged right on
+				     two numbers is invisible; four different left edges is not. -->
 				<Axis
 					placement="left"
 					{ticks}
 					tickMarks={false}
 					stroke="none"
+					tickLabelProps={{ textAnchor: 'start', dx: -chartSettings.gutter }}
 					classes={{ tickLabel: 'health-axis-label' }}
 				>
 					{#snippet tickLabel({ props, index })}
@@ -182,13 +196,7 @@
 				     it reads as weight under the line rather than a second shape. The
 				     `line` variant drops it entirely. -->
 				{#if chartSettings.variant === 'area'}
-					<LinearGradient
-						vertical
-						stops={[
-							['0%', 'var(--chart-wash-top)'],
-							['100%', 'var(--chart-wash-bottom)']
-						]}
-					>
+					<LinearGradient vertical stops={washStops}>
 						{#snippet children({ gradient })}
 							<Area
 								class="health-area"
@@ -201,12 +209,16 @@
 					</LinearGradient>
 				{/if}
 
+				<!-- `strokeWidth`, not `stroke-width`: `Path` reads the camelCase one as
+				     a real prop and renders it *after* its rest-spread, so a kebab
+				     attribute lands in that spread and is then wiped by the prop's own
+				     `undefined`. Passed the wrong way it silently never applies. -->
 				<Spline
 					class="health-line"
 					pathLength="1"
 					style="animation-delay: {delay}ms"
 					stroke="var(--chart-accent)"
-					stroke-width={chartSettings.strokeWidth}
+					strokeWidth={chartSettings.strokeWidth}
 					stroke-linecap="round"
 					stroke-linejoin="round"
 					fill="none"

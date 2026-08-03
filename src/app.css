@@ -156,11 +156,10 @@
 	   fades the accent without drifting through grey, which is what a plain
 	   `transparent` stop would do in an SVG gradient. */
 	--chart-accent: var(--color-orange-500);
-	/* The wash reads as weight under the line rather than a second shape, so it
-	   still falls away to nothing at the baseline — but it starts with enough
-	   colour to actually be seen. At 93% it was a rumour. */
-	--chart-wash-top: color-mix(in oklab, var(--color-orange-500), transparent 76%);
-	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-500), transparent 98%);
+	/* The wash is mixed off this accent stop by stop in `MetricChart`, along
+	   `WASH_RAMP` — it is a six-stop ease-out rather than two colours, so it
+	   dissolves into the page instead of ending at the baseline. Nothing to
+	   declare here: change the accent and the fill follows. */
 	--chart-muted: var(--color-neutral-400);
 	/* Unfilled part of the score ring. Reads as a groove, not a second arc. */
 	--chart-track: var(--color-neutral-200);
@@ -169,7 +168,7 @@
 	   /health that reports the day without being read, so the ramp has to run in
 	   one direction and the steps have to be far enough apart in hue to tell
 	   apart at 6px wide — which is why "good" is not a second orange. */
-	--score-excellent: var(--color-emerald-500);
+	--score-excellent: #10b750;
 	--score-good: var(--color-lime-500);
 	--score-fair: var(--color-amber-500);
 	--score-light: var(--color-rose-400);
@@ -178,14 +177,10 @@
 
 .dark {
 	--chart-accent: var(--color-orange-400);
-	/* A touch lighter than the light-mode wash: the same mix reads brighter
-	   against near-black than it does against white. */
-	--chart-wash-top: color-mix(in oklab, var(--color-orange-400), transparent 80%);
-	--chart-wash-bottom: color-mix(in oklab, var(--color-orange-400), transparent 98%);
 	--chart-muted: var(--color-neutral-600);
 	--chart-track: var(--color-neutral-800);
 
-	--score-excellent: var(--color-emerald-400);
+	--score-excellent: #10b750;
 	--score-good: var(--color-lime-400);
 	--score-fair: var(--color-amber-400);
 	--score-light: var(--color-rose-400);
@@ -201,6 +196,20 @@
 	stroke: none;
 	font-size: 11px;
 	font-variant-numeric: tabular-nums;
+}
+
+/* Plot height, shorter on a phone: below `sm` the four sections stack into one
+   column, and the full height turned /health into five thousand pixels of
+   scrolling. Both values come from `chart-settings.svelte.js` as custom
+   properties, so the tuning panel moves them and the CSS just picks. */
+.health-plot-box {
+	height: var(--chart-h-sm);
+}
+
+@media (min-width: 40rem) {
+	.health-plot-box {
+		height: var(--chart-h);
+	}
 }
 
 /* Draw the line in once on mount. `pathLength="1"` normalizes the dash math, so

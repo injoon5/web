@@ -21,7 +21,7 @@ declare global {
 	 * tuning panel is dead code Rollup can drop rather than a chunk production
 	 * downloads and never opens.
 	 */
-	const __HEALTH_DIALS__: boolean;
+	const __DIALS__: boolean;
 
 	namespace App {
 		// interface Error {}

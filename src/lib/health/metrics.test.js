@@ -6,6 +6,7 @@ import {
 	formatRelative,
 	formatValue,
 	lastFilledIndex,
+	pickAxisTicks,
 	latestIndex,
 	rangeStartDate,
 	trimToLatest,
@@ -116,6 +117,51 @@ describe('lastFilledIndex / latestIndex', () => {
  * somewhere to land. Until it does, that day is not on the axis — it was putting
  * a date that hasn't happened yet under the right-hand edge of every chart.
  */
+/**
+ * d3 picks round numbers inside a domain, which is the right place to start and
+ * the wrong place to stop — it overshoots the count, it doesn't know two of its
+ * numbers will print the same string, and it has never seen the box.
+ */
+describe('pickAxisTicks', () => {
+	const box = { domain: [0, 12000], plotHeight: 124 };
+
+	it('samples d3 overshoot back down to the count, ends first', () => {
+		expect(pickAxisTicks([0, 5000, 10000], { ...box, count: 2 })).toEqual([0, 10000]);
+	});
+
+	it('keeps every tick when there are no more than asked for', () => {
+		expect(pickAxisTicks([0, 6000], { ...box, count: 3 })).toEqual([0, 6000]);
+	});
+
+	it('takes the top when only one is wanted', () => {
+		expect(pickAxisTicks([0, 5000, 10000], { ...box, count: 1 })).toEqual([10000]);
+	});
+
+	// Two values a decimal apart print the same label once rounded — that is one
+	// tick and a rounding error, not two ticks.
+	it('drops a tick that would print a label already on the axis', () => {
+		const ticks = pickAxisTicks([20, 20.4, 21], { domain: [20, 21], plotHeight: 124, count: 3 });
+		expect(ticks).toEqual([20, 21]);
+	});
+
+	// A short box with a high tick count is the tuning panel's problem to make,
+	// and this function's problem to survive.
+	it('drops ticks that would land on top of each other', () => {
+		const ticks = pickAxisTicks([0, 2000, 4000, 6000, 8000, 10000, 12000], {
+			domain: [0, 12000],
+			plotHeight: 40,
+			count: 7
+		});
+		expect(ticks.length).toBeLessThan(4);
+		expect(ticks[0]).toBe(0);
+	});
+
+	it('has nothing to draw for a collapsed domain', () => {
+		expect(pickAxisTicks([5], { domain: [5, 5], plotHeight: 124, count: 2 })).toEqual([]);
+		expect(pickAxisTicks([], { ...box, count: 2 })).toEqual([]);
+	});
+});
+
 describe('trimToLatest', () => {
 	const at = (values) => ({ metric: PAGE_METRICS[0], series: { values, count: values.length } });
 

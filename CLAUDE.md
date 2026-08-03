@@ -341,11 +341,38 @@ build the payload, so nothing posts it and `/health` renders no workout list.
   second chunk lands.
 - **Chart dimensions live in `chart-settings.svelte.js`.** On preview
   deployments `HealthDials.svelte` binds a DialKit panel to that same object, so
-  the sliders move the real charts. `__HEALTH_DIALS__` is a literal baked in by
-  `vite.config.ts` (true on `VERCEL_ENV=preview` and `vite dev`), so the
-  production build folds the branch in `HealthDialsMount.svelte` away and emits
-  no DialKit chunk or stylesheet at all. Whatever settles gets copied back into
-  `CHART_DEFAULTS` by hand — nothing persists.
+  the sliders move the real charts. Colours are the exception: they are already
+  CSS custom properties, so the panel overrides those on `:root` instead, and a
+  control still on its default writes nothing — which is what keeps dark mode's
+  own palette. Whatever settles gets copied back into `CHART_DEFAULTS` or
+  `app.css` by hand; nothing persists.
+
+---
+
+## DialKit (preview only)
+
+`src/lib/dev/DialsMount.svelte` is mounted once from the root layout, so every
+public page has the tuning panel. `SiteDials.svelte` owns the single
+`<DialRoot />` plus a site-wide panel (root font size, measure, tracking, body
+weight, motion durations); page-level panels — currently only
+`HealthDials.svelte` — call `createDialKit` and appear inside it as folders that
+come and go with the route.
+
+`__DIALS__` is a literal baked in by `vite.config.ts`: `VERCEL_ENV !==
+'production'`, falling back to `NODE_ENV` off Vercel. Because it is a literal
+and not an env read, Rollup folds `if (__DIALS__)` to `if (false)` in a
+production build, the dynamic import becomes unreachable, and no DialKit chunk
+or stylesheet is emitted. A runtime check would still have shipped the bundle.
+
+Two traps, both already sprung:
+
+- `DialRoot` hides itself when `NODE_ENV` is `production`, and a Vercel preview
+  _is_ a production build — so it needs `productionEnabled`. Without it the
+  chunk loads and renders nothing.
+- The site-wide controls act through rules injected from `SiteDials.svelte`'s
+  `<svelte:head>`, not from `app.css`, so production carries no trace of them.
+  They are unlayered on purpose: that is what lets the measure rule outrank
+  Tailwind's own `.max-w-6xl` in `@layer utilities`.
 
 ---
 

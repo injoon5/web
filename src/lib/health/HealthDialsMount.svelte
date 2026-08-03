@@ -2,7 +2,7 @@
 	/**
 	 * The seam that keeps DialKit out of production.
 	 *
-	 * `__HEALTH_DIALS__` is a literal baked in by `vite.config.ts` — true on
+	 * `__DIALS__` is a literal baked in by `vite.config.ts` — true on
 	 * preview deployments and `vite dev`, false everywhere else. Because it is a
 	 * literal and not an env read, Rollup folds this to `if (false)` in a
 	 * production build, the `import()` below becomes unreachable, and no chunk is
@@ -15,7 +15,7 @@
 	let Dials = $state(null);
 
 	$effect(() => {
-		if (!__HEALTH_DIALS__) return;
+		if (!__DIALS__) return;
 		import('$lib/health/HealthDials.svelte').then((module) => {
 			Dials = module.default;
 		});
