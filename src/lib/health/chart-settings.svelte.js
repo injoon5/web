@@ -15,7 +15,7 @@ export const CHART_DEFAULTS = {
 	variant: 'area',
 	/** `smooth` reads better on sparse windows, `linear` is honest on dense ones. */
 	curve: 'linear',
-	strokeWidth: 2.25,
+	strokeWidth: 1.5,
 	/**
 	 * Alpha at the top of the wash, where it meets the line. From there it eases
 	 * to nothing along `WASH_RAMP`.
