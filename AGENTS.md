@@ -46,4 +46,10 @@ Convex agent skills for common tasks can be installed by running
 - Always use straight quotes (`'`, `"`) - never curly/smart quotes.
 - **`remark-math` is pinned to v3 on purpose.** mdsvex bundles a legacy remark, and v4+ (micromark-based) silently renders no math at all — no error, just missing KaTeX. Verify with a `$a^2$` compile before touching it.
 - **Tailwind runs as a Vite plugin**, not through PostCSS. There is no `postcss.config.js`: Vite's own postcss-import pass resolves `@import 'tailwindcss'` as a file path and fails before a PostCSS plugin would run.
+- **Turbo runs the Vercel build in strict env mode.** Anything the build reads
+  off `process.env` must be listed in the task's `env` in `turbo.json`, or it is
+  absent — not just unhashed. This silently disabled the DialKit preview panels
+  for months (`VERCEL_ENV` was undeclared). Vercel also warns in the build log
+  about project env vars missing from `turbo.json`; that warning is worth
+  reading rather than muting.
 - ESLint uses flat config (`eslint.config.js`). `.eslintrc.cjs` and `.eslintignore` do nothing in ESLint 9+; ignores live in the config's `ignores` array.

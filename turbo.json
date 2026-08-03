@@ -36,9 +36,34 @@
 			"cache": false
 		},
 		"build": {
+			// Not cached, and `outputs` is empty for the same reason. `.svelte-kit`
+			// plus `.vercel` is ~313MB, and turbo tried to tar and PUT all of it to
+			// the remote cache on every deploy — for an entry nothing can ever read,
+			// since the hash covers every source file and so changes with each
+			// commit. That upload is what returned
+			//   400 Bad Request for .../v8/artifacts/<hash>
+			// at the end of the build. The task always ran anyway ("0 cached, 4
+			// total"); this just stops it paying to store the result.
+			//
+			// `.vercel/output` is what Vercel deploys and it reads that from disk,
+			// so declaring it here bought nothing even when the upload worked.
+			//
+			// VERCEL_ENV is what `vite.config.ts` reads to decide whether this build
+			// ships the DialKit panels. Turbo runs tasks in strict env mode, so an
+			// undeclared variable is simply not there — the config fell through to
+			// its `NODE_ENV` branch, and `vite build` sets NODE_ENV=production, so
+			// `__DIALS__` folded to false on *preview* deploys too and the panels
+			// have never actually shipped. It belongs in `env` rather than
+			// `passThroughEnv` because it changes the output.
 			"dependsOn": ["apply-optimized-images"],
-			"outputs": [".svelte-kit/**", ".vercel/**"],
-			"env": ["PUBLIC_CONVEX_URL", "ADMIN_SECRET", "CONVEX_DEPLOY_KEY", "IP_HASH_SECRET"]
+			"cache": false,
+			"env": [
+				"PUBLIC_CONVEX_URL",
+				"ADMIN_SECRET",
+				"CONVEX_DEPLOY_KEY",
+				"IP_HASH_SECRET",
+				"VERCEL_ENV"
+			]
 		}
 	}
 }

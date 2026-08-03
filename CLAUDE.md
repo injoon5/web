@@ -410,8 +410,15 @@ and not an env read, Rollup folds `if (__DIALS__)` to `if (false)` in a
 production build, the dynamic import becomes unreachable, and no DialKit chunk
 or stylesheet is emitted. A runtime check would still have shipped the bundle.
 
-Two traps, both already sprung:
+Three traps, all already sprung:
 
+- **`VERCEL_ENV` has to be listed in `turbo.json`.** The Vercel build runs
+  through `turbo`, which uses strict env mode: a variable the task does not
+  declare is not merely unhashed, it is _absent_. So `vite.config.ts` read
+  `undefined`, fell through to its `NODE_ENV` branch, and `vite build` sets
+  `NODE_ENV=production` — which made `__DIALS__` false on preview deploys too,
+  and no panel had ever actually shipped. Anything the build reads off
+  `process.env` needs to be in the `build` task's `env` list.
 - `DialRoot` hides itself when `NODE_ENV` is `production`, and a Vercel preview
   _is_ a production build — so it needs `productionEnabled`. Without it the
   chunk loads and renders nothing.
