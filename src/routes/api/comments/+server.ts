@@ -6,7 +6,7 @@ import { requestIpHash } from '$lib/server/ip';
 import { createCommentSchema } from '$lib/server/validation';
 import { verifyAdminSecret } from '$lib/server/admin';
 import { isValidPageUrl } from '$lib/server/valid-urls';
-import { runConvex, parseBody } from '$lib/server/api';
+import { runConvex, parseBody, handleConvexErr } from '$lib/server/api';
 import { ADMIN_SECRET } from '$env/static/private';
 import bcrypt from 'bcryptjs';
 
@@ -33,6 +33,19 @@ export const POST: RequestHandler = async ({ request }) => {
 	} = await parseBody(request, createCommentSchema);
 
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
+
+	// Ask whether this IP may comment at all before spending ~100ms of CPU on
+	// bcrypt. `create` re-checks and is what actually consumes the token; this
+	// only moves the rejection in front of the expensive part, so a banned or
+	// rate-limited caller costs two indexed reads instead of a hash.
+	try {
+		await convex.mutation(api.comments.checkCanCreate, {
+			ipHash,
+			adminSecret: admin ? ADMIN_SECRET : undefined
+		});
+	} catch (err) {
+		return handleConvexErr(err);
+	}
 
 	const passwordHash = await bcrypt.hash(password, 10);
 	return runConvex(
