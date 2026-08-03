@@ -118,11 +118,19 @@ describe('dayScore', () => {
 		expect(dayScore(sections, 0).score).toBe(75);
 	});
 
-	// A skipped day inside the tracked window is a zero, not an absence — the
-	// day still happened, and the score should say so.
-	it('scores a gap inside the window as zero', () => {
+	// The charts draw a gap as the zero it is, but the score does not average it
+	// in: a Watch on the charger and a day in bed produce the same zero, and only
+	// one of them has earned a worse ring.
+	it('ignores a zero rather than averaging it in', () => {
 		const sections = [section('steps', [10000, 10000]), section('exerciseMinutes', [null, 30])];
-		expect(dayScore(sections, 0)).toEqual({ score: 50, counted: 2, of: 2 });
+		expect(dayScore(sections, 0)).toEqual({ score: 100, counted: 1, of: 2 });
+	});
+
+	// Same rule for a stored zero as for a gap — the value is what matters, not
+	// whether a row happens to exist for it.
+	it('ignores a zero that was actually reported', () => {
+		const sections = [section('steps', [10000]), section('exerciseMinutes', [0])];
+		expect(dayScore(sections, 0)).toEqual({ score: 100, counted: 1, of: 2 });
 	});
 
 	// A metric whose newest reading is older than the day being scored has
@@ -136,6 +144,13 @@ describe('dayScore', () => {
 		const sections = [section('steps', [null]), section('exerciseMinutes', [null])];
 		expect(dayScore(sections, 0)).toEqual({ score: null, counted: 0, of: 2 });
 		expect(dayScore(sections, -1).score).toBeNull();
+	});
+
+	// Every metric zero is the same as every metric missing, as far as the ring
+	// is concerned: there is nothing left to average, so the dial says so.
+	it('has no score for a day that is all zeros', () => {
+		const sections = [section('steps', [0]), section('exerciseMinutes', [0])];
+		expect(dayScore(sections, 0)).toEqual({ score: null, counted: 0, of: 2 });
 	});
 });
 
@@ -318,8 +333,11 @@ describe('awkward real-world series', () => {
 		// A 41k-step, 120-minute day is capped at both goals rather than
 		// overflowing past 100.
 		expect(dayScore(sections, 1).score).toBe(100);
-		// Steps reported nothing on day 2 but exercise did, and a gap is a zero.
-		expect(dayScore(sections, 2)).toEqual({ score: 0, counted: 2, of: 2 });
+		// Day 0 is a zero on steps and a gap on exercise — nothing to average.
+		expect(dayScore(sections, 0)).toEqual({ score: null, counted: 0, of: 2 });
+		// Day 2 is a gap on steps and a reported zero on exercise. Same answer:
+		// the two are indistinguishable, so neither is scored.
+		expect(dayScore(sections, 2)).toEqual({ score: null, counted: 0, of: 2 });
 		// Day 4 is past both metrics' newest readings, so there is nothing to score.
 		expect(dayScore(sections, 4).score).toBeNull();
 	});

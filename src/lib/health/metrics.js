@@ -238,13 +238,19 @@ export function latestIndex(sections) {
 
 /**
  * One number for a day: how close each metric came to its goal, averaged over
- * the metrics the day is inside the tracked window for.
+ * the metrics that actually have something to say about it.
  *
- * A gap inside that window counts as the zero it is — a day with no exercise
- * recorded is a day with no exercise, and dropping it from the average would
- * quietly score a rest day as if it never happened. What still drops out is a
- * metric whose newest reading is older than the day being scored: that one has
- * nothing to say yet, and `counted` reports how many did.
+ * A zero drops out of the average rather than scoring as one. The charts draw a
+ * gap as the zero it is, but a zero here is almost always a sync that hasn't
+ * happened yet rather than a day of literally no movement — a Watch left on the
+ * charger reads identically to a day in bed, and only one of those deserves to
+ * drag the ring down. So does a metric whose newest reading predates the day
+ * being scored. `counted` reports how many were left, and the dial says so
+ * whenever it is short.
+ *
+ * The cost is that a genuine rest day scores on whatever else moved, or reads
+ * "No data" when nothing did. That is the deliberate trade: this number is a
+ * mood, and it would rather understate a quiet day than invent a bad one.
  *
  * Each metric is capped at its goal: a 30 km walk banks a perfect distance
  * score, it does not pay for a day of no exercise.
@@ -256,7 +262,7 @@ export function dayScore(sections, index) {
 	for (const { metric, series } of sections) {
 		if (!metric.goal) continue;
 		const value = valueAt(series?.values ?? [], index);
-		if (value === null) continue;
+		if (value === null || value === 0) continue;
 		total += Math.min(value / metric.goal, 1);
 		counted++;
 	}

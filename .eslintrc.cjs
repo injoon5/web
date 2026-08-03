@@ -11,12 +11,16 @@ module.exports = {
 	plugins: ['@typescript-eslint'],
 	parserOptions: {
 		sourceType: 'module',
-		ecmaVersion: 2020,
+		ecmaVersion: 2022,
 		extraFileExtensions: ['.svelte']
 	},
 	env: {
 		browser: true,
-		es2017: true,
+		// 2022, not 2017: `globalThis` arrived in ES2020 and `src/test/setup.js`
+		// uses it, so the old floor made `eslint .` fail on a file that is
+		// perfectly valid. The codebase already relies on ES2022 anyway (`.at()`,
+		// `replaceAll`).
+		es2022: true,
 		node: true
 	},
 	globals: {

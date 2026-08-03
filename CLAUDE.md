@@ -312,8 +312,13 @@ build the payload, so nothing posts it and `/health` renders no workout list.
   is a day with no exercise, and drawing it as a break made a rest day look like
   an outage. Everything _after_ the newest reading is cut instead, so a metric
   that hasn't synced today doesn't dive to the floor on its own right-hand edge.
-  `valueAt()` is the same rule for the headline number, and `dayScore()` scores
-  on it.
+  `valueAt()` is the same rule for the headline number.
+- **The score is the one place a zero is _not_ counted.** `dayScore()` skips any
+  metric that reads zero for the day, because a Watch left on the charger and a
+  day in bed produce the same zero and only one of them deserves a worse ring.
+  So a rest day scores on whatever else moved, or reads "No data" when nothing
+  did, and `counted`/`of` drives the dial's "N of 4 metrics" caption. Do not
+  "fix" this to match the charts — they are answering different questions.
 - **All four charts share one x domain**, spanning the whole window even where a
   line stops early. Index 12 has to be the same day and the same pixel on every
   chart, or the shared marker lands in four different places.
