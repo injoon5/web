@@ -32,10 +32,11 @@
 </script>
 
 <!-- The header's priority order, expressed as layout rather than hoped for: the
-     nav never shrinks, the wordmark does. A fourth link took the row to exactly
-     the available width at 320px, and the thing that should give way when a
-     phone gets narrower than that is the name — it is decoration next to a set
-     of links that are the only way around the site. `min-w-0` is what lets it. -->
+     nav never shrinks (`ul.shrink-0`), the wordmark does (`min-w-0` + truncate).
+     A fourth link took the row to exactly the available width at 320px, and the
+     thing that should give way when a phone gets narrower than that is the name
+     — it is decoration next to a set of links that are the only way around the
+     site. Type stays the same size; the wordmark truncates instead of shrinking. -->
 <div class="flex items-center justify-between gap-3">
 	<a
 		href="/"
@@ -45,14 +46,14 @@
 	>
 		<span class="relative block min-w-0">
 			<span
-				class="block truncate font-sans text-xl font-medium tracking-tight will-change-auto group-hover:opacity-0 group-hover:blur-sm sm:text-2xl
+				class="block truncate font-sans text-2xl font-medium tracking-tight will-change-auto group-hover:opacity-0 group-hover:blur-sm
 				{mounted ? 'transition-[opacity,filter,transform] duration-200 ease-out' : ''}
 				{showName ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}"
 			>
 				Injoon Oh
 			</span>
 			<span
-				class="pointer-events-none absolute inset-0 block truncate font-sans text-xl font-semibold tracking-tight opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out will-change-auto group-hover:opacity-100 group-hover:blur-none sm:text-2xl"
+				class="pointer-events-none absolute inset-0 block truncate font-sans text-2xl font-semibold tracking-tight opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out will-change-auto group-hover:opacity-100 group-hover:blur-none"
 			>
 				오인준
 			</span>
@@ -65,7 +66,7 @@
 				<a
 					href={item.href}
 					onclick={() => trigger([{ duration: 25 }], { intensity: 0.7 })}
-					class="p-0 text-sm font-medium transition-colors duration-150 sm:text-base {isActive(
+					class="p-0 text-base font-medium transition-colors duration-150 {isActive(
 						item.href
 					)
 						? 'text-neutral-900 dark:text-neutral-100'
