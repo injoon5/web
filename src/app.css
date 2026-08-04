@@ -47,6 +47,12 @@
 	html {
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+
+		/* Both properties inherit, so this reaches every scroll container on the
+		   page — the code blocks and wide tables in prose included, not just the
+		   document. One neutral grey works on either theme. */
+		scrollbar-width: thin;
+		scrollbar-color: gray transparent;
 	}
 
 	/* Disable iOS Safari double-tap-to-zoom on tappable controls so rapid

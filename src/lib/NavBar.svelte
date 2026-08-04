@@ -17,6 +17,14 @@
 	// disclosure is open, since it drops over page content from scroll offset 0.
 	let surfaced = $derived(scrolled || menuOpen);
 
+	// How far past the row the header reaches while open, which is what the one
+	// surface and the one hairline grow by. The band's own height is measured
+	// rather than asserted — it is a row of type, and its height is the font's to
+	// decide — and a negative lead is the band riding up into the row, so it
+	// comes off the total.
+	let moreRowHeight = $state(0);
+	let openExtra = $derived(menuOpen ? moreRowHeight + Math.min(0, navSettings.lead) : 0);
+
 	// Two tiers, not four links that shrink to fit. Everything below `sm` shows
 	// the primary pair plus a disclosure; `sm` and up shows all four inline.
 	const navItems = [
@@ -157,22 +165,34 @@
      the disclosure has to be part of that surface: only the row is in flow, and
      the panel hangs off `top-full` so opening the menu draws over the page
      instead of pushing every page down by its height. -->
-<!-- The custom properties are only written where the panel exists. In production
-     `__DIALS__` is a literal `false`, this folds to no attribute at all, and
-     every rule below falls back to the value its Tailwind class also carries. -->
-<div bind:this={root} id="site-nav" class="sticky top-0 z-30" style={__DIALS__ ? navStyle() : null}>
+<!-- `--nav-open-extra` is how far past the row the header currently reaches, and
+     it is what the one surface grows by. The tuning properties beside it are only
+     written where the panel exists: in production `__DIALS__` is a literal
+     `false`, so only the first one is emitted and every rule below falls back to
+     the value its Tailwind class also carries. -->
+<div
+	bind:this={root}
+	id="site-nav"
+	class="nav-shell sticky top-0 z-30"
+	style="--nav-open-extra:{openExtra}px{__DIALS__ ? ';' + navStyle() : ''}"
+>
 	<div class="relative">
+		<!-- One surface for the whole header, grown from the bottom, rather than one
+		     per row. Two adjacent backdrop-filter layers each clamp their blur at
+		     the shared edge, so neither pulls in what is behind the other and the
+		     seam paints as a visible step in the tint — measured at five levels over
+		     a dark page, which is exactly the width of the disclosure. -->
 		<div
 			aria-hidden="true"
-			class="absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
+			class="nav-surface absolute inset-0 -z-10 backdrop-blur-md
 			{surfaced ? 'bg-white/70 dark:bg-neutral-950/70' : 'bg-white/0 dark:bg-neutral-950/0'}"
 		></div>
-		<!-- While the menu is open the hairline belongs at the bottom of the panel,
-		     not across the middle of one continuous surface. -->
+		<!-- And one hairline, which slides down to the new bottom edge as the
+		     disclosure opens instead of a second one fading in beneath it. -->
 		<div
 			aria-hidden="true"
-			class="absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 transition-opacity duration-200 dark:bg-neutral-800/70
-			{surfaced && !menuOpen ? 'opacity-100' : 'opacity-0'}"
+			class="nav-hairline absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 dark:bg-neutral-800/70
+			{surfaced ? 'opacity-100' : 'opacity-0'}"
 		></div>
 		<!-- Centred, so the name and the links hang from one middle axis rather than
 		     standing on one baseline — small links sharing a baseline with type this
@@ -285,31 +305,25 @@
 			? 'nav-more-animate'
 			: ''} {menuOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}"
 	>
-		<div class="relative min-h-0 overflow-hidden">
-			<div
-				aria-hidden="true"
-				class="nav-more-surface absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
-				{menuOpen ? 'bg-white/70 dark:bg-neutral-950/70' : 'bg-white/0 dark:bg-neutral-950/0'}"
-			></div>
-			<div
-				aria-hidden="true"
-				class="absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 transition-opacity duration-200 dark:bg-neutral-800/70
-				{menuOpen ? 'opacity-100' : 'opacity-0'}"
-			></div>
-			<!-- Spacing set off the baselines, not the boxes. No top lead at all puts
-			     this row's baseline 40px under the row above — the 24px line plus a
-			     16px gap — which is close enough for the two to read as one list
-			     instead of two bands. 16px below leaves the same 21px from baseline
-			     to hairline that the closed header already has, so opening the menu
-			     moves that rule without changing its relationship to the type, and
-			     the space under this row lands within a few pixels of the gap above
-			     it. Same 12px word gap as the row above.
+		<!-- Nothing painted in here — the header's surface and hairline both belong
+		     to the shell above, which grows over this. All this does is clip the
+		     links while the row is collapsed. -->
+		<div class="min-h-0 overflow-hidden">
+			<!-- Spacing set off the baselines, not the boxes. This row's baseline sits
+			     30px under the row above, which is 10px tighter than their line boxes
+			     sitting flush would allow — see `.nav-more`, which rides the band up
+			     into padding the row above is not using. Close enough that the two
+			     read as one list rather than two bands. 16px below leaves the same
+			     21px from baseline to hairline that the closed header already has, so
+			     opening the menu moves that rule without changing its relationship to
+			     the type. Same 12px word gap as the row above.
 
 			     41px on the right is the 16px page gutter plus the 25px of the
 			     chevron's tap target that sits inside the row — its 40px box less the
 			     15px it hangs past the margin. That is what ends this row on 'blog',
 			     rather than out under the chevron on the page margin. -->
 			<ul
+				bind:clientHeight={moreRowHeight}
 				class="nav-more-row mx-auto flex max-w-6xl items-center justify-end gap-3 pt-0 pr-[41px] pb-4 pl-4"
 			>
 				{#each moreItems as item, i (item.href)}
@@ -362,20 +376,24 @@
 	   everything below the line comes with it, so its own spacing and the
 	   hairline's distance from it hold at any lead. */
 	.nav-more {
-		margin-top: min(0px, var(--nav-more-lead, 0px));
+		margin-top: min(0px, var(--nav-more-lead, -10px));
 	}
 
-	/* The surface always starts where the row's ends, whichever way the lead went.
-	   It cannot simply move with the band: it is a second backdrop-blur layer, so
-	   riding up over the row's would paint a visibly denser strip of tint across
-	   the overlap, and hanging below it would leave the header see-through for the
-	   height of the lead. */
-	.nav-more-surface {
-		top: calc(-1 * min(0px, var(--nav-more-lead, 0px)));
+	/* The surface and the hairline are sized by the row and then stretched past it
+	   by however far the disclosure currently reaches, so one blurred pane covers
+	   the whole header at every point in the animation. They ease on the same
+	   curve and duration as the row that is pushing them. */
+	.nav-surface,
+	.nav-hairline {
+		bottom: calc(-1 * var(--nav-open-extra, 0px));
+		transition:
+			bottom var(--nav-duration, 320ms) var(--nav-ease),
+			background-color 200ms ease,
+			opacity 200ms ease;
 	}
 
 	.nav-more-row {
-		padding-top: max(0px, var(--nav-more-lead, 0px));
+		padding-top: max(0px, var(--nav-more-lead, -10px));
 		padding-right: var(--nav-more-pad-r, 41px);
 		padding-bottom: var(--nav-more-pad-b, 1rem);
 		gap: var(--nav-more-gap, 0.75rem);
@@ -396,8 +414,7 @@
 	   that grows by 50px read as a jump cut. This curve carries more of its
 	   distance through the middle of the duration, so the growth is legible
 	   without feeling slow. */
-	.nav-more-animate,
-	.nav-more-link,
+	.nav-shell,
 	:global(.nav-chevron) {
 		--nav-ease: cubic-bezier(0.32, 0.72, 0, 1);
 	}
