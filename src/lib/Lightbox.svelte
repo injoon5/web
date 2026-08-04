@@ -1,12 +1,13 @@
 <script>
-	import { lightboxStore, MAX_LIGHTBOX_HEIGHT } from './lightbox.js';
+	import { lightboxStore, MAX_LIGHTBOX_HEIGHT, normalizeLightboxValue } from './lightbox.js';
+	import Stepper from './pasito/Stepper.svelte';
 	import { onDestroy } from 'svelte';
 
 	let visible = $state(false);
-	let src = $state('');
-	let alt = $state('');
-	let naturalWidth = $state(0);
-	let naturalHeight = $state(0);
+	// The group the lightbox was opened on. A single image is a group of one, so
+	// there is only one code path through sizing, swiping and dismissal.
+	let items = $state([]);
+	let index = $state(0);
 	let zoomed = $state(false);
 	let imgEl = $state(null);
 	let backdropEl = $state(null);
@@ -14,10 +15,26 @@
 	let closing = $state(false);
 	let swipeDismissing = $state(false);
 
-	// Touch swipe-to-close (single finger)
+	const current = $derived(items[index] ?? null);
+	const src = $derived(current?.src ?? '');
+	const alt = $derived(current?.alt ?? '');
+	const naturalWidth = $derived(current?.naturalWidth ?? 0);
+	const naturalHeight = $derived(current?.naturalHeight ?? 0);
+	const grouped = $derived(items.length > 1);
+
+	// Touch drag (single finger). The axis is locked on the first few pixels of
+	// movement: sideways pages through the group, downward dismisses. Deciding
+	// per-move instead would let a diagonal flick do both.
 	let touchStartY = 0;
 	let dragY = $state(0);
+	let dragX = $state(0);
+	/** @type {null | 'x' | 'y'} */
+	let axis = $state(null);
 	let dragging = $state(false);
+
+	const AXIS_LOCK = 8; // px of movement before the axis is committed
+	const PAGE_THRESHOLD = 60; // px of sideways drag that pages to the next image
+	const DISMISS_THRESHOLD = 80; // px of downward drag that dismisses
 
 	// Pinch-zoom state
 	let pinching = $state(false);
@@ -32,6 +49,18 @@
 
 	function resetPan() {
 		panX = panY = lastPanX = lastPanY = 0;
+	}
+
+	function resetGesture() {
+		zoomed = false;
+		dragX = 0;
+		dragY = 0;
+		axis = null;
+		dragging = false;
+		pinching = false;
+		pinchScale = 1;
+		committedScale = 1;
+		resetPan();
 	}
 
 	// Focus trap bookkeeping
@@ -87,37 +116,43 @@
 	let winW = $state(typeof window !== 'undefined' ? window.innerWidth : 0);
 	let winH = $state(typeof window !== 'undefined' ? window.innerHeight : 0);
 
+	// Vertical room the chrome needs: the close button's row, plus the stepper's
+	// row when there is a group to step through.
+	const verticalReserve = $derived(grouped ? 140 : 96);
+
 	// Displayed size, computed the same way object-fit: contain would, but
 	// from the known natural dimensions so the box has its final size up front.
 	const fit = $derived.by(() => {
 		if (!naturalWidth || !naturalHeight || !winW || !winH) return null;
 		const availW = winW - 32; // 1rem padding each side
-		const availH = Math.min(winH - 96, MAX_LIGHTBOX_HEIGHT); // viewport cap + max vertical size
+		const availH = Math.min(winH - verticalReserve, MAX_LIGHTBOX_HEIGHT);
 		const scale = Math.min(availW / naturalWidth, availH / naturalHeight, 1);
 		return { w: Math.round(naturalWidth * scale), h: Math.round(naturalHeight * scale) };
 	});
 
 	$effect(() => {
-		const val = $lightboxStore;
+		const val = normalizeLightboxValue($lightboxStore);
 		if (val) {
-			src = val.src;
-			alt = val.alt;
-			naturalWidth = val.naturalWidth || 0;
-			naturalHeight = val.naturalHeight || 0;
-			zoomed = false;
-			dragY = 0;
-			dragging = false;
+			items = val.items;
+			index = val.index;
+			resetGesture();
 			closing = false;
 			swipeDismissing = false;
-			pinching = false;
-			pinchScale = 1;
-			committedScale = 1;
-			resetPan();
 			visible = true;
 		} else {
 			visible = false;
 			closing = false;
 			swipeDismissing = false;
+		}
+	});
+
+	// Warm the neighbours so paging through a group doesn't flash an empty box.
+	$effect(() => {
+		if (!visible || !grouped || typeof Image === 'undefined') return;
+		for (const neighbour of [items[index + 1], items[index - 1]]) {
+			if (!neighbour?.src) continue;
+			const preload = new Image();
+			preload.src = neighbour.src;
 		}
 	});
 
@@ -151,6 +186,31 @@
 		setTimeout(() => lightboxStore.set(null), 230);
 	}
 
+	/** Page to another image in the group. Clamped, so the ends are ends. */
+	function goTo(next) {
+		if (!items.length) return;
+		const clamped = Math.max(0, Math.min(next, items.length - 1));
+		if (clamped === index) {
+			dragX = 0;
+			return;
+		}
+		index = clamped;
+		resetGesture();
+	}
+
+	/**
+	 * An image collected from the page before it had loaded carries no natural
+	 * size, and `fit` needs one to reserve the box. Fill it in once from the
+	 * element the lightbox itself just loaded.
+	 */
+	function onImageLoad(e) {
+		const el = e.currentTarget;
+		const item = items[index];
+		if (!item || item.naturalWidth) return;
+		item.naturalWidth = el.naturalWidth;
+		item.naturalHeight = el.naturalHeight;
+	}
+
 	function isBackdropTarget(target) {
 		return target === backdropEl || target?.classList?.contains('lb-backdrop');
 	}
@@ -169,16 +229,40 @@
 		}
 	}
 
+	/** Everything inside the dialog a Tab can legitimately land on. */
+	function focusables() {
+		if (!backdropEl) return [];
+		return Array.from(
+			backdropEl.querySelectorAll('button:not([disabled]):not([tabindex="-1"]), [tabindex="0"]')
+		);
+	}
+
 	function handleKeydown(e) {
 		if (!visible) return;
 		if (e.key === 'Escape') {
 			close();
 			return;
 		}
-		if (e.key === 'Tab') {
-			// Single focusable element → keep focus on it, regardless of direction.
+		if (grouped && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
 			e.preventDefault();
-			closeBtn?.focus();
+			goTo(index + (e.key === 'ArrowRight' ? 1 : -1));
+			return;
+		}
+		if (e.key === 'Tab') {
+			// Keep focus in the dialog. With one focusable it parks there, which is
+			// what this did before the group chrome added any others.
+			const list = focusables();
+			if (list.length === 0) return;
+			e.preventDefault();
+			const at = list.indexOf(document.activeElement);
+			const next = e.shiftKey
+				? at <= 0
+					? list.length - 1
+					: at - 1
+				: at === -1 || at === list.length - 1
+					? 0
+					: at + 1;
+			list[next]?.focus();
 		}
 	}
 
@@ -214,18 +298,18 @@
 			return;
 		}
 		if (e.touches.length === 1 && !pinching) {
+			touchStartX = e.touches[0].clientX;
+			touchStartY = e.touches[0].clientY;
 			if (committedScale > 1) {
-				// pan instead of swipe-dismiss
+				// pan instead of swipe/dismiss
 				dragging = true;
-				touchStartX = e.touches[0].clientX;
-				touchStartY = e.touches[0].clientY;
 				lastPanX = panX;
 				lastPanY = panY;
 				return;
 			}
-			touchStartX = e.touches[0].clientX;
-			touchStartY = e.touches[0].clientY;
+			dragX = 0;
 			dragY = 0;
+			axis = null;
 			dragging = true;
 		}
 	}
@@ -248,9 +332,25 @@
 			panY = lastPanY + (t.clientY - touchStartY);
 			return;
 		}
-		// single-finger swipe-to-dismiss
+
+		const t = e.touches[0];
+		const dx = t.clientX - touchStartX;
+		const dy = t.clientY - touchStartY;
+
+		if (!axis) {
+			if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
+			// Sideways only means something when there is somewhere to go.
+			axis = grouped && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+		}
+
 		e.preventDefault();
-		dragY = e.touches[0].clientY - touchStartY;
+		if (axis === 'x') {
+			// Rubber-band at the ends so the group's edges are felt, not hit.
+			const atEnd = (dx > 0 && index === 0) || (dx < 0 && index === items.length - 1);
+			dragX = atEnd ? dx * 0.35 : dx;
+		} else {
+			dragY = dy;
+		}
 	}
 
 	function onTouchEnd() {
@@ -267,7 +367,17 @@
 		}
 		dragging = false;
 		if (committedScale > 1) return; // we were panning, not dismissing
-		if (Math.abs(dragY) > 80) {
+
+		if (axis === 'x') {
+			if (dragX <= -PAGE_THRESHOLD) goTo(index + 1);
+			else if (dragX >= PAGE_THRESHOLD) goTo(index - 1);
+			dragX = 0;
+			axis = null;
+			return;
+		}
+
+		axis = null;
+		if (Math.abs(dragY) > DISMISS_THRESHOLD) {
 			swipeDismissing = true;
 			dragY = dragY > 0 ? window.innerHeight : -window.innerHeight;
 			setTimeout(() => lightboxStore.set(null), 320);
@@ -279,6 +389,8 @@
 	function onTouchCancel() {
 		dragging = false;
 		pinching = false;
+		axis = null;
+		dragX = 0;
 		dragY = 0;
 	}
 
@@ -300,6 +412,9 @@
 	});
 
 	const liveScale = $derived(pinching ? pinchScale : committedScale);
+	const dialogLabel = $derived(
+		grouped ? `${alt || 'Image preview'} — ${index + 1} of ${items.length}` : alt || 'Image preview'
+	);
 </script>
 
 <svelte:window onkeydown={handleKeydown} bind:innerWidth={winW} bind:innerHeight={winH} />
@@ -310,10 +425,10 @@
 		class="lb-backdrop"
 		class:closing
 		class:swipe-dismissing={swipeDismissing}
-		style="--lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
+		style="--lb-max-height: {MAX_LIGHTBOX_HEIGHT}px; --lb-vertical-reserve: {verticalReserve}px"
 		role="dialog"
 		aria-modal="true"
-		aria-label={alt || 'Image preview'}
+		aria-label={dialogLabel}
 		tabindex="-1"
 		onclick={handleBackdropClick}
 		onkeydown={handleBackdropKeydown}
@@ -323,10 +438,11 @@
 		ontouchcancel={onTouchCancel}
 		onwheel={onWheel}
 	>
-		<!-- Drag wrapper — owns translateY so it doesn't conflict with lb-img-wrap's CSS animation -->
+		<!-- Drag wrapper — owns the translate so it doesn't conflict with lb-img-wrap's CSS animation -->
 		<div
 			class="lb-drag-wrapper"
-			style="transform: translate({panX}px, {dragY + panY}px); transition: {dragging || pinching
+			style="transform: translate({panX + dragX}px, {dragY + panY}px); transition: {dragging ||
+			pinching
 				? 'none'
 				: 'transform 0.32s cubic-bezier(0.16,1,0.3,1)'};"
 		>
@@ -341,17 +457,20 @@
 				onclick={toggleZoom}
 				onkeydown={handleImageKeydown}
 			>
-				<img
-					bind:this={imgEl}
-					{src}
-					{alt}
-					class="lb-img"
-					class:zoomed
-					style="{!zoomed && fit
-						? `width: ${fit.w}px; height: ${fit.h}px;`
-						: ''} transform: scale({liveScale}); transition: {pinching ? 'none' : ''};"
-					draggable="false"
-				/>
+				{#key index}
+					<img
+						bind:this={imgEl}
+						{src}
+						{alt}
+						class="lb-img"
+						class:zoomed
+						style="{!zoomed && fit
+							? `width: ${fit.w}px; height: ${fit.h}px;`
+							: ''} transform: scale({liveScale}); transition: {pinching ? 'none' : ''};"
+						draggable="false"
+						onload={onImageLoad}
+					/>
+				{/key}
 				{#if alt}
 					<p class="lb-caption">{alt}</p>
 				{/if}
@@ -360,7 +479,7 @@
 
 		<!-- Chrome layer — stays above transformed image content -->
 		<div class="lb-chrome">
-			<button bind:this={closeBtn} class="lb-close" onclick={close} aria-label="Close image">
+			<button bind:this={closeBtn} class="lb-btn lb-close" onclick={close} aria-label="Close image">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 24 24"
@@ -374,6 +493,59 @@
 					<line x1="6" y1="6" x2="18" y2="18" />
 				</svg>
 			</button>
+
+			{#if grouped}
+				<button
+					class="lb-btn lb-prev"
+					onclick={() => goTo(index - 1)}
+					disabled={index === 0}
+					aria-label="Previous image"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<polyline points="15 18 9 12 15 6" />
+					</svg>
+				</button>
+				<button
+					class="lb-btn lb-next"
+					onclick={() => goTo(index + 1)}
+					disabled={index === items.length - 1}
+					aria-label="Next image"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<polyline points="9 18 15 12 9 6" />
+					</svg>
+				</button>
+
+				<div class="lb-steps">
+					<Stepper
+						count={items.length}
+						active={index}
+						onStepClick={goTo}
+						maxVisible={9}
+						class="lb-stepper"
+						label="Images in this group"
+						containerRole="group"
+						stepRole="button"
+						stepLabel={(i, total) => `Go to image ${i + 1} of ${total}`}
+					/>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -422,15 +594,6 @@
 		}
 	}
 
-	.lb-drag-wrapper {
-		position: relative;
-		z-index: 1;
-		display: flex;
-		max-width: 100%;
-		max-height: 100%;
-		will-change: transform;
-	}
-
 	.lb-chrome {
 		position: fixed;
 		inset: 0;
@@ -438,10 +601,8 @@
 		pointer-events: none;
 	}
 
-	.lb-close {
+	.lb-btn {
 		position: fixed;
-		top: 1rem;
-		right: 1rem;
 		width: 2.5rem;
 		height: 2.5rem;
 		display: flex;
@@ -458,25 +619,81 @@
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 		transition:
 			background-color 0.15s ease,
+			opacity 0.15s ease,
 			transform 0.15s ease;
 	}
 
-	.lb-close:hover {
+	.lb-btn:hover:not(:disabled) {
 		background: rgba(0, 0, 0, 0.72);
 		transform: scale(1.05);
 	}
 
-	.lb-close:focus-visible {
+	.lb-btn:disabled {
+		opacity: 0.3;
+		cursor: default;
+	}
+
+	.lb-btn:focus-visible {
 		outline: 2px solid rgba(255, 255, 255, 0.65);
 		outline-offset: 2px;
 	}
 
-	.lb-close svg {
+	.lb-btn svg {
 		width: 1.125rem;
 		height: 1.125rem;
 	}
 
+	.lb-close {
+		top: 1rem;
+		right: 1rem;
+	}
+
+	.lb-prev,
+	.lb-next {
+		top: 50%;
+		margin-top: -1.25rem;
+	}
+
+	.lb-prev {
+		left: 1rem;
+	}
+
+	.lb-next {
+		right: 1rem;
+	}
+
+	/* On a phone the arrows would sit on top of the image and duplicate what the
+	   swipe already does — the stepper is the control that stays. */
+	@media (max-width: 640px), (pointer: coarse) {
+		.lb-prev,
+		.lb-next {
+			display: none;
+		}
+	}
+
+	.lb-steps {
+		position: fixed;
+		left: 50%;
+		bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+		transform: translateX(-50%);
+		pointer-events: auto;
+	}
+
+	.lb-steps :global(.lb-stepper) {
+		--pill-bg: rgba(255, 255, 255, 0.28);
+		--pill-active-bg: rgba(255, 255, 255, 0.95);
+		--pill-fill-bg: rgba(255, 255, 255, 0.35);
+		--pill-container-bg: rgba(0, 0, 0, 0.55);
+		--pill-container-border: rgba(255, 255, 255, 0.12);
+		--pill-focus-ring: rgba(255, 255, 255, 0.65);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+	}
+
 	.lb-drag-wrapper {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		max-width: 100%;
 		max-height: 100%;
@@ -528,7 +745,7 @@
 
 	.lb-img {
 		max-width: 100%;
-		max-height: min(calc(100dvh - 6rem), var(--lb-max-height));
+		max-height: min(calc(100dvh - var(--lb-vertical-reserve)), var(--lb-max-height));
 		width: auto;
 		height: auto;
 		object-fit: contain;
@@ -546,6 +763,9 @@
 		user-select: none;
 		cursor: zoom-in;
 		transform-origin: center center;
+		/* Paging swaps the element via {#key}; fade it in so the change reads as a
+		   change and not as a flicker. Neighbours are preloaded, so it is quick. */
+		animation: lb-swap-in 0.18s ease both;
 	}
 
 	.lb-img.zoomed {
@@ -553,6 +773,15 @@
 		max-height: none;
 		width: 100%;
 		cursor: zoom-out;
+	}
+
+	@keyframes lb-swap-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.lb-caption {
@@ -563,5 +792,13 @@
 		line-height: 1.5;
 		margin: 0;
 		pointer-events: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.lb-backdrop,
+		.lb-img-wrap,
+		.lb-img {
+			animation-duration: 0.01ms !important;
+		}
 	}
 </style>

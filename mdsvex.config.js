@@ -11,6 +11,7 @@ import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
 import { createHighlighter } from './src/lib/prettyCodeHighlighter.js';
 import { remarkReadingTime } from './src/lib/remarkReadingTime.js';
+import { remarkGallery } from './src/lib/remarkGallery.js';
 import { rehypeStripCodeTabindex } from './src/lib/rehypeStripCodeTabindex.js';
 
 const config = {
@@ -26,6 +27,9 @@ const config = {
 	},
 	remarkPlugins: [
 		remarkReadingTime,
+		// Ahead of rehype, so rehype-figure never sees the images it consumes and
+		// the gallery keeps its own caption instead of getting four <figure>s.
+		remarkGallery,
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,
