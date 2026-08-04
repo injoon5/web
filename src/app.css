@@ -316,6 +316,64 @@
 	animation-delay: var(--stagger, 0ms);
 }
 
+/* The stage plays two beats. It holds a whole viewport with the type in the
+   lower third, clear of the numeral stamped into the field; when the field lets
+   the numeral go, the stage collapses to a little over half of that and the
+   bottom-anchored type rides the shrinking box up into the middle of the page.
+
+   Both properties here are layout, which is normally the thing not to animate.
+   That is the point though: the page has to actually get shorter — the footer
+   comes up with it and the scroll it was sitting under goes away — and no
+   transform moves a footer. It is one text block, once, on an error page. */
+.error-stage {
+	min-height: calc(100svh - 8rem);
+	padding-bottom: 8vh;
+	transition:
+		min-height 760ms var(--ease-out-soft),
+		padding-bottom 760ms var(--ease-out-soft);
+}
+
+@media (min-width: 40rem) {
+	.error-stage {
+		padding-bottom: 10vh;
+	}
+}
+
+.error-stage[data-settled='true'] {
+	min-height: calc(70svh - 4rem);
+	padding-bottom: 6vh;
+}
+
+/* A zero-height row rather than `display: none`, so the numeral is in the
+   document from the first frame for anything that is not watching the
+   animation, and so the handoff has something to interpolate. */
+.error-number {
+	display: grid;
+	grid-template-rows: 0fr;
+	transition: grid-template-rows 760ms var(--ease-out-soft);
+}
+
+/* Blurred rather than only faded: the cells it replaces are still coming apart
+   underneath, and a straight crossfade there reads as two numerals overlapping
+   rather than one becoming the other. */
+.error-number > span {
+	overflow: hidden;
+	opacity: 0;
+	filter: blur(10px);
+	transition:
+		opacity 480ms var(--ease-out-fast) 140ms,
+		filter 480ms var(--ease-out-fast) 140ms;
+}
+
+.error-number[data-settled='true'] {
+	grid-template-rows: 1fr;
+}
+
+.error-number[data-settled='true'] > span {
+	opacity: 1;
+	filter: blur(0);
+}
+
 /* Honor reduced-motion globally for our keyframe utilities */
 @media (prefers-reduced-motion: reduce) {
 	.shimmer,

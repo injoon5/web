@@ -18,10 +18,20 @@
 	 * `aria-hidden` with no pointer events: the status code is stamped into the
 	 * grid because it is beautiful, not because it is how anyone is meant to
 	 * read it — the heading does that.
+	 *
+	 * The stamp is a loan, not a fixture. It holds for `holdMs` and then the
+	 * simulation takes it apart, and `onrelease` fires on that exact frame so
+	 * the page can bring the same numeral back as real type. It is never
+	 * stamped again after that — a reseed a hundred seconds later would drop a
+	 * numeral straight onto the heading, which by then is sitting where it used
+	 * to be.
 	 */
 
-	/** The status code to stamp into the grid. Empty means no stamp. */
-	const { text = '' } = $props();
+	/**
+	 * `text` is the status code to stamp into the grid — empty means no stamp.
+	 * `onrelease` fires once, when the stamp stops being held.
+	 */
+	const { text = '', onrelease } = $props();
 
 	let canvas;
 	/** Held back until the first composition is on the canvas, so the field
@@ -39,7 +49,12 @@
 
 	onMount(() => {
 		const ctx = canvas.getContext('2d');
-		if (!ctx) return;
+		if (!ctx) {
+			// No field means no numeral to hand over, and the page should not sit
+			// waiting on a beat that will never be played.
+			onrelease?.();
+			return;
+		}
 
 		const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -58,6 +73,26 @@
 		let settledFor = 0;
 		let reseeding = false;
 		let disposed = false;
+		/** Whether the next composition carries the numeral. True for the first
+		    one only — see the note at the top of the file. */
+		let stamped = !motion.matches;
+		let released = false;
+
+		/**
+		 * Hand the numeral over to the page, once.
+		 *
+		 * Under reduced motion this happens immediately rather than after the
+		 * hold: no generation will ever run, so a stamp there is not a hold, it
+		 * is permanent — and a permanent numeral is one the type would have to
+		 * live on top of. That field gets no stamp at all, and the page's own
+		 * type is the only 404 on screen.
+		 */
+		function release() {
+			if (released) return;
+			released = true;
+			stamped = false;
+			onrelease?.();
+		}
 
 		/** Cell pitch in CSS px. Coarser on a phone would cost the numeral its
 		    letterforms, so the breakpoint is about legibility, not performance. */
@@ -97,8 +132,9 @@
 		 */
 		function seed(width, height) {
 			const s = lifeSettings;
-			const stamp = text
-				? stampText(text, cols, rows, {
+			const glyphs = stamped ? text : '';
+			const stamp = glyphs
+				? stampText(glyphs, cols, rows, {
 						font: getComputedStyle(canvas).fontFamily,
 						weight: 600,
 						height: (height * s.stampHeight) / cell,
@@ -202,7 +238,12 @@
 			// through a thousand generations in one frame.
 			carried = Math.min(carried + (time - lastTime), stepMs * 4);
 			lastTime = time;
-			if (time < holdUntil || carried < stepMs) return;
+			if (time < holdUntil) return;
+
+			// The hold is over, so the numeral comes apart on the generation below.
+			// This frame is the handoff: the page brings it back as type.
+			release();
+			if (carried < stepMs) return;
 
 			while (carried >= stepMs) {
 				carried -= stepMs;
@@ -263,7 +304,10 @@
 			concealed = false;
 
 			observer.observe(canvas);
-			if (motion.matches) return;
+			if (motion.matches) {
+				release();
+				return;
+			}
 
 			lastTime = performance.now();
 			frame = requestAnimationFrame(loop);

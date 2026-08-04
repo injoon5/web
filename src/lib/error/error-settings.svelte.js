@@ -35,9 +35,12 @@ export const LIFE_DEFAULTS = {
 	/**
 	 * How long the seeded composition holds before the first generation runs.
 	 * The number is legible for exactly as long as this, so it is the difference
-	 * between "the 404 dissolved" and "there was some noise on the page".
+	 * between "the 404 dissolved" and "there was some noise on the page". It is
+	 * also the page's clock: the field hands the numeral to the type at the end
+	 * of the hold (see `LifeField`'s `onrelease`), so this is how long the
+	 * poster beat lasts before the page collapses to its settled composition.
 	 */
-	holdMs: 1800,
+	holdMs: 4000,
 	/** Scales every shape count in the recipe. */
 	density: 1,
 	/**

@@ -6,17 +6,27 @@
 	/**
 	 * The error page, shared by both `+error.svelte` boundaries.
 	 *
-	 * The composition is a poster: the status code stamped into a Life field
-	 * across the whole viewport, and the type sitting in the lower third where
-	 * the numeral is not. The two never overlap, which is why the heading can
-	 * stay high-contrast and the field can stay quiet — no scrim, no blur, no
-	 * fighting.
+	 * It plays in two beats. First a poster: the status code stamped into a Life
+	 * field across the whole viewport, and the type sitting in the lower third
+	 * where the numeral is not. The two never overlap there, which is why the
+	 * heading can stay high-contrast and the field can stay quiet — no scrim, no
+	 * blur, no fighting.
+	 *
+	 * Then the field lets the numeral go (`onrelease`, at the end of its hold)
+	 * and the same numeral arrives as real type at the head of the block, while
+	 * the stage collapses from a whole viewport to a little over half of one and
+	 * carries the type up into the middle of the page. The field goes on running
+	 * behind it, but it never stamps the numeral again — the type is the numeral
+	 * now, and nothing lands on top of it.
 	 */
+
+	/** Flipped by the field when the stamp stops being held. */
+	let settled = $state(false);
 
 	const status = $derived(page.status ?? 500);
 	const pathname = $derived(page.url?.pathname ?? '');
 
-	/** The short name for the status, set beside the number in the eyebrow. */
+	/** The short name for the status, set under the numeral as the eyebrow. */
 	const label = $derived.by(() => {
 		if (status === 404) return 'Not found';
 		if (status === 403) return 'Forbidden';
@@ -70,20 +80,50 @@
 <svelte:head>
 	<title>{status} — {label}</title>
 	<meta name="robots" content="noindex" />
+	<!-- Without scripting there is no field, so there is no numeral being held
+	     and nothing to wait for: the page is its settled composition from the
+	     start. Unscoped on purpose — it comes after `app.css` in the head, which
+	     is what lets it outrank the poster state at equal specificity. -->
+	<noscript>
+		<style>
+			.error-stage {
+				min-height: calc(70svh - 4rem);
+				padding-bottom: 6vh;
+			}
+			.error-number {
+				grid-template-rows: 1fr;
+			}
+			.error-number > span {
+				opacity: 1;
+				filter: none;
+			}
+		</style>
+	</noscript>
 </svelte:head>
 
-<LifeField text={String(status)} />
+<LifeField text={String(status)} onrelease={() => (settled = true)} />
 <ErrorDialsMount />
 
 <!-- Bottom-anchored rather than centred: the numeral in the field owns the
-     middle of the viewport, and the type owns the space below it. -->
-<section
-	class="flex min-h-[calc(100svh-8rem)] flex-col justify-end pb-[8vh] text-center sm:pb-[10vh]"
->
+     middle of the viewport, and the type owns the space below it. The stage
+     shrinking is what moves the type up — see `.error-stage` in `app.css`. -->
+<section class="error-stage flex flex-col justify-end text-center" data-settled={settled}>
+	<!-- The numeral the field was holding, arriving as type: the same weight it
+	     was stamped at, one step darker than the cells so it reads as a letter
+	     rather than as more field. Its row is zero-height until the handoff, so
+	     during the poster beat it cannot push the heading up into the stamp. -->
+	<p class="error-number" data-settled={settled}>
+		<span
+			class="block pb-4 text-6xl leading-none font-semibold tracking-[-0.04em] text-neutral-400 tabular-nums sm:pb-6 sm:text-8xl dark:text-neutral-600"
+		>
+			{status}
+		</span>
+	</p>
+
 	<p
 		class="error-in font-mono text-[11px] font-medium tracking-[0.18em] text-neutral-400 uppercase tabular-nums sm:text-xs dark:text-neutral-600"
 	>
-		{status} · {label}
+		{label}
 	</p>
 
 	<h1
