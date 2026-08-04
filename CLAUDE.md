@@ -470,6 +470,14 @@ the route:
 | `Home`         | `lib/home/HomeDials.svelte`       | marquee speed, cover size/gap/scrim, photo columns/count/gap     |
 | `Article`      | `lib/article/ArticleDials.svelte` | link underline + offset + thickness, body size, leading, measure |
 | `Health chart` | `lib/health/HealthDials.svelte`   | chart geometry and colours                                       |
+| `Nav`          | `lib/NavDials.svelte`             | header axis, row spacing, disclosure spacing, chevron, motion    |
+
+`Nav` is the one panel present on every route, and it is not the site-wide panel
+the rule above exists to prevent: that rule is about controls for tokens the
+current page may not show, and the header is on screen everywhere. Its
+`disclosure` folder is the exception worth knowing — those controls do nothing
+above `sm`, where the row holds all four links and there is no second row to
+space.
 
 Each writes into a `$state` settings module (`*-settings.svelte.js`) whose
 values reach the DOM as custom properties on the section they affect — so a

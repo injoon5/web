@@ -54,11 +54,6 @@
 	}
 
 	let cleanupTheme;
-	let scrolled = $state(false);
-
-	function onScroll() {
-		scrolled = window.scrollY > 8;
-	}
 
 	onMount(async () => {
 		configure({
@@ -66,13 +61,10 @@
 			autocollect: true
 		});
 		cleanupTheme = theme.syncWithOS();
-		onScroll();
-		window.addEventListener('scroll', onScroll, { passive: true });
 	});
 
 	onDestroy(() => {
 		cleanupTheme?.();
-		if (typeof window !== 'undefined') window.removeEventListener('scroll', onScroll);
 	});
 </script>
 
@@ -81,21 +73,9 @@
 	<meta property="og:site_name" content="Injoon Oh" />
 </svelte:head>
 
-<div class="sticky top-0 z-30 transition-colors duration-200">
-	<div
-		aria-hidden="true"
-		class="absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
-		{scrolled ? 'bg-white/70 dark:bg-neutral-950/70' : 'bg-white/0 dark:bg-neutral-950/0'}"
-	></div>
-	<div
-		aria-hidden="true"
-		class="absolute inset-x-0 bottom-0 h-px transition-opacity duration-200
-		{scrolled ? 'opacity-100' : 'opacity-0'} bg-neutral-200/70 dark:bg-neutral-800/70"
-	></div>
-	<nav class="mx-auto max-w-6xl px-4 py-3 text-sm sm:px-12">
-		<NavBar />
-	</nav>
-</div>
+<!-- Sticky shell, blurred surface and scroll state all live inside NavBar: its
+     mobile disclosure hangs below the row and has to share that one surface. -->
+<NavBar />
 
 <div class="mx-auto max-w-6xl px-4 pt-4 pb-4 text-sm sm:px-12">
 	{@render children()}
