@@ -292,12 +292,41 @@
 	animation-delay: var(--stagger, 0ms);
 }
 
+/* =========================
+   Error pages
+
+   The type settles in over the Life field rather than arriving with it: the
+   field fades up from the canvas itself (see `LifeField.svelte`), and these
+   four lines follow it about 60ms apart so the page assembles instead of
+   appearing.
+   ========================= */
+@keyframes error-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.error-in {
+	animation: error-in 380ms var(--ease-out-fast) both;
+	animation-delay: var(--stagger, 0ms);
+}
+
 /* Honor reduced-motion globally for our keyframe utilities */
 @media (prefers-reduced-motion: reduce) {
 	.shimmer,
 	.heart-particle,
 	.vote-pop,
 	.marquee-track,
+	/* Cancelled rather than shortened, for the same reason as the /health
+	   sections below: the global duration override does not touch
+	   `animation-delay`, so a staggered element would sit at `opacity: 0` for
+	   its full delay and then pop. */
+	.error-in,
 	/* Cancelled outright rather than sped up: the staggered delay would otherwise
 	   still hold each section invisible for up to half a second. */
 	.health-line,
