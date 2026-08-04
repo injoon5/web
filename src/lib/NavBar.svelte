@@ -169,7 +169,11 @@
 			class="absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 transition-opacity duration-200 dark:bg-neutral-800/70
 			{surfaced && !menuOpen ? 'opacity-100' : 'opacity-0'}"
 		></div>
-		<nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-12">
+		<!-- `items-baseline`, not `items-center`: centring puts the 32px wordmark
+		     line box and the 24px link line box on a common centre, which lands
+		     their baselines 3px apart. The links sat that much high against the
+		     name for as long as this header has existed. -->
+		<nav class="mx-auto flex max-w-6xl items-baseline justify-between gap-3 px-4 py-3 sm:px-12">
 			<a
 				href="/"
 				onclick={() => trigger([{ duration: 35 }], { intensity: 1 })}
@@ -192,7 +196,9 @@
 				</span>
 			</a>
 
-			<div class="flex shrink-0 items-center gap-1 sm:gap-4">
+			<!-- No gap of its own: the chevron's box already carries 14.7px of blank
+			     to the left of its ink, which is the gap. -->
+			<div class="flex shrink-0 items-center gap-0 sm:gap-4">
 				<ul class="flex items-center gap-3 sm:gap-4">
 					{#each navItems as item (item.href)}
 						<li>
@@ -228,6 +234,11 @@
 					{/each}
 				</ul>
 
+				<!-- The ink is what aligns, not the box. A 40px tap target holds an 18px
+				     icon whose drawn chevron is inset another 4.5px inside that, so the
+				     mark ended up 6.7px shy of the right margin every other line on the
+				     page sits on. -15px pulls it flush (the round cap's 0.8px overhang
+				     is deliberate — a tapering mark needs it to read as aligned). -->
 				<button
 					bind:this={toggleEl}
 					id="nav-more-toggle"
@@ -236,7 +247,7 @@
 					aria-expanded={menuOpen}
 					aria-controls="nav-more"
 					aria-label={menuOpen ? 'Hide more pages' : 'More pages'}
-					class="-my-2 -mr-2 inline-flex h-10 w-10 items-center justify-center transition-colors duration-150 sm:hidden {menuOpen ||
+					class="-my-2 -mr-[15px] inline-flex h-10 w-10 items-center justify-center transition-colors duration-150 sm:hidden {menuOpen ||
 					moreActive
 						? 'text-neutral-900 dark:text-neutral-100'
 						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100'}"
@@ -273,7 +284,16 @@
 				class="absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 transition-opacity duration-200 dark:bg-neutral-800/70
 				{menuOpen ? 'opacity-100' : 'opacity-0'}"
 			></div>
-			<ul class="mx-auto flex max-w-6xl items-center justify-end gap-4 px-4 pt-3 pb-3.5 sm:px-12">
+			<!-- Spacing set off the baselines, not the boxes. The row's baseline is at
+			     37px; 11px of lead puts this one at 85px, so the open header is the
+			     closed one with a second line set at exactly 48px — twice the 24px
+			     line height. 13px below leaves the same 19px from baseline to the
+			     header's bottom edge that the closed header already has, so opening
+			     the menu moves the hairline without changing its relationship to the
+			     type. Same 12px word gap as the row above. -->
+			<ul
+				class="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 pt-[11px] pb-[13px] sm:px-12"
+			>
 				{#each moreItems as item, i (item.href)}
 					<li>
 						<a
