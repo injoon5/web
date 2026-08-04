@@ -290,9 +290,14 @@
 			     line height. 13px below leaves the same 19px from baseline to the
 			     header's bottom edge that the closed header already has, so opening
 			     the menu moves the hairline without changing its relationship to the
-			     type. Same 12px word gap as the row above. -->
+			     type. Same 12px word gap as the row above.
+
+			     41px on the right is the 16px page gutter plus the 25px of the
+			     chevron's tap target that sits inside the row — its 40px box less the
+			     15px it hangs past the margin. That is what ends this row on 'blog',
+			     rather than out under the chevron on the page margin. -->
 			<ul
-				class="mx-auto flex max-w-6xl items-center justify-end gap-3 px-4 pt-[11px] pb-[13px] sm:px-12"
+				class="mx-auto flex max-w-6xl items-center justify-end gap-3 pt-[11px] pr-[41px] pb-[13px] pl-4"
 			>
 				{#each moreItems as item, i (item.href)}
 					<li>
