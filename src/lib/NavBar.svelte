@@ -4,6 +4,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import NavDialsMount from '$lib/NavDialsMount.svelte';
+	import { navSettings, navStyle } from '$lib/nav-settings.svelte.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -155,7 +157,10 @@
      the disclosure has to be part of that surface: only the row is in flow, and
      the panel hangs off `top-full` so opening the menu draws over the page
      instead of pushing every page down by its height. -->
-<div bind:this={root} id="site-nav" class="sticky top-0 z-30">
+<!-- The custom properties are only written where the panel exists. In production
+     `__DIALS__` is a literal `false`, this folds to no attribute at all, and
+     every rule below falls back to the value its Tailwind class also carries. -->
+<div bind:this={root} id="site-nav" class="sticky top-0 z-30" style={__DIALS__ ? navStyle() : null}>
 	<div class="relative">
 		<div
 			aria-hidden="true"
@@ -178,7 +183,9 @@
 		     line box's centre on its own cap band's centre at any size. So the
 		     wordmark's caps and the links' caps land on one axis, 3px off a shared
 		     baseline, which is the trade being made deliberately. -->
-		<nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-12">
+		<nav
+			class="nav-row mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-12"
+		>
 			<a
 				href="/"
 				onclick={() => trigger([{ duration: 35 }], { intensity: 1 })}
@@ -203,8 +210,8 @@
 
 			<!-- No gap of its own: the chevron's box already carries 14.7px of blank
 			     to the left of its ink, which is the gap. -->
-			<div class="flex shrink-0 items-center gap-0 sm:gap-4">
-				<ul class="flex items-center gap-3 sm:gap-4">
+			<div class="nav-cluster flex shrink-0 items-center gap-0 sm:gap-4">
+				<ul class="nav-links flex items-center gap-3 sm:gap-4">
 					{#each navItems as item (item.href)}
 						<li>
 							<a
@@ -252,14 +259,14 @@
 					aria-expanded={menuOpen}
 					aria-controls="nav-more"
 					aria-label={menuOpen ? 'Hide more pages' : 'More pages'}
-					class="-my-2 -mr-[15px] inline-flex h-10 w-10 items-center justify-center transition-colors duration-150 sm:hidden {menuOpen ||
+					class="nav-toggle -my-2 -mr-[15px] inline-flex h-10 w-10 items-center justify-center transition-colors duration-150 sm:hidden {menuOpen ||
 					moreActive
 						? 'text-neutral-900 dark:text-neutral-100'
 						: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100'}"
 				>
 					<ChevronDown
-						size={18}
-						strokeWidth={2.25}
+						size={navSettings.chevronSize}
+						strokeWidth={navSettings.chevronStroke}
 						class="nav-chevron {menuOpen ? 'rotate-180' : 'rotate-0'}"
 						aria-hidden="true"
 					/>
@@ -302,13 +309,17 @@
 			     chevron's tap target that sits inside the row — its 40px box less the
 			     15px it hangs past the margin. That is what ends this row on 'blog',
 			     rather than out under the chevron on the page margin. -->
-			<ul class="mx-auto flex max-w-6xl items-center justify-end gap-3 pt-0 pr-[41px] pb-4 pl-4">
+			<ul
+				class="nav-more-row mx-auto flex max-w-6xl items-center justify-end gap-3 pt-0 pr-[41px] pb-4 pl-4"
+			>
 				{#each moreItems as item, i (item.href)}
 					<li>
 						<a
 							href={item.href}
 							onclick={() => trigger([{ duration: 25 }], { intensity: 0.7 })}
-							style="transition-delay: {menuOpen ? 40 + i * 55 : 0}ms"
+							style="transition-delay: {menuOpen
+								? navSettings.staggerBase + i * navSettings.staggerStep
+								: 0}ms"
 							class="nav-more-link -my-2 py-2 text-base font-medium {menuOpen
 								? 'translate-y-0 opacity-100'
 								: '-translate-y-1 opacity-0'} {isActive(item.href)
@@ -325,7 +336,41 @@
 	</div>
 </div>
 
+<NavDialsMount />
+
 <style>
+	/* Everything the DialKit panel can move, each falling back to the value its
+	   Tailwind class carries — so a build with the panel folded away sets none of
+	   these and renders exactly what the classes say. The row's overrides that
+	   have `sm` variants are held below that breakpoint for the same reason: the
+	   dial is for the phone header, and it must not quietly flatten the wider
+	   spacing the desktop row is written with. */
+	.nav-row {
+		align-items: var(--nav-align, center);
+		padding-block: var(--nav-row-pad-y, 0.75rem);
+	}
+
+	.nav-cluster {
+		translate: 0 var(--nav-cluster-nudge, 0px);
+	}
+
+	.nav-more-row {
+		padding-top: var(--nav-more-lead, 0px);
+		padding-right: var(--nav-more-pad-r, 41px);
+		padding-bottom: var(--nav-more-pad-b, 1rem);
+		gap: var(--nav-more-gap, 0.75rem);
+	}
+
+	@media (max-width: 39.99rem) {
+		.nav-links {
+			gap: var(--nav-word-gap, 0.75rem);
+		}
+
+		.nav-toggle {
+			margin-right: calc(-1 * var(--nav-toggle-overhang, 15px));
+		}
+	}
+
 	/* The site's own ease-out tokens are steep enough that 90% of a 320ms move is
 	   over in ~110ms — right for a colour or a 4px nudge, but it makes a header
 	   that grows by 50px read as a jump cut. This curve carries more of its
@@ -340,7 +385,7 @@
 	/* Held off until mount so a page that loads with the menu shut doesn't
 	   animate open from 0fr on hydration. */
 	.nav-more-animate {
-		transition: grid-template-rows 320ms var(--nav-ease);
+		transition: grid-template-rows var(--nav-duration, 320ms) var(--nav-ease);
 	}
 
 	/* `translate` and `rotate`, never `transform`: Tailwind v4 compiles its
@@ -349,13 +394,13 @@
 	   snaps to its new position while whatever else is in the list eases. */
 	.nav-more-link {
 		transition:
-			opacity 260ms var(--nav-ease),
-			translate 260ms var(--nav-ease),
+			opacity var(--nav-link-duration, 260ms) var(--nav-ease),
+			translate var(--nav-link-duration, 260ms) var(--nav-ease),
 			color 150ms ease;
 	}
 
 	:global(.nav-chevron) {
-		transition: rotate 320ms var(--nav-ease);
+		transition: rotate var(--nav-duration, 320ms) var(--nav-ease);
 	}
 
 	/* The global reduce rule collapses durations but not delays, which would
