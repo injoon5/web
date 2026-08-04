@@ -45,6 +45,14 @@ src/
       validation.ts        # Zod schemas for all inputs
     types.ts               # Shared frontend types
     utils.ts               # Misc utilities
+    lightbox.js            # lightboxStore + lightboxAction — opens images as a group
+    Lightbox.svelte        # The lightbox itself (zoom, pinch, swipe, group paging)
+    Gallery.svelte         # Image strip with a pasito stepper, one lightbox group
+    remarkGallery.js       # Markdown image runs -> <Gallery/>, injects the import
+    pasito/                # Svelte port of joshpuckett/pasito — see "Steppers"
+      core.js              # computeStepWindow / StepAnimator / AutoPlayController
+      Stepper.svelte       # The component (markup + the upstream stylesheet)
+      autoplay.svelte.js   # createAutoPlay — upstream's useAutoPlay as a rune
     comments/
       CommentsSection.svelte   # Public comment section (Convex useQuery, forms)
       CommentNode.svelte       # Individual user-facing comment + reply tree
@@ -283,6 +291,75 @@ It also has no way to enumerate keys, which `admin.listUrls` needs.
 ## Stray Comments (Admin Page)
 
 When a parent comment is hard-deleted, its children still carry the original `parentId` but the parent is filtered out of public queries. The admin page's `buildTree()` function surfaces those children as root-level nodes with `stray: true` and renders them with an amber "orphaned reply — parent deleted" badge.
+
+---
+
+## Steppers, Galleries and the Lightbox
+
+`src/lib/pasito/` is a Svelte 5 port of
+[joshpuckett/pasito](https://github.com/joshpuckett/pasito), the fluid stepper.
+The props and the `--pill-*` theming variables are upstream's, so its README
+still describes this. Two deliberate divergences:
+
+- **`core.js` is the upstream `core/` directory, in plain JS.** Upstream splits
+  React and Vue wrappers over a shared core; keeping that split is what lets the
+  windowing and the enter/exit reconciliation be tested without a DOM.
+  `computeStepWindow`'s `DEFAULT_METRICS` have to stay in step with the
+  `--pill-*` defaults in `Stepper.svelte` — it turns a step index into a pixel
+  offset, so changing the dot size in CSS alone slides the track wrong.
+- **`Step.tsx` is inlined into `Stepper.svelte`.** Half of pasito's stylesheet is
+  `.pasito-vertical .pasito-step`-shaped descendant rules, and each one would
+  need a `:global()` hole punched through a component boundary.
+
+An entering step has to render collapsed and _paint_ before it is promoted, or
+there is nothing to transition from — hence the reconcile in `$effect.pre` and
+the two `requestAnimationFrame`s. One frame is not enough; it lands both states
+in the same paint.
+
+**The lightbox opens groups, not images.** `lightboxAction` looks for a
+`[data-lightbox-group]` ancestor on the click path: inside one, the whole group
+opens at the clicked index and the lightbox grows a stepper, arrow keys, arrow
+buttons and sideways swipe; outside one, it is a group of one and behaves
+exactly as it did before. The grouping is declared in markup rather than guessed
+from sibling images, so an article of unrelated screenshots doesn't become one
+long slideshow. A bare `{ src, alt, ... }` set on the store is still accepted —
+`normalizeLightboxValue` widens it.
+
+The swipe axis is **locked once**, on the first 8px of movement, and not
+re-decided per move: sideways pages, downward dismisses. Re-deciding let a
+diagonal flick do both.
+
+**Neither the gallery nor the lightbox upscales.** The lightbox has always
+capped its scale at 1, and plenty of the images in these posts are 200–500px
+wide. A gallery that stretched them to the column width would make opening one
+look like it had shrunk it.
+
+## Galleries in Markdown (`src/lib/remarkGallery.js`)
+
+A paragraph that is nothing but images becomes a `<Gallery />`:
+
+```md
+![Snowflake](/one.png)
+![Framer](/two.png)
+![Vercel](/three.png)
+```
+
+Consecutive lines are one paragraph in mdast, so the run is one the author
+already grouped by hand. **A blank line between images is the escape hatch** —
+that makes them separate paragraphs and they stay stacked. Only top-level
+paragraphs convert; a run inside a blockquote or list item is carrying that
+block's meaning.
+
+The plugin runs **before rehype**, so `rehype-figure` never sees those images —
+otherwise a gallery would arrive as four `<figure>`s.
+
+The component reaches the compiled markdown through an import in the file's
+instance `<script>`, the same way a hand-written `<LazyVideo />` does. The plugin
+splices into an author's existing script when there is one and prepends a new one
+otherwise — mdsvex does exactly this splice for its own layout import, and
+`extract_parts` hoists the result. Deliberately **not** an mdsvex `layout` with
+module-context exports: that mechanism rewrites `tagName` on hast _elements_,
+and raw HTML in markdown is a `raw` node that never gets one.
 
 ---
 
