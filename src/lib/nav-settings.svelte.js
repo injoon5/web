@@ -44,8 +44,16 @@ export const NAV_DEFAULTS = {
 	chevronStroke: 2.25,
 
 	/**
-	 * Lead above the disclosure row, in px — this is the dial that sets the
-	 * baseline-to-baseline distance between the two rows. 0 puts it at 40px.
+	 * The space between the header's two lines, as an offset in px from where
+	 * their line boxes sit flush — which is 40px baseline to baseline, so `lead`
+	 * plus 40 is the real distance.
+	 *
+	 * It goes negative, because flush is not the tightest the two lines can be
+	 * set: the first row's line box is sized by the 24px wordmark while its links
+	 * only need 24px of the 32, and there is another 12px of row padding under
+	 * that. All of it is empty, and the second line is free to ride up into it.
+	 * That moves the whole band, so the space under the second line and the
+	 * hairline's distance from it do not change with this.
 	 */
 	lead: 0,
 	/** Space under the disclosure row, down to the hairline, in px. */

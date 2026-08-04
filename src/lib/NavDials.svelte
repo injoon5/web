@@ -36,7 +36,10 @@
 			chevronStroke: [NAV_DEFAULTS.chevronStroke, 1, 3.5, 0.05]
 		},
 		disclosure: {
-			lead: [NAV_DEFAULTS.lead, 0, 32, 1],
+			// Offset from the two line boxes sitting flush, which is 40px baseline to
+			// baseline — so this reads -24 to +32 against a real 16 to 72. Negative
+			// pulls the second line up into the first row's padding, which is empty.
+			lead: [NAV_DEFAULTS.lead, -24, 32, 1],
 			padBottom: [NAV_DEFAULTS.padBottom, 0, 40, 1],
 			padRight: [NAV_DEFAULTS.padRight, 0, 96, 1],
 			moreGap: [NAV_DEFAULTS.moreGap, 0, 32, 1]

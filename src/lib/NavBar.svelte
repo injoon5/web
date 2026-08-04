@@ -281,14 +281,14 @@
 	<div
 		id="nav-more"
 		inert={mounted && !menuOpen}
-		class="absolute inset-x-0 top-full grid sm:hidden {mounted ? 'nav-more-animate' : ''} {menuOpen
-			? 'grid-rows-[1fr]'
-			: 'grid-rows-[0fr]'}"
+		class="nav-more absolute inset-x-0 top-full grid sm:hidden {mounted
+			? 'nav-more-animate'
+			: ''} {menuOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}"
 	>
 		<div class="relative min-h-0 overflow-hidden">
 			<div
 				aria-hidden="true"
-				class="absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
+				class="nav-more-surface absolute inset-0 -z-10 backdrop-blur-md transition-colors duration-200
 				{menuOpen ? 'bg-white/70 dark:bg-neutral-950/70' : 'bg-white/0 dark:bg-neutral-950/0'}"
 			></div>
 			<div
@@ -354,8 +354,28 @@
 		translate: 0 var(--nav-cluster-nudge, 0px);
 	}
 
+	/* The lead changes form at zero, because padding cannot go negative and zero
+	   is not the tightest these two lines can be set. Opening it up pads the row
+	   inside the band; closing it past flush moves the whole band instead, and the
+	   second line rides up into the row's bottom padding and into the slack the
+	   24px wordmark leaves around the 16px links — all of it empty. Either way
+	   everything below the line comes with it, so its own spacing and the
+	   hairline's distance from it hold at any lead. */
+	.nav-more {
+		margin-top: min(0px, var(--nav-more-lead, 0px));
+	}
+
+	/* The surface always starts where the row's ends, whichever way the lead went.
+	   It cannot simply move with the band: it is a second backdrop-blur layer, so
+	   riding up over the row's would paint a visibly denser strip of tint across
+	   the overlap, and hanging below it would leave the header see-through for the
+	   height of the lead. */
+	.nav-more-surface {
+		top: calc(-1 * min(0px, var(--nav-more-lead, 0px)));
+	}
+
 	.nav-more-row {
-		padding-top: var(--nav-more-lead, 0px);
+		padding-top: max(0px, var(--nav-more-lead, 0px));
 		padding-right: var(--nav-more-pad-r, 41px);
 		padding-bottom: var(--nav-more-pad-b, 1rem);
 		gap: var(--nav-more-gap, 0.75rem);
