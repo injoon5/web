@@ -169,11 +169,16 @@
 			class="absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 transition-opacity duration-200 dark:bg-neutral-800/70
 			{surfaced && !menuOpen ? 'opacity-100' : 'opacity-0'}"
 		></div>
-		<!-- `items-baseline`, not `items-center`: centring puts the 32px wordmark
-		     line box and the 24px link line box on a common centre, which lands
-		     their baselines 3px apart. The links sat that much high against the
-		     name for as long as this header has existed. -->
-		<nav class="mx-auto flex max-w-6xl items-baseline justify-between gap-3 px-4 py-3 sm:px-12">
+		<!-- Centred, so the name and the links hang from one middle axis rather than
+		     standing on one baseline — small links sharing a baseline with type this
+		     much larger read as sitting on the floor beside it.
+
+		     Centring is exactly the middle axis here, not an approximation of it:
+		     Interlude's cap height equals its ascent minus its descent, which puts a
+		     line box's centre on its own cap band's centre at any size. So the
+		     wordmark's caps and the links' caps land on one axis, 3px off a shared
+		     baseline, which is the trade being made deliberately. -->
+		<nav class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-12">
 			<a
 				href="/"
 				onclick={() => trigger([{ duration: 35 }], { intensity: 1 })}
@@ -284,21 +289,20 @@
 				class="absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 transition-opacity duration-200 dark:bg-neutral-800/70
 				{menuOpen ? 'opacity-100' : 'opacity-0'}"
 			></div>
-			<!-- Spacing set off the baselines, not the boxes. The row's baseline is at
-			     37px; 11px of lead puts this one at 85px, so the open header is the
-			     closed one with a second line set at exactly 48px — twice the 24px
-			     line height. 13px below leaves the same 19px from baseline to the
-			     header's bottom edge that the closed header already has, so opening
-			     the menu moves the hairline without changing its relationship to the
-			     type. Same 12px word gap as the row above.
+			<!-- Spacing set off the baselines, not the boxes. No top lead at all puts
+			     this row's baseline 40px under the row above — the 24px line plus a
+			     16px gap — which is close enough for the two to read as one list
+			     instead of two bands. 16px below leaves the same 21px from baseline
+			     to hairline that the closed header already has, so opening the menu
+			     moves that rule without changing its relationship to the type, and
+			     the space under this row lands within a few pixels of the gap above
+			     it. Same 12px word gap as the row above.
 
 			     41px on the right is the 16px page gutter plus the 25px of the
 			     chevron's tap target that sits inside the row — its 40px box less the
 			     15px it hangs past the margin. That is what ends this row on 'blog',
 			     rather than out under the chevron on the page margin. -->
-			<ul
-				class="mx-auto flex max-w-6xl items-center justify-end gap-3 pt-[11px] pr-[41px] pb-[13px] pl-4"
-			>
+			<ul class="mx-auto flex max-w-6xl items-center justify-end gap-3 pt-0 pr-[41px] pb-4 pl-4">
 				{#each moreItems as item, i (item.href)}
 					<li>
 						<a
