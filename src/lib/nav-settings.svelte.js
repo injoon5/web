@@ -67,6 +67,14 @@ export const NAV_DEFAULTS = {
 	/** Space between the disclosure's links, in px. */
 	moreGap: 12,
 
+	/**
+	 * How much scrolling it takes for the surface to arrive, in px. Not a
+	 * duration: the tint and the hairline are on a scroll timeline, so this is a
+	 * distance down the page, and the only thing that decides whether the header
+	 * settles onto the page or is dragged onto it.
+	 */
+	surfaceRange: 64,
+
 	/** Panel growth and chevron rotation, in ms. */
 	duration: 320,
 	/** Each link's fade and slide, in ms. */
@@ -94,6 +102,7 @@ export function navStyle(s = navSettings) {
 		`--nav-more-pad-b:${s.padBottom}px`,
 		`--nav-more-pad-r:${s.padRight}px`,
 		`--nav-more-gap:${s.moreGap}px`,
+		`--nav-surface-range:${s.surfaceRange}px`,
 		`--nav-duration:${s.duration}ms`,
 		`--nav-link-duration:${s.linkDuration}ms`
 	].join(';');

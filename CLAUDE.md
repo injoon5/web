@@ -547,7 +547,7 @@ the route:
 | `Home`         | `lib/home/HomeDials.svelte`       | marquee speed, cover size/gap/scrim, photo columns/count/gap     |
 | `Article`      | `lib/article/ArticleDials.svelte` | link underline + offset + thickness, body size, leading, measure |
 | `Health chart` | `lib/health/HealthDials.svelte`   | chart geometry and colours                                       |
-| `Nav`          | `lib/NavDials.svelte`             | header axis, row spacing, disclosure spacing, chevron, motion    |
+| `Nav`          | `lib/NavDials.svelte`             | header axis, row spacing, disclosure, chevron, surface, motion   |
 
 `Nav` is the one panel present on every route, and it is not the site-wide panel
 the rule above exists to prevent: that rule is about controls for tokens the
@@ -589,6 +589,40 @@ Three traps, all already sprung:
   `<svelte:head>`, not from `app.css`, so production carries no trace of them.
   They are unlayered on purpose: that is what lets the measure rule outrank
   Tailwind's own `.max-w-6xl` in `@layer utilities`.
+
+---
+
+## The Header (`src/lib/NavBar.svelte`)
+
+`position: sticky; top: 0`, in flow, and it never leaves — no auto-hide, no
+condense. Three things about it are load-bearing:
+
+- **`--nav-h` has to be a static value in `app.css`.** It is what
+  `scroll-padding-top` is built from, and without that offset a `#hash` link
+  landed its heading entirely behind the 56px bar and opened the page on the
+  paragraph after it. The reason it cannot simply be measured is timing: the
+  browser scrolls to a deep link while the document is still parsing, long
+  before any script runs. `NavBar` re-publishes the row's measured height onto
+  `documentElement` once it has one, so a row moved by the dials carries the
+  anchor offset with it — but the shipped number lives in CSS.
+- **The surface is a scroll-driven animation, not a scroll listener.** A
+  `scroll(root block)` timeline on the shell carries `--nav-surface-scroll` from
+  0 to 1 over `--nav-surface-range` (64px), and the tint and hairline fade with
+  it. The listener is installed only where `CSS.supports('animation-timeline',
+'scroll()')` is false, and drives the old on/off switch through
+  `[data-scrolled]`.
+- **`opacity: max(--nav-surface-scroll, --nav-surface-menu)`, and both are
+  registered `@property` numbers.** The disclosure drops over page content from
+  scroll offset 0, so it has to be able to paint the surface itself. Animating
+  `opacity` directly cannot express that: an animation outranks every
+  declaration for the property it runs on, so the open menu would have had
+  nothing to say. Two inputs with their own timing — one on the scrollbar, one
+  on a 200ms transition — composed by `max()`, is what lets opening the menu at
+  the top and closing it again still fade.
+- The global `prefers-reduced-motion` rule collapses every `animation-duration`
+  to 0.001ms, which would strand a progress-timeline animation at one end.
+  `.nav-shell` re-asserts `animation-duration: auto` under that media query. A
+  tint tracking the scrollbar is the page moving, not motion of its own.
 
 ---
 

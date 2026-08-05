@@ -12,10 +12,20 @@
 
 	let mounted = $state(false);
 	let menuOpen = $state(false);
+
+	// The surface arrives as the page moves under it, and it is CSS that watches
+	// the page move: a scroll-driven animation on the shell carries
+	// `--nav-surface-scroll` from 0 to 1 across the first stretch of the document,
+	// and the surface and the hairline read it. Nothing runs per frame, and
+	// nothing runs on the main thread.
+	//
+	// `scrolled` is only the fallback for a browser without scroll timelines,
+	// where the listener below flips it once past the same threshold and the tint
+	// switches on over 200ms the way it always has. It is left `false` everywhere
+	// else, and the rule it drives is overridden by the animation regardless —
+	// what the check actually buys is not installing the listener at all.
 	let scrolled = $state(false);
-	// The surface is painted once the page moves under it — and also whenever the
-	// disclosure is open, since it drops over page content from scroll offset 0.
-	let surfaced = $derived(scrolled || menuOpen);
+	let scrollLinked = $state(false);
 
 	// How far past the row the header reaches while open, which is what the one
 	// surface and the one hairline grow by. The band's own height is measured
@@ -125,8 +135,15 @@
 
 	onMount(() => {
 		mounted = true;
-		onWindowScroll();
-		window.addEventListener('scroll', onWindowScroll, { passive: true });
+
+		// Where the surface can track the scroll position in CSS, the header wants
+		// no scroll listener of its own — this is the only one the closed nav ever
+		// installed, and it ran on every scroll event on every page.
+		scrollLinked = CSS.supports('animation-timeline', 'scroll()');
+		if (!scrollLinked) {
+			onWindowScroll();
+			window.addEventListener('scroll', onWindowScroll, { passive: true });
+		}
 
 		// The panel is `sm:hidden`, so a widened viewport would leave menuOpen
 		// stuck true and the header surface opaque with nothing to show for it.
@@ -145,15 +162,18 @@
 
 <!-- Without scripting the toggle is a dead control and /now + /health would be
      unreachable from a phone, so the panel drops back into flow permanently and
-     the header stops sticking — nothing paints its surface without the scroll
-     listener either, and a transparent bar over scrolling text is worse than a
-     bar that scrolls away. `inert` is only ever applied after mount, and these
-     rules outrank the collapsed utilities on specificity alone. -->
+     the header stops sticking — and a transparent bar over scrolling text is
+     worse than a bar that scrolls away. The surface has to be sent away with it:
+     the scroll-driven animation needs no script, so it would otherwise go on
+     tinting a header that is no longer over anything. `inert` is only ever
+     applied after mount, and these rules outrank the collapsed utilities on
+     specificity alone. -->
 <svelte:head>
 	<noscript>
 		<style>
 			#site-nav {
 				position: static;
+				animation-name: none;
 			}
 			#nav-more-toggle {
 				display: none;
@@ -188,6 +208,8 @@
 	bind:this={root}
 	id="site-nav"
 	class="nav-shell sticky top-0 z-30"
+	data-menu-open={menuOpen}
+	data-scrolled={!scrollLinked && scrolled}
 	style="--nav-open-extra:{openExtra}px{__DIALS__ ? ';' + navStyle() : ''}"
 >
 	<div class="relative">
@@ -196,17 +218,21 @@
 		     the shared edge, so neither pulls in what is behind the other and the
 		     seam paints as a visible step in the tint — measured at five levels over
 		     a dark page, which is exactly the width of the disclosure. -->
+		<!-- Both layers are painted at full strength and faded as a whole, rather
+		     than having their colour swapped between two alpha values. It is the
+		     blur that makes this worth doing: `backdrop-blur-md` used to be on from
+		     the top of the page, doing its work behind a fully transparent tint, and
+		     fading the element takes the filter with it — so a header sitting over
+		     nothing composites nothing. -->
 		<div
 			aria-hidden="true"
-			class="nav-surface absolute inset-0 -z-10 backdrop-blur-md
-			{surfaced ? 'bg-white/70 dark:bg-neutral-950/70' : 'bg-white/0 dark:bg-neutral-950/0'}"
+			class="nav-surface absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
 		></div>
 		<!-- And one hairline, which slides down to the new bottom edge as the
 		     disclosure opens instead of a second one fading in beneath it. -->
 		<div
 			aria-hidden="true"
-			class="nav-hairline absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 dark:bg-neutral-800/70
-			{surfaced ? 'opacity-100' : 'opacity-0'}"
+			class="nav-hairline absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 dark:bg-neutral-800/70"
 		></div>
 		<!-- Centred, so the name and the links hang from one middle axis rather than
 		     standing on one baseline — small links sharing a baseline with type this
@@ -394,17 +420,96 @@
 		margin-top: min(0px, var(--nav-more-lead, -10px));
 	}
 
+	/* How present the surface is, from the two things that have an opinion about
+	   it: how far the page has scrolled under the header, and whether the
+	   disclosure is hanging open. They have to compose rather than take turns —
+	   opening the menu at the top of a page and opening it halfway down are the
+	   same header, and the surface must not drop back to a scroll-derived value
+	   when the menu closes, nor jump to full when it opens over a page that has
+	   already tinted it.
+
+	   `max()` is that composition, and it is why these are registered properties
+	   rather than an animated `opacity`: an animation wins over any declaration
+	   for the property it runs on, so a scroll-driven `opacity` would have left
+	   the open menu nothing to say. Each input carries its own timing instead —
+	   one tied to the scrollbar, one to a 200ms transition — and the surface reads
+	   whichever is asking for more. */
+	@property --nav-surface-scroll {
+		syntax: '<number>';
+		inherits: true;
+		initial-value: 0;
+	}
+
+	@property --nav-surface-menu {
+		syntax: '<number>';
+		inherits: true;
+		initial-value: 0;
+	}
+
+	@keyframes nav-surface-progress {
+		from {
+			--nav-surface-scroll: 0;
+		}
+		to {
+			--nav-surface-scroll: 1;
+		}
+	}
+
+	.nav-shell {
+		transition:
+			--nav-surface-scroll 200ms ease,
+			--nav-surface-menu 200ms ease;
+	}
+
+	.nav-shell[data-menu-open='true'] {
+		--nav-surface-menu: 1;
+	}
+
+	/* The fallback, and the only thing the scroll listener drives: the same
+	   threshold, arriving all at once over the same 200ms it always did. Where the
+	   animation below runs it overrides this outright — a property an animation is
+	   holding takes neither a declaration nor a transition — which is what lets the
+	   listener simply not be installed. */
+	.nav-shell[data-scrolled='true'] {
+		--nav-surface-scroll: 1;
+	}
+
+	@supports (animation-timeline: scroll()) {
+		/* The surface stops being a state the header holds and becomes a reading of
+		   where the page is: the tint and the hairline arrive over the first
+		   `--nav-surface-range` of scroll, in step with the gesture rather than
+		   switched on 8px into it. Nothing observes the scroll to do it — no
+		   listener, no observer, nothing on the main thread per frame. */
+		.nav-shell {
+			animation: nav-surface-progress linear both;
+			animation-timeline: scroll(root block);
+			animation-range: 0px var(--nav-surface-range, 64px);
+		}
+
+		/* A tint that tracks the scrollbar is not motion — it is the page moving,
+		   which is the one thing this preference does not ask anyone to stop. The
+		   global reduce rule collapses every `animation-duration` to 0.001ms, and
+		   `auto` is what a progress timeline wants there. */
+		@media (prefers-reduced-motion: reduce) {
+			.nav-shell {
+				animation-duration: auto !important;
+			}
+		}
+	}
+
 	/* The surface and the hairline are sized by the row and then stretched past it
 	   by however far the disclosure currently reaches, so one blurred pane covers
 	   the whole header at every point in the animation. They ease on the same
-	   curve and duration as the row that is pushing them. */
+	   curve and duration as the row that is pushing them.
+
+	   Their own presence is not transitioned here: it is already carried by the
+	   two properties above, and a transition on top of a scroll-driven value would
+	   only make it lag the finger. */
 	.nav-surface,
 	.nav-hairline {
+		opacity: max(var(--nav-surface-scroll), var(--nav-surface-menu));
 		bottom: calc(-1 * var(--nav-open-extra, 0px));
-		transition:
-			bottom var(--nav-duration, 320ms) var(--nav-ease),
-			background-color 200ms ease,
-			opacity 200ms ease;
+		transition: bottom var(--nav-duration, 320ms) var(--nav-ease);
 	}
 
 	.nav-more-row {

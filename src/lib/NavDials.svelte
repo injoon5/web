@@ -46,6 +46,10 @@
 		},
 		motion: {
 			_collapsed: true,
+			// In px of scroll, not ms — the surface is on a scroll timeline, so this
+			// one is measured against the page rather than the clock. Drag the window
+			// down slowly to judge it.
+			surfaceRange: [NAV_DEFAULTS.surfaceRange, 0, 240, 4],
 			duration: [NAV_DEFAULTS.duration, 80, 800, 10],
 			linkDuration: [NAV_DEFAULTS.linkDuration, 80, 800, 10],
 			staggerBase: [NAV_DEFAULTS.staggerBase, 0, 200, 5],
