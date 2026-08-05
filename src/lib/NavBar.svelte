@@ -254,29 +254,36 @@
 				aria-label="Home — Injoon Oh"
 				class="group inline-flex min-w-0 items-center {showName ? '' : 'pointer-events-none'}"
 			>
-				<!-- The wordmark's presence is carried by the wrapper, not by the type
-				     inside it. That is what leaves the hover cross-fade underneath
-				     untouched: the two spans go on trading places on their own
-				     `opacity`, and whatever the wrapper is at multiplies through both.
-				     A scroll-driven animation on the English span's own `opacity`
-				     would have taken the property away from `group-hover:opacity-0`
-				     outright, and hovering the wordmark would have stopped doing
-				     anything on the one page this animation runs on. -->
+				<!-- Two elements, because the name travels and the hole it travels
+				     through does not: `.nav-name` is the window, one line box tall and
+				     staying where it is, and `.nav-name-roll` is the line of type
+				     rising into it.
+
+				     The presence is carried by the roll, not by the type inside it.
+				     That is what leaves the hover cross-fade underneath untouched: the
+				     two spans go on trading places on their own `opacity`, and whatever
+				     the roll is at multiplies through both. A scroll-driven animation
+				     on the English span's own `opacity` would have taken the property
+				     away from `group-hover:opacity-0` outright, and hovering the
+				     wordmark would have stopped doing anything on the one page this
+				     animation runs on. -->
 				<span
-					class="nav-name relative block min-w-0"
+					class="nav-name block min-w-0"
 					data-shown={!isHome || showName}
 					data-animate={mounted}
 				>
-					<span
-						class="block truncate font-sans text-2xl font-medium tracking-tight will-change-auto group-hover:opacity-0 group-hover:blur-sm
-					{mounted ? 'transition-[opacity,filter] duration-200 ease-out' : ''}"
-					>
-						Injoon Oh
-					</span>
-					<span
-						class="pointer-events-none absolute inset-0 block truncate font-sans text-2xl font-semibold tracking-tight opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out will-change-auto group-hover:opacity-100 group-hover:blur-none"
-					>
-						오인준
+					<span class="nav-name-roll relative block min-w-0">
+						<span
+							class="block truncate font-sans text-2xl font-medium tracking-tight will-change-auto group-hover:opacity-0 group-hover:blur-sm
+						{mounted ? 'transition-[opacity,filter] duration-200 ease-out' : ''}"
+						>
+							Injoon Oh
+						</span>
+						<span
+							class="pointer-events-none absolute inset-0 block truncate font-sans text-2xl font-semibold tracking-tight opacity-0 blur-sm transition-[opacity,filter] duration-200 ease-out will-change-auto group-hover:opacity-100 group-hover:blur-none"
+						>
+							오인준
+						</span>
 					</span>
 				</span>
 			</a>
@@ -527,25 +534,45 @@
 	   is deliberately no dial for the range — a knob here is a knob for taking
 	   the two names out of step.
 
+	   And it moves the way the page moves. The hero name rises a pixel for every
+	   pixel scrolled, so this one does too — `translate: 0 100%` is exactly that
+	   rate, because the two things it is between are the same size. The range is
+	   the hero name's own height; the travel is this name's own line box; both
+	   names are set at 24px on the same 32px line. So the wordmark rolls up by
+	   one line in the time the hero name rolls away by one, and neither is
+	   catching up to or waiting on the other.
+
+	   `.nav-name` is the hole it rolls through. It has to be a second element:
+	   the clip has to hold still while the type inside it moves, and a box that
+	   translates takes its own overflow with it. One line box tall, so the type
+	   is out of sight at the start rather than hanging under the hairline
+	   halfway.
+
 	   `opacity` and `translate` are both composited, and this is the only thing
 	   asking for either on this element, so the whole handover runs off the main
 	   thread. Every other option — a custom property composed with `max()` the
 	   way the surface is, an animated `filter` — would have pulled it back onto
-	   the main thread for a fade that has nothing to compose with. */
+	   the main thread for a move that has nothing to compose with. */
 	.nav-name {
+		overflow: hidden;
+	}
+
+	.nav-name-roll {
 		opacity: 1;
 		translate: 0 0;
 	}
 
 	/* Where there is no view timeline to read, the observer's binary is still
-	   what it was: a 200ms fade once the hero has gone. Held off until mount so
+	   what it was: a 200ms fade once the hero has gone, and the 4px nudge it has
+	   always come in on rather than the full line — a roll that reads as movement
+	   against the page reads as a swoosh against a clock. Held off until mount so
 	   the home page does not animate its own first paint. */
-	.nav-name[data-shown='false'] {
+	.nav-name[data-shown='false'] .nav-name-roll {
 		opacity: 0;
 		translate: 0 0.25rem;
 	}
 
-	.nav-name[data-animate='true'] {
+	.nav-name[data-animate='true'] .nav-name-roll {
 		transition:
 			opacity 200ms ease-out,
 			translate 200ms ease-out;
@@ -554,7 +581,7 @@
 	@keyframes nav-name-in {
 		from {
 			opacity: 0;
-			translate: 0 0.25rem;
+			translate: 0 100%;
 		}
 		to {
 			opacity: 1;
@@ -567,14 +594,14 @@
 		   `timeline-scope` keeps the name in existence everywhere it is scoped,
 		   inactive rather than absent, and an inactive timeline is not something
 		   to have the wordmark's visibility on every other page depend on. */
-		.nav-shell[data-home='true'] .nav-name {
+		.nav-shell[data-home='true'] .nav-name-roll {
 			animation: nav-name-in linear both;
 			animation-timeline: --nav-hero-name;
 			animation-range: exit;
 		}
 
 		@media (prefers-reduced-motion: reduce) {
-			.nav-shell[data-home='true'] .nav-name {
+			.nav-shell[data-home='true'] .nav-name-roll {
 				animation-duration: auto !important;
 			}
 		}

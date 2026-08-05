@@ -623,7 +623,7 @@ pieces of that are load-bearing:
 - **The wordmark is handed over on the hero's own view progress, one to one.**
   The home page's hero `h2` declares `view-timeline-name: --nav-hero-name` with
   `view-timeline-inset: var(--nav-h) auto` — so the edge it measures against is
-  the bottom of the header, not the top of the viewport — and `.nav-name`
+  the bottom of the header, not the top of the viewport — and `.nav-name-roll`
   animates across that subject's `exit`. However much of the hero name has gone
   under the bar is however much of the header's has arrived. `:root` carries the
   `timeline-scope`, because the two elements are siblings under `body`; the
@@ -631,11 +631,21 @@ pieces of that are load-bearing:
   resolve, since `timeline-scope` keeps it alive-but-inactive everywhere.
   **There is deliberately no dial for the range** — a knob there is a knob for
   taking the two names out of step.
-- **The fade is on the wrapper, not on the type.** The English and Korean spans
+- **It moves at the page's rate, which is `translate: 0 100%`.** The hero name
+  rises a pixel per pixel scrolled, so the wordmark does too — and because the
+  range is the hero name's height while the travel is the wordmark's line box,
+  and both names are 24px on the same 32px line, one line of travel _is_ that
+  rate. `.nav-name` is a separate element from `.nav-name-roll` for this reason
+  alone: the clip has to hold still while the type inside it moves, and a box
+  that translates takes its own overflow with it. One line box tall, so the type
+  is out of sight at the start rather than hanging below the hairline halfway.
+  The observer fallback keeps the old 4px nudge — a roll reads as movement
+  against the page and as a swoosh against a clock.
+- **The fade is on the roll, not on the type.** The English and Korean spans
   cross-fade on their own `opacity` on hover, and an animation outranks every
   declaration for the property it runs on, so a scroll-driven `opacity` on the
   English span would have killed `group-hover:opacity-0` on the one page it
-  runs. On the wrapper it multiplies through both. It also keeps the handover to
+  runs. On the roll it multiplies through both. It also keeps the handover to
   `opacity` and `translate` alone, which is what keeps it on the compositor —
   the registered-property-and-`max()` shape the surface needs would not be.
 - The global `prefers-reduced-motion` rule collapses every `animation-duration`
