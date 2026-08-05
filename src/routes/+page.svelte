@@ -41,11 +41,17 @@
 	});
 
 	onMount(() => {
-		// Flip once the hero name passes behind the ~64px-tall sticky nav, so the
-		// navbar name fades in right as the hero tucks away.
+		// Flip once the hero name passes behind the sticky nav, so the navbar name
+		// fades in right as the hero tucks away. The margin is the header's own
+		// height, measured rather than asserted: the row is 56px, and the 64 that
+		// used to be written here handed the name over 8px after the hero was
+		// already gone.
+		const navHeight = Math.round(
+			document.getElementById('site-nav')?.getBoundingClientRect().height ?? 56
+		);
 		heroObserver = new IntersectionObserver(
 			([entry]) => heroNameVisible.set(entry.isIntersecting),
-			{ rootMargin: '-64px 0px 0px 0px', threshold: 0 }
+			{ rootMargin: `-${navHeight}px 0px 0px 0px`, threshold: 0 }
 		);
 		if (heroNameEl) heroObserver.observe(heroNameEl);
 	});

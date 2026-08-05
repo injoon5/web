@@ -25,6 +25,20 @@
 	let moreRowHeight = $state(0);
 	let openExtra = $derived(menuOpen ? moreRowHeight + Math.min(0, navSettings.lead) : 0);
 
+	// The row's height is a page-wide token, not the header's private business:
+	// `--nav-h` in `app.css` is what keeps a `#hash` link from landing its heading
+	// under this bar, and what the table of contents sticks below. That file
+	// carries the shipped number statically, because the browser scrolls to a
+	// deep link while the document is still parsing — this only re-publishes the
+	// height once there is a real one to measure, so a row set taller by the
+	// dials, or by type that renders differently than it was tuned against, takes
+	// the anchor offset with it instead of leaving it a stale constant.
+	let rowHeight = $state(0);
+	$effect(() => {
+		if (!rowHeight) return;
+		document.documentElement.style.setProperty('--nav-h', `${rowHeight}px`);
+	});
+
 	// Two tiers, not four links that shrink to fit. Everything below `sm` shows
 	// the primary pair plus a disclosure; `sm` and up shows all four inline.
 	const navItems = [
@@ -204,6 +218,7 @@
 		     wordmark's caps and the links' caps land on one axis, 3px off a shared
 		     baseline, which is the trade being made deliberately. -->
 		<nav
+			bind:clientHeight={rowHeight}
 			class="nav-row mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-12"
 		>
 			<a
