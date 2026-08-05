@@ -127,6 +127,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ![Example Photo](https://picsum.photos/200/300)_wow_
 
+## 갤러리 (implicit)
+
+A run of images on consecutive lines becomes one gallery.
+
+![Wide one](/images/uploads/IMG_8400.jpeg)
+![A tall screenshot](/images/uploads/SCR-20240820-sod.png)
+![A short wide one](/images/uploads/SCR-20240820-dos.png)
+![Wide two](/images/uploads/IMG_8404.jpeg)
+![Wide three](/images/uploads/IMG_8406.jpeg)
+
+A blank line between them is the escape hatch — these stay stacked.
+
+![Stacked one](/images/uploads/IMG_8805.jpeg)
+
+![Stacked two](/images/uploads/SCR-20240731-kqxz.jpeg)
+
+## 갤러리 (explicit)
+
+...and the fence takes them back, spacing and all.
+
+:::gallery
+![Fenced one](/images/uploads/IMG_8805.jpeg 'A caption that belongs to the first one, long enough to show how a caption that runs past a single line is handled inside the lightbox chrome')
+
+![Fenced two](/images/uploads/SCR-20240731-kqxz.jpeg)
+
+![Fenced three](/images/uploads/SCR-20240820-sod.png)
+:::
+
 ## 임베드
 
 [This](https://www.youtube.com/watch?v=dQw4w9WgXcQ) is a great YouTube video.

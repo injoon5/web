@@ -113,7 +113,15 @@ const group = [
 	{ src: 'https://example.com/three.jpg', alt: 'Three', naturalWidth: 800, naturalHeight: 600 }
 ];
 
-const currentSrc = () => screen.getByRole('dialog').querySelector('.lb-img').getAttribute('src');
+// Every image in the group is a slide on one track — the swipe slides the track
+// rather than swapping the element — so "the image" is the one marked current.
+const currentSrc = () =>
+	screen.getByRole('dialog').querySelector('.lb-img[data-current="true"]').getAttribute('src');
+const slides = () => screen.getByRole('dialog').querySelectorAll('.lb-slide');
+const loadedSrcs = () =>
+	Array.from(screen.getByRole('dialog').querySelectorAll('.lb-img')).map((i) =>
+		i.getAttribute('src')
+	);
 const steps = () => screen.getByRole('dialog').querySelectorAll('.pasito-step');
 const activeStep = () =>
 	Array.from(steps()).findIndex((s) => s.classList.contains('pasito-step-active'));
@@ -209,6 +217,83 @@ describe('Lightbox groups', () => {
 		await openGroup(1);
 		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 		await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+	});
+
+	it('jumps to either end with Home and End', async () => {
+		await openGroup(1);
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+		await tick();
+		expect(currentSrc()).toBe(group[2].src);
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+		await tick();
+		expect(currentSrc()).toBe(group[0].src);
+	});
+
+	it('lays the whole group out as one track so a swipe has somewhere to go', async () => {
+		await openGroup(1);
+		expect(slides()).toHaveLength(3);
+		// ...but only the neighbours are fetched. Opening a gallery of forty must
+		// not pull forty images over the wire.
+		expect(loadedSrcs()).toEqual(group.map((i) => i.src));
+
+		lightboxStore.set({
+			items: [...group, ...group].map((i, n) => ({ ...i, src: `${i.src}#${n}` })),
+			index: 0
+		});
+		await tick();
+		expect(slides()).toHaveLength(6);
+		expect(loadedSrcs()).toHaveLength(2);
+	});
+
+	it('hides every slide but the current one from assistive tech', async () => {
+		await openGroup(1);
+		const hidden = Array.from(slides()).map((s) => s.getAttribute('aria-hidden'));
+		expect(hidden).toEqual(['true', null, 'true']);
+	});
+});
+
+describe('Lightbox modality', () => {
+	it('locks the page behind it and gives it back on close', async () => {
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		await screen.findByRole('dialog');
+		expect(document.body.style.overflow).toBe('hidden');
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(document.body.style.overflow).toBe(''));
+	});
+
+	it('renders into <body>, where no ancestor can trap a fixed backdrop', async () => {
+		const { container } = render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+
+		const dialog = await screen.findByRole('dialog');
+		expect(dialog.parentElement).toBe(document.body);
+		expect(container.contains(dialog)).toBe(false);
+	});
+
+	it('inerts the rest of the page while open, and only while open', async () => {
+		const sibling = document.createElement('div');
+		document.body.appendChild(sibling);
+
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		await screen.findByRole('dialog');
+		await waitFor(() => expect(sibling).toHaveAttribute('inert'));
+		expect(sibling).toHaveAttribute('aria-hidden', 'true');
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(sibling).not.toHaveAttribute('inert'));
+		expect(sibling).not.toHaveAttribute('aria-hidden');
+
+		sibling.remove();
 	});
 });
 

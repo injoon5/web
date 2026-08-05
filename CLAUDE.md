@@ -325,14 +325,76 @@ from sibling images, so an article of unrelated screenshots doesn't become one
 long slideshow. A bare `{ src, alt, ... }` set on the store is still accepted —
 `normalizeLightboxValue` widens it.
 
+Per-image opt-outs live on the `<img>`: `data-no-lightbox` keeps one out
+entirely, `data-lightbox-src` points at a larger file than the one on the page,
+and `data-lightbox-caption` overrides the alt text. The source is taken from the
+`src` attribute rather than `currentSrc`, which on a `srcset` image is whatever
+the browser picked for the _thumbnail_ box.
+
+### The lightbox is a filmstrip, not a slot
+
+Every image in the group is a slide on one flex track that is translated
+sideways; the group is not swapped in and out of a single `<img>`. That is what
+makes a drag show the next photo arriving instead of the current one sliding
+away over nothing. Consequences worth knowing:
+
+- **The track is `position: absolute; inset: 0`, and the slides overflow it.**
+  Its own width therefore stays one page, which is what lets `translateX(-i *
+100%)` mean "one page per step" rather than a fraction of the whole strip.
+- **Only the current slide and its neighbours carry a `src`.** A gallery of
+  forty is forty slides and three requests.
+- **Chrome lives outside the transform.** Caption, dots and buttons are siblings
+  of the track, so a swipe moves the photo and nothing else.
+- The image the tests mean is `.lb-img[data-current="true"]`.
+
 The swipe axis is **locked once**, on the first 8px of movement, and not
 re-decided per move: sideways pages, downward dismisses. Re-deciding let a
-diagonal flick do both.
+diagonal flick do both. A release pages on **velocity or distance** — a fast
+flick that moved 30px pages, and so does a slow drag past a fifth of the
+viewport; distance alone made a real flick feel ignored. Drags past either end
+get the iOS rubber band, which asymptotes rather than stopping dead.
 
-**Neither the gallery nor the lightbox upscales.** The lightbox has always
-capped its scale at 1, and plenty of the images in these posts are 200–500px
-wide. A gallery that stretched them to the column width would make opening one
-look like it had shrunk it.
+Zoom is **one number** (`scale` + `panX`/`panY`). It used to be two — a
+click-to-zoom flag that swapped the image's width and a separate pinch scale —
+and they could disagree. Pan is clamped to the image's own edges, tap and pinch
+share `scaleAbout` so both anchor on the point under the finger, and the chrome
+except the close button fades out while zoomed: no scrim makes a caption
+readable over every photograph, and a zoomed image is being inspected.
+
+**Full-screen is not `inset: 0`.** Two things break it and both are handled in
+`Lightbox.svelte`:
+
+- Any ancestor with a transform, a filter or `contain` becomes the containing
+  block for a fixed child. The dialog is therefore **portalled to `<body>`**, so
+  it has no ancestor left to be trapped by — and that is also the only moment it
+  is provably a body child, which is why `inert` is applied from the portal
+  action rather than the open effect (`bind:this` and that effect land in the
+  same flush and their order is not ours to pick).
+- On mobile the bottom of the initial containing block sits under the collapsing
+  toolbar. The root is sized `100dvh` with the measured `window.innerHeight` as
+  a floor, not left to `inset`.
+
+Opening also **locks body scroll** (with scrollbar-width compensation, so the
+page behind doesn't jump) and **inerts every other child of `<body>`**, which is
+what makes `aria-modal` true rather than merely claimed. Both are released
+before focus is restored — focus cannot land inside an inert tree.
+
+**Neither the gallery nor the lightbox upscales.** The lightbox's _fit_ caps at
+1, and plenty of the images in these posts are 200–500px wide. A gallery that
+stretched them to the column width would make opening one look like it had
+shrunk it. (Deliberate zoom is the exception — a tap goes to at least 2x even on
+a small file, because a gesture that visibly does nothing reads as broken.)
+
+The gallery's slides are all **one fixed height** (`--gallery-height`, overridable
+by the `height` prop). Sizing each slide to its image would jump the strip as it
+snapped between them, and sizing the strip once the images load would shift the
+article under the reader. A swipe on the strip ends in a click, so the track
+swallows any click whose press started more than 10px away — otherwise every
+swipe opened the lightbox on whatever the finger lifted over. Arrow keys step a
+whole slide rather than leaving the browser's fixed nudge to land between two
+snap points. The caption sits above the dots, matching the lightbox; it is
+placed with `order` because `<figcaption>` is only valid as a figure's first or
+last child.
 
 ## Galleries in Markdown (`src/lib/remarkGallery.js`)
 
@@ -349,6 +411,33 @@ already grouped by hand. **A blank line between images is the escape hatch** —
 that makes them separate paragraphs and they stay stacked. Only top-level
 paragraphs convert; a run inside a blockquote or list item is carrying that
 block's meaning.
+
+A `:::gallery` fence is the explicit form, and buys back what that escape hatch
+costs:
+
+```md
+:::gallery
+![One](/one.png)
+
+![Two](/two.png 'A caption')
+:::
+```
+
+Everything between the fences becomes one gallery however the images are spaced
+— including a single image, which two loose images would never become. The
+markers are found **inside** paragraph text, not as nodes of their own:
+`:::gallery` on the line above an image is the same mdast paragraph as that
+image, with the line break living inside a text node. `tokenize()` splits a
+paragraph at them and rebuilds a paragraph from whatever is left over.
+
+Three rules keep a typo from eating a post:
+
+- **Only images are collected.** Prose or a heading inside the fence is kept and
+  re-emitted after the gallery, never dropped.
+- **An unclosed fence transforms nothing** — the `:::gallery` line renders as the
+  literal text the author typed. Consuming to the end of the file would have
+  swallowed every remaining image in the post into one gallery, silently.
+- **A fence with no images transforms nothing**, for the same reason.
 
 The plugin runs **before rehype**, so `rehype-figure` never sees those images —
 otherwise a gallery would arrive as four `<figure>`s.
