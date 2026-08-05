@@ -56,6 +56,15 @@
 	   dials on a preview — carries all of this with it. */
 	:root {
 		--nav-h: 3.5rem;
+
+		/* The home page's hero name declares a view timeline under this name, and
+		   the header's wordmark animates on it. Neither is an ancestor of the
+		   other — they are siblings under `body` — so the name has to be hoisted
+		   to something that contains both, and this is the only place that does.
+		   On every other page nothing declares it, which is exactly why the
+		   header gates that animation on being on the home page rather than
+		   relying on an unresolved name to do nothing. */
+		timeline-scope: --nav-hero-name;
 	}
 
 	html {

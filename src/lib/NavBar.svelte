@@ -208,6 +208,7 @@
 	bind:this={root}
 	id="site-nav"
 	class="nav-shell sticky top-0 z-30"
+	data-home={isHome}
 	data-menu-open={menuOpen}
 	data-scrolled={!scrollLinked && scrolled}
 	style="--nav-open-extra:{openExtra}px{__DIALS__ ? ';' + navStyle() : ''}"
@@ -253,11 +254,22 @@
 				aria-label="Home — Injoon Oh"
 				class="group inline-flex min-w-0 items-center {showName ? '' : 'pointer-events-none'}"
 			>
-				<span class="relative block min-w-0">
+				<!-- The wordmark's presence is carried by the wrapper, not by the type
+				     inside it. That is what leaves the hover cross-fade underneath
+				     untouched: the two spans go on trading places on their own
+				     `opacity`, and whatever the wrapper is at multiplies through both.
+				     A scroll-driven animation on the English span's own `opacity`
+				     would have taken the property away from `group-hover:opacity-0`
+				     outright, and hovering the wordmark would have stopped doing
+				     anything on the one page this animation runs on. -->
+				<span
+					class="nav-name relative block min-w-0"
+					data-shown={!isHome || showName}
+					data-animate={mounted}
+				>
 					<span
 						class="block truncate font-sans text-2xl font-medium tracking-tight will-change-auto group-hover:opacity-0 group-hover:blur-sm
-					{mounted ? 'transition-[opacity,filter,translate] duration-200 ease-out' : ''}
-					{showName ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}"
+					{mounted ? 'transition-[opacity,filter] duration-200 ease-out' : ''}"
 					>
 						Injoon Oh
 					</span>
@@ -492,6 +504,77 @@
 		   `auto` is what a progress timeline wants there. */
 		@media (prefers-reduced-motion: reduce) {
 			.nav-shell {
+				animation-duration: auto !important;
+			}
+		}
+	}
+
+	/* The wordmark, which on the home page is the second half of a handover: the
+	   hero owns the name until it goes behind the header, and then the header
+	   does. It reads the hero's own view progress to know where in that it is —
+	   `--nav-hero-name`, declared on the hero and hoisted by `timeline-scope` on
+	   `:root` — so the fade is a function of where the page is, not of a clock
+	   started when a threshold was crossed. Stop scrolling halfway and it stops
+	   halfway; scroll back up and it goes back.
+
+	   `exit` is the phase where the hero name is leaving at the top, and the
+	   timeline's own inset puts that edge at the bottom of the header rather than
+	   the top of the viewport. So the range is exactly the 32px over which the
+	   hero name disappears — 0 when its cap line reaches the bar, 1 when its
+	   baseline has passed under it. The whole range, `linear`, and no offset on
+	   either end: however much of the hero name has gone under the bar is however
+	   much of this one has arrived, and that one-to-one is the point of it. There
+	   is deliberately no dial for the range — a knob here is a knob for taking
+	   the two names out of step.
+
+	   `opacity` and `translate` are both composited, and this is the only thing
+	   asking for either on this element, so the whole handover runs off the main
+	   thread. Every other option — a custom property composed with `max()` the
+	   way the surface is, an animated `filter` — would have pulled it back onto
+	   the main thread for a fade that has nothing to compose with. */
+	.nav-name {
+		opacity: 1;
+		translate: 0 0;
+	}
+
+	/* Where there is no view timeline to read, the observer's binary is still
+	   what it was: a 200ms fade once the hero has gone. Held off until mount so
+	   the home page does not animate its own first paint. */
+	.nav-name[data-shown='false'] {
+		opacity: 0;
+		translate: 0 0.25rem;
+	}
+
+	.nav-name[data-animate='true'] {
+		transition:
+			opacity 200ms ease-out,
+			translate 200ms ease-out;
+	}
+
+	@keyframes nav-name-in {
+		from {
+			opacity: 0;
+			translate: 0 0.25rem;
+		}
+		to {
+			opacity: 1;
+			translate: 0 0;
+		}
+	}
+
+	@supports (animation-timeline: view()) {
+		/* Gated on the home page rather than left to an unresolved timeline name:
+		   `timeline-scope` keeps the name in existence everywhere it is scoped,
+		   inactive rather than absent, and an inactive timeline is not something
+		   to have the wordmark's visibility on every other page depend on. */
+		.nav-shell[data-home='true'] .nav-name {
+			animation: nav-name-in linear both;
+			animation-timeline: --nav-hero-name;
+			animation-range: exit;
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			.nav-shell[data-home='true'] .nav-name {
 				animation-duration: auto !important;
 			}
 		}
