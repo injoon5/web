@@ -620,6 +620,14 @@ pieces of that are load-bearing:
   nothing to say. Two inputs with their own timing — one on the scrollbar, one
   on a 200ms transition — composed by `max()`, is what lets opening the menu at
   the top and closing it again still fade.
+- **The surface reaches `--nav-surface-fade` (16px) past its own bottom edge and
+  is masked away over exactly that much**, so the blur and tint let go of the
+  page gradually instead of stopping on a line. It is the _same_ layer doing it:
+  a second, softer backdrop-filter below the first is the adjacent-filters case
+  above, and the seam would land exactly where the softening was meant to be.
+  The mask stop is written off the element's own height, so the disclosure
+  growing the surface carries the soft edge down with it. `pointer-events-none`,
+  because the part that hangs below the header is over page content.
 - **The wordmark is handed over on the hero's own view progress, one to one.**
   The home page's hero `h2` declares `view-timeline-name: --nav-hero-name` with
   `view-timeline-inset: var(--nav-h) auto` — so the edge it measures against is
@@ -631,16 +639,23 @@ pieces of that are load-bearing:
   resolve, since `timeline-scope` keeps it alive-but-inactive everywhere.
   **There is deliberately no dial for the range** — a knob there is a knob for
   taking the two names out of step.
-- **It moves at the page's rate, which is `translate: 0 100%`.** The hero name
-  rises a pixel per pixel scrolled, so the wordmark does too — and because the
-  range is the hero name's height while the travel is the wordmark's line box,
-  and both names are 24px on the same 32px line, one line of travel _is_ that
-  rate. `.nav-name` is a separate element from `.nav-name-roll` for this reason
-  alone: the clip has to hold still while the type inside it moves, and a box
-  that translates takes its own overflow with it. One line box tall, so the type
-  is out of sight at the start rather than hanging below the hairline halfway.
-  The observer fallback keeps the old 4px nudge — a roll reads as movement
-  against the page and as a swoosh against a clock.
+- **It lands _on_ the hero name, not merely in step with it.** The roll starts
+  at `--nav-name-travel` — `(--nav-h + 2rem) / 2`, 44px — which is the gap
+  between where the inset puts the hero name at the range's start and where the
+  wordmark rests in the row. Anything else leaves the two names a constant 12px
+  apart for the whole crossing, which is a double image over the few pixels
+  where both are visible. **Two animations on the one timeline**, because the
+  ranges differ: the fade runs `exit` (the hero's own 32px, so arrival tracks
+  disappearance 1:1) and the rise runs `exit 0px exit var(--nav-name-travel)`
+  (44px of travel over 44px of scroll — the page's own rate — landing in the
+  row 12px after the hero is gone). One animation would mean writing the fade's
+  end as `72.7%`, both variables baked into a number.
+- **`.nav-name` is the hole `.nav-name-roll` moves through**, and it has to be a
+  second element: the clip has to hold still while the type inside it moves, and
+  a box that translates takes its own overflow with it. One line box tall, so
+  the type is out of sight at the start rather than hanging below the hairline
+  halfway. The observer fallback keeps the old 4px nudge — a roll reads as
+  movement against the page and as a swoosh against a clock.
 - **The fade is on the roll, not on the type.** The English and Korean spans
   cross-fade on their own `opacity` on hover, and an animation outranks every
   declaration for the property it runs on, so a scroll-driven `opacity` on the

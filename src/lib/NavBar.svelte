@@ -225,9 +225,16 @@
 		     the top of the page, doing its work behind a fully transparent tint, and
 		     fading the element takes the filter with it — so a header sitting over
 		     nothing composites nothing. -->
+		<!-- It reaches past its own bottom edge, and the last stretch of it is
+		     masked out, so the blur and the tint let go of the page gradually
+		     instead of stopping on a line. That is the same one layer doing it: a
+		     second, softer filter below this one is exactly the pair of adjacent
+		     backdrop-filters described above, and it would put the seam right where
+		     the softening was supposed to be. `pointer-events-none` because the
+		     part that hangs below the header is over page content. -->
 		<div
 			aria-hidden="true"
-			class="nav-surface absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
+			class="nav-surface pointer-events-none absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
 		></div>
 		<!-- And one hairline, which slides down to the new bottom edge as the
 		     disclosure opens instead of a second one fading in beneath it. -->
@@ -524,28 +531,31 @@
 	   started when a threshold was crossed. Stop scrolling halfway and it stops
 	   halfway; scroll back up and it goes back.
 
-	   `exit` is the phase where the hero name is leaving at the top, and the
-	   timeline's own inset puts that edge at the bottom of the header rather than
-	   the top of the viewport. So the range is exactly the 32px over which the
-	   hero name disappears — 0 when its cap line reaches the bar, 1 when its
-	   baseline has passed under it. The whole range, `linear`, and no offset on
-	   either end: however much of the hero name has gone under the bar is however
-	   much of this one has arrived, and that one-to-one is the point of it. There
-	   is deliberately no dial for the range — a knob here is a knob for taking
-	   the two names out of step.
+	   It does not merely arrive in step, it arrives *on* the other name. The roll
+	   starts at exactly where the hero name is when the handover begins and moves
+	   at exactly the rate it moves, so the two are one piece of type for the whole
+	   crossing rather than two 12px apart — which is what they were, and what read
+	   as a double image over the few pixels where both are visible.
 
-	   And it moves the way the page moves. The hero name rises a pixel for every
-	   pixel scrolled, so this one does too — `translate: 0 100%` is exactly that
-	   rate, because the two things it is between are the same size. The range is
-	   the hero name's own height; the travel is this name's own line box; both
-	   names are set at 24px on the same 32px line. So the wordmark rolls up by
-	   one line in the time the hero name rolls away by one, and neither is
-	   catching up to or waiting on the other.
+	   `--nav-name-travel` is that gap, and it is not a chosen number. The
+	   timeline's inset starts the range with the hero name's cap line on the
+	   bottom of the header, `--nav-h` down; the wordmark rests half the row's
+	   slack down from its top, `(--nav-h - 2rem) / 2`; the distance between the
+	   two is the difference, which folds to `(--nav-h + 2rem) / 2`. 44px on the
+	   shipped row. `2rem` is the line box both names are set on — the same
+	   coupling `--nav-h` has, and it moves if `text-2xl` ever does.
+
+	   The same value is the range's end, in px of scroll rather than a percentage
+	   of the hero's height, and that is what makes the rate exactly one to one:
+	   44px of travel over 44px of scroll. The hero name is gone after 32 of them
+	   and the wordmark keeps rising the last 12 to sit down in the row — by then
+	   there is nothing left to be out of step with. There is deliberately no dial
+	   for any of it: a knob here is a knob for taking the two names apart again.
 
 	   `.nav-name` is the hole it rolls through. It has to be a second element:
 	   the clip has to hold still while the type inside it moves, and a box that
 	   translates takes its own overflow with it. One line box tall, so the type
-	   is out of sight at the start rather than hanging under the hairline
+	   is out of sight at the start rather than hanging below the hairline
 	   halfway.
 
 	   `opacity` and `translate` are both composited, and this is the only thing
@@ -558,6 +568,8 @@
 	}
 
 	.nav-name-roll {
+		--nav-name-travel: calc((var(--nav-h, 3.5rem) + 2rem) / 2);
+
 		opacity: 1;
 		translate: 0 0;
 	}
@@ -578,13 +590,30 @@
 			translate 200ms ease-out;
 	}
 
-	@keyframes nav-name-in {
+	/* Two animations on one timeline, because the two properties are answering
+	   two different questions and their ranges are not the same length. The fade
+	   is coupled to the hero name: it finishes as the hero finishes disappearing,
+	   over `exit` and nothing more, so however much of that name has gone under
+	   the bar is however much of this one has arrived. The rise is coupled to the
+	   page: it runs the full travel so the wordmark ends up sitting in the row,
+	   and the last 12px of it happen after the hero is already out of sight and
+	   there is nothing left to be in step with. Folding them into one animation
+	   would mean writing the fade's end as a percentage of the rise — 72.7%, a
+	   number with both variables baked into it. */
+	@keyframes nav-name-fade {
 		from {
 			opacity: 0;
-			translate: 0 100%;
 		}
 		to {
 			opacity: 1;
+		}
+	}
+
+	@keyframes nav-name-rise {
+		from {
+			translate: 0 var(--nav-name-travel);
+		}
+		to {
 			translate: 0 0;
 		}
 	}
@@ -595,9 +624,13 @@
 		   inactive rather than absent, and an inactive timeline is not something
 		   to have the wordmark's visibility on every other page depend on. */
 		.nav-shell[data-home='true'] .nav-name-roll {
-			animation: nav-name-in linear both;
-			animation-timeline: --nav-hero-name;
-			animation-range: exit;
+			animation:
+				nav-name-fade linear both,
+				nav-name-rise linear both;
+			animation-timeline: --nav-hero-name, --nav-hero-name;
+			animation-range:
+				exit,
+				exit 0px exit var(--nav-name-travel);
 		}
 
 		@media (prefers-reduced-motion: reduce) {
@@ -620,6 +653,22 @@
 		opacity: max(var(--nav-surface-scroll), var(--nav-surface-menu));
 		bottom: calc(-1 * var(--nav-open-extra, 0px));
 		transition: bottom var(--nav-duration, 320ms) var(--nav-ease);
+	}
+
+	/* The hairline still ends where the header ends. The surface goes on past it
+	   by `--nav-surface-fade` and is masked away over exactly that much, so what
+	   is under the bar arrives blurred instead of crossing a line and changing
+	   state — the mask takes the backdrop-filter with it, which is the whole
+	   reason this can be one layer. The stop is written off the element's own
+	   height, so the disclosure growing the surface moves the soft edge down with
+	   it rather than eating into it. */
+	.nav-surface {
+		bottom: calc(-1 * (var(--nav-open-extra, 0px) + var(--nav-surface-fade, 16px)));
+		mask-image: linear-gradient(
+			to bottom,
+			#000 calc(100% - var(--nav-surface-fade, 16px)),
+			transparent 100%
+		);
 	}
 
 	.nav-more-row {

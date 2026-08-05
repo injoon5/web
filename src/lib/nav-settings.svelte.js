@@ -74,6 +74,13 @@ export const NAV_DEFAULTS = {
 	 * settles onto the page or is dragged onto it.
 	 */
 	surfaceRange: 64,
+	/**
+	 * How far past its own bottom edge the surface reaches and is masked away,
+	 * in px. It is what keeps the blur from ending on a line: page content comes
+	 * up under the header already softening rather than changing state as it
+	 * crosses the hairline. 0 puts the hard edge back.
+	 */
+	surfaceFade: 16,
 
 	/** Panel growth and chevron rotation, in ms. */
 	duration: 320,
@@ -103,6 +110,7 @@ export function navStyle(s = navSettings) {
 		`--nav-more-pad-r:${s.padRight}px`,
 		`--nav-more-gap:${s.moreGap}px`,
 		`--nav-surface-range:${s.surfaceRange}px`,
+		`--nav-surface-fade:${s.surfaceFade}px`,
 		`--nav-duration:${s.duration}ms`,
 		`--nav-link-duration:${s.linkDuration}ms`
 	].join(';');
