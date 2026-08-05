@@ -110,11 +110,13 @@
 <section class="error-stage flex flex-col justify-end text-center" data-settled={settled}>
 	<!-- The numeral the field was holding, arriving as type: the same weight it
 	     was stamped at, one step darker than the cells so it reads as a letter
-	     rather than as more field. Its row is zero-height until the handoff, so
-	     during the poster beat it cannot push the heading up into the stamp. -->
+	     rather than as more field. Size is what makes it the subject of the page,
+	     not colour — it stays as quiet as the eyebrow and outsizes the heading.
+	     Its row is zero-height until the handoff, so during the poster beat it
+	     cannot push the heading up into the stamp. -->
 	<p class="error-number" data-settled={settled}>
 		<span
-			class="block pb-4 text-6xl leading-none font-semibold tracking-[-0.04em] text-neutral-400 tabular-nums sm:pb-6 sm:text-8xl dark:text-neutral-600"
+			class="block pb-4 text-7xl leading-none font-semibold tracking-[-0.04em] text-neutral-400 tabular-nums sm:pb-6 sm:text-[7rem] dark:text-neutral-600"
 		>
 			{status}
 		</span>
