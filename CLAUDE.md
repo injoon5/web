@@ -595,7 +595,8 @@ Three traps, all already sprung:
 ## The Header (`src/lib/NavBar.svelte`)
 
 `position: sticky; top: 0`, in flow, and it never leaves — no auto-hide, no
-condense. Three things about it are load-bearing:
+condense. What it does instead of moving is read where the page is, and the
+pieces of that are load-bearing:
 
 - **`--nav-h` has to be a static value in `app.css`.** It is what
   `scroll-padding-top` is built from, and without that offset a `#hash` link
@@ -619,10 +620,29 @@ condense. Three things about it are load-bearing:
   nothing to say. Two inputs with their own timing — one on the scrollbar, one
   on a 200ms transition — composed by `max()`, is what lets opening the menu at
   the top and closing it again still fade.
+- **The wordmark is handed over on the hero's own view progress, one to one.**
+  The home page's hero `h2` declares `view-timeline-name: --nav-hero-name` with
+  `view-timeline-inset: var(--nav-h) auto` — so the edge it measures against is
+  the bottom of the header, not the top of the viewport — and `.nav-name`
+  animates across that subject's `exit`. However much of the hero name has gone
+  under the bar is however much of the header's has arrived. `:root` carries the
+  `timeline-scope`, because the two elements are siblings under `body`; the
+  animation is gated on `[data-home='true']` rather than on the name failing to
+  resolve, since `timeline-scope` keeps it alive-but-inactive everywhere.
+  **There is deliberately no dial for the range** — a knob there is a knob for
+  taking the two names out of step.
+- **The fade is on the wrapper, not on the type.** The English and Korean spans
+  cross-fade on their own `opacity` on hover, and an animation outranks every
+  declaration for the property it runs on, so a scroll-driven `opacity` on the
+  English span would have killed `group-hover:opacity-0` on the one page it
+  runs. On the wrapper it multiplies through both. It also keeps the handover to
+  `opacity` and `translate` alone, which is what keeps it on the compositor —
+  the registered-property-and-`max()` shape the surface needs would not be.
 - The global `prefers-reduced-motion` rule collapses every `animation-duration`
-  to 0.001ms, which would strand a progress-timeline animation at one end.
-  `.nav-shell` re-asserts `animation-duration: auto` under that media query. A
-  tint tracking the scrollbar is the page moving, not motion of its own.
+  to 0.001ms, which would strand a progress-timeline animation at one end. Both
+  `.nav-shell` and `.nav-name` re-assert `animation-duration: auto` under that
+  media query. A tint or a name tracking the scrollbar is the page moving, not
+  motion of its own.
 
 ---
 
