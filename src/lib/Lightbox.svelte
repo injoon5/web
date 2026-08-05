@@ -13,8 +13,13 @@
 	const MAX_SCALE = 4;
 	const TAP_SLOP = 6; // px of movement that turns a tap into a drag
 	const CLOSE_MS = 220;
-	const SETTLE_MS = 420;
+	// Paging is the thing you do most once the lightbox is open, so it is tuned
+	// as an interaction and not as a modal: 340ms with the drawer curve reads as
+	// physical without ever feeling like a wait.
+	const SETTLE_MS = 340;
+	const ZOOM_MS = 280;
 	// The curve every settle uses: fast out of the finger, long soft landing.
+	// (Ionic's drawer curve — the same one Vaul uses.)
 	const SETTLE_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 	const CHROME_TOP = 72; // room the close button's row needs
 	const CHROME_BOTTOM_MIN = 56;
@@ -330,7 +335,9 @@
 
 	function scheduleClose(ms) {
 		clearTimeout(closeTimer);
-		closeTimer = setTimeout(() => lightboxStore.set(null), reduceMotion ? 0 : ms);
+		// Reduced motion drops movement, not the fade — the element still has to
+		// have time to fade out before it is unmounted.
+		closeTimer = setTimeout(() => lightboxStore.set(null), ms);
 	}
 
 	function close() {
@@ -723,8 +730,8 @@
 
 	const imageStyle = $derived(
 		`transform: translate3d(${panX}px, ${panY}px, 0) scale(${scale});` +
-			`transition: opacity 240ms ease${
-				dragging || pinching || reduceMotion ? '' : `, transform 320ms ${SETTLE_EASE}`
+			`transition: opacity 240ms var(--ease-out)${
+				dragging || pinching || reduceMotion ? '' : `, transform ${ZOOM_MS}ms ${SETTLE_EASE}`
 			};`
 	);
 
@@ -892,6 +899,14 @@
 
 <style>
 	.lb-root {
+		/* The built-in easings are too weak to read as intentional. These are the
+		   two the whole component uses: a strong ease-out for anything entering,
+		   leaving or responding to a press, and the drawer curve for anything a
+		   finger is settling. Nothing here uses ease-in — it withholds movement at
+		   the exact moment the eye is on it, which reads as lag. */
+		--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+		--ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
+
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -914,13 +929,24 @@
 		background: rgba(0, 0, 0, 0.86);
 		backdrop-filter: blur(14px) saturate(1.1);
 		-webkit-backdrop-filter: blur(14px) saturate(1.1);
-		transition: opacity 0.28s ease;
-		animation: lb-fade-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+		transition: opacity 0.28s var(--ease-out);
+		/* `backwards`, not `both`. A filling animation keeps applying its last
+		   keyframe, and animations outrank inline styles in the cascade — so
+		   `both` pinned this to opacity 1 forever and the drag-to-dismiss fade,
+		   which is set inline, never showed at all. */
+		animation: lb-fade-in 0.28s var(--ease-entrance) backwards;
 		will-change: opacity;
 	}
 
 	.lb-root.dragging .lb-backdrop {
 		transition: none;
+	}
+
+	/* Out faster than in, and faster than the photo it sits behind — a scrim that
+	   outlives the image reads as the lightbox hanging. */
+	.lb-root.closing .lb-backdrop,
+	.lb-root.dismissing .lb-backdrop {
+		transition-duration: 0.2s;
 	}
 
 	.lb-viewport {
@@ -941,11 +967,11 @@
 	.lb-stage {
 		position: absolute;
 		inset: 0;
-		animation: lb-in 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+		animation: lb-in 0.36s var(--ease-entrance) both;
 	}
 
 	.lb-root.closing .lb-stage {
-		animation: lb-out 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
+		animation: lb-out 0.22s var(--ease-out) forwards;
 	}
 
 	.lb-root.dismissing .lb-stage {
@@ -990,7 +1016,7 @@
 		cursor: zoom-in;
 		transform-origin: center center;
 		will-change: transform;
-		transition: opacity 0.24s ease;
+		transition: opacity 0.24s var(--ease-out);
 	}
 
 	.lb-root.zoomed .lb-img[data-current='true'] {
@@ -1039,7 +1065,7 @@
 		position: absolute;
 		inset: 0;
 		pointer-events: none;
-		transition: opacity 0.2s ease;
+		transition: opacity 0.2s var(--ease-out);
 	}
 
 	/* A photo can be white to its edges, and then the close button, the caption
@@ -1077,10 +1103,8 @@
 	}
 
 	.lb-bottom,
-	.lb-prev,
-	.lb-next,
 	.lb-chrome::after {
-		transition: opacity 0.2s ease;
+		transition: opacity 0.2s var(--ease-out);
 	}
 
 	.lb-root.dragging .lb-chrome {
@@ -1104,16 +1128,21 @@
 		pointer-events: auto;
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 		transition:
-			background-color 0.15s ease,
-			opacity 0.15s ease,
-			transform 0.15s ease;
+			background-color 0.16s var(--ease-out),
+			opacity 0.16s var(--ease-out),
+			transform 0.16s var(--ease-out);
 	}
 
-	.lb-btn:hover:not(:disabled) {
-		background: rgba(0, 0, 0, 0.72);
-		transform: scale(1.05);
+	/* Touch reports hover on tap, so an ungated hover state sticks after the
+	   finger is gone. */
+	@media (hover: hover) and (pointer: fine) {
+		.lb-btn:hover:not(:disabled) {
+			background: rgba(0, 0, 0, 0.72);
+		}
 	}
 
+	/* Press feedback, and only press feedback: a control that also grew on hover
+	   would jump 1.05 -> 0.96 the instant it was clicked. */
 	.lb-btn:active:not(:disabled) {
 		transform: scale(0.96);
 	}
@@ -1193,7 +1222,7 @@
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
 		overflow: hidden;
-		animation: lb-caption-in 0.24s ease both;
+		animation: lb-caption-in 0.2s var(--ease-out) both;
 	}
 
 	@keyframes lb-caption-in {
@@ -1233,11 +1262,26 @@
 		border: 0;
 	}
 
+	/* Reduced motion means fewer and gentler animations, not none. The fades stay
+	   — they are what stops the lightbox from blinking in and out of existence —
+	   and it is the movement that goes: the stage stops scaling, and the track's
+	   transform transition is already dropped in the script. */
 	@media (prefers-reduced-motion: reduce) {
-		.lb-backdrop,
-		.lb-stage,
-		.lb-caption {
-			animation-duration: 0.01ms !important;
+		.lb-stage {
+			animation-name: lb-fade-in;
+		}
+
+		.lb-root.closing .lb-stage {
+			animation-name: lb-fade-out;
+		}
+	}
+
+	@keyframes lb-fade-out {
+		from {
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
 		}
 	}
 </style>

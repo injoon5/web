@@ -236,6 +236,10 @@
 
 <style>
 	.gallery {
+		/* Same strong ease-out the lightbox uses — the two are one interaction
+		   from the reader's side and should not be eased differently. */
+		--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
 		margin: 2rem 0;
 		/* The caption reads first and the dots sit under it, the same order the
 		   lightbox uses. `order` rather than DOM order because `<figcaption>` is
@@ -348,9 +352,9 @@
 		   parked on the photo the whole time is one more thing covering it. */
 		opacity: 0;
 		transition:
-			opacity 0.18s ease,
-			transform 0.18s ease,
-			background-color 0.18s ease;
+			opacity 0.16s var(--ease-out),
+			transform 0.16s var(--ease-out),
+			background-color 0.16s var(--ease-out);
 	}
 
 	.gallery-arrow svg {
@@ -366,19 +370,32 @@
 		right: 0.5rem;
 	}
 
-	.gallery-frame:hover .gallery-arrow,
+	@media (hover: hover) and (pointer: fine) {
+		.gallery-frame:hover .gallery-arrow:not(:disabled) {
+			opacity: 1;
+		}
+
+		.gallery-arrow:hover:not(:disabled) {
+			background: rgb(255 255 255);
+		}
+	}
+
 	.gallery-arrow:focus-visible {
 		opacity: 1;
 	}
 
-	.gallery-arrow:hover:not(:disabled) {
-		background: rgb(255 255 255);
-		transform: scale(1.06);
-	}
-
+	/* An arrow with nowhere to go stays gone. `:not(:disabled)` on the hover rule
+	   rather than a competing `:disabled { opacity: 0 }`, which lost to it on
+	   specificity and left a dead arrow sitting at full opacity. */
 	.gallery-arrow:disabled {
 		opacity: 0;
 		pointer-events: none;
+	}
+
+	/* Press feedback. Nothing else on the strip acknowledges a click, and a
+	   control that does not move under the finger reads as not listening. */
+	.gallery-arrow:active:not(:disabled) {
+		transform: scale(0.97);
 	}
 
 	:global(.dark) .gallery-arrow {
