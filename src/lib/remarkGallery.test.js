@@ -80,6 +80,75 @@ describe('remarkGallery', () => {
 	});
 });
 
+describe('remarkGallery explicit fence', () => {
+	const text = (tree) =>
+		tree.children
+			.filter((n) => n.type === 'paragraph')
+			.map((n) => n.children.map((c) => c.value ?? `![](${c.url})`).join(''));
+
+	it('gathers images a blank line apart, which the implicit form leaves alone', () => {
+		const md = ':::gallery\n![One](/a.png)\n\n![Two](/b.png)\n:::\n';
+		expect(galleries(run(md.replace(/:::gallery\n|\n:::/g, '')))).toHaveLength(0);
+
+		const found = galleries(run(md));
+		expect(found).toHaveLength(1);
+		expect(payload(found[0])).toEqual([
+			{ src: '/a.png', alt: 'One' },
+			{ src: '/b.png', alt: 'Two' }
+		]);
+	});
+
+	it('makes a gallery of one, which two loose images would never become', () => {
+		expect(payload(galleries(run(':::gallery\n![Only](/a.png)\n:::\n'))[0])).toEqual([
+			{ src: '/a.png', alt: 'Only' }
+		]);
+	});
+
+	it('carries titles through as captions', () => {
+		const tree = run(':::gallery\n![One](/a.png "Golden hour")\n:::\n');
+		expect(payload(galleries(tree)[0])[0].title).toBe('Golden hour');
+	});
+
+	it('leaves the prose around it exactly where it was', () => {
+		const tree = run('before\n\n:::gallery\n![One](/a.png)\n![Two](/b.png)\n:::\n\nafter\n');
+		expect(galleries(tree)).toHaveLength(1);
+		expect(text(tree)).toEqual(['before', 'after']);
+	});
+
+	it('keeps non-image content from inside the fence rather than dropping it', () => {
+		const tree = run(':::gallery\n![One](/a.png)\n\nnot an image\n\n![Two](/b.png)\n:::\n');
+		expect(payload(galleries(tree)[0])).toHaveLength(2);
+		expect(text(tree)).toEqual(['not an image']);
+	});
+
+	it('transforms nothing when the fence is never closed — the mistake stays visible', () => {
+		const tree = run(':::gallery\n![One](/a.png)\n![Two](/b.png)\n');
+		expect(galleries(tree)).toHaveLength(0);
+		expect(tree.children[0].children[0].value).toContain(':::gallery');
+	});
+
+	it('transforms nothing when the fence holds no images', () => {
+		const tree = run(':::gallery\n:::\n');
+		expect(galleries(tree)).toHaveLength(0);
+		expect(tree.children[0].type).toBe('paragraph');
+	});
+
+	it('leaves a stray ::: in prose alone', () => {
+		const tree = run('a ::: b\n');
+		expect(galleries(tree)).toHaveLength(0);
+		expect(text(tree)).toEqual(['a ::: b']);
+	});
+
+	it('still converts implicit runs elsewhere in the same document', () => {
+		const tree = run(
+			'![a](/a.png)\n![b](/b.png)\n\n:::gallery\n![c](/c.png)\n\n![d](/d.png)\n:::\n'
+		);
+		const found = galleries(tree);
+		expect(found).toHaveLength(2);
+		expect(payload(found[1]).map((i) => i.src)).toEqual(['/c.png', '/d.png']);
+	});
+});
+
 describe('remarkGallery import injection', () => {
 	const scripts = (tree) => html(tree).filter((v) => v.trimStart().startsWith('<script'));
 

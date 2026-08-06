@@ -38,13 +38,40 @@ export function normalizeLightboxValue(value) {
 	return { items: [value], index: 0 };
 }
 
+/**
+ * The source the lightbox should show, which is not always the one on screen.
+ * `currentSrc` is whatever the browser picked for the *rendered* box, so on a
+ * `srcset` image it is the thumbnail — opening it full-screen would upscale a
+ * small file. `data-lightbox-src` wins outright, then the author's own `src`,
+ * and `currentSrc` is the last resort.
+ */
+function fullSrc(img) {
+	if (img.dataset?.lightboxSrc) return img.dataset.lightboxSrc;
+	// `img.src` reflects the author's `src` attribute, resolved against the
+	// document; `currentSrc` is only the fallback for an image that has nothing
+	// but a `srcset`.
+	return img.getAttribute('src') ? img.src : img.currentSrc || img.src;
+}
+
 function toItem(img) {
 	return {
-		src: img.currentSrc || img.src,
-		alt: img.alt,
+		src: fullSrc(img),
+		// A caption may be worth more than the alt text, and the two are not the
+		// same job — `data-lightbox-caption` says the visible one out loud.
+		alt: img.dataset?.lightboxCaption ?? img.alt,
 		naturalWidth: img.naturalWidth,
-		naturalHeight: img.naturalHeight
+		naturalHeight: img.naturalHeight,
+		// The element on the page this image is. The lightbox flies from it on
+		// open and back to it on close, and hides it in between so the same photo
+		// is never on screen twice. Optional: a caller that sets the store by hand
+		// has no element, and the lightbox falls back to a plain fade.
+		el: img
 	};
+}
+
+/** Images an author has opted out of, plus the ones a group would swallow. */
+function openable(img) {
+	return !img.hasAttribute('data-no-lightbox');
 }
 
 export function lazyImagesAction(node) {
@@ -57,8 +84,12 @@ export function lightboxAction(node) {
 	lazyImagesAction(node);
 
 	function handleClick(e) {
+		// A modified click is the visitor asking the browser for something else
+		// (open in a tab, save, extend a selection) — none of which is a lightbox.
+		if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+			return;
 		const img = e.target.closest('img');
-		if (!img) return;
+		if (!img || !openable(img)) return;
 		// Skip images inside links — the user may want to navigate
 		if (img.closest('a')) return;
 
@@ -68,7 +99,7 @@ export function lightboxAction(node) {
 		// screenshots doesn't turn into one long slideshow.
 		const group = img.closest('[data-lightbox-group]');
 		if (group) {
-			const images = Array.from(group.querySelectorAll('img'));
+			const images = Array.from(group.querySelectorAll('img')).filter(openable);
 			const index = images.indexOf(img);
 			if (index === -1) return;
 			e.preventDefault();

@@ -325,14 +325,184 @@ from sibling images, so an article of unrelated screenshots doesn't become one
 long slideshow. A bare `{ src, alt, ... }` set on the store is still accepted —
 `normalizeLightboxValue` widens it.
 
+Per-image opt-outs live on the `<img>`: `data-no-lightbox` keeps one out
+entirely, `data-lightbox-src` points at a larger file than the one on the page,
+and `data-lightbox-caption` overrides the alt text. The source is taken from the
+`src` attribute rather than `currentSrc`, which on a `srcset` image is whatever
+the browser picked for the _thumbnail_ box.
+
+### It opens as the same photo, not a new one
+
+The image does not fade up in the middle of the screen. It **flies from the box
+it holds in the article to the box it holds full-screen**, and back to wherever
+that image sits when you close — which, after paging, is a different image than
+the one you opened. `lightboxAction` puts the `<img>` element itself on each
+item so the lightbox has something to measure and return to.
+
+- **The copy on the page is hidden (`visibility`, not `display`) for as long as
+  the lightbox is showing it**, and un-hidden in the portal's `destroy` — the
+  same frame the flying copy is removed, so the two are never both on screen and
+  never both absent. `display: none` would reflow the article underneath and
+  destroy the box the flight is aimed at.
+- **The flight is a WAAPI animation, not a class or an inline transform.** It
+  runs off the main thread, and — unlike `style.transform` — Svelte rewriting the
+  `style` attribute mid-flight (which it does whenever the fit is recomputed)
+  cannot wipe it out. No `fill: forwards` on the way in, so pan and zoom get
+  control back the moment it lands.
+- **One uniform scale**, never a separate scaleX/scaleY: both ends are
+  `object-fit: contain` around the same file, so their aspect ratios agree and a
+  second axis could only distort the photo in flight.
+- **Closing realigns the scroller first.** `alignOrigin` centres the target
+  inside its own horizontal scroller, so closing on the fourth image of a strip
+  lands on the fourth image instead of flying off the side of it — and the strip
+  is left where the lightbox left off. It never touches page scroll; that is
+  locked.
+- It falls back to a plain scale-and-fade whenever it cannot fly: no origin
+  element (a caller that set the store by hand), no natural size yet, a zoomed
+  image, an origin still off-screen after aligning, reduced motion, or no layout
+  at all (which is what keeps jsdom happy). **Two flags, not one**: `flew`
+  suppresses the stage's own entrance for the whole open, `flying-home`
+  suppresses its exit only while a flight home is running — one flag meant a
+  close that could not fly lost its exit animation entirely.
+- **Closing mid-anything is a supported state.** Closing during the opening
+  flight picks up the photo's current computed transform rather than snapping it
+  to full size first; closing while the track is still settling from a page
+  drops the track's transition so the measurement is taken against the resting
+  position it was heading for, not a moving one.
+- **Swipe-to-dismiss returns the photo too.** It follows the finger down, and
+  on release travels on to the place it holds in the article — which is often
+  back _up_ past where the drag started. The drag lives on `.lb-strip`, not on
+  the photo, so the strip is unwound and the distance it had travelled is handed
+  to the photo's own first keyframe: one animation carries the whole journey
+  rather than two transforms fighting over the same pixels. With no origin to
+  return to it falls back to the old throw, and only then does the page-side
+  copy come back early, so the strip never has a hole in it.
+- **A close arms an unmount timer past the animation.** Opening clears it:
+  reopening inside that window used to be shut straight back down by the timer
+  from the close before it.
+- **The flights are springs, not curves that resemble them.** `springEasing`
+  writes a damped oscillator out as a `linear()` easing, so WAAPI still runs it
+  on the compositor. Parameterised by bounce, the damping ratio read the other
+  way up — 0.25 opening, which passes its mark by about 3%, and 0 coming home,
+  because past the mark would be past the slot the photo belongs in. The strong
+  ease-out this replaced was 80% of the way there a quarter of the way through
+  and then crawled, which is what made opening feel stiff. There is a
+  `cubic-bezier` fallback for browsers without `linear()`.
+- **The caption slot is held open across the group**, at exactly the two lines
+  it clamps to, whenever any image in the group is captioned. The chrome's
+  measured height is what reserves room for the photo, so a caption that wrapped
+  where its neighbour did not resized the photo you were looking at, in the
+  middle of the slide that was swapping them.
+- The gallery hands its markdown title through as `data-lightbox-caption`, so
+  opening an image does not swap the caption the strip showed for its alt text.
+- **What lands has to be the shape the page is about to show.** A photo back in
+  its slot but still carrying a lifted photo's shadow and rounded corners reads
+  as sitting on top of the article, so both are shed on the way home. The page's
+  own copy is handed back from the flight's `onfinish` rather than from the
+  portal's teardown — the two overlap exactly, so the swap is invisible, where
+  waiting for Svelte to unmount left the photo above the page for the frames in
+  between. The root is `pointer-events: none` for that stretch too.
+
+### Keeping it at 60fps
+
+Measured on the production build at 6x CPU throttle, 390x844 @2x, counting
+frames over 20ms during each phase. The drags are the ones that matter: they run
+on the main thread, so a long frame there _is_ visible jank. The two flights are
+WAAPI transforms on the compositor, where a busy main thread starves the rAF
+counter without stalling the animation.
+
+- **`-webkit-backdrop-filter` goes before `backdrop-filter`, always.** Written
+  the other way round the minifier collapses the pair to the prefixed
+  declaration alone, and Chrome and Firefox — which have never supported the
+  `-webkit-` form — render no blur at all. Every blur in the lightbox and the
+  gallery had been shipping that way. Check `_app/immutable/assets/*.css` after
+  a build if you touch one.
+- **The blur is the most expensive thing on screen.** Over a dismiss drag: 0
+  frames missed with no blur, 2 at `blur(8px)`, 5 at the `blur(14px)
+saturate(1.1)` it started at. At the opacity the scrim actually reaches the
+  8px and 14px versions are indistinguishable, so 8px it is.
+- **The backdrop is two elements.** Fading a blurred one does not fade the blur,
+  it reveals the sharp page underneath — mid-dismiss you could read the article
+  through it. The material and the dimming are separate, the same way iOS keeps
+  them apart. This costs nothing and buys nothing on frame times; it is a
+  looks-right change.
+- **One `style:` directive per property, not one `style` string.** A single
+  string is re-parsed in full every frame of a drag, transition declaration
+  included.
+- **Writes before reads in the release handler.** Interleaving them forces a
+  layout per read, in the one frame a finger is lifted.
+- `will-change: transform` sits on `.lb-img[data-current="true"]` only — the
+  other slides ride inside the track's layer and promoting them would cost three
+  full-screen textures to animate one.
+
+### The lightbox is a filmstrip, not a slot
+
+Every image in the group is a slide on one flex track that is translated
+sideways; the group is not swapped in and out of a single `<img>`. That is what
+makes a drag show the next photo arriving instead of the current one sliding
+away over nothing. Consequences worth knowing:
+
+- **The track is `position: absolute; inset: 0`, and the slides overflow it.**
+  Its own width therefore stays one page, which is what lets `translateX(-i *
+100%)` mean "one page per step" rather than a fraction of the whole strip.
+- **Only the current slide and its neighbours carry a `src`.** A gallery of
+  forty is forty slides and three requests.
+- **Chrome lives outside the transform.** Caption, dots and buttons are siblings
+  of the track, so a swipe moves the photo and nothing else.
+- The image the tests mean is `.lb-img[data-current="true"]`.
+
 The swipe axis is **locked once**, on the first 8px of movement, and not
 re-decided per move: sideways pages, downward dismisses. Re-deciding let a
-diagonal flick do both.
+diagonal flick do both. A release pages on **velocity or distance** — a fast
+flick that moved 30px pages, and so does a slow drag past a fifth of the
+viewport; distance alone made a real flick feel ignored. Drags past either end
+get the iOS rubber band, which asymptotes rather than stopping dead.
 
-**Neither the gallery nor the lightbox upscales.** The lightbox has always
-capped its scale at 1, and plenty of the images in these posts are 200–500px
-wide. A gallery that stretched them to the column width would make opening one
-look like it had shrunk it.
+Zoom is **one number** (`scale` + `panX`/`panY`). It used to be two — a
+click-to-zoom flag that swapped the image's width and a separate pinch scale —
+and they could disagree. Pan is clamped to the image's own edges, tap and pinch
+share `scaleAbout` so both anchor on the point under the finger, and the chrome
+except the close button fades out while zoomed: no scrim makes a caption
+readable over every photograph, and a zoomed image is being inspected.
+
+**Full-screen is not `inset: 0`.** Two things break it and both are handled in
+`Lightbox.svelte`:
+
+- Any ancestor with a transform, a filter or `contain` becomes the containing
+  block for a fixed child. The dialog is therefore **portalled to `<body>`**, so
+  it has no ancestor left to be trapped by — and that is also the only moment it
+  is provably a body child, which is why `inert` is applied from the portal
+  action rather than the open effect (`bind:this` and that effect land in the
+  same flush and their order is not ours to pick).
+- On mobile the bottom of the initial containing block sits under the collapsing
+  toolbar. The root is sized `100dvh` with the measured `window.innerHeight` as
+  a floor, not left to `inset`.
+
+Opening also **locks body scroll** (with scrollbar-width compensation, so the
+page behind doesn't jump) and **inerts every other child of `<body>`**, which is
+what makes `aria-modal` true rather than merely claimed. Both are released
+before focus is restored — focus cannot land inside an inert tree.
+
+**Neither the gallery nor the lightbox upscales.** The lightbox's _fit_ caps at
+1, and plenty of the images in these posts are 200–500px wide. A gallery that
+stretched them to the column width would make opening one look like it had
+shrunk it. (Deliberate zoom is the exception — a tap goes to at least 2x even on
+a small file, because a gesture that visibly does nothing reads as broken.)
+
+The gallery's slides are all **one fixed height** (`--gallery-height`, overridable
+by the `height` prop). Sizing each slide to its image would jump the strip as it
+snapped between them, and sizing the strip once the images load would shift the
+article under the reader. A swipe on the strip ends in a click, so the track
+swallows any click whose press started more than 10px away — otherwise every
+swipe opened the lightbox on whatever the finger lifted over. Measured in _page_
+coordinates, and only when a pointer actually began the click: viewport
+coordinates counted a page still scrolling under a stationary finger as a swipe,
+and a click no pointer began (synthetic, keyboard, assistive tech) has no press
+to be measured against at all. Arrow keys step a
+whole slide rather than leaving the browser's fixed nudge to land between two
+snap points. The caption sits above the dots, matching the lightbox; it is
+placed with `order` because `<figcaption>` is only valid as a figure's first or
+last child.
 
 ## Galleries in Markdown (`src/lib/remarkGallery.js`)
 
@@ -349,6 +519,33 @@ already grouped by hand. **A blank line between images is the escape hatch** —
 that makes them separate paragraphs and they stay stacked. Only top-level
 paragraphs convert; a run inside a blockquote or list item is carrying that
 block's meaning.
+
+A `:::gallery` fence is the explicit form, and buys back what that escape hatch
+costs:
+
+```md
+:::gallery
+![One](/one.png)
+
+![Two](/two.png 'A caption')
+:::
+```
+
+Everything between the fences becomes one gallery however the images are spaced
+— including a single image, which two loose images would never become. The
+markers are found **inside** paragraph text, not as nodes of their own:
+`:::gallery` on the line above an image is the same mdast paragraph as that
+image, with the line break living inside a text node. `tokenize()` splits a
+paragraph at them and rebuilds a paragraph from whatever is left over.
+
+Three rules keep a typo from eating a post:
+
+- **Only images are collected.** Prose or a heading inside the fence is kept and
+  re-emitted after the gallery, never dropped.
+- **An unclosed fence transforms nothing** — the `:::gallery` line renders as the
+  literal text the author typed. Consuming to the end of the file would have
+  swallowed every remaining image in the post into one gallery, silently.
+- **A fence with no images transforms nothing**, for the same reason.
 
 The plugin runs **before rehype**, so `rehype-figure` never sees those images —
 otherwise a gallery would arrive as four `<figure>`s.

@@ -113,7 +113,15 @@ const group = [
 	{ src: 'https://example.com/three.jpg', alt: 'Three', naturalWidth: 800, naturalHeight: 600 }
 ];
 
-const currentSrc = () => screen.getByRole('dialog').querySelector('.lb-img').getAttribute('src');
+// Every image in the group is a slide on one track — the swipe slides the track
+// rather than swapping the element — so "the image" is the one marked current.
+const currentSrc = () =>
+	screen.getByRole('dialog').querySelector('.lb-img[data-current="true"]').getAttribute('src');
+const slides = () => screen.getByRole('dialog').querySelectorAll('.lb-slide');
+const loadedSrcs = () =>
+	Array.from(screen.getByRole('dialog').querySelectorAll('.lb-img')).map((i) =>
+		i.getAttribute('src')
+	);
 const steps = () => screen.getByRole('dialog').querySelectorAll('.pasito-step');
 const activeStep = () =>
 	Array.from(steps()).findIndex((s) => s.classList.contains('pasito-step-active'));
@@ -210,6 +218,190 @@ describe('Lightbox groups', () => {
 		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 		await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 	});
+
+	it('jumps to either end with Home and End', async () => {
+		await openGroup(1);
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+		await tick();
+		expect(currentSrc()).toBe(group[2].src);
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+		await tick();
+		expect(currentSrc()).toBe(group[0].src);
+	});
+
+	it('lays the whole group out as one track so a swipe has somewhere to go', async () => {
+		await openGroup(1);
+		expect(slides()).toHaveLength(3);
+		// ...but only the neighbours are fetched. Opening a gallery of forty must
+		// not pull forty images over the wire.
+		expect(loadedSrcs()).toEqual(group.map((i) => i.src));
+
+		lightboxStore.set({
+			items: [...group, ...group].map((i, n) => ({ ...i, src: `${i.src}#${n}` })),
+			index: 0
+		});
+		await tick();
+		expect(slides()).toHaveLength(6);
+		expect(loadedSrcs()).toHaveLength(2);
+	});
+
+	it('hides every slide but the current one from assistive tech', async () => {
+		await openGroup(1);
+		const hidden = Array.from(slides()).map((s) => s.getAttribute('aria-hidden'));
+		expect(hidden).toEqual(['true', null, 'true']);
+	});
+});
+
+describe('Lightbox shared-element flight', () => {
+	/**
+	 * jsdom has no layout and no `Element.animate`, so the flight itself cannot
+	 * run here — but the half that makes it read as one photo rather than two
+	 * can: the copy on the page is hidden for exactly as long as the lightbox is
+	 * showing it.
+	 */
+	function pageImage() {
+		const img = document.createElement('img');
+		img.src = 'https://example.com/cat.jpg';
+		img.alt = 'A cat';
+		document.body.appendChild(img);
+		return img;
+	}
+
+	it('hides the image it flew from, and gives it back on close', async () => {
+		const img = pageImage();
+		render(Lightbox);
+		lightboxStore.set({ items: [{ ...openValue, el: img }], index: 0 });
+		await tick();
+		await screen.findByRole('dialog');
+
+		await waitFor(() => expect(img.style.visibility).toBe('hidden'));
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(img.style.visibility).toBe(''));
+		img.remove();
+	});
+
+	it('hides only the image it is on, and swaps as the group is paged', async () => {
+		const a = pageImage();
+		const b = pageImage();
+		render(Lightbox);
+		lightboxStore.set({
+			items: [
+				{ ...group[0], el: a },
+				{ ...group[1], el: b }
+			],
+			index: 0
+		});
+		await tick();
+		await screen.findByRole('dialog');
+		await waitFor(() => expect(a.style.visibility).toBe('hidden'));
+		expect(b.style.visibility).toBe('');
+
+		screen.getByRole('button', { name: 'Next image' }).click();
+		await tick();
+		await waitFor(() => expect(b.style.visibility).toBe('hidden'));
+		expect(a.style.visibility).toBe('');
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(b.style.visibility).toBe(''));
+		a.remove();
+		b.remove();
+	});
+
+	it('still opens from a bare store value, which carries no element to fly from', async () => {
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		expect(await screen.findByRole('dialog')).toBeInTheDocument();
+	});
+});
+
+describe('Lightbox open and close bookkeeping', () => {
+	it('does not open on an empty group', async () => {
+		render(Lightbox);
+		lightboxStore.set({ items: [], index: 0 });
+		await tick();
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('survives a reopen inside the close window', async () => {
+		// Closing schedules an unmount. Reopening before that timer fires used to
+		// be shut straight back down by it.
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		await screen.findByRole('dialog');
+
+		screen.getByRole('button', { name: 'Close image' }).click();
+		await tick();
+		lightboxStore.set({ ...openValue, alt: 'A second cat' });
+		await tick();
+
+		await new Promise((r) => setTimeout(r, 400));
+		expect(screen.queryByRole('dialog')).toBeInTheDocument();
+		expect(screen.getByText('A second cat')).toBeInTheDocument();
+	});
+
+	it('lets a close that cannot fly keep its own exit animation', async () => {
+		// One flag used to mean both "this open flew" and "a flight home is
+		// running", so a close with nowhere to fly to lost its exit entirely.
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		const dialog = await screen.findByRole('dialog');
+
+		screen.getByRole('button', { name: 'Close image' }).click();
+		await tick();
+		expect(dialog).toHaveClass('closing');
+		expect(dialog).not.toHaveClass('flying-home');
+	});
+});
+
+describe('Lightbox modality', () => {
+	it('locks the page behind it and gives it back on close', async () => {
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		await screen.findByRole('dialog');
+		expect(document.body.style.overflow).toBe('hidden');
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(document.body.style.overflow).toBe(''));
+	});
+
+	it('renders into <body>, where no ancestor can trap a fixed backdrop', async () => {
+		const { container } = render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+
+		const dialog = await screen.findByRole('dialog');
+		expect(dialog.parentElement).toBe(document.body);
+		expect(container.contains(dialog)).toBe(false);
+	});
+
+	it('inerts the rest of the page while open, and only while open', async () => {
+		const sibling = document.createElement('div');
+		document.body.appendChild(sibling);
+
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		await screen.findByRole('dialog');
+		await waitFor(() => expect(sibling).toHaveAttribute('inert'));
+		expect(sibling).toHaveAttribute('aria-hidden', 'true');
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(sibling).not.toHaveAttribute('inert'));
+		expect(sibling).not.toHaveAttribute('aria-hidden');
+
+		sibling.remove();
+	});
 });
 
 describe('lightboxAction', () => {
@@ -283,6 +475,20 @@ describe('lightboxAction', () => {
 		let value;
 		lightboxStore.subscribe((v) => (value = v))();
 		expect(value).toBeNull();
+		destroy();
+	});
+
+	it('carries the element each image came from, so the lightbox can fly back to it', () => {
+		const { node, destroy } = mount(
+			'<div data-lightbox-group><img src="/a.png" alt="A"><img src="/b.png" alt="B"></div>'
+		);
+		const imgs = Array.from(node.querySelectorAll('img'));
+		imgs.forEach((i) => size(i));
+		imgs[1].click();
+
+		let value;
+		lightboxStore.subscribe((v) => (value = v))();
+		expect(value.items.map((i) => i.el)).toEqual(imgs);
 		destroy();
 	});
 
