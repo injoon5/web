@@ -50,9 +50,10 @@
 			// one is measured against the page rather than the clock. Drag the window
 			// down slowly to judge it.
 			surfaceRange: [NAV_DEFAULTS.surfaceRange, 0, 240, 4],
-			// Also px, but of the header rather than of the scroll: how deep the
-			// blur's soft edge below the bar is. 0 is a hard edge.
-			surfaceFade: [NAV_DEFAULTS.surfaceFade, 0, 64, 2],
+			// How soft the lower lip of the wordmark's window is, in px. Only visible
+			// on the home page, and only while the name is coming through it — 12 is
+			// where it meets the hairline.
+			namePortal: [NAV_DEFAULTS.namePortal, 0, 12, 1],
 			duration: [NAV_DEFAULTS.duration, 80, 800, 10],
 			linkDuration: [NAV_DEFAULTS.linkDuration, 80, 800, 10],
 			staggerBase: [NAV_DEFAULTS.staggerBase, 0, 200, 5],

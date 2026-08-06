@@ -225,16 +225,9 @@
 		     the top of the page, doing its work behind a fully transparent tint, and
 		     fading the element takes the filter with it — so a header sitting over
 		     nothing composites nothing. -->
-		<!-- It reaches past its own bottom edge, and the last stretch of it is
-		     masked out, so the blur and the tint let go of the page gradually
-		     instead of stopping on a line. That is the same one layer doing it: a
-		     second, softer filter below this one is exactly the pair of adjacent
-		     backdrop-filters described above, and it would put the seam right where
-		     the softening was supposed to be. `pointer-events-none` because the
-		     part that hangs below the header is over page content. -->
 		<div
 			aria-hidden="true"
-			class="nav-surface pointer-events-none absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
+			class="nav-surface absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
 		></div>
 		<!-- And one hairline, which slides down to the new bottom edge as the
 		     disclosure opens instead of a second one fading in beneath it. -->
@@ -554,17 +547,34 @@
 
 	   `.nav-name` is the hole it rolls through. It has to be a second element:
 	   the clip has to hold still while the type inside it moves, and a box that
-	   translates takes its own overflow with it. One line box tall, so the type
-	   is out of sight at the start rather than hanging below the hairline
-	   halfway.
+	   translates takes its own overflow with it.
+
+	   And the hole has a soft lower lip, `--nav-name-portal` deep, so the type
+	   dissolves into it rather than being sliced off by a clip edge — a name
+	   coming through a threshold instead of out from behind a shelf. The band
+	   has to be _below_ the line box, not the bottom of it, or the resting
+	   wordmark would sit with its own baseline faded: the padding opens that
+	   much extra room under the type and the equal negative margin takes it back
+	   out of the layout, so the box that gets clipped and masked is taller than
+	   the box the row measures. Nothing moves, `--nav-h` does not change, and
+	   the overhang lands inside the row's own bottom padding rather than over
+	   the hairline.
 
 	   `opacity` and `translate` are both composited, and this is the only thing
 	   asking for either on this element, so the whole handover runs off the main
 	   thread. Every other option — a custom property composed with `max()` the
 	   way the surface is, an animated `filter` — would have pulled it back onto
-	   the main thread for a move that has nothing to compose with. */
+	   the main thread for a move that has nothing to compose with. The mask is
+	   static, so it costs the same nothing. */
 	.nav-name {
 		overflow: hidden;
+		padding-bottom: var(--nav-name-portal, 12px);
+		margin-bottom: calc(-1 * var(--nav-name-portal, 12px));
+		mask-image: linear-gradient(
+			to bottom,
+			#000 calc(100% - var(--nav-name-portal, 12px)),
+			transparent 100%
+		);
 	}
 
 	.nav-name-roll {
@@ -653,22 +663,6 @@
 		opacity: max(var(--nav-surface-scroll), var(--nav-surface-menu));
 		bottom: calc(-1 * var(--nav-open-extra, 0px));
 		transition: bottom var(--nav-duration, 320ms) var(--nav-ease);
-	}
-
-	/* The hairline still ends where the header ends. The surface goes on past it
-	   by `--nav-surface-fade` and is masked away over exactly that much, so what
-	   is under the bar arrives blurred instead of crossing a line and changing
-	   state — the mask takes the backdrop-filter with it, which is the whole
-	   reason this can be one layer. The stop is written off the element's own
-	   height, so the disclosure growing the surface moves the soft edge down with
-	   it rather than eating into it. */
-	.nav-surface {
-		bottom: calc(-1 * (var(--nav-open-extra, 0px) + var(--nav-surface-fade, 16px)));
-		mask-image: linear-gradient(
-			to bottom,
-			#000 calc(100% - var(--nav-surface-fade, 16px)),
-			transparent 100%
-		);
 	}
 
 	.nav-more-row {

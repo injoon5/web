@@ -620,14 +620,6 @@ pieces of that are load-bearing:
   nothing to say. Two inputs with their own timing — one on the scrollbar, one
   on a 200ms transition — composed by `max()`, is what lets opening the menu at
   the top and closing it again still fade.
-- **The surface reaches `--nav-surface-fade` (16px) past its own bottom edge and
-  is masked away over exactly that much**, so the blur and tint let go of the
-  page gradually instead of stopping on a line. It is the _same_ layer doing it:
-  a second, softer backdrop-filter below the first is the adjacent-filters case
-  above, and the seam would land exactly where the softening was meant to be.
-  The mask stop is written off the element's own height, so the disclosure
-  growing the surface carries the soft edge down with it. `pointer-events-none`,
-  because the part that hangs below the header is over page content.
 - **The wordmark is handed over on the hero's own view progress, one to one.**
   The home page's hero `h2` declares `view-timeline-name: --nav-hero-name` with
   `view-timeline-inset: var(--nav-h) auto` — so the edge it measures against is
@@ -652,10 +644,17 @@ pieces of that are load-bearing:
   end as `72.7%`, both variables baked into a number.
 - **`.nav-name` is the hole `.nav-name-roll` moves through**, and it has to be a
   second element: the clip has to hold still while the type inside it moves, and
-  a box that translates takes its own overflow with it. One line box tall, so
-  the type is out of sight at the start rather than hanging below the hairline
-  halfway. The observer fallback keeps the old 4px nudge — a roll reads as
-  movement against the page and as a swoosh against a clock.
+  a box that translates takes its own overflow with it. The observer fallback
+  keeps the old 4px nudge — a roll reads as movement against the page and as a
+  swoosh against a clock.
+- **The hole has a soft lower lip, `--nav-name-portal` (12px)**, so the wordmark
+  dissolves through a threshold instead of being sliced off by a clip edge. The
+  band has to sit _below_ the line box rather than take up the bottom of it, or
+  the resting name would have its own baseline faded: `padding-bottom` opens
+  that much extra room under the type and an equal negative `margin-bottom`
+  takes it back out of the layout, so the box that gets clipped and masked is
+  taller than the box the row measures. The row stays 56px, `--nav-h` does not
+  move, and 12px is as deep as the lip can go before it reaches the hairline.
 - **The fade is on the roll, not on the type.** The English and Korean spans
   cross-fade on their own `opacity` on hover, and an animation outranks every
   declaration for the property it runs on, so a scroll-driven `opacity` on the

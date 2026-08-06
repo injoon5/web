@@ -75,12 +75,12 @@ export const NAV_DEFAULTS = {
 	 */
 	surfaceRange: 64,
 	/**
-	 * How far past its own bottom edge the surface reaches and is masked away,
-	 * in px. It is what keeps the blur from ending on a line: page content comes
-	 * up under the header already softening rather than changing state as it
-	 * crosses the hairline. 0 puts the hard edge back.
+	 * How deep the soft lower lip of the wordmark's window is, in px — the band
+	 * the name dissolves through on its way in rather than being cut off by. It
+	 * sits under the line box, in the row's own bottom padding, so 12 is as far
+	 * as it can go before it reaches the hairline. 0 is a hard clip.
 	 */
-	surfaceFade: 16,
+	namePortal: 12,
 
 	/** Panel growth and chevron rotation, in ms. */
 	duration: 320,
@@ -110,7 +110,7 @@ export function navStyle(s = navSettings) {
 		`--nav-more-pad-r:${s.padRight}px`,
 		`--nav-more-gap:${s.moreGap}px`,
 		`--nav-surface-range:${s.surfaceRange}px`,
-		`--nav-surface-fade:${s.surfaceFade}px`,
+		`--nav-name-portal:${s.namePortal}px`,
 		`--nav-duration:${s.duration}ms`,
 		`--nav-link-duration:${s.linkDuration}ms`
 	].join(';');
