@@ -40,8 +40,10 @@
 
 	let rootEl = $state(null);
 	let viewportEl = $state(null);
-	/** True for the whole of an open that flew, so the stage's own entrance stays off. */
-	let flying = $state(false);
+	/** This open flew in, so the stage's own entrance stays off for all of it. */
+	let flew = $state(false);
+	/** A flight home is running, so the stage's exit stays off for it. */
+	let flyingHome = $state(false);
 	let closeBtn = $state(null);
 	/** Measured, so the image box reserves exactly the room the chrome uses. */
 	let bottomH = $state(0);
@@ -175,17 +177,30 @@
 
 	$effect(() => {
 		const val = normalizeLightboxValue($lightboxStore);
-		if (val) {
+		if (val?.items.length) {
+			// A close schedules an unmount; reopening inside that window would
+			// otherwise be shut again by the timer from the close before it.
+			clearTimeout(closeTimer);
 			items = val.items;
 			index = val.index;
 			resetGesture();
 			closing = false;
 			dismissing = false;
+			flew = false;
+			flyingHome = false;
 			visible = true;
 		} else {
 			visible = false;
 			closing = false;
 			dismissing = false;
+			// A close mid-drag leaves the window listeners bound and the gesture
+			// half-committed; nothing else would take them down until the next
+			// pointerup, which may never come.
+			pointers = [];
+			unbindPointerStream();
+			dragging = false;
+			pinching = false;
+			axis = null;
 		}
 	});
 
@@ -344,7 +359,8 @@
 				// image reappears exactly as the lightbox's lands on it.
 				showOrigin();
 				node.remove();
-				flying = false;
+				flew = false;
+				flyingHome = false;
 			}
 		};
 	}
@@ -449,9 +465,15 @@
 			if (node.scrollWidth - node.clientWidth < 2) continue;
 			const overflowX = getComputedStyle(node).overflowX;
 			if (overflowX !== 'auto' && overflowX !== 'scroll') continue;
+			// This scroll has to land before the flight is measured a line later. A
+			// scroller with `scroll-behavior: smooth` would animate instead, and the
+			// flight would be measured against a position it has not reached yet.
+			const behaviour = node.style.scrollBehavior;
+			node.style.scrollBehavior = 'auto';
 			const r = el.getBoundingClientRect();
 			const cr = node.getBoundingClientRect();
 			node.scrollLeft += r.left + r.width / 2 - (cr.left + cr.width / 2);
+			node.style.scrollBehavior = behaviour;
 		}
 	}
 
@@ -475,6 +497,31 @@
 	}
 
 	/** Called from the portal action — the first moment the subtree is laid out. */
+	/**
+	 * Track the running flight, and never let a stale handler clear its successor
+	 * — `oncancel` is dispatched asynchronously, so it can land after the
+	 * animation that replaced it has already been stored.
+	 *
+	 * `fill` is the whole difference between the two directions. On the way in,
+	 * `backwards` puts the photo at its origin for the first paint and then hands
+	 * the transform back, so pan and zoom work the moment it lands. On the way
+	 * out, `forwards` holds it at the origin for the frame between the animation
+	 * ending and the lightbox unmounting — without it the photo snaps back to
+	 * full size for that frame.
+	 */
+	function runFlight(el, keyframes, duration, fill, onfinish) {
+		const anim = el.animate(keyframes, { duration, easing: FLIGHT_EASE, fill });
+		flightAnim = anim;
+		anim.oncancel = () => {
+			if (flightAnim === anim) flightAnim = null;
+		};
+		anim.onfinish = () => {
+			if (flightAnim === anim) flightAnim = null;
+			onfinish?.();
+		};
+		return anim;
+	}
+
 	function startOpenFlight(root) {
 		const from = originEl();
 		if (from) hideOrigin(from);
@@ -484,14 +531,33 @@
 		const to = root.querySelector('.lb-img[data-current="true"]');
 		const f = flightBetween(from, to);
 		if (!f) return;
-		flying = true;
+		flew = true;
 		flightAnim?.cancel();
-		flightAnim = to.animate([{ transform: flightTransform(f) }, { transform: IDENTITY }], {
-			duration: FLIGHT_IN_MS,
-			easing: FLIGHT_EASE,
-			fill: 'backwards'
-		});
-		flightAnim.onfinish = flightAnim.oncancel = () => (flightAnim = null);
+		runFlight(
+			to,
+			[{ transform: flightTransform(f) }, { transform: IDENTITY }],
+			FLIGHT_IN_MS,
+			'backwards'
+		);
+	}
+
+	/**
+	 * A close that lands while the track is still settling from a page would
+	 * measure the image mid-slide — and the track would go on moving underneath
+	 * the flight. Dropping the transition snaps the track to the resting
+	 * transform it is already on its way to, which is the one the flight assumes.
+	 */
+	function freezeTrack() {
+		const track = rootEl?.querySelector('.lb-track');
+		if (!track) return;
+		track.style.transition = 'none';
+		void track.offsetWidth;
+	}
+
+	/** Has the element been scrolled or laid out clean off the screen? */
+	function offScreen(el) {
+		const r = el.getBoundingClientRect();
+		return r.bottom <= 0 || r.top >= winH || r.right <= 0 || r.left >= winW;
 	}
 
 	/**
@@ -505,17 +571,25 @@
 		const img = currentImgEl();
 		if (!to || !img) return false;
 		alignOrigin(to);
+		// Aligned and still off-screen: there is nowhere on screen to fly to, and
+		// a flight there would just be the photo leaving in a strange direction.
+		if (offScreen(to)) return false;
+		freezeTrack();
+		// Where the photo is *now* — which is not identity if the open flight is
+		// still running, and closing during it must not snap to full size first.
+		const from = getComputedStyle(img).transform;
+		flightAnim?.cancel();
 		const f = flightBetween(to, img);
 		if (!f) return false;
-		flightAnim?.cancel();
-		flying = true;
-		flightAnim = img.animate([{ transform: IDENTITY }, { transform: flightTransform(f) }], {
-			duration: FLIGHT_OUT_MS,
-			easing: FLIGHT_EASE,
-			fill: 'forwards'
-		});
-		flightAnim.onfinish = () => lightboxStore.set(null);
-		// A cancelled animation must not strand the lightbox open.
+		flyingHome = true;
+		runFlight(
+			img,
+			[{ transform: from }, { transform: flightTransform(f) }],
+			FLIGHT_OUT_MS,
+			'forwards',
+			() => lightboxStore.set(null)
+		);
+		// A cancelled or dropped animation must not strand the lightbox open.
 		scheduleClose(FLIGHT_OUT_MS + 120);
 		return true;
 	}
@@ -680,6 +754,10 @@
 		axis = null;
 		if (far || flick) {
 			dismissing = true;
+			// The photo is being thrown away, not flown home — so the copy on the
+			// page comes back now, behind the fading backdrop, rather than leaving
+			// a hole in the strip for the length of the throw.
+			showOrigin();
 			dragY = Math.sign(dragY || 1) * (winH || 800);
 			scheduleClose(SETTLE_MS);
 		} else {
@@ -915,7 +993,8 @@
 		class:closing
 		class:dismissing
 		class:zoomed={scale > 1}
-		class:flying
+		class:flew
+		class:flying-home={flyingHome}
 		class:dragging
 		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
 		role="dialog"
@@ -1130,15 +1209,21 @@
 		animation: lb-in 0.36s var(--ease-entrance) both;
 	}
 
+	/* When the photo flies from the place it holds in the article, it *is* the
+	   entrance — a stage scaling underneath it would be a second, contrary one.
+	   Held for the whole open, not just the flight, so releasing it could never
+	   replay `lb-in` half way through. */
+	.lb-root.flew .lb-stage {
+		animation: none;
+	}
+
+	/* Declared after, so a close still gets its exit even on an open that flew. */
 	.lb-root.closing .lb-stage {
 		animation: lb-out 0.22s var(--ease-out) forwards;
 	}
 
-	/* When the photo flies to and from the place it holds in the article, it is
-	   the entrance — a stage scaling underneath it would be a second, contrary
-	   one. Held for the whole open, not just the flight, so releasing it could
-	   never replay `lb-in` half way through. */
-	.lb-root.flying .lb-stage,
+	/* ...unless the photo is flying home under its own power, or being thrown. */
+	.lb-root.closing.flying-home .lb-stage,
 	.lb-root.dismissing .lb-stage {
 		animation: none;
 	}

@@ -320,6 +320,47 @@ describe('Lightbox shared-element flight', () => {
 	});
 });
 
+describe('Lightbox open and close bookkeeping', () => {
+	it('does not open on an empty group', async () => {
+		render(Lightbox);
+		lightboxStore.set({ items: [], index: 0 });
+		await tick();
+		expect(screen.queryByRole('dialog')).toBeNull();
+	});
+
+	it('survives a reopen inside the close window', async () => {
+		// Closing schedules an unmount. Reopening before that timer fires used to
+		// be shut straight back down by it.
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		await screen.findByRole('dialog');
+
+		screen.getByRole('button', { name: 'Close image' }).click();
+		await tick();
+		lightboxStore.set({ ...openValue, alt: 'A second cat' });
+		await tick();
+
+		await new Promise((r) => setTimeout(r, 400));
+		expect(screen.queryByRole('dialog')).toBeInTheDocument();
+		expect(screen.getByText('A second cat')).toBeInTheDocument();
+	});
+
+	it('lets a close that cannot fly keep its own exit animation', async () => {
+		// One flag used to mean both "this open flew" and "a flight home is
+		// running", so a close with nowhere to fly to lost its exit entirely.
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		const dialog = await screen.findByRole('dialog');
+
+		screen.getByRole('button', { name: 'Close image' }).click();
+		await tick();
+		expect(dialog).toHaveClass('closing');
+		expect(dialog).not.toHaveClass('flying-home');
+	});
+});
+
 describe('Lightbox modality', () => {
 	it('locks the page behind it and gives it back on close', async () => {
 		render(Lightbox);

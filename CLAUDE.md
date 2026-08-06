@@ -359,8 +359,22 @@ item so the lightbox has something to measure and return to.
   locked.
 - It falls back to a plain scale-and-fade whenever it cannot fly: no origin
   element (a caller that set the store by hand), no natural size yet, a zoomed
-  image, reduced motion, or no layout at all (which is what keeps jsdom happy).
-  Swipe-to-dismiss keeps its throw — that gesture is a discard, not a return.
+  image, an origin still off-screen after aligning, reduced motion, or no layout
+  at all (which is what keeps jsdom happy). **Two flags, not one**: `flew`
+  suppresses the stage's own entrance for the whole open, `flying-home`
+  suppresses its exit only while a flight home is running — one flag meant a
+  close that could not fly lost its exit animation entirely.
+- **Closing mid-anything is a supported state.** Closing during the opening
+  flight picks up the photo's current computed transform rather than snapping it
+  to full size first; closing while the track is still settling from a page
+  drops the track's transition so the measurement is taken against the resting
+  position it was heading for, not a moving one.
+- Swipe-to-dismiss keeps its throw — that gesture is a discard, not a return —
+  but it un-hides the page-side copy the moment it commits, so the strip behind
+  the fading backdrop never has a hole in it.
+- **A close arms an unmount timer past the animation.** Opening clears it:
+  reopening inside that window used to be shut straight back down by the timer
+  from the close before it.
 
 ### The lightbox is a filmstrip, not a slot
 
