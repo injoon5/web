@@ -5,6 +5,7 @@
 	import { heroNameVisible } from '$lib/heroNav.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
 	import TechStack from '$lib/TechStack.svelte';
+	import HomeHealth from '$lib/home/HomeHealth.svelte';
 	import HomeDialsMount from '$lib/home/HomeDialsMount.svelte';
 	import { homeSettings, homeStyle } from '$lib/home/home-settings.svelte.js';
 	import { techstack } from '$lib/techstack-data.js';
@@ -340,6 +341,13 @@
 		{/if}
 	</div>
 </div>
+
+<!-- HEALTH -->
+<!-- The quiet beat between the marquee and the photo grid: numbers and four thin
+     lines, in the page's own type. Its own component because it opens its own
+     Convex subscription — see the file for why the window is the one /health
+     already asks for. -->
+<HomeHealth />
 
 <!-- PHOTOS -->
 <div

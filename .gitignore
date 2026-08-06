@@ -12,3 +12,6 @@ vite.config.ts.timestamp-*
 .convex
 .cache
 .turbo
+
+# Third-party agent skills, installed locally (jakubkrehel/skills, emilkowalski/skills)
+.claude/skills/
