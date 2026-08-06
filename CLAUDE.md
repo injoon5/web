@@ -369,9 +369,14 @@ item so the lightbox has something to measure and return to.
   to full size first; closing while the track is still settling from a page
   drops the track's transition so the measurement is taken against the resting
   position it was heading for, not a moving one.
-- Swipe-to-dismiss keeps its throw — that gesture is a discard, not a return —
-  but it un-hides the page-side copy the moment it commits, so the strip behind
-  the fading backdrop never has a hole in it.
+- **Swipe-to-dismiss returns the photo too.** It follows the finger down, and
+  on release travels on to the place it holds in the article — which is often
+  back _up_ past where the drag started. The drag lives on `.lb-strip`, not on
+  the photo, so the strip is unwound and the distance it had travelled is handed
+  to the photo's own first keyframe: one animation carries the whole journey
+  rather than two transforms fighting over the same pixels. With no origin to
+  return to it falls back to the old throw, and only then does the page-side
+  copy come back early, so the strip never has a hole in it.
 - **A close arms an unmount timer past the animation.** Opening clears it:
   reopening inside that window used to be shut straight back down by the timer
   from the close before it.
@@ -435,7 +440,11 @@ by the `height` prop). Sizing each slide to its image would jump the strip as it
 snapped between them, and sizing the strip once the images load would shift the
 article under the reader. A swipe on the strip ends in a click, so the track
 swallows any click whose press started more than 10px away — otherwise every
-swipe opened the lightbox on whatever the finger lifted over. Arrow keys step a
+swipe opened the lightbox on whatever the finger lifted over. Measured in _page_
+coordinates, and only when a pointer actually began the click: viewport
+coordinates counted a page still scrolling under a stationary finger as a swipe,
+and a click no pointer began (synthetic, keyboard, assistive tech) has no press
+to be measured against at all. Arrow keys step a
 whole slide rather than leaving the browser's fixed nudge to land between two
 snap points. The caption sits above the dots, matching the lightbox; it is
 placed with `order` because `<figcaption>` is only valid as a figure's first or

@@ -27,6 +27,9 @@
 	// article to where it sits full-screen, and back. Out is faster than in.
 	const FLIGHT_IN_MS = 340;
 	const FLIGHT_OUT_MS = 260;
+	// A dismissed photo has further to travel — it starts wherever the finger
+	// left it — so it gets a little longer to get there.
+	const FLIGHT_RETURN_MS = 300;
 	const FLIGHT_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 	const LIGHTBOX_THEME_COLOR = '#0a0a0a';
 
@@ -478,22 +481,40 @@
 	}
 
 	/**
-	 * The transform that puts `toEl` exactly on top of `fromEl`.
+	 * The transform that moves an element from the box it lays out in to some
+	 * other box on screen.
 	 *
 	 * One uniform scale, not a separate scaleX and scaleY: both ends are
 	 * `object-fit: contain` around the same file, so their aspect ratios agree
 	 * and a second axis could only ever distort the photo in flight.
 	 */
+	function deltaBetween(base, target) {
+		if (!base || !target) return null;
+		if (base.width < 1 || base.height < 1 || target.width < 1 || target.height < 1) return null;
+		return {
+			scale: target.width / base.width,
+			x: target.left + target.width / 2 - (base.left + base.width / 2),
+			y: target.top + target.height / 2 - (base.top + base.height / 2)
+		};
+	}
+
 	function flightBetween(fromEl, toEl) {
 		if (!fromEl || !toEl || typeof toEl.animate !== 'function') return null;
-		const from = fromEl.getBoundingClientRect();
-		const to = toEl.getBoundingClientRect();
-		if (from.width < 1 || from.height < 1 || to.width < 1 || to.height < 1) return null;
-		return {
-			scale: from.width / to.width,
-			x: from.left + from.width / 2 - (to.left + to.width / 2),
-			y: from.top + from.height / 2 - (to.top + to.height / 2)
-		};
+		return deltaBetween(toEl.getBoundingClientRect(), fromEl.getBoundingClientRect());
+	}
+
+	/**
+	 * A dismiss drag moves the strip, not the photo. Unwind it and hand the
+	 * distance it had travelled to the photo's own first keyframe instead, so
+	 * one animation carries the whole journey home rather than two transforms
+	 * fighting over the same pixels.
+	 */
+	function unwindStrip() {
+		const strip = rootEl?.querySelector('.lb-strip');
+		if (!strip) return;
+		strip.style.transition = 'none';
+		strip.style.transform = 'none';
+		void strip.offsetWidth;
 	}
 
 	/** Called from the portal action — the first moment the subtree is laid out. */
@@ -565,32 +586,52 @@
 	 * origin element, no layout, reduced motion, or a zoomed image, whose
 	 * on-screen box is no longer the one the flight maths assumes.
 	 */
-	function startCloseFlight() {
+	/**
+	 * Fly the photo home from wherever it currently is on screen — which is not
+	 * its layout box if the opening flight is still running, or if a dismiss drag
+	 * has carried it away from the middle.
+	 *
+	 * Every check that can refuse the flight runs before anything is unwound, so
+	 * a refusal leaves the photo exactly where the fallback expects to find it.
+	 */
+	function startCloseFlight({ carried = false, duration = FLIGHT_OUT_MS } = {}) {
 		if (prefersReducedMotion() || scale > 1) return false;
 		const to = originEl();
 		const img = currentImgEl();
-		if (!to || !img) return false;
+		if (!to || !img || typeof img.animate !== 'function') return false;
 		alignOrigin(to);
 		// Aligned and still off-screen: there is nowhere on screen to fly to, and
 		// a flight there would just be the photo leaving in a strange direction.
 		if (offScreen(to)) return false;
-		freezeTrack();
-		// Where the photo is *now* — which is not identity if the open flight is
-		// still running, and closing during it must not snap to full size first.
-		const from = getComputedStyle(img).transform;
+
+		// Measured before anything is undone: this is the box the eye is on.
+		const cur = img.getBoundingClientRect();
+		if (cur.width < 1) return false;
+
 		flightAnim?.cancel();
-		const f = flightBetween(to, img);
-		if (!f) return false;
+		if (carried) {
+			unwindStrip();
+			dragX = 0;
+			dragY = 0;
+		}
+		freezeTrack();
+
+		// ...and now the photo's own layout box, with every transform off it.
+		const base = img.getBoundingClientRect();
+		const from = deltaBetween(base, cur);
+		const home = deltaBetween(base, to.getBoundingClientRect());
+		if (!from || !home) return false;
+
 		flyingHome = true;
 		runFlight(
 			img,
-			[{ transform: from }, { transform: flightTransform(f) }],
-			FLIGHT_OUT_MS,
+			[{ transform: flightTransform(from) }, { transform: flightTransform(home) }],
+			duration,
 			'forwards',
 			() => lightboxStore.set(null)
 		);
 		// A cancelled or dropped animation must not strand the lightbox open.
-		scheduleClose(FLIGHT_OUT_MS + 120);
+		scheduleClose(duration + 120);
 		return true;
 	}
 
@@ -752,17 +793,23 @@
 		const far = Math.abs(dragY) > DISMISS_DISTANCE;
 		const flick = Math.abs(velY) > DISMISS_VELOCITY && Math.abs(dragY) > 24;
 		axis = null;
-		if (far || flick) {
-			dismissing = true;
-			// The photo is being thrown away, not flown home — so the copy on the
-			// page comes back now, behind the fading backdrop, rather than leaving
-			// a hole in the strip for the length of the throw.
-			showOrigin();
-			dragY = Math.sign(dragY || 1) * (winH || 800);
-			scheduleClose(SETTLE_MS);
-		} else {
+		if (!far && !flick) {
 			dragY = 0;
+			return;
 		}
+		// The photo goes back where it came from: it has followed the finger down,
+		// and now it travels on to the place it holds in the article — which may
+		// well be back up past where the drag started.
+		if (startCloseFlight({ carried: true, duration: FLIGHT_RETURN_MS })) {
+			closing = true;
+			return;
+		}
+		// Nothing to return to. Then it is a discard, and the copy on the page
+		// comes back now rather than leaving a hole in the strip for the throw.
+		dismissing = true;
+		showOrigin();
+		dragY = Math.sign(dragY || 1) * (winH || 800);
+		scheduleClose(SETTLE_MS);
 	}
 
 	function onPointerUp(e) {

@@ -103,6 +103,11 @@ describe('Gallery', () => {
 		);
 		track.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 40, bubbles: true }));
 		expect(onAncestorClick).toHaveBeenCalledTimes(1);
+
+		// A click no pointer began — synthetic, keyboard, assistive tech — has no
+		// press to be measured against, and must never be read as a swipe.
+		track.querySelector('img').click();
+		expect(onAncestorClick).toHaveBeenCalledTimes(2);
 	});
 
 	it('follows the scroll position with the active step', async () => {

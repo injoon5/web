@@ -109,16 +109,28 @@
 
 	// A swipe ends in a click, and the click would open the lightbox on whatever
 	// the finger happened to lift over. Only a press that stayed still is a tap.
+	//
+	// Page coordinates, not viewport ones: a tap that lands while the page is
+	// still scrolling — a smooth-scrolled anchor, momentum on iOS — moves several
+	// tens of viewport pixels without the finger going anywhere, and measuring
+	// `clientY` would throw that tap away as a swipe.
+	// `pressed` is not bookkeeping for its own sake: a click that no pointer
+	// began — a synthetic one, a keyboard activation, assistive tech — has no
+	// press to be measured against, and is never a swipe.
+	let pressed = false;
 	let pressX = 0;
 	let pressY = 0;
 
 	function onPointerDown(e) {
-		pressX = e.clientX;
-		pressY = e.clientY;
+		pressed = true;
+		pressX = e.pageX;
+		pressY = e.pageY;
 	}
 
 	function onClick(e) {
-		if (Math.hypot(e.clientX - pressX, e.clientY - pressY) <= 10) return;
+		const swiped = pressed && Math.hypot(e.pageX - pressX, e.pageY - pressY) > 10;
+		pressed = false;
+		if (!swiped) return;
 		// `lightboxAction` listens on an ancestor, so stopping here is enough.
 		e.stopPropagation();
 		e.preventDefault();
