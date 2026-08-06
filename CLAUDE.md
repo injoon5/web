@@ -381,6 +381,38 @@ item so the lightbox has something to measure and return to.
   reopening inside that window used to be shut straight back down by the timer
   from the close before it.
 
+### Keeping it at 60fps
+
+Measured on the production build at 6x CPU throttle, 390x844 @2x, counting
+frames over 20ms during each phase. The drags are the ones that matter: they run
+on the main thread, so a long frame there _is_ visible jank. The two flights are
+WAAPI transforms on the compositor, where a busy main thread starves the rAF
+counter without stalling the animation.
+
+- **`-webkit-backdrop-filter` goes before `backdrop-filter`, always.** Written
+  the other way round the minifier collapses the pair to the prefixed
+  declaration alone, and Chrome and Firefox — which have never supported the
+  `-webkit-` form — render no blur at all. Every blur in the lightbox and the
+  gallery had been shipping that way. Check `_app/immutable/assets/*.css` after
+  a build if you touch one.
+- **The blur is the most expensive thing on screen.** Over a dismiss drag: 0
+  frames missed with no blur, 2 at `blur(8px)`, 5 at the `blur(14px)
+saturate(1.1)` it started at. At the opacity the scrim actually reaches the
+  8px and 14px versions are indistinguishable, so 8px it is.
+- **The backdrop is two elements.** Fading a blurred one does not fade the blur,
+  it reveals the sharp page underneath — mid-dismiss you could read the article
+  through it. The material and the dimming are separate, the same way iOS keeps
+  them apart. This costs nothing and buys nothing on frame times; it is a
+  looks-right change.
+- **One `style:` directive per property, not one `style` string.** A single
+  string is re-parsed in full every frame of a drag, transition declaration
+  included.
+- **Writes before reads in the release handler.** Interleaving them forces a
+  layout per read, in the one frame a finger is lifted.
+- `will-change: transform` sits on `.lb-img[data-current="true"]` only — the
+  other slides ride inside the track's layer and promoting them would cost three
+  full-screen textures to animate one.
+
 ### The lightbox is a filmstrip, not a slot
 
 Every image in the group is a slide on one flex track that is translated

@@ -357,8 +357,8 @@
 		background: rgba(255, 255, 255, 0.82);
 		color: rgb(23 23 23);
 		box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
-		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
+		backdrop-filter: blur(8px);
 		cursor: pointer;
 		/* Present for a pointer, invisible until it is over the strip — an arrow
 		   parked on the photo the whole time is one more thing covering it. */

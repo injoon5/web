@@ -514,7 +514,6 @@
 		if (!strip) return;
 		strip.style.transition = 'none';
 		strip.style.transform = 'none';
-		void strip.offsetWidth;
 	}
 
 	/** Called from the portal action — the first moment the subtree is laid out. */
@@ -572,7 +571,6 @@
 		const track = rootEl?.querySelector('.lb-track');
 		if (!track) return;
 		track.style.transition = 'none';
-		void track.offsetWidth;
 	}
 
 	/** Has the element been scrolled or laid out clean off the screen? */
@@ -608,6 +606,9 @@
 		const cur = img.getBoundingClientRect();
 		if (cur.width < 1) return false;
 
+		// Every write first, then every read. Interleaving them forces a fresh
+		// layout per read, and this all happens inside the one frame a finger is
+		// lifted — the frame the eye is most likely to catch.
 		flightAnim?.cancel();
 		if (carried) {
 			unwindStrip();
@@ -1001,25 +1002,26 @@
 	// The track holds every slide at 100% of the viewport and overflows to the
 	// right, so its own width stays one page — which is what makes a percentage
 	// translate a whole page rather than a fraction of the whole strip.
-	const trackStyle = $derived(
-		`transform: translate3d(calc(${-index * 100}% + ${dragX}px), 0, 0);` +
-			`transition: ${dragging && axis === 'x' ? 'none' : motion};`
+	// Split into one binding per property. A single `style` string is re-parsed
+	// in full on every frame of a drag, transition declaration and all; `style:`
+	// directives only touch the declaration that actually changed.
+	const trackTransform = $derived(`translate3d(calc(${-index * 100}% + ${dragX}px), 0, 0)`);
+	const trackTransition = $derived(dragging && axis === 'x' ? 'none' : motion);
+
+	const stageTransform = $derived(
+		`translate3d(0, ${dragY}px, 0) scale(${dismissing ? 0.9 : 1 - dismissProgress * 0.12})`
+	);
+	const stageTransition = $derived(settling ? motion : 'none');
+
+	const imageTransform = $derived(`translate3d(${panX}px, ${panY}px, 0) scale(${scale})`);
+	const imageTransition = $derived(
+		`opacity 240ms var(--ease-out)${
+			dragging || pinching || reduceMotion ? '' : `, transform ${ZOOM_MS}ms ${SETTLE_EASE}`
+		}`
 	);
 
-	const stageStyle = $derived(
-		`transform: translate3d(0, ${dragY}px, 0) scale(${
-			dismissing ? 0.9 : 1 - dismissProgress * 0.12
-		});` + `transition: ${settling ? motion : 'none'};`
-	);
-
-	const imageStyle = $derived(
-		`transform: translate3d(${panX}px, ${panY}px, 0) scale(${scale});` +
-			`transition: opacity 240ms var(--ease-out)${
-				dragging || pinching || reduceMotion ? '' : `, transform ${ZOOM_MS}ms ${SETTLE_EASE}`
-			};`
-	);
-
-	const backdropOpacity = $derived(closing || dismissing ? 0 : 1 - dismissProgress * 0.8);
+	// Only the flat scrim's alpha follows the drag. See the note on `.lb-blur`.
+	const scrimOpacity = $derived(closing || dismissing ? 0 : 1 - dismissProgress * 0.8);
 	const chromeOpacity = $derived(
 		closing || dismissing ? 0 : Math.max(0, 1 - dismissProgress * 2.4)
 	);
@@ -1049,7 +1051,14 @@
 		aria-label={dialogLabel}
 		tabindex="-1"
 	>
-		<div class="lb-backdrop" style="opacity: {backdropOpacity}"></div>
+		<!-- Two layers because fading a blurred one does not fade the blur — it
+		     reveals the sharp page underneath it, and a dismiss drag ended up
+		     reading the article through the scrim. The material and the dimming
+		     are separate: the blur holds while the flat scrim above it follows
+		     the finger, which is the same reason iOS keeps them apart. It buys
+		     nothing on frame times; the blur costs what it costs either way. -->
+		<div class="lb-blur"></div>
+		<div class="lb-scrim" style:opacity={scrimOpacity}></div>
 
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -1064,8 +1073,8 @@
 			     an inline transform in the cascade, so sharing one would freeze the
 			     drag transform at the animation's last frame. -->
 			<div class="lb-stage">
-				<div class="lb-strip" style={stageStyle}>
-					<div class="lb-track" style={trackStyle}>
+				<div class="lb-strip" style:transform={stageTransform} style:transition={stageTransition}>
+					<div class="lb-track" style:transform={trackTransform} style:transition={trackTransition}>
 						{#each items as item, i (item.src + i)}
 							{@const near = Math.abs(i - index) <= 1}
 							{@const f = fitFor(item)}
@@ -1077,9 +1086,10 @@
 										class="lb-img"
 										class:pending={!item.loaded && !item.naturalWidth}
 										data-current={i === index ? 'true' : 'false'}
-										style="{f ? `width: ${f.w}px; height: ${f.h}px;` : ''}{i === index
-											? imageStyle
-											: ''}"
+										style:width={f ? `${f.w}px` : undefined}
+										style:height={f ? `${f.h}px` : undefined}
+										style:transform={i === index ? imageTransform : undefined}
+										style:transition={i === index ? imageTransition : undefined}
 										draggable="false"
 										decoding="async"
 										fetchpriority={i === index ? 'high' : 'low'}
@@ -1209,12 +1219,36 @@
 		-webkit-tap-highlight-color: transparent;
 	}
 
-	.lb-backdrop {
+	.lb-blur,
+	.lb-scrim {
 		position: absolute;
 		inset: 0;
+	}
+
+	/* 8px rather than the 14px-plus-saturate this started at. A full-screen
+	   backdrop filter is the single most expensive thing here — over a dismiss
+	   drag at 6x CPU throttle it costs 8 missed frames against 0 with no blur at
+	   all, and 8px halves that to 4. Side by side at the opacity the scrim
+	   actually reaches, the two are indistinguishable.
+
+	   The `-webkit-` prefix goes FIRST. Written the other way round the
+	   minifier collapses the pair down to the prefixed declaration alone, and
+	   Chrome and Firefox — which have never supported `-webkit-backdrop-filter`
+	   — then render no blur at all. That had been shipping. */
+	.lb-blur {
+		-webkit-backdrop-filter: blur(8px);
+		backdrop-filter: blur(8px);
+		animation: lb-fade-in 0.28s var(--ease-entrance) backwards;
+	}
+
+	.lb-root.closing .lb-blur,
+	.lb-root.dismissing .lb-blur {
+		opacity: 0;
+		transition: opacity 0.2s var(--ease-out);
+	}
+
+	.lb-scrim {
 		background: rgba(0, 0, 0, 0.86);
-		backdrop-filter: blur(14px) saturate(1.1);
-		-webkit-backdrop-filter: blur(14px) saturate(1.1);
 		transition: opacity 0.28s var(--ease-out);
 		/* `backwards`, not `both`. A filling animation keeps applying its last
 		   keyframe, and animations outrank inline styles in the cascade — so
@@ -1224,14 +1258,14 @@
 		will-change: opacity;
 	}
 
-	.lb-root.dragging .lb-backdrop {
+	.lb-root.dragging .lb-scrim {
 		transition: none;
 	}
 
 	/* Out faster than in, and faster than the photo it sits behind — a scrim that
 	   outlives the image reads as the lightbox hanging. */
-	.lb-root.closing .lb-backdrop,
-	.lb-root.dismissing .lb-backdrop {
+	.lb-root.closing .lb-scrim,
+	.lb-root.dismissing .lb-scrim {
 		transition-duration: 0.2s;
 	}
 
@@ -1312,8 +1346,14 @@
 		-webkit-user-drag: none;
 		cursor: zoom-in;
 		transform-origin: center center;
-		will-change: transform;
 		transition: opacity 0.24s var(--ease-out);
+	}
+
+	/* Only the photo on screen ever transforms under its own power — the others
+	   ride along inside the track's layer, and promoting them would cost three
+	   full-screen textures to animate one. */
+	.lb-img[data-current='true'] {
+		will-change: transform;
 	}
 
 	.lb-root.zoomed .lb-img[data-current='true'] {
@@ -1421,8 +1461,8 @@
 		justify-content: center;
 		border-radius: 9999px;
 		background: rgba(0, 0, 0, 0.55);
-		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
+		backdrop-filter: blur(8px);
 		color: white;
 		border: none;
 		cursor: pointer;
@@ -1546,8 +1586,8 @@
 		--pill-container-bg: rgba(0, 0, 0, 0.55);
 		--pill-container-border: rgba(255, 255, 255, 0.12);
 		--pill-focus-ring: rgba(255, 255, 255, 0.65);
-		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
+		backdrop-filter: blur(8px);
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 	}
 
