@@ -15,12 +15,23 @@ import { PUBLIC_METRICS, PUBLIC_RANGES, shiftDateKey } from '$convex/lib/health.
  * The key list itself lives in Convex, which enforces it. `goal` is a personal
  * target, not a medical one — it exists so five metrics in five different units
  * can be averaged into one number.
+ *
+ * `short` is the same metric named for a column rather than a row: the home
+ * page puts four of these side by side in ~200px each, where "Walking + running
+ * distance" wraps to three lines and stops being a label. It defaults to
+ * `label`, so a metric only needs one when the full name doesn't fit.
  */
 const PRESENTATION = {
 	steps: { label: 'Steps', unit: '', decimals: 0, goal: 10000 },
-	activeEnergy: { label: 'Active energy', unit: 'kcal', decimals: 0, goal: 500 },
+	activeEnergy: { label: 'Active energy', short: 'Energy', unit: 'kcal', decimals: 0, goal: 500 },
 	exerciseMinutes: { label: 'Exercise', unit: 'min', decimals: 0, goal: 30 },
-	distance: { label: 'Walking + running distance', unit: 'km', decimals: 1, goal: 7 }
+	distance: {
+		label: 'Walking + running distance',
+		short: 'Distance',
+		unit: 'km',
+		decimals: 1,
+		goal: 7
+	}
 };
 
 const FALLBACK = { label: '', unit: '', decimals: 0, goal: 0 };
@@ -30,12 +41,10 @@ const FALLBACK = { label: '', unit: '', decimals: 0, goal: 0 };
  * the page and the public query can't drift apart — adding a section means
  * widening what the query is permitted to serve, deliberately.
  */
-export const PAGE_METRICS = PUBLIC_METRICS.map((key) => ({
-	key,
-	...FALLBACK,
-	label: key,
-	...PRESENTATION[key]
-}));
+export const PAGE_METRICS = PUBLIC_METRICS.map((key) => {
+	const metric = { key, ...FALLBACK, label: key, ...PRESENTATION[key] };
+	return { ...metric, short: metric.short ?? metric.label };
+});
 
 /** Range picker steps. Kept coarse so every view hits the same Convex query cache entries. */
 export const RANGES = PUBLIC_RANGES;
