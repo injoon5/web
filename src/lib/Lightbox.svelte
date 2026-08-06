@@ -56,6 +56,11 @@
 	const grouped = $derived(count > 1);
 	const current = $derived(items[index] ?? null);
 	const alt = $derived(current?.alt ?? '');
+	// If any image in the group is captioned, the slot is held open for all of
+	// them. Letting it collapse changes the chrome's height, which changes the
+	// room reserved for the photo — so paging to an uncaptioned image resized
+	// the photo you were already looking at.
+	const anyCaption = $derived(items.some((i) => i?.alt));
 
 	// --- gesture state --------------------------------------------------------
 	// One pointer stream serves mouse, pen and touch. The axis is locked on the
@@ -1099,6 +1104,7 @@
 		class:flying-home={flyingHome}
 		class:dragging
 		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
+		style:--lb-spring={springOr(null, SPRING_IN)}
 		role="dialog"
 		aria-modal="true"
 		aria-label={dialogLabel}
@@ -1214,8 +1220,12 @@
 			{/if}
 
 			<div class="lb-bottom" bind:clientHeight={bottomH}>
-				{#if alt}
+				{#if anyCaption}
 					<div class="lb-caption-slot">
+						<!-- A true crossfade wants both captions alive at once, which means
+						     Svelte transitions, which are WAAPI — and that is a dependency
+						     this does not need for one line of text. The slot being held open
+						     is what actually mattered here. -->
 						{#key index}
 							<p class="lb-caption">{alt}</p>
 						{/key}
@@ -1340,7 +1350,10 @@
 	.lb-stage {
 		position: absolute;
 		inset: 0;
-		animation: lb-in 0.36s var(--ease-entrance) both;
+		/* The same spring the flight uses, so the fallback entrance — a store
+		   value set by hand, an image with no size yet — is not a stiffer
+		   animation than the one it stands in for. */
+		animation: lb-in 0.36s var(--lb-spring, var(--ease-entrance)) both;
 	}
 
 	/* When the photo flies from the place it holds in the article, it *is* the
@@ -1632,6 +1645,12 @@
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
 		overflow: hidden;
+		/* Exactly the two lines it is clamped to, always — held open even for an
+		   image with no caption, as long as something in the group has one. The
+		   chrome's height is what reserves room for the photo, so a caption that
+		   wrapped where its neighbour did not was resizing the photo you were
+		   looking at, in the middle of the slide that swapped them. */
+		min-height: 2.9em;
 		animation: lb-caption-in 0.2s var(--ease-out) both;
 	}
 

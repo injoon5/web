@@ -167,9 +167,13 @@
 		>
 			{#each images as image, i (image.src + i)}
 				<div class="gallery-slide">
+					<!-- The markdown title is what the strip shows underneath, so it has to
+					     be what the lightbox shows too — otherwise opening an image swaps
+					     its caption for its alt text, which is a different job. -->
 					<img
 						src={image.src}
 						alt={image.alt ?? ''}
+						data-lightbox-caption={image.title || undefined}
 						loading="lazy"
 						decoding="async"
 						draggable="false"

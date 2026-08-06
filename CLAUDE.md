@@ -388,6 +388,13 @@ item so the lightbox has something to measure and return to.
   ease-out this replaced was 80% of the way there a quarter of the way through
   and then crawled, which is what made opening feel stiff. There is a
   `cubic-bezier` fallback for browsers without `linear()`.
+- **The caption slot is held open across the group**, at exactly the two lines
+  it clamps to, whenever any image in the group is captioned. The chrome's
+  measured height is what reserves room for the photo, so a caption that wrapped
+  where its neighbour did not resized the photo you were looking at, in the
+  middle of the slide that was swapping them.
+- The gallery hands its markdown title through as `data-lightbox-caption`, so
+  opening an image does not swap the caption the strip showed for its alt text.
 - **What lands has to be the shape the page is about to show.** A photo back in
   its slot but still carrying a lifted photo's shadow and rounded corners reads
   as sitting on top of the article, so both are shed on the way home. The page's
