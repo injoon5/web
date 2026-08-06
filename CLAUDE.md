@@ -380,6 +380,21 @@ item so the lightbox has something to measure and return to.
 - **A close arms an unmount timer past the animation.** Opening clears it:
   reopening inside that window used to be shut straight back down by the timer
   from the close before it.
+- **The flights are springs, not curves that resemble them.** `springEasing`
+  writes a damped oscillator out as a `linear()` easing, so WAAPI still runs it
+  on the compositor. Parameterised by bounce, the damping ratio read the other
+  way up — 0.25 opening, which passes its mark by about 3%, and 0 coming home,
+  because past the mark would be past the slot the photo belongs in. The strong
+  ease-out this replaced was 80% of the way there a quarter of the way through
+  and then crawled, which is what made opening feel stiff. There is a
+  `cubic-bezier` fallback for browsers without `linear()`.
+- **What lands has to be the shape the page is about to show.** A photo back in
+  its slot but still carrying a lifted photo's shadow and rounded corners reads
+  as sitting on top of the article, so both are shed on the way home. The page's
+  own copy is handed back from the flight's `onfinish` rather than from the
+  portal's teardown — the two overlap exactly, so the swap is invisible, where
+  waiting for Svelte to unmount left the photo above the page for the frames in
+  between. The root is `pointer-events: none` for that stretch too.
 
 ### Keeping it at 60fps
 

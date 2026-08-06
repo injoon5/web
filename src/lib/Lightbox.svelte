@@ -30,6 +30,7 @@
 	// A dismissed photo has further to travel — it starts wherever the finger
 	// left it — so it gets a little longer to get there.
 	const FLIGHT_RETURN_MS = 300;
+	// Fallback for browsers without `linear()`. See `springEasing`.
 	const FLIGHT_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 	const LIGHTBOX_THEME_COLOR = '#0a0a0a';
 
@@ -417,6 +418,49 @@
 	const IDENTITY = 'translate3d(0px, 0px, 0) scale(1)';
 	const flightTransform = (f) => `translate3d(${f.x}px, ${f.y}px, 0) scale(${f.scale})`;
 
+	/**
+	 * A spring, written out as a `linear()` easing so WAAPI can still run it on
+	 * the compositor — a real spring, not a curve that resembles one.
+	 *
+	 * Parameterised by bounce rather than by mass, stiffness and damping, which
+	 * are three numbers that only mean something tuned together. `bounce` is the
+	 * damping ratio read the other way up: 0 settles without ever passing its
+	 * mark, 0.25 passes it by about 3%.
+	 *
+	 * The ease-out this replaces was 80% of the way there a quarter of the way
+	 * through and then crawled, which is what made the lightbox feel stiff on the
+	 * way in. A spring leaves at rest and accelerates.
+	 */
+	function springEasing(bounce, steps = 32) {
+		const zeta = Math.min(1, Math.max(0.05, 1 - bounce));
+		const omega = 2 * Math.PI;
+		const omegaD = omega * Math.sqrt(Math.max(1e-6, 1 - zeta * zeta));
+		const points = [];
+		for (let i = 0; i <= steps; i++) {
+			const t = i / steps;
+			const v =
+				zeta < 1
+					? 1 -
+						Math.exp(-zeta * omega * t) *
+							(Math.cos(omegaD * t) + ((zeta * omega) / omegaD) * Math.sin(omegaD * t))
+					: 1 - Math.exp(-omega * t) * (1 + omega * t);
+			points.push(Math.round(v * 1e4) / 1e4);
+		}
+		points[points.length - 1] = 1;
+		return `linear(${points.join(',')})`;
+	}
+
+	// Opening overshoots a little — it is arriving. Coming home does not: past
+	// the mark would mean past the slot the photo belongs in.
+	const SPRING_IN = springEasing(0.25);
+	const SPRING_HOME = springEasing(0);
+
+	let linearEasing;
+	function springOr(fallback, spring) {
+		linearEasing ??= !!globalThis.CSS?.supports?.('animation-timing-function', 'linear(0, 1)');
+		return linearEasing ? spring : fallback;
+	}
+
 	let flightAnim = null;
 	let hiddenOrigin = null;
 
@@ -529,8 +573,8 @@
 	 * ending and the lightbox unmounting — without it the photo snaps back to
 	 * full size for that frame.
 	 */
-	function runFlight(el, keyframes, duration, fill, onfinish) {
-		const anim = el.animate(keyframes, { duration, easing: FLIGHT_EASE, fill });
+	function runFlight(el, keyframes, duration, fill, easing, onfinish) {
+		const anim = el.animate(keyframes, { duration, easing, fill });
 		flightAnim = anim;
 		anim.oncancel = () => {
 			if (flightAnim === anim) flightAnim = null;
@@ -557,7 +601,8 @@
 			to,
 			[{ transform: flightTransform(f) }, { transform: IDENTITY }],
 			FLIGHT_IN_MS,
-			'backwards'
+			'backwards',
+			springOr(FLIGHT_EASE, SPRING_IN)
 		);
 	}
 
@@ -629,7 +674,15 @@
 			[{ transform: flightTransform(from) }, { transform: flightTransform(home) }],
 			duration,
 			'forwards',
-			() => lightboxStore.set(null)
+			springOr(FLIGHT_EASE, SPRING_HOME),
+			() => {
+				// Hand the page its photo back the instant the flying one lands on
+				// it, not after Svelte has torn the dialog down. The two overlap
+				// exactly, so the swap is invisible — where waiting left the photo
+				// sitting above the article for the frames in between.
+				showOrigin();
+				lightboxStore.set(null);
+			}
 		);
 		// A cancelled or dropped animation must not strand the lightbox open.
 		scheduleClose(duration + 120);
@@ -1015,7 +1068,7 @@
 
 	const imageTransform = $derived(`translate3d(${panX}px, ${panY}px, 0) scale(${scale})`);
 	const imageTransition = $derived(
-		`opacity 240ms var(--ease-out)${
+		`opacity 240ms var(--ease-out), box-shadow 200ms var(--ease-out), border-radius 200ms var(--ease-out)${
 			dragging || pinching || reduceMotion ? '' : `, transform ${ZOOM_MS}ms ${SETTLE_EASE}`
 		}`
 	);
@@ -1354,6 +1407,22 @@
 	   full-screen textures to animate one. */
 	.lb-img[data-current='true'] {
 		will-change: transform;
+	}
+
+	/* A photo that has landed back in the article but still carries a lifted
+	   photo's shadow and corners reads as sitting on top of the page rather than
+	   in it. Both are shed on the way home, so what lands is the same shape as
+	   what the page is about to show. */
+	.lb-root.flying-home .lb-img[data-current='true'] {
+		box-shadow:
+			0 0 0 0 rgba(0, 0, 0, 0),
+			0 0 0 0 rgba(255, 255, 255, 0);
+		border-radius: 0;
+	}
+
+	/* And it must not swallow a tap in the frames between landing and unmounting. */
+	.lb-root.flying-home {
+		pointer-events: none;
 	}
 
 	.lb-root.zoomed .lb-img[data-current='true'] {
