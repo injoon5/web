@@ -23,6 +23,11 @@
 	const SETTLE_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 	const CHROME_TOP = 72; // room the close button's row needs
 	const CHROME_BOTTOM_MIN = 56;
+	// The shared-element flight: the photo travels from where it sits in the
+	// article to where it sits full-screen, and back. Out is faster than in.
+	const FLIGHT_IN_MS = 340;
+	const FLIGHT_OUT_MS = 260;
+	const FLIGHT_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 	const LIGHTBOX_THEME_COLOR = '#0a0a0a';
 
 	let visible = $state(false);
@@ -35,6 +40,8 @@
 
 	let rootEl = $state(null);
 	let viewportEl = $state(null);
+	/** True for the whole of an open that flew, so the stage's own entrance stays off. */
+	let flying = $state(false);
 	let closeBtn = $state(null);
 	/** Measured, so the image box reserves exactly the room the chrome uses. */
 	let bottomH = $state(0);
@@ -128,6 +135,8 @@
 		unbindPointerStream();
 		moved = false;
 		resetZoom();
+		flightAnim?.cancel();
+		flightAnim = null;
 	}
 
 	// --- viewport -------------------------------------------------------------
@@ -325,10 +334,17 @@
 		// effect land in the same flush, and which of them runs first is not ours
 		// to decide.
 		inertBackground(node);
+		// Same reason the inerting lives here: this is the first moment the whole
+		// subtree is in the document and can be measured.
+		startOpenFlight(node);
 		return {
 			destroy() {
 				releaseBackground();
+				// Only now — the flying copy is gone this frame, so the page-side
+				// image reappears exactly as the lightbox's lands on it.
+				showOrigin();
 				node.remove();
+				flying = false;
 			}
 		};
 	}
@@ -343,6 +359,7 @@
 	function close() {
 		if (closing || dismissing) return;
 		closing = true;
+		if (startCloseFlight()) return;
 		scheduleClose(CLOSE_MS);
 	}
 
@@ -370,6 +387,146 @@
 		item.naturalWidth = el.naturalWidth;
 		item.naturalHeight = el.naturalHeight;
 	}
+
+	// --- shared-element flight ------------------------------------------------
+	// Driven through the Web Animations API rather than a class or an inline
+	// transform. WAAPI runs off the main thread, and — unlike an imperative
+	// `style.transform` — Svelte rewriting the `style` attribute mid-flight
+	// (which it does whenever the fit is recomputed) cannot wipe it out. No
+	// `fill: forwards` on the way in, so control returns to the inline transform
+	// the moment it lands and pan/zoom still work.
+	const IDENTITY = 'translate3d(0px, 0px, 0) scale(1)';
+	const flightTransform = (f) => `translate3d(${f.x}px, ${f.y}px, 0) scale(${f.scale})`;
+
+	let flightAnim = null;
+	let hiddenOrigin = null;
+
+	function prefersReducedMotion() {
+		return !!(
+			typeof window !== 'undefined' &&
+			window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+		);
+	}
+
+	/** The element on the page the current image came from, if it is still there. */
+	function originEl() {
+		const el = current?.el;
+		return el && el.isConnected ? el : null;
+	}
+
+	/**
+	 * `visibility`, not `display`: the element has to keep its box, both because
+	 * the flight measures it and because collapsing it would reflow the article
+	 * underneath the lightbox.
+	 */
+	function hideOrigin(el) {
+		if (hiddenOrigin?.el === el) return;
+		showOrigin();
+		if (!el) return;
+		hiddenOrigin = { el, visibility: el.style.visibility };
+		el.style.visibility = 'hidden';
+	}
+
+	function showOrigin() {
+		if (!hiddenOrigin) return;
+		hiddenOrigin.el.style.visibility = hiddenOrigin.visibility;
+		hiddenOrigin = null;
+	}
+
+	/** The lightbox's own copy of the image currently on screen. */
+	function currentImgEl() {
+		return rootEl?.querySelector('.lb-img[data-current="true"]') ?? null;
+	}
+
+	/**
+	 * Bring the element the lightbox is about to fly back to into view inside its
+	 * own scroller, so closing on the fourth image of a strip lands on the fourth
+	 * image rather than off the side of it. Horizontal scrollers only, and never
+	 * the page — that one is locked while the lightbox is open.
+	 */
+	function alignOrigin(el) {
+		for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
+			if (node.scrollWidth - node.clientWidth < 2) continue;
+			const overflowX = getComputedStyle(node).overflowX;
+			if (overflowX !== 'auto' && overflowX !== 'scroll') continue;
+			const r = el.getBoundingClientRect();
+			const cr = node.getBoundingClientRect();
+			node.scrollLeft += r.left + r.width / 2 - (cr.left + cr.width / 2);
+		}
+	}
+
+	/**
+	 * The transform that puts `toEl` exactly on top of `fromEl`.
+	 *
+	 * One uniform scale, not a separate scaleX and scaleY: both ends are
+	 * `object-fit: contain` around the same file, so their aspect ratios agree
+	 * and a second axis could only ever distort the photo in flight.
+	 */
+	function flightBetween(fromEl, toEl) {
+		if (!fromEl || !toEl || typeof toEl.animate !== 'function') return null;
+		const from = fromEl.getBoundingClientRect();
+		const to = toEl.getBoundingClientRect();
+		if (from.width < 1 || from.height < 1 || to.width < 1 || to.height < 1) return null;
+		return {
+			scale: from.width / to.width,
+			x: from.left + from.width / 2 - (to.left + to.width / 2),
+			y: from.top + from.height / 2 - (to.top + to.height / 2)
+		};
+	}
+
+	/** Called from the portal action — the first moment the subtree is laid out. */
+	function startOpenFlight(root) {
+		const from = originEl();
+		if (from) hideOrigin(from);
+		// Without a known natural size the image has no settled box yet, and
+		// `onload` would resize it out from under the animation.
+		if (prefersReducedMotion() || !currentFit) return;
+		const to = root.querySelector('.lb-img[data-current="true"]');
+		const f = flightBetween(from, to);
+		if (!f) return;
+		flying = true;
+		flightAnim?.cancel();
+		flightAnim = to.animate([{ transform: flightTransform(f) }, { transform: IDENTITY }], {
+			duration: FLIGHT_IN_MS,
+			easing: FLIGHT_EASE,
+			fill: 'backwards'
+		});
+		flightAnim.onfinish = flightAnim.oncancel = () => (flightAnim = null);
+	}
+
+	/**
+	 * Fly the photo home. Returns false when there is nowhere to fly to — no
+	 * origin element, no layout, reduced motion, or a zoomed image, whose
+	 * on-screen box is no longer the one the flight maths assumes.
+	 */
+	function startCloseFlight() {
+		if (prefersReducedMotion() || scale > 1) return false;
+		const to = originEl();
+		const img = currentImgEl();
+		if (!to || !img) return false;
+		alignOrigin(to);
+		const f = flightBetween(to, img);
+		if (!f) return false;
+		flightAnim?.cancel();
+		flying = true;
+		flightAnim = img.animate([{ transform: IDENTITY }, { transform: flightTransform(f) }], {
+			duration: FLIGHT_OUT_MS,
+			easing: FLIGHT_EASE,
+			fill: 'forwards'
+		});
+		flightAnim.onfinish = () => lightboxStore.set(null);
+		// A cancelled animation must not strand the lightbox open.
+		scheduleClose(FLIGHT_OUT_MS + 120);
+		return true;
+	}
+
+	// Keep exactly one page-side image hidden: the one the lightbox is showing,
+	// which is also the one it will fly back to.
+	$effect(() => {
+		if (!visible) return;
+		const el = originEl();
+		if (el) hideOrigin(el);
+	});
 
 	// --- pointer gestures -----------------------------------------------------
 	/** iOS's rubber band: resistance that grows with distance, never past `dim * RUBBER`. */
@@ -703,9 +860,11 @@
 		clearTimeout(closeTimer);
 		clearTimeout(wheelTimer);
 		unbindPointerStream();
+		flightAnim?.cancel();
 		restoreThemeColor();
 		unlockScroll();
 		releaseBackground();
+		showOrigin();
 		previouslyFocused = null;
 	});
 
@@ -756,6 +915,7 @@
 		class:closing
 		class:dismissing
 		class:zoomed={scale > 1}
+		class:flying
 		class:dragging
 		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
 		role="dialog"
@@ -974,6 +1134,11 @@
 		animation: lb-out 0.22s var(--ease-out) forwards;
 	}
 
+	/* When the photo flies to and from the place it holds in the article, it is
+	   the entrance — a stage scaling underneath it would be a second, contrary
+	   one. Held for the whole open, not just the flight, so releasing it could
+	   never replay `lb-in` half way through. */
+	.lb-root.flying .lb-stage,
 	.lb-root.dismissing .lb-stage {
 		animation: none;
 	}
@@ -1066,6 +1231,10 @@
 		inset: 0;
 		pointer-events: none;
 		transition: opacity 0.2s var(--ease-out);
+		/* A beat behind the photo, so the controls arrive around what has landed
+		   rather than over something still moving. `backwards` again — the inline
+		   opacity has to keep working once this is done. */
+		animation: lb-fade-in 0.3s var(--ease-out) 0.07s backwards;
 	}
 
 	/* A photo can be white to its edges, and then the close button, the caption

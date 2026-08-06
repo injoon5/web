@@ -60,7 +60,12 @@ function toItem(img) {
 		// same job — `data-lightbox-caption` says the visible one out loud.
 		alt: img.dataset?.lightboxCaption ?? img.alt,
 		naturalWidth: img.naturalWidth,
-		naturalHeight: img.naturalHeight
+		naturalHeight: img.naturalHeight,
+		// The element on the page this image is. The lightbox flies from it on
+		// open and back to it on close, and hides it in between so the same photo
+		// is never on screen twice. Optional: a caller that sets the store by hand
+		// has no element, and the lightbox falls back to a plain fade.
+		el: img
 	};
 }
 

@@ -254,6 +254,72 @@ describe('Lightbox groups', () => {
 	});
 });
 
+describe('Lightbox shared-element flight', () => {
+	/**
+	 * jsdom has no layout and no `Element.animate`, so the flight itself cannot
+	 * run here — but the half that makes it read as one photo rather than two
+	 * can: the copy on the page is hidden for exactly as long as the lightbox is
+	 * showing it.
+	 */
+	function pageImage() {
+		const img = document.createElement('img');
+		img.src = 'https://example.com/cat.jpg';
+		img.alt = 'A cat';
+		document.body.appendChild(img);
+		return img;
+	}
+
+	it('hides the image it flew from, and gives it back on close', async () => {
+		const img = pageImage();
+		render(Lightbox);
+		lightboxStore.set({ items: [{ ...openValue, el: img }], index: 0 });
+		await tick();
+		await screen.findByRole('dialog');
+
+		await waitFor(() => expect(img.style.visibility).toBe('hidden'));
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(img.style.visibility).toBe(''));
+		img.remove();
+	});
+
+	it('hides only the image it is on, and swaps as the group is paged', async () => {
+		const a = pageImage();
+		const b = pageImage();
+		render(Lightbox);
+		lightboxStore.set({
+			items: [
+				{ ...group[0], el: a },
+				{ ...group[1], el: b }
+			],
+			index: 0
+		});
+		await tick();
+		await screen.findByRole('dialog');
+		await waitFor(() => expect(a.style.visibility).toBe('hidden'));
+		expect(b.style.visibility).toBe('');
+
+		screen.getByRole('button', { name: 'Next image' }).click();
+		await tick();
+		await waitFor(() => expect(b.style.visibility).toBe('hidden'));
+		expect(a.style.visibility).toBe('');
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(b.style.visibility).toBe(''));
+		a.remove();
+		b.remove();
+	});
+
+	it('still opens from a bare store value, which carries no element to fly from', async () => {
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		expect(await screen.findByRole('dialog')).toBeInTheDocument();
+	});
+});
+
 describe('Lightbox modality', () => {
 	it('locks the page behind it and gives it back on close', async () => {
 		render(Lightbox);
@@ -368,6 +434,20 @@ describe('lightboxAction', () => {
 		let value;
 		lightboxStore.subscribe((v) => (value = v))();
 		expect(value).toBeNull();
+		destroy();
+	});
+
+	it('carries the element each image came from, so the lightbox can fly back to it', () => {
+		const { node, destroy } = mount(
+			'<div data-lightbox-group><img src="/a.png" alt="A"><img src="/b.png" alt="B"></div>'
+		);
+		const imgs = Array.from(node.querySelectorAll('img'));
+		imgs.forEach((i) => size(i));
+		imgs[1].click();
+
+		let value;
+		lightboxStore.subscribe((v) => (value = v))();
+		expect(value.items.map((i) => i.el)).toEqual(imgs);
 		destroy();
 	});
 

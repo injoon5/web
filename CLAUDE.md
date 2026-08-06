@@ -331,6 +331,37 @@ and `data-lightbox-caption` overrides the alt text. The source is taken from the
 `src` attribute rather than `currentSrc`, which on a `srcset` image is whatever
 the browser picked for the _thumbnail_ box.
 
+### It opens as the same photo, not a new one
+
+The image does not fade up in the middle of the screen. It **flies from the box
+it holds in the article to the box it holds full-screen**, and back to wherever
+that image sits when you close — which, after paging, is a different image than
+the one you opened. `lightboxAction` puts the `<img>` element itself on each
+item so the lightbox has something to measure and return to.
+
+- **The copy on the page is hidden (`visibility`, not `display`) for as long as
+  the lightbox is showing it**, and un-hidden in the portal's `destroy` — the
+  same frame the flying copy is removed, so the two are never both on screen and
+  never both absent. `display: none` would reflow the article underneath and
+  destroy the box the flight is aimed at.
+- **The flight is a WAAPI animation, not a class or an inline transform.** It
+  runs off the main thread, and — unlike `style.transform` — Svelte rewriting the
+  `style` attribute mid-flight (which it does whenever the fit is recomputed)
+  cannot wipe it out. No `fill: forwards` on the way in, so pan and zoom get
+  control back the moment it lands.
+- **One uniform scale**, never a separate scaleX/scaleY: both ends are
+  `object-fit: contain` around the same file, so their aspect ratios agree and a
+  second axis could only distort the photo in flight.
+- **Closing realigns the scroller first.** `alignOrigin` centres the target
+  inside its own horizontal scroller, so closing on the fourth image of a strip
+  lands on the fourth image instead of flying off the side of it — and the strip
+  is left where the lightbox left off. It never touches page scroll; that is
+  locked.
+- It falls back to a plain scale-and-fade whenever it cannot fly: no origin
+  element (a caller that set the store by hand), no natural size yet, a zoomed
+  image, reduced motion, or no layout at all (which is what keeps jsdom happy).
+  Swipe-to-dismiss keeps its throw — that gesture is a discard, not a return.
+
 ### The lightbox is a filmstrip, not a slot
 
 Every image in the group is a slide on one flex track that is translated
