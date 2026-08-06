@@ -76,11 +76,14 @@ export const NAV_DEFAULTS = {
 	surfaceRange: 64,
 	/**
 	 * How deep the soft lower lip of the wordmark's window is, in px — the band
-	 * the name dissolves through on its way in rather than being cut off by. It
-	 * sits under the line box, in the row's own bottom padding, so 12 is as far
-	 * as it can go before it reaches the hairline. 0 is a hard clip.
+	 * the name dissolves through on its way in rather than being cut off by, and
+	 * the whole of it is the gradient. It is opened below the type's own line, so
+	 * however deep it goes the resting name is never touched. 12 keeps it inside
+	 * the row's bottom padding; past that it hangs below the hairline, which only
+	 * shows while the name is moving and only where the hero name already is.
+	 * 0 is a hard clip.
 	 */
-	namePortal: 12,
+	namePortal: 20,
 
 	/** Panel growth and chevron rotation, in ms. */
 	duration: 320,

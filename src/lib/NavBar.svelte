@@ -551,14 +551,27 @@
 
 	   And the hole has a soft lower lip, `--nav-name-portal` deep, so the type
 	   dissolves into it rather than being sliced off by a clip edge — a name
-	   coming through a threshold instead of out from behind a shelf. The band
-	   has to be _below_ the line box, not the bottom of it, or the resting
-	   wordmark would sit with its own baseline faded: the padding opens that
-	   much extra room under the type and the equal negative margin takes it back
-	   out of the layout, so the box that gets clipped and masked is taller than
-	   the box the row measures. Nothing moves, `--nav-h` does not change, and
-	   the overhang lands inside the row's own bottom padding rather than over
-	   the hairline.
+	   coming through a threshold instead of out from behind a shelf. The lip is
+	   room opened _below_ the line box: `padding-bottom` adds it and an equal
+	   negative `margin-bottom` takes it straight back out of the layout, so the
+	   box that gets clipped and masked is taller than the box the row measures.
+	   Nothing moves and `--nav-h` does not change.
+
+	   The gradient is full to nothing across that whole lip, and its solid end is
+	   pinned to `2rem` — the line the type is set on — rather than measured up
+	   from the bottom edge. That is what keeps a deeper lip a longer dissolve
+	   instead of a bite taken out of the wordmark: the resting name's ink ends at
+	   30px of a 32px line, so the ramp starts 2px under the tail of its `j` and
+	   everything above it is untouched at any depth. Measured, not assumed —
+	   `fontBoundingBoxAscent` puts the baseline at 25 and the `j` reaches 5 past
+	   it.
+
+	   Past 12px the lip hangs below the hairline, which is deliberate and only
+	   ever true while the name is moving: the type is only down there when the
+	   roll is more than 12px from home, and every one of those pixels is a
+	   pixel where the hero name is sitting in exactly the same place. Once the
+	   wordmark is seated the band is empty, so nothing paints outside the header
+	   on any other page or at rest.
 
 	   `opacity` and `translate` are both composited, and this is the only thing
 	   asking for either on this element, so the whole handover runs off the main
@@ -568,13 +581,9 @@
 	   static, so it costs the same nothing. */
 	.nav-name {
 		overflow: hidden;
-		padding-bottom: var(--nav-name-portal, 12px);
-		margin-bottom: calc(-1 * var(--nav-name-portal, 12px));
-		mask-image: linear-gradient(
-			to bottom,
-			#000 calc(100% - var(--nav-name-portal, 12px)),
-			transparent 100%
-		);
+		padding-bottom: var(--nav-name-portal, 20px);
+		margin-bottom: calc(-1 * var(--nav-name-portal, 20px));
+		mask-image: linear-gradient(to bottom, #000 2rem, transparent 100%);
 	}
 
 	.nav-name-roll {

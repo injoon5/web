@@ -647,14 +647,21 @@ pieces of that are load-bearing:
   a box that translates takes its own overflow with it. The observer fallback
   keeps the old 4px nudge — a roll reads as movement against the page and as a
   swoosh against a clock.
-- **The hole has a soft lower lip, `--nav-name-portal` (12px)**, so the wordmark
+- **The hole has a soft lower lip, `--nav-name-portal` (20px)**, so the wordmark
   dissolves through a threshold instead of being sliced off by a clip edge. The
-  band has to sit _below_ the line box rather than take up the bottom of it, or
-  the resting name would have its own baseline faded: `padding-bottom` opens
-  that much extra room under the type and an equal negative `margin-bottom`
-  takes it back out of the layout, so the box that gets clipped and masked is
-  taller than the box the row measures. The row stays 56px, `--nav-h` does not
-  move, and 12px is as deep as the lip can go before it reaches the hairline.
+  lip is room opened _below_ the line box: `padding-bottom` adds it and an equal
+  negative `margin-bottom` takes it back out of the layout, so the box that gets
+  clipped and masked is taller than the box the row measures. The row stays 56px
+  and `--nav-h` does not move.
+- **The mask's solid end is pinned to `2rem`, the type's own line** — not
+  measured up from the bottom edge. That is what makes a deeper lip a longer
+  dissolve rather than a bite out of the wordmark: the resting name's ink ends
+  at 30px of a 32px line (`fontBoundingBoxAscent` puts the baseline at 25, the
+  `j` reaches 5 past it), so the ramp starts 2px under it at any depth. The
+  resting name screenshots byte-identical with the mask and without it. Past
+  12px the lip hangs below the hairline, which is only ever true while the name
+  is moving, and every pixel of it is a pixel where the hero name is sitting in
+  exactly the same place.
 - **The fade is on the roll, not on the type.** The English and Korean spans
   cross-fade on their own `opacity` on hover, and an animation outranks every
   declaration for the property it runs on, so a scroll-driven `opacity` on the
