@@ -13,6 +13,7 @@ import { createHighlighter } from './src/lib/prettyCodeHighlighter.js';
 import { remarkReadingTime } from './src/lib/remarkReadingTime.js';
 import { remarkGallery } from './src/lib/remarkGallery.js';
 import { rehypeStripCodeTabindex } from './src/lib/rehypeStripCodeTabindex.js';
+import { rehypeLazyImages } from './src/lib/rehypeLazyImages.js';
 
 const config = {
 	extensions: ['.md'],
@@ -51,7 +52,8 @@ const config = {
 		rehypeFigure,
 		[rehypeExternalLinks, { target: ['_blank'], rel: ['noopener noreferrer'] }],
 		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }],
-		rehypeStripCodeTabindex
+		rehypeStripCodeTabindex,
+		rehypeLazyImages
 	]
 };
 

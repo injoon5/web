@@ -71,6 +71,7 @@
 <svelte:head>
 	<link rel="canonical" href="https://www.injoon5.com{page.url.pathname}" />
 	<meta property="og:site_name" content="Injoon Oh" />
+	<link rel="preconnect" href={PUBLIC_CONVEX_URL} />
 </svelte:head>
 
 <!-- Sticky shell, blurred surface and scroll state all live inside NavBar: its
