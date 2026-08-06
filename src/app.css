@@ -44,9 +44,41 @@
 		border-color: var(--color-neutral-200, currentcolor);
 	}
 
+	/* The height of the sticky header, as a token, because more than the header
+	   needs to know it: the anchor offset below, the table of contents' own
+	   sticky top, and the home page's hero handover all measure from the bottom
+	   edge of that bar. 3.5rem is what the shipped row comes to — a 32px line box
+	   with 12px of padding either side — and it has to be written here as a
+	   static value rather than measured, because a visitor arriving on a `#hash`
+	   is scrolled by the browser while the document is still parsing, long before
+	   any script could measure anything. `NavBar` re-publishes the row's real
+	   height once it has one, so a row that is ever set taller — or moved by the
+	   dials on a preview — carries all of this with it. */
+	:root {
+		--nav-h: 3.5rem;
+
+		/* The home page's hero name declares a view timeline under this name, and
+		   the header's wordmark animates on it. Neither is an ancestor of the
+		   other — they are siblings under `body` — so the name has to be hoisted
+		   to something that contains both, and this is the only place that does.
+		   On every other page nothing declares it, which is exactly why the
+		   header gates that animation on being on the home page rather than
+		   relying on an unresolved name to do nothing. */
+		timeline-scope: --nav-hero-name;
+	}
+
 	html {
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+
+		/* Every kind of jump the browser performs lands its target at the top of
+		   the scrollport, which is behind the header: a `#hash` link, the table of
+		   contents, find-in-page, scroll-to-text-fragment and tabbing to something
+		   off screen. Without this a deep link to a heading put the whole heading
+		   under the bar and opened the page on the paragraph after it. The extra
+		   1rem is so the target arrives with air above it instead of wedged
+		   against the hairline. */
+		scroll-padding-top: calc(var(--nav-h) + 1rem);
 
 		/* Both properties inherit, so this reaches every scroll container on the
 		   page — the code blocks and wide tables in prose included, not just the
@@ -66,15 +98,6 @@
 
 	::selection {
 		background-color: rgba(120, 120, 120, 0.25);
-	}
-
-	/* Reserve room for the mobile floating dock (rendered by NavBar) so
-	   nothing — including the footer — hides behind it. Disabled at sm+
-	   where the dock is replaced by the in-nav links. */
-	@media (max-width: 639.98px) {
-		body {
-			padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5rem);
-		}
 	}
 }
 

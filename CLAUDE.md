@@ -547,7 +547,7 @@ the route:
 | `Home`         | `lib/home/HomeDials.svelte`       | marquee speed, cover size/gap/scrim, photo columns/count/gap     |
 | `Article`      | `lib/article/ArticleDials.svelte` | link underline + offset + thickness, body size, leading, measure |
 | `Health chart` | `lib/health/HealthDials.svelte`   | chart geometry and colours                                       |
-| `Nav`          | `lib/NavDials.svelte`             | header axis, row spacing, disclosure spacing, chevron, motion    |
+| `Nav`          | `lib/NavDials.svelte`             | header axis, row spacing, disclosure, chevron, surface, motion   |
 
 `Nav` is the one panel present on every route, and it is not the site-wide panel
 the rule above exists to prevent: that rule is about controls for tokens the
@@ -589,6 +589,91 @@ Three traps, all already sprung:
   `<svelte:head>`, not from `app.css`, so production carries no trace of them.
   They are unlayered on purpose: that is what lets the measure rule outrank
   Tailwind's own `.max-w-6xl` in `@layer utilities`.
+
+---
+
+## The Header (`src/lib/NavBar.svelte`)
+
+`position: sticky; top: 0`, in flow, and it never leaves — no auto-hide, no
+condense. What it does instead of moving is read where the page is, and the
+pieces of that are load-bearing:
+
+- **`--nav-h` has to be a static value in `app.css`.** It is what
+  `scroll-padding-top` is built from, and without that offset a `#hash` link
+  landed its heading entirely behind the 56px bar and opened the page on the
+  paragraph after it. The reason it cannot simply be measured is timing: the
+  browser scrolls to a deep link while the document is still parsing, long
+  before any script runs. `NavBar` re-publishes the row's measured height onto
+  `documentElement` once it has one, so a row moved by the dials carries the
+  anchor offset with it — but the shipped number lives in CSS.
+- **The surface is a scroll-driven animation, not a scroll listener.** A
+  `scroll(root block)` timeline on the shell carries `--nav-surface-scroll` from
+  0 to 1 over `--nav-surface-range` (64px), and the tint and hairline fade with
+  it. The listener is installed only where `CSS.supports('animation-timeline',
+'scroll()')` is false, and drives the old on/off switch through
+  `[data-scrolled]`.
+- **`opacity: max(--nav-surface-scroll, --nav-surface-menu)`, and both are
+  registered `@property` numbers.** The disclosure drops over page content from
+  scroll offset 0, so it has to be able to paint the surface itself. Animating
+  `opacity` directly cannot express that: an animation outranks every
+  declaration for the property it runs on, so the open menu would have had
+  nothing to say. Two inputs with their own timing — one on the scrollbar, one
+  on a 200ms transition — composed by `max()`, is what lets opening the menu at
+  the top and closing it again still fade.
+- **The wordmark is handed over on the hero's own view progress, one to one.**
+  The home page's hero `h2` declares `view-timeline-name: --nav-hero-name` with
+  `view-timeline-inset: var(--nav-h) auto` — so the edge it measures against is
+  the bottom of the header, not the top of the viewport — and `.nav-name-roll`
+  animates across that subject's `exit`. However much of the hero name has gone
+  under the bar is however much of the header's has arrived. `:root` carries the
+  `timeline-scope`, because the two elements are siblings under `body`; the
+  animation is gated on `[data-home='true']` rather than on the name failing to
+  resolve, since `timeline-scope` keeps it alive-but-inactive everywhere.
+  **There is deliberately no dial for the range** — a knob there is a knob for
+  taking the two names out of step.
+- **It lands _on_ the hero name, not merely in step with it.** The roll starts
+  at `--nav-name-travel` — `(--nav-h + 2rem) / 2`, 44px — which is the gap
+  between where the inset puts the hero name at the range's start and where the
+  wordmark rests in the row. Anything else leaves the two names a constant 12px
+  apart for the whole crossing, which is a double image over the few pixels
+  where both are visible. **Two animations on the one timeline**, because the
+  ranges differ: the fade runs `exit` (the hero's own 32px, so arrival tracks
+  disappearance 1:1) and the rise runs `exit 0px exit var(--nav-name-travel)`
+  (44px of travel over 44px of scroll — the page's own rate — landing in the
+  row 12px after the hero is gone). One animation would mean writing the fade's
+  end as `72.7%`, both variables baked into a number.
+- **`.nav-name` is the hole `.nav-name-roll` moves through**, and it has to be a
+  second element: the clip has to hold still while the type inside it moves, and
+  a box that translates takes its own overflow with it. The observer fallback
+  keeps the old 4px nudge — a roll reads as movement against the page and as a
+  swoosh against a clock.
+- **The hole has a soft lower lip, `--nav-name-portal` (20px)**, so the wordmark
+  dissolves through a threshold instead of being sliced off by a clip edge. The
+  lip is room opened _below_ the line box: `padding-bottom` adds it and an equal
+  negative `margin-bottom` takes it back out of the layout, so the box that gets
+  clipped and masked is taller than the box the row measures. The row stays 56px
+  and `--nav-h` does not move.
+- **The mask's solid end is pinned to `2rem`, the type's own line** — not
+  measured up from the bottom edge. That is what makes a deeper lip a longer
+  dissolve rather than a bite out of the wordmark: the resting name's ink ends
+  at 30px of a 32px line (`fontBoundingBoxAscent` puts the baseline at 25, the
+  `j` reaches 5 past it), so the ramp starts 2px under it at any depth. The
+  resting name screenshots byte-identical with the mask and without it. Past
+  12px the lip hangs below the hairline, which is only ever true while the name
+  is moving, and every pixel of it is a pixel where the hero name is sitting in
+  exactly the same place.
+- **The fade is on the roll, not on the type.** The English and Korean spans
+  cross-fade on their own `opacity` on hover, and an animation outranks every
+  declaration for the property it runs on, so a scroll-driven `opacity` on the
+  English span would have killed `group-hover:opacity-0` on the one page it
+  runs. On the roll it multiplies through both. It also keeps the handover to
+  `opacity` and `translate` alone, which is what keeps it on the compositor —
+  the registered-property-and-`max()` shape the surface needs would not be.
+- The global `prefers-reduced-motion` rule collapses every `animation-duration`
+  to 0.001ms, which would strand a progress-timeline animation at one end. Both
+  `.nav-shell` and `.nav-name` re-assert `animation-duration: auto` under that
+  media query. A tint or a name tracking the scrollbar is the page moving, not
+  motion of its own.
 
 ---
 

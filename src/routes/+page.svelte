@@ -41,11 +41,17 @@
 	});
 
 	onMount(() => {
-		// Flip once the hero name passes behind the ~64px-tall sticky nav, so the
-		// navbar name fades in right as the hero tucks away.
+		// Flip once the hero name passes behind the sticky nav, so the navbar name
+		// fades in right as the hero tucks away. The margin is the header's own
+		// height, measured rather than asserted: the row is 56px, and the 64 that
+		// used to be written here handed the name over 8px after the hero was
+		// already gone.
+		const navHeight = Math.round(
+			document.getElementById('site-nav')?.getBoundingClientRect().height ?? 56
+		);
 		heroObserver = new IntersectionObserver(
 			([entry]) => heroNameVisible.set(entry.isIntersecting),
-			{ rootMargin: '-64px 0px 0px 0px', threshold: 0 }
+			{ rootMargin: `-${navHeight}px 0px 0px 0px`, threshold: 0 }
 		);
 		if (heroNameEl) heroObserver.observe(heroNameEl);
 	});
@@ -85,7 +91,7 @@
 			</h2>
 			<h2
 				bind:this={heroNameEl}
-				class="font-sans text-2xl font-medium tracking-tight text-balance text-neutral-900 dark:text-neutral-100"
+				class="hero-name font-sans text-2xl font-medium tracking-tight text-balance text-neutral-900 dark:text-neutral-100"
 			>
 				Injoon Oh
 			</h2>
@@ -416,6 +422,23 @@
 <HomeDialsMount />
 
 <style>
+	/* The header's wordmark is this one's counterpoint — it arrives exactly as
+	   this slides away behind the bar — and it gets there by reading this
+	   element's own progress across the viewport rather than being told when to
+	   start. Naming a view timeline here is the whole of that: `NavBar` binds an
+	   animation to `--nav-hero-name`, `:root` carries the `timeline-scope` that
+	   lets a name declared inside the page reach a header that is its sibling,
+	   and no page but this one defines it, so no page but this one hands over.
+
+	   The inset moves the edge the progress is measured against off the top of
+	   the scrollport and onto the bottom of the header, which is where this name
+	   actually goes out of sight. `auto` would have taken `scroll-padding-top`
+	   instead — the anchor offset, which is deliberately 16px further down. */
+	.hero-name {
+		view-timeline-name: --nav-hero-name;
+		view-timeline-inset: var(--nav-h) auto;
+	}
+
 	/* Each of these keeps the value the class used to hard-code as its fallback,
 	   so the page renders identically when nothing sets the variable — which is
 	   every production build. */

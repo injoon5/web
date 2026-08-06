@@ -46,6 +46,15 @@
 		},
 		motion: {
 			_collapsed: true,
+			// In px of scroll, not ms — the surface is on a scroll timeline, so this
+			// one is measured against the page rather than the clock. Drag the window
+			// down slowly to judge it.
+			surfaceRange: [NAV_DEFAULTS.surfaceRange, 0, 240, 4],
+			// How deep the lower lip of the wordmark's window is, in px, all of it
+			// gradient. Only visible on the home page and only while the name is
+			// coming through it; 12 is where it reaches the hairline, past that it
+			// hangs below one.
+			namePortal: [NAV_DEFAULTS.namePortal, 0, 32, 1],
 			duration: [NAV_DEFAULTS.duration, 80, 800, 10],
 			linkDuration: [NAV_DEFAULTS.linkDuration, 80, 800, 10],
 			staggerBase: [NAV_DEFAULTS.staggerBase, 0, 200, 5],

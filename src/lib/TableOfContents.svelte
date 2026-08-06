@@ -53,6 +53,9 @@
 		return () => observer.disconnect();
 	});
 
+	// `block: 'start'` means the top of the scrollport, which is behind the sticky
+	// header — `scroll-padding-top` on `html` is what holds the heading clear of
+	// it, so this needs no offset of its own.
 	function scrollTo(id) {
 		const el = document.getElementById(id);
 		if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -64,7 +67,7 @@
 {#if headings.length > 1}
 	<nav
 		aria-label="Table of contents"
-		class="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto"
+		class="sticky top-[calc(var(--nav-h)+2.5rem)] max-h-[calc(100vh-var(--nav-h)-3.5rem)] overflow-y-auto"
 	>
 		<p
 			class="mb-2 text-[10px] font-semibold tracking-widest text-neutral-400 uppercase dark:text-neutral-500"
