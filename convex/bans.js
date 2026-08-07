@@ -3,11 +3,15 @@ import { mutation, query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
 import { publicBan } from './lib/serialize.js';
 
+// The admin list is not paginated, so it reads a bounded page rather than the
+// whole table.
+const BAN_LIMIT = 1000;
+
 export const list = query({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
 		await assertAdmin(adminSecret);
-		const rows = await ctx.db.query('bannedIps').collect();
+		const rows = await ctx.db.query('bannedIps').take(BAN_LIMIT);
 		rows.sort((a, b) => b._creationTime - a._creationTime);
 		return rows.map(publicBan);
 	}

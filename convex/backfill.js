@@ -1,7 +1,6 @@
 import { v } from 'convex/values';
 import { internal } from './_generated/api.js';
-import { internalMutation, mutation } from './_generated/server.js';
-import { assertAdmin } from './lib/auth.js';
+import { internalMutation } from './_generated/server.js';
 import {
 	setLikeCountsBackfillComplete,
 	setUrlCountsBackfillComplete,
@@ -12,6 +11,8 @@ import { applyLikeCountDeltas } from './lib/likeCounts.js';
 import { countAllVotes } from './lib/votes.js';
 
 const BATCH_SIZE = 100;
+// One counter row per distinct URL, so this is comfortably the whole table.
+const RESET_LIMIT = 2000;
 
 export const backfillVoteCountsBatch = internalMutation({
 	args: { cursor: v.union(v.string(), v.null()) },
@@ -45,7 +46,9 @@ export const backfillUrlCountsBatch = internalMutation({
 	},
 	handler: async (ctx, { cursor, reset }) => {
 		if (reset) {
-			const existing = await ctx.db.query('commentUrlCounts').collect();
+			// Bounded: an unbounded collect-and-delete is one transaction whose size
+			// grows with the table.
+			const existing = await ctx.db.query('commentUrlCounts').take(RESET_LIMIT);
 			for (const row of existing) {
 				await ctx.db.delete('commentUrlCounts', row._id);
 			}
@@ -85,7 +88,7 @@ export const backfillLikeCountsBatch = internalMutation({
 	},
 	handler: async (ctx, { cursor, reset }) => {
 		if (reset) {
-			const existing = await ctx.db.query('likeCounts').collect();
+			const existing = await ctx.db.query('likeCounts').take(RESET_LIMIT);
 			for (const row of existing) {
 				await ctx.db.delete('likeCounts', row._id);
 			}
@@ -114,11 +117,11 @@ export const backfillLikeCountsBatch = internalMutation({
 	}
 });
 
-export const run = mutation({
-	args: { adminSecret: v.string() },
-	handler: async (ctx, { adminSecret }) => {
-		await assertAdmin(adminSecret);
-
+// Internal: it has no caller in the app, and a public mutation is reachable by
+// anyone with the deployment URL. Run it from the Convex dashboard.
+export const run = internalMutation({
+	args: {},
+	handler: async (ctx) => {
 		await ctx.scheduler.runAfter(0, internal.backfill.backfillVoteCountsBatch, {
 			cursor: null
 		});

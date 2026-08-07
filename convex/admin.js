@@ -6,13 +6,16 @@ import { adminComment } from './lib/serialize.js';
 import { isUrlCountsBackfillComplete } from './lib/migration.js';
 import { getVoteCounts, voteCountsFromDoc } from './lib/votes.js';
 
+// One row per commented-on URL — a bound, not a page.
+const URL_LIMIT = 2000;
+
 export const listUrls = query({
 	args: { adminSecret: v.string() },
 	handler: async (ctx, { adminSecret }) => {
 		await assertAdmin(adminSecret);
 
 		const backfillComplete = await isUrlCountsBackfillComplete(ctx);
-		const rows = await ctx.db.query('commentUrlCounts').collect();
+		const rows = await ctx.db.query('commentUrlCounts').take(URL_LIMIT);
 		const counts = new Map(rows.map(({ url, count }) => [url, count]));
 
 		if (!backfillComplete) {
