@@ -14,9 +14,22 @@
 	const TAP_SLOP = 6; // px of movement that turns a tap into a drag
 	const CLOSE_MS = 220;
 	// Paging is the thing you do most once the lightbox is open, so it is tuned
-	// as an interaction and not as a modal: 340ms with the drawer curve reads as
-	// physical without ever feeling like a wait.
+	// as an interaction and not as a modal: 340ms for a whole page, less for a
+	// shorter journey, and never so brief that the eye loses the photo.
 	const SETTLE_MS = 340;
+	const SETTLE_MIN_MS = 190;
+	// ms of pointer history a release is judged on. See `velocityAt`.
+	const VELOCITY_WINDOW = 60;
+	// The settle spring's initial velocity, in fractions of the remaining
+	// distance per unit of its own duration. 6 is where a critically damped
+	// spring starts to overshoot; a page that sailed past its slot and came back
+	// would be a bounce the scroller outside does not have. Negative is a release
+	// still travelling outward from a rubber band, which does carry on and return.
+	const SETTLE_V0_MAX = 6;
+	const SETTLE_V0_MIN = -3;
+	// A trackpad's momentum keeps arriving after the fingers are gone, so the
+	// gesture is over when the events stop, not when a finger lifts.
+	const WHEEL_IDLE_MS = 90;
 	const ZOOM_MS = 280;
 	// The curve every settle uses: fast out of the finger, long soft landing.
 	// (Ionic's drawer curve — the same one Vaul uses.)
@@ -39,6 +52,13 @@
 	// there is only one code path through sizing, swiping and dismissal.
 	let items = $state([]);
 	let index = $state(0);
+	// `index` a frame late, and the only thing that decides which slides carry a
+	// `src`. Mounting the next neighbour's <img> in the same commit that starts
+	// the page makes that one frame long, so the settle begins late and the whole
+	// slide reads as a stutter — a frame later the track's transform is already
+	// on the compositor and no DOM work can stall it. It catches up immediately
+	// on a jump of more than one step, where there is no in-between to protect.
+	let windowIndex = $state(0);
 	let closing = $state(false);
 	let dismissing = $state(false);
 
@@ -72,6 +92,15 @@
 	let pinching = $state(false);
 	let dragX = $state(0);
 	let dragY = $state(0);
+	/** A trackpad swipe is moving the track right now, so nothing may transition it. */
+	let wheeling = $state(false);
+	/**
+	 * The one-off `transition` a released gesture hands the track: its own
+	 * duration and its own spring, built from how far it still has to go and how
+	 * fast it was going. Null between gestures, where the shared `motion` applies
+	 * — an arrow key or a tapped dot has no velocity to carry.
+	 */
+	let trackSettle = $state(null);
 
 	// Zoom is one number. There used to be two (a click-to-zoom flag that swapped
 	// the image's width, and a pinch scale), and they could disagree.
@@ -101,11 +130,14 @@
 
 	let startX = 0;
 	let startY = 0;
-	let lastX = 0;
-	let lastY = 0;
-	let lastT = 0;
-	let velX = 0;
-	let velY = 0;
+	// The lock threshold, taken back out of the first frame after the axis is
+	// decided. Without it the photo is still for 8px and then jumps 8px, which is
+	// the one moment the eye is certain to be on it.
+	let slopX = 0;
+	let slopY = 0;
+	// Where the track was when the drag took it over, so a swipe that interrupts
+	// a settle continues from there instead of snapping to the resting position.
+	let carryX = 0;
 	let panStartX = 0;
 	let panStartY = 0;
 	let pinchStartDist = 0;
@@ -116,8 +148,47 @@
 	let pinchCentreY = 0;
 	let moved = false;
 	let closeTimer;
-	let wheelPage = 0;
+	let settleTimer;
+	let wheelRaw = 0;
+	let wheelCarry = 0;
 	let wheelTimer;
+
+	/**
+	 * Recent pointer positions, newest last. A release is judged on the whole
+	 * `VELOCITY_WINDOW` rather than on the last pointermove: two events 4ms apart
+	 * on a 120Hz screen make a single-sample velocity mostly noise, which is what
+	 * let an obvious flick fail to page and a careful nudge shoot away.
+	 * Deliberately not `$state` — nothing renders from it and it changes on every
+	 * move.
+	 * @type {Array<{ x: number, y: number, t: number }>}
+	 */
+	let samples = [];
+
+	function sample(x, y, t) {
+		samples.push({ x, y, t });
+		if (samples.length > 16) samples.shift();
+	}
+
+	/**
+	 * px/ms over the window ending at `now`. A finger that has been resting sends
+	 * no moves at all, so its samples fall out of the window and it has no
+	 * velocity — which is right: a held finger is not a flick, however fast it
+	 * arrived.
+	 */
+	function velocityAt(now) {
+		let first = null;
+		for (const s of samples) {
+			if (now - s.t <= VELOCITY_WINDOW) {
+				first = s;
+				break;
+			}
+		}
+		const last = samples[samples.length - 1];
+		if (!first || !last || first === last) return { x: 0, y: 0 };
+		const dt = last.t - first.t;
+		if (dt <= 0) return { x: 0, y: 0 };
+		return { x: (last.x - first.x) / dt, y: (last.y - first.y) / dt };
+	}
 
 	let reduceMotion = $state(false);
 
@@ -143,9 +214,14 @@
 		dragging = false;
 		pinching = false;
 		pointers = [];
+		samples = [];
+		slopX = slopY = carryX = 0;
 		unbindPointerStream();
+		endWheelGesture();
 		moved = false;
 		resetZoom();
+		clearTimeout(settleTimer);
+		trackSettle = null;
 		flightAnim?.cancel();
 		flightAnim = null;
 	}
@@ -192,6 +268,8 @@
 			clearTimeout(closeTimer);
 			items = val.items;
 			index = val.index;
+			// The first paint has to carry the image, not wait a frame for it.
+			windowIndex = val.index;
 			resetGesture();
 			closing = false;
 			dismissing = false;
@@ -207,10 +285,25 @@
 			// pointerup, which may never come.
 			pointers = [];
 			unbindPointerStream();
+			// ...and a trackpad swipe closed mid-coast would otherwise settle onto a
+			// lightbox that is no longer there.
+			endWheelGesture();
 			dragging = false;
 			pinching = false;
 			axis = null;
 		}
+	});
+
+	// Let the render window follow one frame behind. See `windowIndex`.
+	$effect(() => {
+		const to = index;
+		if (windowIndex === to) return;
+		if (Math.abs(to - windowIndex) > 1 || typeof requestAnimationFrame !== 'function') {
+			windowIndex = to;
+			return;
+		}
+		const frame = requestAnimationFrame(() => (windowIndex = to));
+		return () => cancelAnimationFrame(frame);
 	});
 
 	// A resize can leave a zoomed image panned past its own edge.
@@ -435,8 +528,15 @@
 	 * The ease-out this replaces was 80% of the way there a quarter of the way
 	 * through and then crawled, which is what made the lightbox feel stiff on the
 	 * way in. A spring leaves at rest and accelerates.
+	 *
+	 * `velocity` is what the spring is already travelling at when it starts, in
+	 * fractions of the distance per unit of the animation's own duration. A
+	 * settle handed the speed the finger left at is continuous with the gesture;
+	 * a fixed curve leaves at the same rate whether the photo was thrown or
+	 * nudged, which is the whole of why paging felt detached from the swipe.
+	 * Zero is a spring released from rest, which is every flight.
 	 */
-	function springEasing(bounce, steps = 32) {
+	function springEasing(bounce, velocity = 0, steps = 32) {
 		const zeta = Math.min(1, Math.max(0.05, 1 - bounce));
 		const omega = 2 * Math.PI;
 		const omegaD = omega * Math.sqrt(Math.max(1e-6, 1 - zeta * zeta));
@@ -447,8 +547,8 @@
 				zeta < 1
 					? 1 -
 						Math.exp(-zeta * omega * t) *
-							(Math.cos(omegaD * t) + ((zeta * omega) / omegaD) * Math.sin(omegaD * t))
-					: 1 - Math.exp(-omega * t) * (1 + omega * t);
+							(Math.cos(omegaD * t) + ((zeta * omega - velocity) / omegaD) * Math.sin(omegaD * t))
+					: 1 + (-1 + (velocity - omega) * t) * Math.exp(-omega * t);
 			points.push(Math.round(v * 1e4) / 1e4);
 		}
 		points[points.length - 1] = 1;
@@ -755,10 +855,10 @@
 	}
 
 	function seedDrag(x, y, t) {
-		startX = lastX = x;
-		startY = lastY = y;
-		lastT = t;
-		velX = velY = 0;
+		startX = x;
+		startY = y;
+		samples = [{ x, y, t }];
+		slopX = slopY = carryX = 0;
 		panStartX = panX;
 		panStartY = panY;
 		dragging = true;
@@ -789,6 +889,9 @@
 	function onPointerDown(e) {
 		if (closing || dismissing) return;
 		if (e.pointerType === 'mouse' && e.button !== 0) return;
+		// A finger on the photo ends any trackpad swipe still coasting; the drag
+		// picks the track up from wherever that left it.
+		endWheelGesture();
 		if (pointers.length === 0) bindPointerStream();
 		trackPointer(e);
 		if (pointers.length === 2) {
@@ -813,12 +916,7 @@
 		const dy = e.clientY - startY;
 		if (!moved && Math.hypot(dx, dy) > TAP_SLOP) moved = true;
 
-		const dt = Math.max(1, e.timeStamp - lastT);
-		velX = (e.clientX - lastX) / dt;
-		velY = (e.clientY - lastY) / dt;
-		lastX = e.clientX;
-		lastY = e.clientY;
-		lastT = e.timeStamp;
+		sample(e.clientX, e.clientY, e.timeStamp);
 
 		if (axis === 'pan') {
 			panX = panStartX + dx;
@@ -831,24 +929,101 @@
 			if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
 			// Sideways only means something when there is somewhere to go.
 			axis = grouped && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+			// Take the lock threshold back out, and — for a swipe — take the track
+			// over wherever it happens to be. Both are measured now rather than at
+			// pointerdown: until this moment the settle was still running and the
+			// finger had not committed to anything.
+			if (axis === 'x') {
+				slopX = Math.sign(dx) * Math.min(Math.abs(dx), AXIS_LOCK);
+				carryX = pickUpTrack();
+			} else {
+				slopY = Math.sign(dy) * Math.min(Math.abs(dy), AXIS_LOCK);
+			}
 		}
 
 		if (axis === 'x') {
+			const raw = carryX + dx - slopX;
 			// Rubber-band at the ends so the group's edges are felt, not hit.
-			const atEnd = (dx > 0 && index === 0) || (dx < 0 && index === count - 1);
-			dragX = atEnd ? rubber(dx, winW || 1) : dx;
+			const atEnd = (raw > 0 && index === 0) || (raw < 0 && index === count - 1);
+			dragX = atEnd ? rubber(raw, winW || 1) : raw;
 		} else {
-			dragY = dy;
+			dragY = dy - slopY;
 		}
 	}
 
-	function settleX() {
-		const flick = Math.abs(velX) > PAGE_VELOCITY && Math.abs(dragX) > AXIS_LOCK;
-		const far = Math.abs(dragX) > (winW || 1) * PAGE_RATIO;
-		goTo(flick || far ? index + (dragX < 0 ? 1 : -1) : index);
+	/**
+	 * Where the track actually is, as an offset from the slot it is resting in or
+	 * settling towards. A gesture that starts mid-settle picks up from there, so
+	 * grabbing a page still in flight stops it under the finger instead of
+	 * teleporting it to where it had been heading — the scroller in the article
+	 * has been interruptible all along, and this is what the lightbox was missing.
+	 */
+	function pickUpTrack() {
+		const track = rootEl?.querySelector('.lb-track');
+		if (!track || typeof DOMMatrixReadOnly !== 'function') return 0;
+		const t = getComputedStyle(track).transform;
+		if (!t || t === 'none') return 0;
+		try {
+			// Every slide is one track width, so the resting offset is -index pages.
+			return new DOMMatrixReadOnly(t).m41 + index * track.clientWidth;
+		} catch {
+			return 0;
+		}
 	}
 
-	function settleY() {
+	/**
+	 * Give the track a transition of its own for this one settle, sprung from the
+	 * speed the gesture ended at.
+	 *
+	 * Called before `goTo`, so `index` and `dragX` still describe where the photo
+	 * is rather than where it is going.
+	 */
+	function armTrackSettle(target, velocity) {
+		clearTimeout(settleTimer);
+		trackSettle = null;
+		if (reduceMotion) return;
+		const page = winW || 1;
+		const remaining = (index - target) * page - dragX;
+		const distance = Math.abs(remaining);
+		if (distance < 1) return;
+		// A short journey takes less time than a whole page. Not proportional —
+		// the square root keeps a small correction from being over before it can
+		// be seen.
+		const duration = Math.round(
+			Math.max(SETTLE_MIN_MS, Math.min(SETTLE_MS, SETTLE_MS * Math.sqrt(distance / page)))
+		);
+		// Positive is already travelling towards the slot; negative is a release
+		// still heading out of a rubber band, which carries on and comes back.
+		const along = (velocity * Math.sign(remaining) * duration) / distance;
+		const v0 = Math.max(SETTLE_V0_MIN, Math.min(SETTLE_V0_MAX, along));
+		trackSettle = `transform ${duration}ms ${springOr(SETTLE_EASE, springEasing(0, v0))}`;
+		// Back to the shared curve once it has landed, so the next arrow key does
+		// not inherit this swipe's velocity. Changing the declaration alone moves
+		// nothing.
+		settleTimer = setTimeout(() => (trackSettle = null), duration + 60);
+	}
+
+	/** Which slide a released horizontal gesture belongs on. */
+	function pageTarget(travelled, velocity) {
+		const flick = Math.abs(velocity) > PAGE_VELOCITY && Math.abs(travelled) > AXIS_LOCK;
+		const far = Math.abs(travelled) > (winW || 1) * PAGE_RATIO;
+		const next = flick || far ? index + (travelled < 0 ? 1 : -1) : index;
+		return Math.max(0, Math.min(count - 1, next));
+	}
+
+	function settleX(now) {
+		const velocity = velocityAt(now).x;
+		// Measured from where the drag took the track over, not from the resting
+		// slot: a swipe that interrupted a settle starts with the whole of that
+		// settle's remaining distance already on `dragX`, and counting it as
+		// movement would page on a finger that never went anywhere.
+		const target = pageTarget(dragX - carryX, velocity);
+		armTrackSettle(target, velocity);
+		goTo(target);
+	}
+
+	function settleY(now) {
+		const velY = velocityAt(now).y;
 		const far = Math.abs(dragY) > DISMISS_DISTANCE;
 		const flick = Math.abs(velY) > DISMISS_VELOCITY && Math.abs(dragY) > 24;
 		axis = null;
@@ -896,8 +1071,8 @@
 			axis = null;
 			return;
 		}
-		if (axis === 'x') settleX();
-		else if (axis === 'y') settleY();
+		if (axis === 'x') settleX(e.timeStamp);
+		else if (axis === 'y') settleY(e.timeStamp);
 		axis = null;
 	}
 
@@ -908,6 +1083,8 @@
 			dragging = false;
 			pinching = false;
 			axis = null;
+			samples = [];
+			slopX = slopY = carryX = 0;
 			dragX = 0;
 			dragY = 0;
 			if (scale > 1) clampPan();
@@ -969,12 +1146,42 @@
 		}
 		if (!grouped || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
 		e.preventDefault();
-		wheelPage += e.deltaX;
+		// A trackpad swipe moves the track under the fingers, the same as a drag
+		// does. It used to accumulate 80px in silence and then jump a whole page,
+		// which is the same gesture the article's own strip answers continuously.
+		if (!wheeling) {
+			wheeling = true;
+			// Same as a finger taking over mid-settle: pick the track up where it
+			// is, and remember that offset so it is not later mistaken for scrolling
+			// the visitor did.
+			wheelRaw = wheelCarry = pickUpTrack();
+			clearTimeout(settleTimer);
+			trackSettle = null;
+		}
+		wheelRaw -= e.deltaX;
+		const atEnd = (wheelRaw > 0 && index === 0) || (wheelRaw < 0 && index === count - 1);
+		dragX = atEnd ? rubber(wheelRaw, winW || 1) : wheelRaw;
 		clearTimeout(wheelTimer);
-		wheelTimer = setTimeout(() => (wheelPage = 0), 240);
-		if (Math.abs(wheelPage) < 80) return;
-		goTo(index + (wheelPage > 0 ? 1 : -1));
-		wheelPage = 0;
+		wheelTimer = setTimeout(settleWheel, WHEEL_IDLE_MS);
+	}
+
+	/**
+	 * The momentum a trackpad sends after the fingers lift has already decayed to
+	 * nothing by the time the events stop, so where it came to rest is the whole
+	 * of what it meant — there is no flick left to read off it.
+	 */
+	function settleWheel() {
+		if (!wheeling) return;
+		wheeling = false;
+		const target = pageTarget(dragX - wheelCarry, 0);
+		armTrackSettle(target, 0);
+		goTo(target);
+	}
+
+	function endWheelGesture() {
+		clearTimeout(wheelTimer);
+		wheeling = false;
+		wheelRaw = wheelCarry = 0;
 	}
 
 	// --- keyboard -------------------------------------------------------------
@@ -1043,6 +1250,7 @@
 	onDestroy(() => {
 		clearTimeout(closeTimer);
 		clearTimeout(wheelTimer);
+		clearTimeout(settleTimer);
 		unbindPointerStream();
 		flightAnim?.cancel();
 		restoreThemeColor();
@@ -1064,7 +1272,12 @@
 	// in full on every frame of a drag, transition declaration and all; `style:`
 	// directives only touch the declaration that actually changed.
 	const trackTransform = $derived(`translate3d(calc(${-index * 100}% + ${dragX}px), 0, 0)`);
-	const trackTransition = $derived(dragging && axis === 'x' ? 'none' : motion);
+	// A gesture in hand transitions nothing — the track is following a finger. A
+	// released one gets the spring `armTrackSettle` built for it; everything else
+	// (an arrow key, a tapped dot) gets the shared curve.
+	const trackTransition = $derived(
+		wheeling || (dragging && axis === 'x') ? 'none' : (trackSettle ?? motion)
+	);
 
 	const stageTransform = $derived(
 		`translate3d(0, ${dragY}px, 0) scale(${dismissing ? 0.9 : 1 - dismissProgress * 0.12})`
@@ -1135,7 +1348,7 @@
 				<div class="lb-strip" style:transform={stageTransform} style:transition={stageTransition}>
 					<div class="lb-track" style:transform={trackTransform} style:transition={trackTransition}>
 						{#each items as item, i (item.src + i)}
-							{@const near = Math.abs(i - index) <= 1}
+							{@const near = Math.abs(i - windowIndex) <= 1}
 							{@const f = fitFor(item)}
 							<div class="lb-slide" aria-hidden={i === index ? undefined : 'true'}>
 								{#if near}
@@ -1417,8 +1630,16 @@
 
 	/* Only the photo on screen ever transforms under its own power — the others
 	   ride along inside the track's layer, and promoting them would cost three
-	   full-screen textures to animate one. */
-	.lb-img[data-current='true'] {
+	   full-screen textures to animate one.
+
+	   And only while it actually is: paging moves `data-current` from one image
+	   to the next, so a hint that hung on that attribute alone tore a layer down
+	   and built another in the very commit that starts the settle, which is the
+	   one frame the page cannot afford to drop. The track is promoted either way,
+	   so the slides are composited through it; this is for pinch and pan, which
+	   are the only times an image moves inside the track. The flights need no
+	   hint — a WAAPI transform is composited on its own. */
+	.lb-root.zoomed .lb-img[data-current='true'] {
 		will-change: transform;
 	}
 
