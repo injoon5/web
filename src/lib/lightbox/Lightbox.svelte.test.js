@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Lightbox from './Lightbox.svelte';
-import { lightboxStore, lightboxAction, openLightbox } from './lightbox.js';
+import { lightboxStore, lightboxAction, openLightbox } from './store.svelte.js';
 
 const openValue = {
 	src: 'https://example.com/cat.jpg',
@@ -524,8 +524,7 @@ describe('lightboxAction', () => {
 		size(img);
 		img.click();
 
-		let value;
-		lightboxStore.subscribe((v) => (value = v))();
+		const value = lightboxStore.value;
 		expect(value.items).toHaveLength(1);
 		expect(value.items[0]).toMatchObject({ src: abs('/a.png'), alt: 'A' });
 		destroy();
@@ -538,8 +537,7 @@ describe('lightboxAction', () => {
 		node.querySelectorAll('img').forEach((i) => size(i));
 		node.querySelectorAll('img')[1].click();
 
-		let value;
-		lightboxStore.subscribe((v) => (value = v))();
+		const value = lightboxStore.value;
 		expect(value.items.map((i) => i.src)).toEqual([abs('/a.png'), abs('/b.png'), abs('/c.png')]);
 		expect(value.index).toBe(1);
 		destroy();
@@ -552,8 +550,7 @@ describe('lightboxAction', () => {
 		node.querySelectorAll('img').forEach((i) => size(i, 20, 20));
 		node.querySelectorAll('img')[0].click();
 
-		let value;
-		lightboxStore.subscribe((v) => (value = v))();
+		const value = lightboxStore.value;
 		expect(value.items).toHaveLength(2);
 		destroy();
 	});
@@ -568,8 +565,7 @@ describe('lightboxAction', () => {
 		icon.click();
 		linked.click();
 
-		let value;
-		lightboxStore.subscribe((v) => (value = v))();
+		const value = lightboxStore.value;
 		expect(value).toBeNull();
 		destroy();
 	});
@@ -582,8 +578,7 @@ describe('lightboxAction', () => {
 		imgs.forEach((i) => size(i));
 		imgs[1].click();
 
-		let value;
-		lightboxStore.subscribe((v) => (value = v))();
+		const value = lightboxStore.value;
 		expect(value.items.map((i) => i.el)).toEqual(imgs);
 		destroy();
 	});
@@ -600,15 +595,13 @@ describe('lightboxAction', () => {
 describe('openLightbox', () => {
 	it('clamps the index into the group', () => {
 		openLightbox(group, 99);
-		let value;
-		lightboxStore.subscribe((v) => (value = v))();
+		const value = lightboxStore.value;
 		expect(value.index).toBe(2);
 	});
 
 	it('does nothing when handed nothing', () => {
 		openLightbox([]);
-		let value;
-		lightboxStore.subscribe((v) => (value = v))();
+		const value = lightboxStore.value;
 		expect(value).toBeNull();
 	});
 });

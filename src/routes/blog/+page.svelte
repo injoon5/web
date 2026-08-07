@@ -53,25 +53,6 @@
 		Stuff that just barely made it online. <br />Take a look at what I've done, experienced, and
 		wrote about.
 	</h2>
-	<!--
-		<div class="my-6 text-base">
-			{#each data.posts as post}
-				{#if post.series && !renderedPosts.includes(post.series) && renderedPosts.push(post.series)}
-					<p class="-mb-1 mt-4 font-semibold">Series: {post.series}</p>
-					<div class="ml-5">
-						{#each data.posts
-							.filter((sameseries) => sameseries.series === post.series)
-							.reverse() as same_series_post}
-							<PostLink data={same_series_post} slug="blog" />
-						{/each}
-					</div>
-				{:else if !post.series}
-					<PostLink data={post} slug="blog" />
-				{/if}
-			{/each}
-		</div>
-		-->
-
 	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
 		{#each groupedPosts as group (group.key)}
 			{#if group.type === 'series'}

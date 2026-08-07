@@ -5,16 +5,16 @@ export const prerender = false;
 import { error } from '@sveltejs/kit';
 import { resolveBilingualEntry, bilingualPageData, slugFromPath } from '$lib/content/bilingual.js';
 
-const enModules = import.meta.glob('../posts/en/*.md');
-const koModules = import.meta.glob('../posts/ko/*.md');
+const enModules = import.meta.glob('/src/content/blog/en/*.md');
+const koModules = import.meta.glob('/src/content/blog/ko/*.md');
 
 // Metadata only, eagerly, for resolving the series list. Building that list used
 // to dynamically import every post in both languages just to read
 // `metadata.series` — on a client-side navigation that fetched the chunk for
 // every article on the site. `import: 'metadata'` leaves the components behind,
 // so what ships is a handful of small records.
-const enMeta = import.meta.glob('../posts/en/*.md', { eager: true, import: 'metadata' });
-const koMeta = import.meta.glob('../posts/ko/*.md', { eager: true, import: 'metadata' });
+const enMeta = import.meta.glob('/src/content/blog/en/*.md', { eager: true, import: 'metadata' });
+const koMeta = import.meta.glob('/src/content/blog/ko/*.md', { eager: true, import: 'metadata' });
 
 /** @typedef {{ published?: boolean, series?: string, date?: string, slug?: string }} Metadata */
 
@@ -41,8 +41,8 @@ export async function load({ params, data }) {
 	const { en: enPost, ko: koPost } = await resolveBilingualEntry(
 		enModules,
 		koModules,
-		`../posts/en/${params.slug}.md`,
-		`../posts/ko/${params.slug}.md`
+		`/src/content/blog/en/${params.slug}.md`,
+		`/src/content/blog/ko/${params.slug}.md`
 	);
 
 	if (!enPost && !koPost) {

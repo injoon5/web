@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { onDestroy } from 'svelte';
 	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
-	import { buildTree } from '$lib/comments/buildTree.js';
+	import { buildTree } from '$lib/comments/build-tree.js';
 	import { apiFetch } from '$lib/api-client.js';
 	import { formatDateTime } from '$lib/format.js';
 

@@ -2,10 +2,10 @@
 	import { page } from '$app/state';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { heroNameVisible } from '$lib/heroNav.js';
+	import { heroName } from '$lib/nav/hero.svelte.js';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import NavDialsMount from '$lib/NavDialsMount.svelte';
-	import { navSettings, navStyle } from '$lib/nav-settings.svelte.js';
+	import NavDialsMount from '$lib/nav/NavDialsMount.svelte';
+	import { navSettings, navStyle } from '$lib/nav/settings.svelte.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -69,7 +69,7 @@
 	// until the hero scrolls out of view (tracked by heroNameVisible). Every
 	// other page shows it immediately.
 	let isHome = $derived(page.url.pathname === '/');
-	let showName = $derived(!isHome || !$heroNameVisible);
+	let showName = $derived(!isHome || !heroName.visible);
 
 	function isActive(href) {
 		if (href === '/') return page.url.pathname === '/';

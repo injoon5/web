@@ -1,14 +1,18 @@
-import { writable } from 'svelte/store';
-
 /**
  * `null` = closed. Open is `{ items, index }`, where an item is
- * `{ src, alt, naturalWidth, naturalHeight }`.
- *
- * A bare item is still accepted — `Lightbox.svelte` normalises it into a
- * one-image group — so anything that set this store before groups existed keeps
- * working.
+ * `{ src, alt, naturalWidth, naturalHeight }`. A bare item is also accepted —
+ * `normalizeLightboxValue` widens it into a one-image group.
  */
-export const lightboxStore = writable(null);
+let value = $state(null);
+
+export const lightboxStore = {
+	get value() {
+		return value;
+	},
+	set(next) {
+		value = next;
+	}
+};
 
 /** Max displayed height for lightbox images (px). Keeps tall shots from filling the viewport. */
 export const MAX_LIGHTBOX_HEIGHT = 900;

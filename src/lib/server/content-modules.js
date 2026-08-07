@@ -21,19 +21,19 @@
  * the listing APIs and the valid-URL guard all quietly go empty.
  */
 
-export const blogEnMeta = import.meta.glob('/src/routes/blog/posts/en/*.md', {
+export const blogEnMeta = import.meta.glob('/src/content/blog/en/*.md', {
 	eager: true,
 	import: 'metadata'
 });
-export const blogKoMeta = import.meta.glob('/src/routes/blog/posts/ko/*.md', {
+export const blogKoMeta = import.meta.glob('/src/content/blog/ko/*.md', {
 	eager: true,
 	import: 'metadata'
 });
-export const projectEnMeta = import.meta.glob('/src/routes/projects/projects/en/*.md', {
+export const projectEnMeta = import.meta.glob('/src/content/projects/en/*.md', {
 	eager: true,
 	import: 'metadata'
 });
-export const projectKoMeta = import.meta.glob('/src/routes/projects/projects/ko/*.md', {
+export const projectKoMeta = import.meta.glob('/src/content/projects/ko/*.md', {
 	eager: true,
 	import: 'metadata'
 });

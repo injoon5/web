@@ -1,6 +1,6 @@
 <script>
 	import { createDialKit } from 'dialkit/svelte';
-	import { ARTICLE_DEFAULTS, articleSettings } from '$lib/article/article-settings.svelte.js';
+	import { ARTICLE_DEFAULTS, articleSettings } from '$lib/article/settings.svelte.js';
 
 	/**
 	 * The article tuning panel, on preview deployments only.

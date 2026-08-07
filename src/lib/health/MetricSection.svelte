@@ -1,6 +1,6 @@
 <script>
 	import MetricChart from '$lib/health/MetricChart.svelte';
-	import { chartSettings } from '$lib/health/chart-settings.svelte.js';
+	import { chartSettings } from '$lib/health/settings.svelte.js';
 	import {
 		formatDay,
 		formatPointLabel,

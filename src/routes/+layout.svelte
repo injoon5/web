@@ -1,6 +1,6 @@
 <script>
 	import '../app.css';
-	import NavBar from '$lib/NavBar.svelte';
+	import NavBar from '$lib/nav/NavBar.svelte';
 	import DialsMount from '$lib/dev/DialsMount.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { configure } from 'onedollarstats';
@@ -8,7 +8,7 @@
 	import { page } from '$app/state';
 	import { setupConvex } from 'convex-svelte';
 	import { PUBLIC_CONVEX_URL } from '$env/static/public';
-	import { theme } from '$lib/theme.js';
+	import { theme } from '$lib/theme.svelte.js';
 	import { env as publicEnv } from '$env/dynamic/public';
 
 	const { children } = $props();
@@ -60,7 +60,7 @@
 			collectorUrl: 'https://collector.onedollarstats.com/events',
 			autocollect: true
 		});
-		cleanupTheme = theme.syncWithOS();
+		cleanupTheme = theme.watch();
 	});
 
 	onDestroy(() => {

@@ -46,7 +46,7 @@
  * the supported shape rather than a trick.
  */
 
-const GALLERY_PATH = '$lib/Gallery.svelte';
+const GALLERY_PATH = '$lib/lightbox/Gallery.svelte';
 const GALLERY_IMPORT = `import Gallery from '${GALLERY_PATH}';`;
 
 /** `<script>` / `<script lang="ts">`, but not `<script module>` or `context="module"`. */

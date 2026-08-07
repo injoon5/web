@@ -1,5 +1,5 @@
 import { toString } from 'mdast-util-to-string';
-import { EN_WORDS_PER_MINUTE, KO_CHARS_PER_MINUTE } from './readingTime.js';
+import { EN_WORDS_PER_MINUTE, KO_CHARS_PER_MINUTE } from './reading-time.js';
 
 /**
  * Remark plugin that computes reading time at build time from the parsed AST

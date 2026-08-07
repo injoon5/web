@@ -10,7 +10,7 @@ aiTranslated: true
 ---
 
 <script>
-	import LazyVideo from '$lib/LazyVideo.svelte';
+	import LazyVideo from '$lib/ui/LazyVideo.svelte';
 </script>
 
 ## 왜 워치 앱인가

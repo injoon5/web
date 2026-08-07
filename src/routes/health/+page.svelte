@@ -16,7 +16,7 @@
 		trimToLatest
 	} from '$lib/health/metrics.js';
 
-	import { chartSettings } from '$lib/health/chart-settings.svelte.js';
+	import { chartSettings } from '$lib/health/settings.svelte.js';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 

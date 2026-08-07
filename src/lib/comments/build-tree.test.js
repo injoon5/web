@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTree } from './buildTree';
+import { buildTree } from './build-tree.js';
 
 const c = (id, parentId, createdAt) => ({ id, parentId, createdAt, text: `c${id}` });
 

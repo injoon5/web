@@ -9,10 +9,10 @@ import oembedTransformer from '@remark-embedder/transformer-oembed';
 // import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
-import { createHighlighter } from './src/lib/prettyCodeHighlighter.js';
-import { remarkReadingTime } from './src/lib/remarkReadingTime.js';
-import { remarkGallery } from './src/lib/remarkGallery.js';
-import { rehypeStripCodeTabindex } from './src/lib/rehypeStripCodeTabindex.js';
+import { createHighlighter } from './src/lib/markdown/pretty-code-highlighter.js';
+import { remarkReadingTime } from './src/lib/markdown/remark-reading-time.js';
+import { remarkGallery } from './src/lib/markdown/remark-gallery.js';
+import { rehypeStripCodeTabindex } from './src/lib/markdown/rehype-strip-code-tabindex.js';
 
 const config = {
 	extensions: ['.md'],

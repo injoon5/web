@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // The route imports the real Convex HTTP client, which needs PUBLIC_CONVEX_URL
 // and a live deployment; swap it for spies so we can assert which Convex
 // function the handler picked.
-vi.mock('$lib/server/convex', () => ({
+vi.mock('$lib/server/convex.js', () => ({
 	convex: {
 		action: vi.fn().mockResolvedValue(undefined),
 		mutation: vi.fn().mockResolvedValue(undefined)

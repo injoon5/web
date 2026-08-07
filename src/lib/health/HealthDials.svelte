@@ -7,7 +7,7 @@
 		CHART_VARIANTS,
 		COLOR_VARS,
 		chartSettings
-	} from '$lib/health/chart-settings.svelte.js';
+	} from '$lib/health/settings.svelte.js';
 
 	/**
 	 * The /health tuning panel, on preview deployments only.

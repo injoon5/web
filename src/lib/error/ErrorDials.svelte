@@ -1,6 +1,6 @@
 <script>
 	import { createDialKit } from 'dialkit/svelte';
-	import { LIFE_DEFAULTS, lifeSettings } from '$lib/error/error-settings.svelte.js';
+	import { LIFE_DEFAULTS, lifeSettings } from '$lib/error/settings.svelte.js';
 
 	/**
 	 * The error pages' tuning panel, on preview deployments only.

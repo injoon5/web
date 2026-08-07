@@ -11,6 +11,7 @@
 	image, which is what puts the same stepper on the lightbox's own chrome.
 -->
 <script>
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import Stepper from '$lib/pasito/Stepper.svelte';
 
 	let {
@@ -79,17 +80,13 @@
 		announced = `Image ${active + 1} of ${images.length}${caption ? `: ${caption}` : ''}`;
 	}
 
-	const reduceMotion = () =>
-		typeof window !== 'undefined' &&
-		window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
 	function goTo(i) {
 		const clamped = Math.max(0, Math.min(i, images.length - 1));
 		const slide = trackEl?.children[clamped];
 		if (!slide) return;
 		trackEl.scrollTo({
 			left: slide.offsetLeft - (trackEl.clientWidth - slide.offsetWidth) / 2,
-			behavior: reduceMotion() ? 'auto' : 'smooth'
+			behavior: motion.reduced ? 'auto' : 'smooth'
 		});
 	}
 
@@ -243,7 +240,7 @@
 	<!-- Spoken separately from the caption below, and only once the strip has
 	     stopped: the visible one changes on every frame of a swipe, and a live
 	     region doing the same would talk over itself. -->
-	<p class="gallery-live" aria-live="polite">{announced}</p>
+	<p class="gallery-live sr-only" aria-live="polite">{announced}</p>
 
 	<!-- Held open at one line so paging between a captioned and an uncaptioned
 	     image doesn't shunt the rest of the article up and down. -->
@@ -445,18 +442,6 @@
 
 	:global(.dark) .gallery-caption {
 		color: rgb(163 163 163);
-	}
-
-	.gallery-live {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		margin: -1px;
-		padding: 0;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-		border: 0;
 	}
 
 	@media (prefers-reduced-motion: reduce) {

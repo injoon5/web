@@ -1,6 +1,6 @@
 <script>
 	import { createDialKit } from 'dialkit/svelte';
-	import { NAV_ALIGNMENTS, NAV_DEFAULTS, navSettings } from '$lib/nav-settings.svelte.js';
+	import { NAV_ALIGNMENTS, NAV_DEFAULTS, navSettings } from '$lib/nav/settings.svelte.js';
 
 	/**
 	 * The header's tuning panel, on preview deployments and in `vite dev` only.

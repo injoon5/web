@@ -1,7 +1,8 @@
 <script>
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import { onMount } from 'svelte';
-	import { theme } from '$lib/theme.js';
-	import { lifeSettings } from './error-settings.svelte.js';
+	import { theme } from '$lib/theme.svelte.js';
+	import { lifeSettings } from './settings.svelte.js';
 	import { gridsEqual, seedField, step } from './life.js';
 	import { stampText, waitForFont } from './glyph.js';
 
@@ -43,7 +44,7 @@
 	$effect(() => {
 		// Re-read on every theme flip. `$theme` is the dependency; the value is
 		// only ever the trigger.
-		void $theme;
+		void theme.current;
 		if (canvas) fill = getComputedStyle(canvas).color;
 	});
 
@@ -55,8 +56,6 @@
 			onrelease?.();
 			return;
 		}
-
-		const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 		let cols = 0;
 		let rows = 0;
@@ -75,7 +74,7 @@
 		let disposed = false;
 		/** Whether the next composition carries the numeral. True for the first
 		    one only — see the note at the top of the file. */
-		let stamped = !motion.matches;
+		let stamped = !motion.reduced;
 		let released = false;
 
 		/**
@@ -304,7 +303,7 @@
 			concealed = false;
 
 			observer.observe(canvas);
-			if (motion.matches) {
+			if (motion.reduced) {
 				release();
 				return;
 			}

@@ -15,7 +15,7 @@
 
 	$effect(() => {
 		if (!__DIALS__) return;
-		import('$lib/NavDials.svelte').then((module) => {
+		import('$lib/nav/NavDials.svelte').then((module) => {
 			Panel = module.default;
 		});
 	});

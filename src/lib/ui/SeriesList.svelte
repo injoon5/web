@@ -1,20 +1,19 @@
 <script>
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import { page } from '$app/state';
 	import { blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
 	let { series } = $props();
 
-	let reduceMotion = $state(false);
 	let mounted = $state(false);
 	onMount(() => {
-		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		requestAnimationFrame(() => requestAnimationFrame(() => (mounted = true)));
 	});
 	const bf = $derived({
 		amount: 8,
 		opacity: 0,
-		duration: mounted && !reduceMotion ? 420 : 0,
+		duration: mounted && !motion.reduced ? 420 : 0,
 		easing: cubicOut
 	});
 	// Empty config when duration is 0 so no opacity-0 start frame blinks on load.

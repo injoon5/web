@@ -1,6 +1,7 @@
 <script>
-	import { lightboxStore, MAX_LIGHTBOX_HEIGHT, normalizeLightboxValue } from './lightbox.js';
-	import Stepper from './pasito/Stepper.svelte';
+	import { motion } from '$lib/reduced-motion.svelte.js';
+	import { lightboxStore, MAX_LIGHTBOX_HEIGHT, normalizeLightboxValue } from './store.svelte.js';
+	import Stepper from '$lib/pasito/Stepper.svelte';
 	import { onDestroy } from 'svelte';
 
 	// --- tuning ---------------------------------------------------------------
@@ -97,7 +98,7 @@
 	/**
 	 * The one-off `transition` a released gesture hands the track: its own
 	 * duration and its own spring, built from how far it still has to go and how
-	 * fast it was going. Null between gestures, where the shared `motion` applies
+	 * fast it was going. Null between gestures, where the shared `settleTransition` applies
 	 * — an arrow key or a tapped dot has no velocity to carry.
 	 */
 	let trackSettle = $state(null);
@@ -190,17 +191,6 @@
 		return { x: (last.x - first.x) / dt, y: (last.y - first.y) / dt };
 	}
 
-	let reduceMotion = $state(false);
-
-	$effect(() => {
-		if (typeof window === 'undefined' || !window.matchMedia) return;
-		const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-		reduceMotion = mq.matches;
-		const onChange = () => (reduceMotion = mq.matches);
-		mq.addEventListener?.('change', onChange);
-		return () => mq.removeEventListener?.('change', onChange);
-	});
-
 	function resetZoom() {
 		scale = 1;
 		panX = 0;
@@ -261,7 +251,7 @@
 	const centreY = $derived(CHROME_TOP + availH / 2);
 
 	$effect(() => {
-		const val = normalizeLightboxValue($lightboxStore);
+		const val = normalizeLightboxValue(lightboxStore.value);
 		if (val?.items.length) {
 			// A close schedules an unmount; reopening inside that window would
 			// otherwise be shut again by the timer from the close before it.
@@ -569,13 +559,6 @@
 	let flightAnim = null;
 	let hiddenOrigin = null;
 
-	function prefersReducedMotion() {
-		return !!(
-			typeof window !== 'undefined' &&
-			window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-		);
-	}
-
 	/** The element on the page the current image came from, if it is still there. */
 	function originEl() {
 		const el = current?.el;
@@ -696,7 +679,7 @@
 		if (from) hideOrigin(from);
 		// Without a known natural size the image has no settled box yet, and
 		// `onload` would resize it out from under the animation.
-		if (prefersReducedMotion() || !currentFit) return;
+		if (motion.reduced || !currentFit) return;
 		const to = root.querySelector('.lb-img[data-current="true"]');
 		const f = flightBetween(from, to);
 		if (!f) return;
@@ -743,7 +726,7 @@
 	 * a refusal leaves the photo exactly where the fallback expects to find it.
 	 */
 	function startCloseFlight({ carried = false, duration = FLIGHT_OUT_MS } = {}) {
-		if (prefersReducedMotion() || scale > 1) return false;
+		if (motion.reduced || scale > 1) return false;
 		const to = originEl();
 		const img = currentImgEl();
 		if (!to || !img || typeof img.animate !== 'function') return false;
@@ -981,7 +964,7 @@
 	function armTrackSettle(target, velocity) {
 		clearTimeout(settleTimer);
 		trackSettle = null;
-		if (reduceMotion) return;
+		if (motion.reduced) return;
 		const page = winW || 1;
 		const remaining = (index - target) * page - dragX;
 		const distance = Math.abs(remaining);
@@ -1262,8 +1245,10 @@
 
 	// --- derived presentation -------------------------------------------------
 	const dismissProgress = $derived(Math.min(1, Math.abs(dragY) / ((winH || 1) * 0.5)));
-	const settling = $derived(!dragging && !pinching && !reduceMotion);
-	const motion = $derived(reduceMotion ? 'none' : `transform ${SETTLE_MS}ms ${SETTLE_EASE}`);
+	const settling = $derived(!dragging && !pinching && !motion.reduced);
+	const settleTransition = $derived(
+		motion.reduced ? 'none' : `transform ${SETTLE_MS}ms ${SETTLE_EASE}`
+	);
 
 	// The track holds every slide at 100% of the viewport and overflows to the
 	// right, so its own width stays one page — which is what makes a percentage
@@ -1276,18 +1261,18 @@
 	// released one gets the spring `armTrackSettle` built for it; everything else
 	// (an arrow key, a tapped dot) gets the shared curve.
 	const trackTransition = $derived(
-		wheeling || (dragging && axis === 'x') ? 'none' : (trackSettle ?? motion)
+		wheeling || (dragging && axis === 'x') ? 'none' : (trackSettle ?? settleTransition)
 	);
 
 	const stageTransform = $derived(
 		`translate3d(0, ${dragY}px, 0) scale(${dismissing ? 0.9 : 1 - dismissProgress * 0.12})`
 	);
-	const stageTransition = $derived(settling ? motion : 'none');
+	const stageTransition = $derived(settling ? settleTransition : 'none');
 
 	const imageTransform = $derived(`translate3d(${panX}px, ${panY}px, 0) scale(${scale})`);
 	const imageTransition = $derived(
 		`opacity 240ms var(--ease-out), box-shadow 200ms var(--ease-out), border-radius 200ms var(--ease-out)${
-			dragging || pinching || reduceMotion ? '' : `, transform ${ZOOM_MS}ms ${SETTLE_EASE}`
+			dragging || pinching || motion.reduced ? '' : `, transform ${ZOOM_MS}ms ${SETTLE_EASE}`
 		}`
 	);
 
@@ -1465,7 +1450,7 @@
 
 		<!-- Paging swaps no focus and changes no label, so the position has to be
 		     spoken separately or it is silent. -->
-		<p class="lb-live" aria-live="polite">{position}</p>
+		<p class="sr-only" aria-live="polite">{position}</p>
 	</div>
 {/if}
 
@@ -1898,18 +1883,6 @@
 		-webkit-backdrop-filter: blur(8px);
 		backdrop-filter: blur(8px);
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-	}
-
-	.lb-live {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		margin: -1px;
-		padding: 0;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-		border: 0;
 	}
 
 	/* Reduced motion means fewer and gentler animations, not none. The fades stay

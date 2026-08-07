@@ -6,7 +6,7 @@
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import CommentNode from './CommentNode.svelte';
-	import { buildTree } from './buildTree.js';
+	import { buildTree } from './build-tree.js';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
 	import { apiFetch } from '$lib/api-client.js';
 

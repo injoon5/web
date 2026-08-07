@@ -12,7 +12,7 @@
 	} from 'layerchart';
 	import { scaleLinear } from 'd3-scale';
 	import { curveLinear, curveMonotoneX } from 'd3-shape';
-	import { WASH_RAMP, chartSettings } from '$lib/health/chart-settings.svelte.js';
+	import { WASH_RAMP, chartSettings } from '$lib/health/settings.svelte.js';
 	import { formatCompact, pickAxisTicks, valueDomain, zeroFilled } from '$lib/health/metrics.js';
 
 	/**

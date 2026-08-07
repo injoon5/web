@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import { remarkGallery } from './remarkGallery.js';
+import { remarkGallery } from './remark-gallery.js';
 
 /** Run the plugin over markdown and hand back the transformed root. */
 function run(markdown, options) {
@@ -158,19 +158,19 @@ describe('remarkGallery import injection', () => {
 
 	it('prepends an instance script when the file has none', () => {
 		const tree = run('![One](/a.png)\n![Two](/b.png)\n');
-		expect(tree.children[0].value).toContain("import Gallery from '$lib/Gallery.svelte';");
+		expect(tree.children[0].value).toContain("import Gallery from '$lib/lightbox/Gallery.svelte';");
 		// mdsvex hoists it, but leading it keeps the emitted source readable.
 		expect(tree.children[0].type).toBe('html');
 	});
 
 	it('splices into an existing instance script rather than adding a second one', () => {
 		const source =
-			"<script>\n\timport LazyVideo from '$lib/LazyVideo.svelte';\n</script>\n\n![One](/a.png)\n![Two](/b.png)\n";
+			"<script>\n\timport LazyVideo from '$lib/ui/LazyVideo.svelte';\n</script>\n\n![One](/a.png)\n![Two](/b.png)\n";
 		const tree = run(source);
 		const found = scripts(tree);
 		expect(found).toHaveLength(1);
-		expect(found[0]).toContain("import Gallery from '$lib/Gallery.svelte';");
-		expect(found[0]).toContain("import LazyVideo from '$lib/LazyVideo.svelte';");
+		expect(found[0]).toContain("import Gallery from '$lib/lightbox/Gallery.svelte';");
+		expect(found[0]).toContain("import LazyVideo from '$lib/ui/LazyVideo.svelte';");
 	});
 
 	it('does not splice into a module script — that is not where imports for markup go', () => {
@@ -185,7 +185,7 @@ describe('remarkGallery import injection', () => {
 
 	it('leaves an author who already imported Gallery with exactly their own import', () => {
 		const source =
-			"<script>\n\timport Gallery from '$lib/Gallery.svelte';\n</script>\n\n![One](/a.png)\n![Two](/b.png)\n";
+			"<script>\n\timport Gallery from '$lib/lightbox/Gallery.svelte';\n</script>\n\n![One](/a.png)\n![Two](/b.png)\n";
 		const tree = run(source);
 		const found = scripts(tree);
 		expect(found).toHaveLength(1);

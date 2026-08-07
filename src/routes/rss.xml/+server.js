@@ -9,12 +9,12 @@ const SITE_URL = 'https://www.injoon5.com';
 // Raw markdown sources for feed descriptions. The compiled modules above only
 // carry metadata + a Svelte component, so the description text comes from the
 // raw files (frontmatter stripped below).
-const rawEn = import.meta.glob('/src/routes/blog/posts/en/*.md', {
+const rawEn = import.meta.glob('/src/content/blog/en/*.md', {
 	query: '?raw',
 	import: 'default',
 	eager: true
 });
-const rawKo = import.meta.glob('/src/routes/blog/posts/ko/*.md', {
+const rawKo = import.meta.glob('/src/content/blog/ko/*.md', {
 	query: '?raw',
 	import: 'default',
 	eager: true

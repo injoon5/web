@@ -1,4 +1,5 @@
 <script>
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import { Spring } from 'svelte/motion';
 
 	/**
@@ -38,10 +39,6 @@
 	let first = true;
 	let skipAnimation = false;
 
-	function reducedMotion() {
-		return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-	}
-
 	function measure(instant) {
 		const el = buttons[ranges.indexOf(value)];
 		if (!el || !container) return;
@@ -70,7 +67,7 @@
 		buttons;
 		// The first paint and a keyboard move both land the pill outright; only a
 		// click is worth animating.
-		const instant = first || skipAnimation || reducedMotion();
+		const instant = first || skipAnimation || motion.reduced;
 		first = false;
 		skipAnimation = false;
 		measure(instant);

@@ -9,7 +9,7 @@ published: true
 ---
 
 <script>
-	import LazyVideo from '$lib/LazyVideo.svelte';
+	import LazyVideo from '$lib/ui/LazyVideo.svelte';
 </script>
 
 ## Why a watch app

@@ -1,4 +1,5 @@
 <script>
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import { tick, onMount } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 
@@ -26,7 +27,6 @@
 	let clipReady = $state(false);
 	let fadeLeft = $state(false);
 	let fadeRight = $state(false);
-	let reducedMotion = $state(false);
 
 	const SCROLL_FADE_EPS = 2;
 
@@ -36,7 +36,7 @@
 		activeIndex === 'favorites' ? favorites : (techstack[activeIndex]?.technologies ?? [])
 	);
 
-	const skipMotion = $derived(keyboardNav || reducedMotion);
+	const skipMotion = $derived(keyboardNav || motion.reduced);
 
 	// Enter slightly slower than exit — asymmetric timing feels more responsive (Emil)
 	const PANEL_IN_MS = 240;
@@ -160,13 +160,6 @@
 	});
 
 	onMount(() => {
-		const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
-		reducedMotion = motionMq.matches;
-		const onMotionChange = () => {
-			reducedMotion = motionMq.matches;
-		};
-		motionMq.addEventListener('change', onMotionChange);
-
 		updateClip().then(() => {
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
@@ -196,7 +189,6 @@
 		return () => {
 			tabsScrollEl?.removeEventListener('scroll', onScroll);
 			window.removeEventListener('resize', onResize);
-			motionMq.removeEventListener('change', onMotionChange);
 		};
 	});
 

@@ -5,15 +5,15 @@ export const prerender = false;
 import { error } from '@sveltejs/kit';
 import { resolveBilingualEntry, bilingualPageData } from '$lib/content/bilingual.js';
 
-const enModules = import.meta.glob('../projects/en/*.md');
-const koModules = import.meta.glob('../projects/ko/*.md');
+const enModules = import.meta.glob('/src/content/projects/en/*.md');
+const koModules = import.meta.glob('/src/content/projects/ko/*.md');
 
 export async function load({ params, data }) {
 	const { en, ko } = await resolveBilingualEntry(
 		enModules,
 		koModules,
-		`../projects/en/${params.slug}.md`,
-		`../projects/ko/${params.slug}.md`
+		`/src/content/projects/en/${params.slug}.md`,
+		`/src/content/projects/ko/${params.slug}.md`
 	);
 
 	if (!en && !ko) {

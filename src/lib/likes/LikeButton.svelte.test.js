@@ -8,7 +8,7 @@ vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
 import { setPage } from '$app/state';
-import { createReactiveQuery } from '../test/mocks/reactive-query.svelte.js';
+import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
 import LikeButton from './LikeButton.svelte';
 
 beforeEach(() => {
