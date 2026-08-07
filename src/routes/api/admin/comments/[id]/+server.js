@@ -1,21 +1,22 @@
 import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import type { Id } from '$convex/_generated/dataModel';
-import { convex } from '$lib/server/convex';
+import { convex } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
-import { requireAdmin } from '$lib/server/admin';
-import { replySchema } from '$lib/server/validation';
-import { runConvex, parseBody } from '$lib/server/api';
+import { requireAdmin } from '$lib/server/admin.js';
+import { replySchema } from '$lib/server/validation.js';
+import { runConvex, parseBody } from '$lib/server/api.js';
 import { ADMIN_SECRET } from '$env/static/private';
 
-export const DELETE: RequestHandler = async ({ params, request, url }) => {
+/** @type {import('./$types').RequestHandler} */
+export const DELETE = async ({ params, request, url }) => {
 	requireAdmin(request);
 
 	if (url.searchParams.get('soft') === '1') {
 		return runConvex(
 			() =>
 				convex.action(api.commentActions.softDeleteComment, {
-					commentId: params.id as Id<'comments'>,
+					commentId: /** @type {import('$convex/_generated/dataModel').Id<'comments'>} */ (
+						params.id
+					),
 					ipHash: '',
 					adminSecret: ADMIN_SECRET
 				}),
@@ -26,21 +27,22 @@ export const DELETE: RequestHandler = async ({ params, request, url }) => {
 	return runConvex(
 		() =>
 			convex.mutation(api.comments.hardDelete, {
-				commentId: params.id as Id<'comments'>,
+				commentId: /** @type {import('$convex/_generated/dataModel').Id<'comments'>} */ (params.id),
 				adminSecret: ADMIN_SECRET
 			}),
 		() => json({ success: true })
 	);
 };
 
-export const POST: RequestHandler = async ({ params, request }) => {
+/** @type {import('./$types').RequestHandler} */
+export const POST = async ({ params, request }) => {
 	requireAdmin(request);
 	const { reply } = await parseBody(request, replySchema);
 
 	return runConvex(
 		() =>
 			convex.mutation(api.comments.setReply, {
-				commentId: params.id as Id<'comments'>,
+				commentId: /** @type {import('$convex/_generated/dataModel').Id<'comments'>} */ (params.id),
 				reply,
 				adminSecret: ADMIN_SECRET
 			}),

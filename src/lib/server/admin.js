@@ -1,3 +1,4 @@
+// @ts-check
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { error } from '@sveltejs/kit';
 import { ADMIN_SECRET } from '$env/static/private';
@@ -8,16 +9,22 @@ export const SESSION_MAX_AGE_MS = 60 * 60 * 24 * 1000;
 
 // HMAC(secret, secret) is constant per process — compute it once, lazily so an
 // unconfigured secret doesn't throw at import time.
-let selfDigest: Buffer | null = null;
+/** @type {Buffer | null} */
+let selfDigest = null;
 
-export function secretsMatch(candidate: string): boolean {
+/**
+ * @param {string} candidate
+ * @returns {boolean}
+ */
+export function secretsMatch(candidate) {
 	if (!ADMIN_SECRET) return false;
 	const a = createHmac('sha256', ADMIN_SECRET).update(candidate).digest();
 	selfDigest ??= createHmac('sha256', ADMIN_SECRET).update(ADMIN_SECRET).digest();
 	return timingSafeEqual(a, selfDigest);
 }
 
-export function createAdminSessionToken(): string {
+/** @returns {string} */
+export function createAdminSessionToken() {
 	if (!ADMIN_SECRET) throw new Error('ADMIN_SECRET is not configured');
 	const expiresAt = Date.now() + SESSION_MAX_AGE_MS;
 	const nonce = randomBytes(16).toString('hex');
@@ -26,7 +33,11 @@ export function createAdminSessionToken(): string {
 	return `${payload}.${sig}`;
 }
 
-export function verifyAdminSessionToken(token: string): boolean {
+/**
+ * @param {string} token
+ * @returns {boolean}
+ */
+export function verifyAdminSessionToken(token) {
 	if (!ADMIN_SECRET || !token) return false;
 
 	const parts = token.split('.');
@@ -47,7 +58,11 @@ export function verifyAdminSessionToken(token: string): boolean {
 	}
 }
 
-export function verifyAdminSecret(request: Request): boolean {
+/**
+ * @param {Request} request
+ * @returns {boolean}
+ */
+export function verifyAdminSecret(request) {
 	const header = request.headers.get('x-admin-secret');
 	if (header) return secretsMatch(header);
 
@@ -58,11 +73,18 @@ export function verifyAdminSecret(request: Request): boolean {
 	return false;
 }
 
-export function verifyAdminCookie(token: string | undefined): boolean {
+/**
+ * @param {string | undefined} token
+ * @returns {boolean}
+ */
+export function verifyAdminCookie(token) {
 	return !!token && verifyAdminSessionToken(token);
 }
 
-/** Throw a 401 SvelteKit error if the request is not from an admin. */
-export function requireAdmin(request: Request): void {
+/**
+ * Throw a 401 SvelteKit error if the request is not from an admin.
+ * @param {Request} request
+ */
+export function requireAdmin(request) {
 	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 }

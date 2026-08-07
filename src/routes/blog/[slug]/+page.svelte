@@ -1,7 +1,7 @@
 <script>
 	import ArticleDialsMount from '$lib/article/ArticleDialsMount.svelte';
 	import { articleSettings, articleStyle } from '$lib/article/article-settings.svelte.js';
-	import { formatDate } from '$lib/utils';
+	import { formatDate } from '$lib/format.js';
 	import SeriesList from '$lib/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
 	import LikeButton from '$lib/LikeButton.svelte';

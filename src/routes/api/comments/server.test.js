@@ -20,8 +20,8 @@ vi.mock('bcryptjs', () => ({
 import { ConvexError } from 'convex/values';
 import { getFunctionName } from 'convex/server';
 import bcrypt from 'bcryptjs';
-import { convex } from '$lib/server/convex';
-import { POST } from './+server.ts';
+import { convex } from '$lib/server/convex.js';
+import { POST } from './+server.js';
 
 function postRequest(body = {}) {
 	return new Request('http://x/api/comments', {

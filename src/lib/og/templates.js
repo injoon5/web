@@ -9,6 +9,8 @@
  * gentler tracking (especially Hangul), and higher contrast.
  */
 
+import { formatDateLong } from '$lib/format.js';
+
 export const WIDTH = 1200;
 export const HEIGHT = 630;
 
@@ -71,16 +73,6 @@ function titleFontSize(str, sizes = [58, 50, 44]) {
 function truncate(str, max) {
 	if (!str) return '';
 	return str.length > max ? str.slice(0, max - 1) + '\u2026' : str;
-}
-
-function formatDate(dateStr) {
-	if (!dateStr) return '';
-	try {
-		const d = new Date(dateStr);
-		return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', year: 'numeric' });
-	} catch {
-		return dateStr;
-	}
 }
 
 /** Primary heading block (list pages, home). */
@@ -344,7 +336,7 @@ export function blogPostTemplate({ title, description, date }) {
 			label('블로그'),
 			titleText(title),
 			...(description ? [descriptionText(description)] : []),
-			...(date ? [metaText(formatDate(date))] : [])
+			...(date ? [metaText(formatDateLong(date))] : [])
 		]),
 		bottomBar()
 	]);

@@ -4,7 +4,7 @@
 // the result rides along in the prerendered data payload.
 export const prerender = true;
 
-import { publishedPosts, publishedProjects } from '$lib/server/content';
+import { publishedPosts, publishedProjects } from '$lib/server/content.js';
 
 export const load = () => ({
 	posts: publishedPosts(),

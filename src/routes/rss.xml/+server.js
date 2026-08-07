@@ -2,6 +2,7 @@ export const prerender = true;
 
 import { create } from 'xmlbuilder2';
 import { blogEnMeta, blogKoMeta } from '$lib/server/content-modules.js';
+import { slugFromPath } from '$lib/content/bilingual.js';
 
 const SITE_URL = 'https://www.injoon5.com';
 
@@ -23,20 +24,19 @@ const rawKo = import.meta.glob('/src/routes/blog/posts/ko/*.md', {
 // Korean (the site default, iterated last) — to avoid emitting two feed items
 // that point at the same /blog/{slug} URL.
 const getPosts = () => {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const bySlug: Record<string, any> = {};
+	/** @type {Record<string, any>} */
+	const bySlug = {};
 
 	for (const [metaByPath, raws] of [
 		[blogEnMeta, rawEn],
 		[blogKoMeta, rawKo]
-	] as const) {
+	]) {
 		for (const path in metaByPath) {
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const meta = metaByPath[path] as any;
+			const meta = /** @type {any} */ (metaByPath[path]);
 			if (meta?.published !== true) continue;
 
-			const slug = path.split('/').at(-1)?.replace('.md', '') ?? '';
-			const raw = (raws[path] as string) ?? '';
+			const slug = slugFromPath(path);
+			const raw = /** @type {string} */ (raws[path]) ?? '';
 			bySlug[slug] = {
 				...meta,
 				slug,
@@ -51,7 +51,8 @@ const getPosts = () => {
 };
 
 // Strip non-text markdown elements (images, links, HTML, code) for descriptions
-const cleanText = (content: string) => {
+/** @param {string} content */
+const cleanText = (content) => {
 	return content
 		.replace(/`{3}[\s\S]*?`{3}/g, '') // Remove code blocks
 		.replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
@@ -62,7 +63,8 @@ const cleanText = (content: string) => {
 };
 
 // Short description from content (first 300 characters, blank lines removed)
-const generateDescription = (content: string) => {
+/** @param {string} content */
+const generateDescription = (content) => {
 	const cleanedContent = cleanText(content);
 	const truncatedContent =
 		cleanedContent.length > 300 ? `${cleanedContent.substring(0, 300)}...` : cleanedContent;

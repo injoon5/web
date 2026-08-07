@@ -4,6 +4,7 @@
 	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
 	import { buildTree } from '$lib/comments/buildTree.js';
 	import { apiFetch } from '$lib/api-client.js';
+	import { formatDateTime } from '$lib/format.js';
 
 	let { data, form } = $props();
 
@@ -117,10 +118,6 @@
 			return;
 		}
 		loadBans();
-	}
-
-	function formatDate(d) {
-		return new Date(d).toLocaleString();
 	}
 </script>
 
@@ -296,7 +293,7 @@
 							{#if ban.reason}
 								<p class="mt-0.5 text-xs text-neutral-500">{ban.reason}</p>
 							{/if}
-							<p class="tabular mt-0.5 text-xs text-neutral-400">{formatDate(ban.createdAt)}</p>
+							<p class="tabular mt-0.5 text-xs text-neutral-400">{formatDateTime(ban.createdAt)}</p>
 						</div>
 						<button
 							onclick={() => unban(ban.id)}

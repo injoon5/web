@@ -1,16 +1,16 @@
 import { json, error } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { convex } from '$lib/server/convex';
+import { convex } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
-import { requestIpHash } from '$lib/server/ip';
-import { createCommentSchema } from '$lib/server/validation';
-import { verifyAdminSecret } from '$lib/server/admin';
-import { isValidPageUrl } from '$lib/server/valid-urls';
-import { runConvex, parseBody, handleConvexErr } from '$lib/server/api';
+import { requestIpHash } from '$lib/server/ip.js';
+import { createCommentSchema } from '$lib/server/validation.js';
+import { verifyAdminSecret } from '$lib/server/admin.js';
+import { isValidPageUrl } from '$lib/server/valid-urls.js';
+import { runConvex, parseBody, handleConvexErr } from '$lib/server/api.js';
 import { ADMIN_SECRET } from '$env/static/private';
 import bcrypt from 'bcryptjs';
 
-export const GET: RequestHandler = async ({ url, request }) => {
+/** @type {import('./$types').RequestHandler} */
+export const GET = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
 	const ipHash = requestIpHash(request);
@@ -20,7 +20,8 @@ export const GET: RequestHandler = async ({ url, request }) => {
 	);
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+/** @type {import('./$types').RequestHandler} */
+export const POST = async ({ request }) => {
 	const ipHash = requestIpHash(request);
 	const admin = verifyAdminSecret(request);
 

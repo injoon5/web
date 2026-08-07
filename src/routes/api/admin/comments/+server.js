@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import { convex } from '$lib/server/convex';
+import { convex } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
-import { requireAdmin } from '$lib/server/admin';
-import { runConvex } from '$lib/server/api';
+import { requireAdmin } from '$lib/server/admin.js';
+import { runConvex } from '$lib/server/api.js';
 import { ADMIN_SECRET } from '$env/static/private';
 
-export const GET: RequestHandler = async ({ request, url }) => {
+/** @type {import('./$types').RequestHandler} */
+export const GET = async ({ request, url }) => {
 	requireAdmin(request);
 
 	const urlFilter = url.searchParams.get('url');

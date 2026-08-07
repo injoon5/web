@@ -11,10 +11,10 @@ vi.mock('$lib/server/convex', () => ({
 }));
 
 import { getFunctionName } from 'convex/server';
-import { convex } from '$lib/server/convex';
-import { createAdminSessionToken } from '$lib/server/admin';
+import { convex } from '$lib/server/convex.js';
+import { createAdminSessionToken } from '$lib/server/admin.js';
 import { ADMIN_SECRET } from '$env/static/private';
-import { DELETE } from './+server.ts';
+import { DELETE } from './+server.js';
 
 function deleteRequest(headers = {}) {
 	return new Request('http://x/api/comments/c1', {

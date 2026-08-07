@@ -16,13 +16,17 @@ const koModules = import.meta.glob('../posts/ko/*.md');
 const enMeta = import.meta.glob('../posts/en/*.md', { eager: true, import: 'metadata' });
 const koMeta = import.meta.glob('../posts/ko/*.md', { eager: true, import: 'metadata' });
 
-type Metadata = { published?: boolean; series?: string; date?: string; slug?: string };
+/** @typedef {{ published?: boolean, series?: string, date?: string, slug?: string }} Metadata */
 
-/** Published metadata by slug, from one of the eager metadata globs. */
-function publishedBySlug(metaByPath: Record<string, unknown>) {
-	const bySlug = new Map<string, Metadata>();
+/**
+ * Published metadata by slug, from one of the eager metadata globs.
+ * @param {Record<string, unknown>} metaByPath
+ */
+function publishedBySlug(metaByPath) {
+	/** @type {Map<string, Metadata>} */
+	const bySlug = new Map();
 	for (const path in metaByPath) {
-		const meta = metaByPath[path] as Metadata | undefined;
+		const meta = /** @type {Metadata | undefined} */ (metaByPath[path]);
 		if (!meta?.published) continue;
 		const slug = slugFromPath(path);
 		bySlug.set(slug, { ...meta, slug });
@@ -61,7 +65,8 @@ export async function load({ params, data }) {
 			if (series && seriesNames.has(series)) matched.push({ eMeta, kMeta });
 		}
 
-		const dateOf = (m: { date?: string } | null) => (m?.date ? new Date(m.date).getTime() : 0);
+		/** @param {{ date?: string } | null} m */
+		const dateOf = (m) => (m?.date ? new Date(m.date).getTime() : 0);
 		matched.sort((a, b) => dateOf(b.eMeta ?? b.kMeta) - dateOf(a.eMeta ?? a.kMeta));
 
 		for (const { eMeta, kMeta } of matched) {

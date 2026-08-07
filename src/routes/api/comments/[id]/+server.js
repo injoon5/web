@@ -1,15 +1,14 @@
 import { json } from '@sveltejs/kit';
-import type { RequestHandler } from './$types';
-import type { Id } from '$convex/_generated/dataModel';
-import { convex } from '$lib/server/convex';
+import { convex } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
-import { verifyAdminSecret } from '$lib/server/admin';
-import { editCommentSchema, deleteCommentSchema } from '$lib/server/validation';
-import { requestIpHash } from '$lib/server/ip';
-import { runConvex, parseBody } from '$lib/server/api';
+import { verifyAdminSecret } from '$lib/server/admin.js';
+import { editCommentSchema, deleteCommentSchema } from '$lib/server/validation.js';
+import { requestIpHash } from '$lib/server/ip.js';
+import { runConvex, parseBody } from '$lib/server/api.js';
 import { ADMIN_SECRET } from '$env/static/private';
 
-export const PATCH: RequestHandler = async ({ params, request }) => {
+/** @type {import('./$types').RequestHandler} */
+export const PATCH = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
 	const admin = verifyAdminSecret(request);
 	const { text, password } = await parseBody(request, editCommentSchema);
@@ -17,7 +16,7 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.editComment, {
-				commentId: params.id as Id<'comments'>,
+				commentId: /** @type {import('$convex/_generated/dataModel').Id<'comments'>} */ (params.id),
 				text,
 				password: admin ? '' : password,
 				ipHash,
@@ -33,14 +32,15 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 // here turned their ordinary "delete my comment" click into a hard delete that
 // wiped the whole reply subtree. Hard delete is reachable only through the
 // deliberate admin surface, DELETE /api/admin/comments/[id].
-export const DELETE: RequestHandler = async ({ params, request }) => {
+/** @type {import('./$types').RequestHandler} */
+export const DELETE = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
 	const { password } = await parseBody(request, deleteCommentSchema);
 
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.softDeleteComment, {
-				commentId: params.id as Id<'comments'>,
+				commentId: /** @type {import('$convex/_generated/dataModel').Id<'comments'>} */ (params.id),
 				password,
 				ipHash
 			}),

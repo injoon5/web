@@ -4,7 +4,7 @@
 export const prerender = true;
 
 import { json } from '@sveltejs/kit';
-import { publishedPosts, CONTENT_CACHE_CONTROL } from '$lib/server/content';
+import { publishedPosts, CONTENT_CACHE_CONTROL } from '$lib/server/content.js';
 
 export async function GET() {
 	return json(publishedPosts(), { headers: { 'Cache-Control': CONTENT_CACHE_CONTROL } });
