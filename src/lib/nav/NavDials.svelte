@@ -3,24 +3,14 @@
 	import { NAV_ALIGNMENTS, NAV_DEFAULTS, navSettings } from '$lib/nav/settings.svelte.js';
 
 	/**
-	 * The header's tuning panel, on preview deployments and in `vite dev` only.
+	 * The header's tuning panel, preview and `vite dev` only. Registers a folder
+	 * into the `DialsHost` mounted from the root layout.
 	 *
-	 * Reached through a dynamic import behind `__DIALS__` in
-	 * `NavDialsMount.svelte`, so a production build folds it away entirely. It
-	 * registers a folder into the overlay `DialsHost` already mounted from the
-	 * root layout.
+	 * The one panel present on every route, and not the site-wide panel this setup
+	 * exists to avoid — the header is on screen everywhere. The `disclosure`
+	 * folder does nothing above `sm`, where the row holds all four links.
 	 *
-	 * This is the one panel that does not come and go with the route, and it is
-	 * not the site-wide panel the rest of this setup exists to avoid: that rule
-	 * is about sliders for tokens the current page may not show, and every
-	 * control here moves type that is on screen on every page. The disclosure
-	 * folder is the exception worth knowing about — its controls do nothing above
-	 * `sm`, where the row holds all four links and there is no second row to
-	 * space. Narrow the window to see them work.
-	 *
-	 * Nothing persists. Whatever settles gets copied back into `NAV_DEFAULTS` by
-	 * hand, so the shipped values stay in source, reviewed, rather than in a
-	 * preview's local storage.
+	 * Nothing persists; what settles is copied into `NAV_DEFAULTS` by hand.
 	 */
 
 	const dials = createDialKit('Nav', {

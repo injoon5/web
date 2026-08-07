@@ -25,25 +25,16 @@ async function consumeRateLimit(ctx, name, ipHash) {
 }
 
 /**
- * Ban + rate-limit gate for a would-be comment, consuming nothing.
+ * Ban + rate-limit gate for a would-be comment, consuming nothing. It only moves
+ * the rejection in front of the ~100ms of bcrypt `create` would otherwise spend
+ * before it could say the IP is banned.
  *
- * `create` takes a bcrypt hash as an argument, so the caller has to spend
- * ~100ms of CPU hashing the password *before* this mutation can tell it the IP
- * is banned or out of budget. That inverts the point of a rate limit: the
- * expensive work happened first, and a banned visitor could still burn a
- * serverless function's CPU on every request, unbounded. The owner (edit and
- * delete) path already has this shape via `beginOwnerAction` — it takes its
- * token before bcrypt runs. This gives creates the same ordering.
+ * `limiter.check`, not `limiter.limit`: `create` consumes the token and stays
+ * the authority, and a caller that skips this is checked there exactly as before.
  *
- * `limiter.check` rather than `limiter.limit`: the token is consumed by
- * `create` itself, which stays the authority. This only front-runs the
- * rejection so nothing expensive happens on the way to it. A caller that skips
- * this and goes straight to `create` is checked there exactly as before.
- *
- * A mutation, not a query, deliberately. A token bucket refills with the clock,
- * and Convex freezes time inside a query and caches the result until the data
- * it read changes — so a cached `ok: false` would outlive the window that
- * produced it and lock the visitor out with no write to invalidate it.
+ * A mutation, not a query: a token bucket refills with the clock, and Convex
+ * freezes time inside a query and caches the result — a cached `ok: false` would
+ * outlive its window with no write to invalidate it.
  */
 export const checkCanCreate = mutation({
 	args: { ipHash: v.string(), adminSecret: v.optional(v.string()) },

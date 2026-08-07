@@ -14,12 +14,9 @@ export const DEFAULT_MAX_POINTS = 400;
 
 /**
  * Per-hour dedupe window. An ingest reads the samples already in each touched
- * hour so a re-sent sample is never folded into the bucket twice; that read is
- * what these two caps bound.
- *
- * Convex allows ~16k document reads per transaction, so hours × scan has to stay
- * under it: 12 × 1000 = 12000. A payload spanning more hours is rejected rather
- * than silently truncated.
+ * hour so a re-sent one is never folded into the bucket twice; these caps bound
+ * that read. Convex allows ~16k reads per transaction, so hours × scan must stay
+ * under it: 12 × 1000. Over that the payload is rejected, not truncated.
  */
 export const HOUR_SCAN_LIMIT = 1000;
 export const MAX_HOURS_PER_INGEST = 12;
@@ -152,13 +149,11 @@ export function workoutExternalId(type, startMs) {
 }
 
 /**
- * Split incoming samples into the ones that are genuinely new for this hour and
- * the bucket delta they contribute.
- *
- * This is the guard against permanently corrupting a chart: a re-sent sample
- * folded into a bucket sum a second time can never be backed out. `existingTimes`
- * is what the hour already holds; anything matching (or repeated inside the
- * batch) is dropped before it reaches the rollup.
+ * Split incoming samples into the genuinely new ones and the bucket delta they
+ * contribute. A sample folded into a bucket sum twice can never be backed out,
+ * so anything matching `existingTimes` (or repeated inside the batch) is dropped
+ * before it reaches the rollup. `convex/health.test.js` posts the same 100
+ * samples twice and asserts count stays 100 — keep that test.
  */
 export function foldSamples(existingTimes, incoming) {
 	const seen = new Set(existingTimes);
@@ -208,10 +203,7 @@ export function bucketSizeFor(count, maxPoints = DEFAULT_MAX_POINTS) {
 /**
  * Collapse a dense array into groups of `size`, summing or averaging the
  * non-null members. An all-null group stays null — a gap is never invented into
- * a zero.
- *
- * A trailing partial group reads low for `sum` metrics (four days of steps in a
- * seven-day slot), which is the honest reading of the data we have.
+ * a zero. A trailing partial group reads low for `sum` metrics, which is honest.
  */
 export function mergeValues(values, size, kind) {
 	if (size <= 1) return values;
@@ -252,11 +244,9 @@ function round(value) {
 }
 
 /**
- * Dense daily series: one slot per day from `startDate`, nulls for days with no
- * row, then merged down to at most `maxPoints` points.
- *
- * Dense arrays rather than `{date, value}` objects: half the bytes, and x is
- * `start + index * step`, so dates never ship.
+ * Dense daily series: one slot per day from `startDate`, nulls for gaps, merged
+ * down to at most `maxPoints`. Dense arrays rather than `{date, value}` objects —
+ * x is `start + index * step`, so dates never ship.
  */
 export function buildDailySeries({ metric, unit, rows, startDate, days, maxPoints }) {
 	const values = new Array(days).fill(null);

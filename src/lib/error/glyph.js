@@ -1,36 +1,21 @@
 /**
- * The status code, rendered into cells.
+ * The status code, rendered into cells: the site's own typeface drawn into an
+ * offscreen canvas the size of the Life grid and thresholded.
  *
- * The number is not a bitmap font. It is the site's own typeface, drawn into an
- * offscreen canvas the size of the Life grid and thresholded — so `404` on the
- * error page is the same `404` the heading would set, just quantised to the
- * cell grid and then handed to the simulation to take apart.
- *
- * Two details make it read as a numeral rather than a smear:
- *
- * - **It is stroked, not filled.** A filled glyph is a solid slab, and a solid
- *   slab of cells is the one thing Life kills instantly — every interior cell
- *   has eight neighbours and dies of overpopulation on step one, leaving a
- *   hollow outline anyway. Stroking asks for that outline directly, at a width
- *   we choose, and an outline is also a far more interesting thing to evolve:
- *   long thin lines throw off symmetric debris for hundreds of generations
- *   where a slab just craters.
- * - **It is supersampled.** Drawing at grid resolution means a 40px-tall font,
- *   where hinting and antialiasing turn the curve of a `0` into mush. The glyph
- *   is drawn at `S` times the grid and box-filtered down, so each cell is the
- *   average coverage of its own square and the letterforms survive.
+ * Two details make it read as a numeral rather than a smear. It is **stroked,
+ * not filled** — a solid slab is the one thing Life kills instantly (every
+ * interior cell dies of overpopulation on step one), and an outline evolves far
+ * more interestingly. And it is **supersampled** at `S` times the grid, because
+ * a 40px-tall font turns the curve of a `0` into mush.
  */
 
 /** Widest offscreen canvas we will ask for, in device pixels. */
 const MAX_RASTER = 2400;
 
 /**
- * Make sure the face is actually available before measuring against it.
- *
- * The site's typeface is served as a dynamic subset, so the digits may not have
- * arrived when the error page mounts. Measuring too early sizes the number
- * against the fallback and it lands at the wrong scale — visibly wrong, since
- * the whole point is that it is set in the site's font.
+ * Wait for the face before measuring against it. The typeface is served as a
+ * dynamic subset, so the digits may not have arrived when the page mounts, and
+ * measuring early sizes the number against the fallback.
  */
 export async function waitForFont(font, text, timeout = 500) {
 	if (typeof document === 'undefined' || !document.fonts) return;
@@ -51,12 +36,9 @@ export async function waitForFont(font, text, timeout = 500) {
 }
 
 /**
- * Rasterise `text` into a `cols * rows` mask.
- *
- * Returns the mask and the bounding box of what was drawn, in cells — the
- * caller reserves that box so the seeded shapes keep clear of it. `null` comes
- * back when there is no 2D context or the text rasterised to nothing, and the
- * caller is expected to carry on without a stamp.
+ * Rasterise `text` into a `cols * rows` mask, with the bounding box of what was
+ * drawn so the caller can reserve it. `null` when there is no 2D context or the
+ * text rasterised to nothing; the caller carries on without a stamp.
  */
 export function stampText(
 	text,

@@ -1,42 +1,29 @@
 /**
- * The numbers the header is set with.
+ * The numbers the header is set with. Production reads them and writes nothing;
+ * on preview and in `vite dev`, `NavDials.svelte` binds a DialKit panel to this
+ * same object so the sliders move the real header.
  *
- * Shipped values, read by `NavBar.svelte` and written by nothing in production —
- * on preview deployments and in `vite dev`, `NavDials.svelte` binds a DialKit
- * panel to this same object, so the sliders move the real header.
- *
- * Everything here is a typographic relationship rather than a look: where the
- * two rows' marks sit relative to each other, how far the second row hangs
- * below the first, and where the chevron's ink falls against the page margin.
- * None of those can be judged from a number — they have to be seen against the
- * actual type at the actual size, which is what a slider is for.
- *
- * They reach the DOM as custom properties on the header, and every rule that
- * reads one keeps its shipped value as the fallback, so a build with the panel
- * folded away renders exactly what it renders today.
+ * They reach the DOM as custom properties, and every rule that reads one keeps
+ * its shipped value as the fallback — so a build with the panel folded away
+ * renders exactly what it renders today.
  */
 
 export const NAV_ALIGNMENTS = ['center', 'baseline'];
 
 export const NAV_DEFAULTS = {
-	/**
-	 * `center` hangs the name and the links from one middle axis; `baseline`
-	 * stands them on one baseline. They are 3px apart in this typeface and there
-	 * is no third option — cap height equals ascent minus descent here, so a
-	 * centred line box is already centred on its own cap band.
-	 */
+	/** `center` hangs name and links from one middle axis; `baseline` stands them on one. */
 	align: 'center',
 	/** Nudges the whole right-hand cluster off that axis, in px. */
 	clusterNudge: 0,
 
-	/** Row padding above and below the type, in px. Was `py-3`. */
+	/** Row padding above and below the type, in px. */
 	rowPadY: 12,
-	/** Space between links in the row, below `sm`. Was `gap-3`. */
+	/** Space between links in the row, below `sm`. */
 	wordGap: 12,
 	/**
 	 * How far the chevron's 40px tap target hangs past the right margin, in px.
-	 * Its drawn mark sits ~14.7px inside that box, so this is what decides
-	 * whether the ink lands on the margin the body text uses.
+	 * Its drawn mark sits ~14.7px inside that box, so this decides whether the ink
+	 * lands on the margin the body text uses.
 	 */
 	toggleOverhang: 15,
 	/** The chevron itself. Passed to the icon, not to CSS. */
@@ -44,44 +31,31 @@ export const NAV_DEFAULTS = {
 	chevronStroke: 2.25,
 
 	/**
-	 * The space between the header's two lines, as an offset in px from where
-	 * their line boxes sit flush — which is 40px baseline to baseline, so `lead`
-	 * plus 40 is the real distance. -10 puts the two lines 30px apart.
-	 *
-	 * It goes negative because flush is not the tightest the two lines can be
-	 * set: the first row's line box is sized by the 24px wordmark while its links
-	 * only need 24px of the 32, and there is another 12px of row padding under
-	 * that. All of it is empty, and the second line is free to ride up into it.
-	 * That moves the whole band, so the space under the second line and the
-	 * hairline's distance from it do not change with this.
+	 * Space between the header's two lines, as an offset in px from where their
+	 * line boxes sit flush — flush is 40px baseline to baseline, so -10 sets them
+	 * 30px apart. Negative is valid: the first row's line box is sized by the 24px
+	 * wordmark while its links need 24 of the 32, and the second line rides up
+	 * into the slack. That moves the whole band, so the space below it is unchanged.
 	 */
 	lead: -10,
 	/** Space under the disclosure row, down to the hairline, in px. */
 	padBottom: 16,
 	/**
 	 * Right padding on the disclosure row, in px. 41 = the 16px page gutter plus
-	 * the 25px of the toggle that falls inside the row, which is what ends the
-	 * row on 'blog' rather than out on the page margin under the chevron.
+	 * the 25px of the toggle that falls inside the row, which ends the row on
+	 * 'blog' rather than out under the chevron.
 	 */
 	padRight: 41,
 	/** Space between the disclosure's links, in px. */
 	moreGap: 12,
 
-	/**
-	 * How much scrolling it takes for the surface to arrive, in px. Not a
-	 * duration: the tint and the hairline are on a scroll timeline, so this is a
-	 * distance down the page, and the only thing that decides whether the header
-	 * settles onto the page or is dragged onto it.
-	 */
+	/** How far down the page the surface takes to arrive, in px — a distance, not a duration. */
 	surfaceRange: 64,
 	/**
-	 * How deep the soft lower lip of the wordmark's window is, in px — the band
-	 * the name dissolves through on its way in rather than being cut off by, and
-	 * the whole of it is the gradient. It is opened below the type's own line, so
-	 * however deep it goes the resting name is never touched. 12 keeps it inside
-	 * the row's bottom padding; past that it hangs below the hairline, which only
-	 * shows while the name is moving and only where the hero name already is.
-	 * 0 is a hard clip.
+	 * Depth of the soft lower lip of the wordmark's window, in px — the band the
+	 * name dissolves through rather than being clipped by. Opened below the type's
+	 * own line, so the resting name is never touched at any depth. Past 12 it hangs
+	 * below the hairline, which only shows while the name is moving. 0 is a hard clip.
 	 */
 	namePortal: 20,
 
@@ -96,11 +70,7 @@ export const NAV_DEFAULTS = {
 
 export const navSettings = $state({ ...NAV_DEFAULTS });
 
-/**
- * The settings as a `style` string for the header element. Only ever applied
- * behind `__DIALS__` — production sets no custom properties at all and every
- * rule falls back to the same numbers.
- */
+/** The settings as a `style` string. Only ever applied behind `__DIALS__`. */
 export function navStyle(s = navSettings) {
 	return [
 		`--nav-align:${s.align}`,

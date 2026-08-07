@@ -6,18 +6,10 @@
 	/**
 	 * The error page, shared by both `+error.svelte` boundaries.
 	 *
-	 * It plays in two beats. First a poster: the status code stamped into a Life
-	 * field across the whole viewport, and the type sitting in the lower third
-	 * where the numeral is not. The two never overlap there, which is why the
-	 * heading can stay high-contrast and the field can stay quiet — no scrim, no
-	 * blur, no fighting.
-	 *
-	 * Then the field lets the numeral go (`onrelease`, at the end of its hold)
-	 * and the same numeral arrives as real type at the head of the block, while
-	 * the stage collapses from a whole viewport to a little over half of one and
-	 * carries the type up into the middle of the page. The field goes on running
-	 * behind it, but it never stamps the numeral again — the type is the numeral
-	 * now, and nothing lands on top of it.
+	 * Two beats. A poster — the status code stamped into a Life field, the type in
+	 * the lower third where the numeral is not — then, on `onrelease`, the numeral
+	 * arrives as real type while the stage collapses to half a viewport. The field
+	 * keeps running but never stamps again, so nothing lands on the type.
 	 */
 
 	/** Flipped by the field when the stamp stops being held. */

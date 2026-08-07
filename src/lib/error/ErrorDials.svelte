@@ -3,18 +3,8 @@
 	import { LIFE_DEFAULTS, lifeSettings } from '$lib/error/settings.svelte.js';
 
 	/**
-	 * The error pages' tuning panel, on preview deployments only.
-	 *
-	 * Reached through a dynamic import behind `__DIALS__` in
-	 * `ErrorDialsMount.svelte`, so a production build folds it away entirely. It
-	 * registers a folder into the overlay `DialsHost` already mounted from the
-	 * root layout, and disappears again when the route changes.
-	 *
-	 * Every value in here is a judgement about how a whole viewport reads at a
-	 * glance — how fine the grid should be before it stops being a grid, how long
-	 * the numeral should hold before it starts coming apart, how fast a
-	 * generation can pass and still be followed. None of those are values you can
-	 * reason your way to from a file; they have to be watched.
+	 * The error pages' tuning panel, preview only. Registers a folder into the
+	 * `DialsHost` mounted from the root layout, and goes with the route.
 	 */
 
 	const dials = createDialKit('Error', {

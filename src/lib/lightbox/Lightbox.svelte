@@ -40,11 +40,7 @@
 	const SETTLE_MIN_MS = 190;
 	// ms of pointer history a release is judged on. See `velocityAt`.
 	const VELOCITY_WINDOW = 60;
-	// The settle spring's initial velocity, in fractions of the remaining
-	// distance per unit of its own duration. 6 is where a critically damped
-	// spring starts to overshoot; a page that sailed past its slot and came back
-	// would be a bounce the scroller outside does not have. Negative is a release
-	// still travelling outward from a rubber band, which does carry on and return.
+	// Settle spring velocity bounds. See `settleSpec` in geometry.js.
 	const SETTLE_V0_MAX = 6;
 	const SETTLE_V0_MIN = -3;
 	// A trackpad's momentum keeps arriving after the fingers are gone, so the
@@ -72,12 +68,9 @@
 	// there is only one code path through sizing, swiping and dismissal.
 	let items = $state([]);
 	let index = $state(0);
-	// `index` a frame late, and the only thing that decides which slides carry a
-	// `src`. Mounting the next neighbour's <img> in the same commit that starts
-	// the page makes that one frame long, so the settle begins late and the whole
-	// slide reads as a stutter — a frame later the track's transform is already
-	// on the compositor and no DOM work can stall it. It catches up immediately
-	// on a jump of more than one step, where there is no in-between to protect.
+	// `index` one frame late, and the only thing deciding which slides carry a
+	// `src`. Mounting a neighbour's <img> in the commit that starts the page makes
+	// that commit long and the settle begins late. Do not collapse into `index`.
 	let windowIndex = $state(0);
 	let closing = $state(false);
 	let dismissing = $state(false);
@@ -96,16 +89,13 @@
 	const grouped = $derived(count > 1);
 	const current = $derived(items[index] ?? null);
 	const alt = $derived(current?.alt ?? '');
-	// If any image in the group is captioned, the slot is held open for all of
-	// them. Letting it collapse changes the chrome's height, which changes the
-	// room reserved for the photo — so paging to an uncaptioned image resized
-	// the photo you were already looking at.
+	// Held open across the whole group: the chrome's height is what reserves room
+	// for the photo, so a collapsing caption resizes the image being looked at.
 	const anyCaption = $derived(items.some((i) => i?.alt));
 
 	// --- gesture state --------------------------------------------------------
-	// One pointer stream serves mouse, pen and touch. The axis is locked on the
-	// first few pixels of movement — sideways pages, downward dismisses — and not
-	// re-decided per move, or a diagonal flick would do both.
+	// One pointer stream for mouse, pen and touch. The axis is locked once, on the
+	// first few px — re-deciding per move let a diagonal flick page and dismiss.
 	/** @type {null | 'x' | 'y' | 'pan'} */
 	let axis = $state(null);
 	let dragging = $state(false);
@@ -115,10 +105,8 @@
 	/** A trackpad swipe is moving the track right now, so nothing may transition it. */
 	let wheeling = $state(false);
 	/**
-	 * The one-off `transition` a released gesture hands the track: its own
-	 * duration and its own spring, built from how far it still has to go and how
-	 * fast it was going. Null between gestures, where the shared `settleTransition` applies
-	 * — an arrow key or a tapped dot has no velocity to carry.
+	 * The one-off `transition` a released gesture hands the track. Null between
+	 * gestures, where `settleTransition` applies — an arrow key carries no velocity.
 	 */
 	let trackSettle = $state(null);
 
@@ -129,8 +117,8 @@
 	let panY = $state(0);
 
 	/**
-	 * Live pointers, newest last. Deliberately not `$state` — nothing renders
-	 * from it, and the values it holds change on every pointermove.
+	 * Live pointers, newest last. Deliberately not `$state`: nothing renders from
+	 * it and it changes on every pointermove.
 	 * @type {Array<{ id: number, x: number, y: number }>}
 	 */
 	let pointers = [];
@@ -200,13 +188,10 @@
 	}
 
 	// --- viewport -------------------------------------------------------------
-	// `inset: 0` alone is not a full-screen guarantee: any ancestor that grows a
-	// transform, a filter or `contain` becomes the containing block for a fixed
-	// child, and on mobile the dynamic toolbar moves the bottom edge underneath
-	// it. Both are answered here — the root is portalled to <body> so it has no
-	// ancestor left to be trapped by, and its height is `100dvh` floored by the
-	// measured `window.innerHeight` rather than left to the initial containing
-	// block.
+	// `inset: 0` is not a full-screen guarantee: an ancestor with a transform,
+	// filter or `contain` becomes the containing block for a fixed child, and the
+	// mobile toolbar moves the bottom edge. Hence the portal to <body>, and a
+	// height of `100dvh` floored by the measured `window.innerHeight`.
 	let winW = $state(typeof window !== 'undefined' ? window.innerWidth : 0);
 	let winH = $state(typeof window !== 'undefined' ? window.innerHeight : 0);
 
@@ -281,10 +266,8 @@
 
 	const modal = createModalHost({ themeColor: LIGHTBOX_THEME_COLOR });
 
-	// Capture/restore focus only on the actual open<->close transition. Gating on
-	// `wasVisible` stops a re-run (e.g. when `closeBtn` binds) from re-capturing
-	// `previouslyFocused` as the close button itself, which would otherwise break
-	// focus restoration to the element that opened the lightbox.
+	// Only on the actual open<->close transition: without the `wasVisible` gate a
+	// re-run recaptures `previouslyFocused` as the close button itself.
 	$effect(() => {
 		if (visible && !wasVisible) {
 			previouslyFocused = document.activeElement;
@@ -307,18 +290,12 @@
 		}
 	});
 
-	/**
-	 * Move the dialog to <body>. Everything about a modal — covering the
-	 * viewport, outranking the page's stacking contexts, inerting its siblings —
-	 * is only true when nothing is above it in the tree.
-	 */
+	/** Move the dialog to <body>; a modal is only a modal with nothing above it. */
 	function portal(node) {
 		if (typeof document === 'undefined') return;
 		document.body.appendChild(node);
-		// Inerting happens here rather than in the open effect because this is the
-		// first moment the node is provably a child of <body>: `bind:this` and that
-		// effect land in the same flush, and which of them runs first is not ours
-		// to decide.
+		// Here, not in the open effect: this is the first moment the node is provably
+		// a <body> child — `bind:this` and that effect share a flush, in no set order.
 		modal.inertBackground(node);
 		// Same reason the inerting lives here: this is the first moment the whole
 		// subtree is in the document and can be measured.
@@ -363,9 +340,8 @@
 	}
 
 	/**
-	 * An image collected from the page before it had loaded carries no natural
-	 * size, and `fitFor` needs one to reserve the box. Fill it in once from the
-	 * element the lightbox itself just loaded.
+	 * An image collected before it loaded carries no natural size, and
+	 * `containSize` needs one to reserve the box. Fill it in once.
 	 */
 	function onImageLoad(e, item) {
 		const el = e.currentTarget;
@@ -390,11 +366,8 @@
 		return el && el.isConnected ? el : null;
 	}
 
-	/**
-	 * `visibility`, not `display`: the element has to keep its box, both because
-	 * the flight measures it and because collapsing it would reflow the article
-	 * underneath the lightbox.
-	 */
+	/** `visibility`, not `display`: the flight measures this box, and collapsing
+	 *  it would reflow the article underneath. */
 	function hideOrigin(el) {
 		if (hiddenOrigin?.el === el) return;
 		showOrigin();
@@ -421,9 +394,8 @@
 
 	/**
 	 * A dismiss drag moves the strip, not the photo. Unwind it and hand the
-	 * distance it had travelled to the photo's own first keyframe instead, so
-	 * one animation carries the whole journey home rather than two transforms
-	 * fighting over the same pixels.
+	 * distance to the photo's first keyframe, so one animation carries the whole
+	 * journey rather than two transforms fighting over the same pixels.
 	 */
 	function unwindStrip() {
 		const strip = rootEl?.querySelector('.lb-strip');
@@ -453,10 +425,8 @@
 	}
 
 	/**
-	 * A close that lands while the track is still settling from a page would
-	 * measure the image mid-slide — and the track would go on moving underneath
-	 * the flight. Dropping the transition snaps the track to the resting
-	 * transform it is already on its way to, which is the one the flight assumes.
+	 * Closing mid-settle would measure the image against a moving track. Dropping
+	 * the transition snaps it to the resting transform the flight assumes.
 	 */
 	function freezeTrack() {
 		const track = rootEl?.querySelector('.lb-track');
@@ -465,17 +435,11 @@
 	}
 
 	/**
-	 * Fly the photo home. Returns false when there is nowhere to fly to — no
-	 * origin element, no layout, reduced motion, or a zoomed image, whose
-	 * on-screen box is no longer the one the flight maths assumes.
-	 */
-	/**
-	 * Fly the photo home from wherever it currently is on screen — which is not
-	 * its layout box if the opening flight is still running, or if a dismiss drag
-	 * has carried it away from the middle.
-	 *
-	 * Every check that can refuse the flight runs before anything is unwound, so
-	 * a refusal leaves the photo exactly where the fallback expects to find it.
+	 * Fly the photo home from wherever it is on screen — not its layout box, if an
+	 * opening flight is still running or a dismiss drag carried it off centre.
+	 * Returns false when there is nowhere to fly to, and every check that can
+	 * refuse runs before anything is unwound, so a refusal leaves the photo where
+	 * the fallback expects it.
 	 */
 	function startCloseFlight({ carried = false, duration = FLIGHT_OUT_MS } = {}) {
 		if (motion.reduced || scale > 1) return false;
@@ -516,10 +480,8 @@
 			'forwards',
 			springOr(FLIGHT_EASE, SPRING_HOME),
 			() => {
-				// Hand the page its photo back the instant the flying one lands on
-				// it, not after Svelte has torn the dialog down. The two overlap
-				// exactly, so the swap is invisible — where waiting left the photo
-				// sitting above the article for the frames in between.
+				// The instant the flying copy lands, not after Svelte unmounts: the two
+				// overlap exactly, so the swap is invisible.
 				showOrigin();
 				lightboxStore.set(null);
 			}
@@ -599,11 +561,9 @@
 	}
 
 	/**
-	 * The move/up pair lives on the window, not the element: a drag that leaves
-	 * the viewport (or the browser) still has to end, and a `pointerup` the
-	 * lightbox never hears would leave it stuck mid-gesture. Bound imperatively
-	 * rather than through `svelte:window` so the listener exists before the
-	 * first move, not after the next effect flush.
+	 * On the window, not the element, so a drag that leaves the viewport still
+	 * ends. Bound imperatively rather than via `svelte:window` so the listener
+	 * exists before the first move, not after the next effect flush.
 	 */
 	function bindPointerStream() {
 		if (typeof window === 'undefined') return;
@@ -662,10 +622,8 @@
 			if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
 			// Sideways only means something when there is somewhere to go.
 			axis = grouped && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-			// Take the lock threshold back out, and — for a swipe — take the track
-			// over wherever it happens to be. Both are measured now rather than at
-			// pointerdown: until this moment the settle was still running and the
-			// finger had not committed to anything.
+			// Take the lock threshold back out of the first frame, or the photo sits
+			// still for 8px and then jumps 8px. Measured now, not at pointerdown.
 			if (axis === 'x') {
 				slopX = Math.sign(dx) * Math.min(Math.abs(dx), AXIS_LOCK);
 				carryX = pickUpTrack();
@@ -685,11 +643,8 @@
 	}
 
 	/**
-	 * Where the track actually is, as an offset from the slot it is resting in or
-	 * settling towards. A gesture that starts mid-settle picks up from there, so
-	 * grabbing a page still in flight stops it under the finger instead of
-	 * teleporting it to where it had been heading — the scroller in the article
-	 * has been interruptible all along, and this is what the lightbox was missing.
+	 * Where the track actually is, as an offset from the slot it is settling
+	 * towards, so grabbing a page mid-flight stops it under the finger.
 	 */
 	function pickUpTrack() {
 		const track = rootEl?.querySelector('.lb-track');
@@ -705,11 +660,9 @@
 	}
 
 	/**
-	 * Give the track a transition of its own for this one settle, sprung from the
-	 * speed the gesture ended at.
-	 *
-	 * Called before `goTo`, so `index` and `dragX` still describe where the photo
-	 * is rather than where it is going.
+	 * Give the track its own transition for this one settle, sprung from the speed
+	 * the gesture ended at. Called before `goTo`, so `index` and `dragX` still
+	 * describe where the photo is rather than where it is going.
 	 */
 	function armTrackSettle(target, v) {
 		clearTimeout(settleTimer);
@@ -743,10 +696,8 @@
 
 	function settleX(now) {
 		const vx = velocity.at(now).x;
-		// Measured from where the drag took the track over, not from the resting
-		// slot: a swipe that interrupted a settle starts with the whole of that
-		// settle's remaining distance already on `dragX`, and counting it as
-		// movement would page on a finger that never went anywhere.
+		// Measured from where the drag took the track over, not the resting slot:
+		// counting the carry as movement paged on a finger that never moved.
 		const target = pageTarget(dragX - carryX, vx);
 		armTrackSettle(target, vx);
 		goTo(target);
@@ -896,9 +847,8 @@
 	}
 
 	/**
-	 * The momentum a trackpad sends after the fingers lift has already decayed to
-	 * nothing by the time the events stop, so where it came to rest is the whole
-	 * of what it meant — there is no flick left to read off it.
+	 * Trackpad momentum has decayed to nothing by the time the events stop, so
+	 * where it came to rest is all it meant — there is no flick to read off it.
 	 */
 	function settleWheel() {
 		if (!wheeling) return;
@@ -987,12 +937,10 @@
 		motion.reduced ? 'none' : `transform ${SETTLE_MS}ms ${SETTLE_EASE}`
 	);
 
-	// The track holds every slide at 100% of the viewport and overflows to the
-	// right, so its own width stays one page — which is what makes a percentage
-	// translate a whole page rather than a fraction of the whole strip.
-	// Split into one binding per property. A single `style` string is re-parsed
-	// in full on every frame of a drag, transition declaration and all; `style:`
-	// directives only touch the declaration that actually changed.
+	// The track is `position: absolute; inset: 0` and its slides overflow it, so
+	// its own width stays one page — that is what makes `translateX(-i * 100%)`
+	// mean one page per step. One `style:` directive per property, never a single
+	// string: a string is re-parsed in full on every frame of a drag.
 	const trackTransform = $derived(`translate3d(calc(${-index * 100}% + ${dragX}px), 0, 0)`);
 	// A gesture in hand transitions nothing — the track is following a finger. A
 	// released one gets the spring `armTrackSettle` built for it; everything else
@@ -1193,11 +1141,9 @@
 
 <style>
 	.lb-root {
-		/* The built-in easings are too weak to read as intentional. These are the
-		   two the whole component uses: a strong ease-out for anything entering,
-		   leaving or responding to a press, and the drawer curve for anything a
-		   finger is settling. Nothing here uses ease-in — it withholds movement at
-		   the exact moment the eye is on it, which reads as lag. */
+		/* Two curves for the whole component: a strong ease-out for anything
+		   entering or leaving, and the drawer curve for anything a finger settles.
+		   Never ease-in — it withholds movement while the eye is on it. */
 		--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 		--ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -1205,9 +1151,8 @@
 		top: 0;
 		left: 0;
 		right: 0;
-		/* Not `inset: 0`: on mobile the bottom edge of the initial containing
-		   block sits under the collapsing toolbar. `100dvh` tracks it, and the
-		   measured innerHeight is the floor for browsers without `dvh`. */
+		/* Not `inset: 0`: on mobile the ICB's bottom edge sits under the collapsing
+		   toolbar. `100dvh` tracks it; measured innerHeight is the floor. */
 		height: 100vh;
 		height: var(--lb-vh, 100dvh);
 		min-height: 100dvh;
@@ -1223,16 +1168,14 @@
 		inset: 0;
 	}
 
-	/* 8px rather than the 14px-plus-saturate this started at. A full-screen
-	   backdrop filter is the single most expensive thing here — over a dismiss
-	   drag at 6x CPU throttle it costs 8 missed frames against 0 with no blur at
-	   all, and 8px halves that to 4. Side by side at the opacity the scrim
-	   actually reaches, the two are indistinguishable.
+	/* The `-webkit-` prefix goes FIRST. Written the other way round the minifier
+	   collapses the pair to the prefixed declaration alone, and Chrome and Firefox
+	   — which have never supported `-webkit-backdrop-filter` — render no blur at
+	   all. That had been shipping. Check the built CSS if you touch this.
 
-	   The `-webkit-` prefix goes FIRST. Written the other way round the
-	   minifier collapses the pair down to the prefixed declaration alone, and
-	   Chrome and Firefox — which have never supported `-webkit-backdrop-filter`
-	   — then render no blur at all. That had been shipping. */
+	   8px, not the 14px-plus-saturate this started at: the blur is the most
+	   expensive thing on screen and the two are indistinguishable at the opacity
+	   the scrim reaches. */
 	.lb-blur {
 		-webkit-backdrop-filter: blur(8px);
 		backdrop-filter: blur(8px);
@@ -1248,10 +1191,8 @@
 	.lb-scrim {
 		background: rgba(0, 0, 0, 0.86);
 		transition: opacity 0.28s var(--ease-out);
-		/* `backwards`, not `both`. A filling animation keeps applying its last
-		   keyframe, and animations outrank inline styles in the cascade — so
-		   `both` pinned this to opacity 1 forever and the drag-to-dismiss fade,
-		   which is set inline, never showed at all. */
+		/* `backwards`, not `both`: a filling animation outranks inline styles, so
+		   `both` pinned opacity to 1 and the inline dismiss fade never showed. */
 		animation: lb-fade-in 0.28s var(--ease-entrance) backwards;
 		will-change: opacity;
 	}
@@ -1285,16 +1226,14 @@
 	.lb-stage {
 		position: absolute;
 		inset: 0;
-		/* The same spring the flight uses, so the fallback entrance — a store
-		   value set by hand, an image with no size yet — is not a stiffer
-		   animation than the one it stands in for. */
+		/* The flight's own spring, so the fallback entrance is not stiffer than the
+		   animation it stands in for. */
 		animation: lb-in 0.36s var(--lb-spring, var(--ease-entrance)) both;
 	}
 
-	/* When the photo flies from the place it holds in the article, it *is* the
-	   entrance — a stage scaling underneath it would be a second, contrary one.
-	   Held for the whole open, not just the flight, so releasing it could never
-	   replay `lb-in` half way through. */
+	/* A photo flying from the article *is* the entrance; a stage scaling under it
+	   would be a second, contrary one. Held for the whole open, so releasing it
+	   can never replay `lb-in` half way through. */
 	.lb-root.flew .lb-stage {
 		animation: none;
 	}
@@ -1350,25 +1289,16 @@
 		transition: opacity 0.24s var(--ease-out);
 	}
 
-	/* Only the photo on screen ever transforms under its own power — the others
-	   ride along inside the track's layer, and promoting them would cost three
-	   full-screen textures to animate one.
-
-	   And only while it actually is: paging moves `data-current` from one image
-	   to the next, so a hint that hung on that attribute alone tore a layer down
-	   and built another in the very commit that starts the settle, which is the
-	   one frame the page cannot afford to drop. The track is promoted either way,
-	   so the slides are composited through it; this is for pinch and pan, which
-	   are the only times an image moves inside the track. The flights need no
-	   hint — a WAAPI transform is composited on its own. */
+	/* Gated on `.zoomed`, not on `data-current` alone: paging moves that attribute,
+	   so a hint hanging on it tore down a layer and built another in the commit
+	   that starts the settle. The track is promoted either way, so slides
+	   composite through it; this is for pinch and pan only. */
 	.lb-root.zoomed .lb-img[data-current='true'] {
 		will-change: transform;
 	}
 
-	/* A photo that has landed back in the article but still carries a lifted
-	   photo's shadow and corners reads as sitting on top of the page rather than
-	   in it. Both are shed on the way home, so what lands is the same shape as
-	   what the page is about to show. */
+	/* Shed on the way home: a photo back in its slot still carrying a lifted
+	   photo's shadow and corners reads as sitting on top of the article. */
 	.lb-root.flying-home .lb-img[data-current='true'] {
 		box-shadow:
 			0 0 0 0 rgba(0, 0, 0, 0),
@@ -1416,9 +1346,8 @@
 		}
 	}
 
-	/* An image whose size wasn't known up front has nothing to hold its box, so
-	   it would pop in at full opacity the instant it decodes. A spinner would be
-	   one more thing on screen; a fade is the same information, quieter. */
+	/* An image with no known size has nothing holding its box, so it would pop in
+	   at full opacity the instant it decodes. */
 	.lb-img.pending {
 		opacity: 0;
 	}
@@ -1428,15 +1357,14 @@
 		inset: 0;
 		pointer-events: none;
 		transition: opacity 0.2s var(--ease-out);
-		/* A beat behind the photo, so the controls arrive around what has landed
-		   rather than over something still moving. `backwards` again — the inline
-		   opacity has to keep working once this is done. */
+		/* A beat behind the photo, so the chrome arrives around what has landed.
+		   `backwards` again — the inline opacity has to keep working after. */
 		animation: lb-fade-in 0.3s var(--ease-out) 0.07s backwards;
 	}
 
-	/* A photo can be white to its edges, and then the close button, the caption
-	   and the dots are sitting on it. Two long, shallow scrims: invisible against
-	   the backdrop, just enough under a bright image. */
+	/* A photo can be white to its edges, and then the chrome is sitting on it. Two
+	   long shallow scrims: invisible against the backdrop, enough under a bright
+	   image. */
 	.lb-chrome::before,
 	.lb-chrome::after {
 		content: '';
@@ -1457,9 +1385,8 @@
 		background: linear-gradient(to top, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0));
 	}
 
-	/* Zoomed in, the image fills the frame and everything but the way out is in
-	   the way — a caption and a row of dots over a photo blown up to inspect are
-	   noise, and no scrim makes them readable against every image anyway. */
+	/* Zoomed in, everything but the way out is in the way — and no scrim makes a
+	   caption readable over every photograph. */
 	.lb-root.zoomed .lb-bottom,
 	.lb-root.zoomed .lb-prev,
 	.lb-root.zoomed .lb-next,
@@ -1588,11 +1515,9 @@
 		-webkit-line-clamp: 2;
 		line-clamp: 2;
 		overflow: hidden;
-		/* Exactly the two lines it is clamped to, always — held open even for an
-		   image with no caption, as long as something in the group has one. The
-		   chrome's height is what reserves room for the photo, so a caption that
-		   wrapped where its neighbour did not was resizing the photo you were
-		   looking at, in the middle of the slide that swapped them. */
+		/* Exactly the two lines it clamps to, held open across the whole group. The
+		   chrome's height reserves room for the photo, so a caption that wrapped
+		   where its neighbour did not resized the photo mid-slide. */
 		min-height: 2.9em;
 		animation: lb-caption-in 0.2s var(--ease-out) both;
 	}
@@ -1622,10 +1547,8 @@
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 	}
 
-	/* Reduced motion means fewer and gentler animations, not none. The fades stay
-	   — they are what stops the lightbox from blinking in and out of existence —
-	   and it is the movement that goes: the stage stops scaling, and the track's
-	   transform transition is already dropped in the script. */
+	/* Fewer and gentler, not none: the fades stay (without them the lightbox
+	   blinks in and out of existence), the movement goes. */
 	@media (prefers-reduced-motion: reduce) {
 		.lb-stage {
 			animation-name: lb-fade-in;

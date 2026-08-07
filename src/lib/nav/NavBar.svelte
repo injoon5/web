@@ -13,36 +13,24 @@
 	let mounted = $state(false);
 	let menuOpen = $state(false);
 
-	// The surface arrives as the page moves under it, and it is CSS that watches
-	// the page move: a scroll-driven animation on the shell carries
-	// `--nav-surface-scroll` from 0 to 1 across the first stretch of the document,
-	// and the surface and the hairline read it. Nothing runs per frame, and
-	// nothing runs on the main thread.
-	//
-	// `scrolled` is only the fallback for a browser without scroll timelines,
-	// where the listener below flips it once past the same threshold and the tint
-	// switches on over 200ms the way it always has. It is left `false` everywhere
-	// else, and the rule it drives is overridden by the animation regardless —
-	// what the check actually buys is not installing the listener at all.
+	// The surface is a scroll-driven animation, not a scroll listener: a
+	// `scroll(root block)` timeline on the shell carries `--nav-surface-scroll`
+	// from 0 to 1. `scrolled` is only the fallback for a browser without scroll
+	// timelines, and the check is what avoids installing the listener at all.
 	let scrolled = $state(false);
 	let scrollLinked = $state(false);
 
-	// How far past the row the header reaches while open, which is what the one
-	// surface and the one hairline grow by. The band's own height is measured
-	// rather than asserted — it is a row of type, and its height is the font's to
-	// decide — and a negative lead is the band riding up into the row, so it
-	// comes off the total.
+	// How far past the row the header reaches while open — what the surface and
+	// hairline grow by. The band's height is measured, not asserted; a negative
+	// lead is the band riding up into the row, so it comes off the total.
 	let moreRowHeight = $state(0);
 	let openExtra = $derived(menuOpen ? moreRowHeight + Math.min(0, navSettings.lead) : 0);
 
-	// The row's height is a page-wide token, not the header's private business:
-	// `--nav-h` in `app.css` is what keeps a `#hash` link from landing its heading
-	// under this bar, and what the table of contents sticks below. That file
-	// carries the shipped number statically, because the browser scrolls to a
-	// deep link while the document is still parsing — this only re-publishes the
-	// height once there is a real one to measure, so a row set taller by the
-	// dials, or by type that renders differently than it was tuned against, takes
-	// the anchor offset with it instead of leaving it a stale constant.
+	// `--nav-h` is a page-wide token: it is what `scroll-padding-top` is built
+	// from, so a `#hash` link does not land its heading behind the bar. app.css
+	// must carry the shipped number statically — the browser scrolls to a deep
+	// link while the document is still parsing. This only re-publishes a measured
+	// height once there is one.
 	let rowHeight = $state(0);
 	$effect(() => {
 		if (!rowHeight) return;
@@ -414,11 +402,9 @@
 
 <style>
 	/* Everything the DialKit panel can move, each falling back to the value its
-	   Tailwind class carries — so a build with the panel folded away sets none of
-	   these and renders exactly what the classes say. The row's overrides that
-	   have `sm` variants are held below that breakpoint for the same reason: the
-	   dial is for the phone header, and it must not quietly flatten the wider
-	   spacing the desktop row is written with. */
+	   Tailwind class carries, so a build with the panel folded away renders
+	   exactly what the classes say. Overrides with `sm` variants are held below
+	   that breakpoint: the dial is for the phone header. */
 	.nav-row {
 		align-items: var(--nav-align, center);
 		padding-block: var(--nav-row-pad-y, 0.75rem);
@@ -428,31 +414,21 @@
 		translate: 0 var(--nav-cluster-nudge, 0px);
 	}
 
-	/* The lead changes form at zero, because padding cannot go negative and zero
-	   is not the tightest these two lines can be set. Opening it up pads the row
-	   inside the band; closing it past flush moves the whole band instead, and the
-	   second line rides up into the row's bottom padding and into the slack the
-	   24px wordmark leaves around the 16px links — all of it empty. Either way
-	   everything below the line comes with it, so its own spacing and the
-	   hairline's distance from it hold at any lead. */
+	/* The lead changes form at zero: padding cannot go negative, and flush is not
+	   the tightest these two lines can be set. Opening it pads the row inside the
+	   band; closing it past flush moves the whole band, and the second line rides
+	   up into slack that is empty anyway. */
 	.nav-more {
 		margin-top: min(0px, var(--nav-more-lead, -10px));
 	}
 
-	/* How present the surface is, from the two things that have an opinion about
-	   it: how far the page has scrolled under the header, and whether the
-	   disclosure is hanging open. They have to compose rather than take turns —
-	   opening the menu at the top of a page and opening it halfway down are the
-	   same header, and the surface must not drop back to a scroll-derived value
-	   when the menu closes, nor jump to full when it opens over a page that has
-	   already tinted it.
+	/* Two inputs with an opinion about the surface — scroll position and whether
+	   the disclosure is open — composed with `max()` rather than taking turns.
 
-	   `max()` is that composition, and it is why these are registered properties
-	   rather than an animated `opacity`: an animation wins over any declaration
-	   for the property it runs on, so a scroll-driven `opacity` would have left
-	   the open menu nothing to say. Each input carries its own timing instead —
-	   one tied to the scrollbar, one to a 200ms transition — and the surface reads
-	   whichever is asking for more. */
+	   They are registered `@property` numbers rather than an animated `opacity`
+	   because an animation outranks every declaration for the property it runs on,
+	   so a scroll-driven `opacity` would leave the open menu nothing to say. Each
+	   input keeps its own timing: one on the scrollbar, one on a 200ms transition. */
 	@property --nav-surface-scroll {
 		syntax: '<number>';
 		inherits: true;
@@ -516,69 +492,35 @@
 		}
 	}
 
-	/* The wordmark, which on the home page is the second half of a handover: the
-	   hero owns the name until it goes behind the header, and then the header
-	   does. It reads the hero's own view progress to know where in that it is —
-	   `--nav-hero-name`, declared on the hero and hoisted by `timeline-scope` on
-	   `:root` — so the fade is a function of where the page is, not of a clock
-	   started when a threshold was crossed. Stop scrolling halfway and it stops
-	   halfway; scroll back up and it goes back.
+	/* On the home page the wordmark is the second half of a handover: the hero
+	   owns the name until it goes behind the header. It runs on the hero's own
+	   view progress (`--nav-hero-name`, hoisted by `timeline-scope` on `:root`),
+	   so it tracks the page rather than a clock — stop halfway and it stops
+	   halfway.
 
-	   It does not merely arrive in step, it arrives *on* the other name. The roll
-	   starts at exactly where the hero name is when the handover begins and moves
-	   at exactly the rate it moves, so the two are one piece of type for the whole
-	   crossing rather than two 12px apart — which is what they were, and what read
-	   as a double image over the few pixels where both are visible.
+	   It lands *on* the hero name, not merely in step with it. `--nav-name-travel`
+	   is the gap between them and is derived, not chosen: the inset starts the
+	   range with the hero name `--nav-h` down, the wordmark rests
+	   `(--nav-h - 2rem) / 2` from the row's top, and the difference folds to
+	   `(--nav-h + 2rem) / 2` — 44px. That same value is the range's end in px of
+	   scroll, which is what makes the rate exactly 1:1. Anything else leaves the
+	   two names a constant 12px apart, which is a double image. There is
+	   deliberately no dial for it.
 
-	   `--nav-name-travel` is that gap, and it is not a chosen number. The
-	   timeline's inset starts the range with the hero name's cap line on the
-	   bottom of the header, `--nav-h` down; the wordmark rests half the row's
-	   slack down from its top, `(--nav-h - 2rem) / 2`; the distance between the
-	   two is the difference, which folds to `(--nav-h + 2rem) / 2`. 44px on the
-	   shipped row. `2rem` is the line box both names are set on — the same
-	   coupling `--nav-h` has, and it moves if `text-2xl` ever does.
+	   `.nav-name` is the hole it rolls through, and has to be a second element:
+	   the clip must hold still while the type inside it moves.
 
-	   The same value is the range's end, in px of scroll rather than a percentage
-	   of the hero's height, and that is what makes the rate exactly one to one:
-	   44px of travel over 44px of scroll. The hero name is gone after 32 of them
-	   and the wordmark keeps rising the last 12 to sit down in the row — by then
-	   there is nothing left to be out of step with. There is deliberately no dial
-	   for any of it: a knob here is a knob for taking the two names apart again.
+	   The hole has a soft lower lip, `--nav-name-portal` deep, so the type
+	   dissolves through a threshold instead of being sliced by a clip edge. The
+	   lip is room opened *below* the line box — `padding-bottom` adds it and an
+	   equal negative `margin-bottom` takes it back out of layout, so `--nav-h`
+	   does not move. The gradient's solid end is pinned to `2rem`, the type's own
+	   line, which is what makes a deeper lip a longer dissolve rather than a bite
+	   out of the wordmark.
 
-	   `.nav-name` is the hole it rolls through. It has to be a second element:
-	   the clip has to hold still while the type inside it moves, and a box that
-	   translates takes its own overflow with it.
-
-	   And the hole has a soft lower lip, `--nav-name-portal` deep, so the type
-	   dissolves into it rather than being sliced off by a clip edge — a name
-	   coming through a threshold instead of out from behind a shelf. The lip is
-	   room opened _below_ the line box: `padding-bottom` adds it and an equal
-	   negative `margin-bottom` takes it straight back out of the layout, so the
-	   box that gets clipped and masked is taller than the box the row measures.
-	   Nothing moves and `--nav-h` does not change.
-
-	   The gradient is full to nothing across that whole lip, and its solid end is
-	   pinned to `2rem` — the line the type is set on — rather than measured up
-	   from the bottom edge. That is what keeps a deeper lip a longer dissolve
-	   instead of a bite taken out of the wordmark: the resting name's ink ends at
-	   30px of a 32px line, so the ramp starts 2px under the tail of its `j` and
-	   everything above it is untouched at any depth. Measured, not assumed —
-	   `fontBoundingBoxAscent` puts the baseline at 25 and the `j` reaches 5 past
-	   it.
-
-	   Past 12px the lip hangs below the hairline, which is deliberate and only
-	   ever true while the name is moving: the type is only down there when the
-	   roll is more than 12px from home, and every one of those pixels is a
-	   pixel where the hero name is sitting in exactly the same place. Once the
-	   wordmark is seated the band is empty, so nothing paints outside the header
-	   on any other page or at rest.
-
-	   `opacity` and `translate` are both composited, and this is the only thing
-	   asking for either on this element, so the whole handover runs off the main
-	   thread. Every other option — a custom property composed with `max()` the
-	   way the surface is, an animated `filter` — would have pulled it back onto
-	   the main thread for a move that has nothing to compose with. The mask is
-	   static, so it costs the same nothing. */
+	   `opacity` and `translate` are both composited and nothing else on this
+	   element asks for either, so the handover stays off the main thread. The
+	   registered-property-and-`max()` shape the surface uses would not. */
 	.nav-name {
 		overflow: hidden;
 		padding-bottom: var(--nav-name-portal, 20px);
@@ -609,16 +551,11 @@
 			translate 200ms ease-out;
 	}
 
-	/* Two animations on one timeline, because the two properties are answering
-	   two different questions and their ranges are not the same length. The fade
-	   is coupled to the hero name: it finishes as the hero finishes disappearing,
-	   over `exit` and nothing more, so however much of that name has gone under
-	   the bar is however much of this one has arrived. The rise is coupled to the
-	   page: it runs the full travel so the wordmark ends up sitting in the row,
-	   and the last 12px of it happen after the hero is already out of sight and
-	   there is nothing left to be in step with. Folding them into one animation
-	   would mean writing the fade's end as a percentage of the rise — 72.7%, a
-	   number with both variables baked into it. */
+	/* Two animations on one timeline, because their ranges differ. The fade runs
+	   `exit` — coupled to the hero name, so arrival tracks disappearance 1:1. The
+	   rise runs the full `--nav-name-travel`, landing in the row 12px after the
+	   hero is gone. One animation would mean writing the fade's end as 72.7%, with
+	   both variables baked into a number. */
 	@keyframes nav-name-fade {
 		from {
 			opacity: 0;
@@ -659,14 +596,10 @@
 		}
 	}
 
-	/* The surface and the hairline are sized by the row and then stretched past it
-	   by however far the disclosure currently reaches, so one blurred pane covers
-	   the whole header at every point in the animation. They ease on the same
-	   curve and duration as the row that is pushing them.
-
-	   Their own presence is not transitioned here: it is already carried by the
-	   two properties above, and a transition on top of a scroll-driven value would
-	   only make it lag the finger. */
+	/* Sized by the row and stretched by however far the disclosure reaches, so one
+	   blurred pane covers the header at every point in the animation. Their
+	   presence is not transitioned here — the two properties above carry it, and a
+	   transition on top of a scroll-driven value would only make it lag. */
 	.nav-surface,
 	.nav-hairline {
 		opacity: max(var(--nav-surface-scroll), var(--nav-surface-menu));

@@ -1,20 +1,14 @@
 /**
- * What the /health page shows and how each number reads.
- *
- * The number is the headline, so formatting lives here rather than in the
- * component: one place decides that steps get thousands separators and distance
- * gets one decimal. Everything here is pure, so the arithmetic behind the score
- * and the chart markers is unit-testable without a DOM.
+ * What the /health page shows and how each number reads. Everything here is
+ * pure, so the score and chart arithmetic is testable without a DOM.
  */
 
 import { PUBLIC_METRICS, PUBLIC_RANGES, shiftDateKey } from '$convex/lib/health.js';
 
 /**
- * How each metric reads, and the daily target it is scored against.
- *
- * The key list itself lives in Convex, which enforces it. `goal` is a personal
- * target, not a medical one — it exists so five metrics in five different units
- * can be averaged into one number.
+ * How each metric reads, and the daily target it is scored against. The key list
+ * is enforced in Convex. `goal` is a personal target, not a medical one — it
+ * exists so metrics in different units can be averaged into one number.
  */
 const PRESENTATION = {
 	steps: { label: 'Steps', unit: '', decimals: 0, goal: 10000 },
@@ -26,9 +20,8 @@ const PRESENTATION = {
 const FALLBACK = { label: '', unit: '', decimals: 0, goal: 0 };
 
 /**
- * Metrics rendered as sections, in order. Derived from the Convex allowlist so
- * the page and the public query can't drift apart — adding a section means
- * widening what the query is permitted to serve, deliberately.
+ * Sections in order, derived from the Convex allowlist so the page and the
+ * public query cannot drift apart.
  */
 export const PAGE_METRICS = PUBLIC_METRICS.map((key) => ({
 	key,
@@ -42,11 +35,9 @@ export const RANGES = PUBLIC_RANGES;
 export const DEFAULT_RANGE = 30;
 
 /**
- * First day of a window ending on `endDate`.
- *
- * The end of the window comes from the server render, never from the visitor's
- * clock: the range picker only changes how far back the window reaches, so
- * switching ranges can't drift the page a day away from what was rendered.
+ * First day of a window ending on `endDate`. The end comes from the server
+ * render, never the visitor's clock, so switching ranges cannot drift the page
+ * a day away from what was rendered.
  */
 export function rangeStartDate(endDate, days) {
 	return shiftDateKey(endDate, -(days - 1));
@@ -78,11 +69,8 @@ export function formatValue(value, decimals = 0) {
 }
 
 /**
- * Short form for an axis label: `12k`, `1.2k`, `430`.
- *
- * The headline above the chart already carries the exact number, so the axis
- * only has to say roughly how high the line is — and it has a ~30px gutter to
- * say it in.
+ * Short form for an axis label: `12k`, `1.2k`, `430`. The headline carries the
+ * exact number; the axis has a ~30px gutter.
  */
 export function formatCompact(value, decimals = 0) {
 	if (!isFilled(value)) return '';
@@ -139,8 +127,7 @@ const relativeFormat = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
 /**
  * "3 hours ago" for an ingest timestamp. `now` is a parameter so the caller
- * decides when the clock is read — a component reads it once on mount rather
- * than on every re-render.
+ * decides when the clock is read.
  */
 export function formatRelative(ms, now = Date.now()) {
 	const diff = Math.round((ms - now) / 1000);
@@ -170,17 +157,13 @@ export function lastFilledIndex(values) {
 }
 
 /**
- * A day that reported nothing is a day the metric was zero.
+ * A day that reported nothing is a day the metric was zero — drawing a gap as a
+ * break made a rest day look like an outage.
  *
- * The window always reaches to the newest reading on the page, so a gap inside
- * it is a real "you did none of this" rather than missing information — a day
- * with no steps recorded is a day with no steps. Drawing that as a break in the
- * line made a rest day look like an outage, and a series of one reading drew
- * nothing at all.
- *
- * The trailing edge is the exception: everything after a metric's newest
- * reading is cut rather than zeroed, so a metric that hasn't synced today
- * doesn't dive to the floor on the right-hand side of its own chart.
+ * The trailing edge is the exception: everything after a metric's newest reading
+ * is cut rather than zeroed, so a metric that hasn't synced today doesn't dive
+ * to the floor on its own right-hand edge. `dayScore` deliberately does NOT
+ * follow this rule — see the note there.
  */
 export function zeroFilled(values) {
 	const last = lastFilledIndex(values);
@@ -200,12 +183,9 @@ export function valueAt(values, index) {
 }
 
 /**
- * y-domain with a little breathing room, so a line never sits flush against the
- * top or bottom of its box. A flat series still gets a band to sit in.
- *
- * The floor stops at zero for data that never goes negative — none of these
- * metrics can — so the bottom of the box is a number the axis can name rather
- * than an arbitrary negative one.
+ * y-domain with breathing room, so a line never sits flush against its box. The
+ * floor stops at zero — none of these metrics go negative — so the bottom is a
+ * number the axis can name.
  */
 export function valueDomain(values, headroom = 0.12) {
 	let min = Infinity;
@@ -224,11 +204,9 @@ export function valueDomain(values, headroom = 0.12) {
 }
 
 /**
- * Newest point where any metric reported, or -1 for an empty page.
- *
- * The page needs one index rather than five: the score, the headline numbers
- * and the marker all have to describe the same day, and a metric that hasn't
- * synced yet shouldn't drag the others back a day with it.
+ * Newest point where any metric reported, or -1 for an empty page. One index for
+ * the whole page: the score, the headlines and the marker must all describe the
+ * same day.
  */
 export function latestIndex(sections) {
 	let newest = -1;
@@ -240,19 +218,13 @@ export function latestIndex(sections) {
 }
 
 /**
- * Thin a list of candidate y ticks down to what a box this tall can actually
- * show.
+ * Thin d3's candidate y ticks down to what a box this tall can show. d3 treats
+ * the count as a hint and rounds outward, cannot know two of its numbers format
+ * to the same string, and has never seen the box.
  *
- * d3 picks round numbers inside a domain, which is the right place to start and
- * the wrong place to stop: it treats the count as a hint and rounds outward
- * (ask for two on a step domain, get three), it has no idea two of its numbers
- * will format to the same string once they are rounded for display, and it has
- * never seen the box. All three produce the same defect — a column of numbers
- * where a scale was wanted.
- *
- * So: sample down to the count, ends first, because the highest and lowest are
- * the two that say how far the line travels. Then drop anything that would
- * print a label already on the axis, or land within a line-height of one.
+ * Sample down to the count, ends first — the highest and lowest say how far the
+ * line travels — then drop anything that would print a duplicate label or land
+ * within a line-height of one.
  */
 export function pickAxisTicks(
 	candidates,
@@ -293,17 +265,13 @@ export function pickAxisTicks(
 }
 
 /**
- * Cut every series at the newest day any metric reported.
+ * Cut every series at the newest day any metric reported. The window reaches one
+ * day past UTC-today on purpose — a Watch in Seoul files "the 4th" while UTC is
+ * still on the 3rd — and that slot would otherwise put a future date on the axis.
  *
- * The window reaches one day past UTC-today on purpose: a phone writes day keys
- * in its own calendar, so a Watch in Seoul files "the 4th" while UTC is still on
- * the 3rd. That slot is empty for anyone at or behind UTC, and an empty slot on
- * the right-hand edge put a date on the axis that hasn't happened yet.
- *
- * Trimming here rather than narrowing the query keeps the slot — it just stops
- * being drawn until something lands in it. Every section is cut to the same
- * length, because the charts share one x domain and a ragged right edge would
- * put the same day at four different pixels.
+ * Trimming here rather than narrowing the query keeps the slot. Every section is
+ * cut to the same length: the charts share one x domain, and a ragged right edge
+ * would put the same day at four different pixels.
  */
 export function trimToLatest(sections) {
 	const end = latestIndex(sections) + 1;
@@ -317,20 +285,14 @@ export function trimToLatest(sections) {
 }
 
 /**
- * One number for a day: how close each metric came to its goal, averaged over
- * the metrics that actually have something to say about it.
+ * One number for a day, averaged over the metrics with something to say about it.
  *
- * A zero drops out of the average rather than scoring as one. The charts draw a
- * gap as the zero it is, but a zero here is almost always a sync that hasn't
- * happened yet rather than a day of literally no movement — a Watch left on the
- * charger reads identically to a day in bed, and only one of those deserves to
- * drag the ring down. So does a metric whose newest reading predates the day
- * being scored. `counted` reports how many were left, and the dial says so
- * whenever it is short.
- *
- * The cost is that a genuine rest day scores on whatever else moved, or reads
- * "No data" when nothing did. That is the deliberate trade: this number is a
- * mood, and it would rather understate a quiet day than invent a bad one.
+ * A zero drops OUT of the average rather than scoring as one. This is the one
+ * place a zero is not counted, and it deliberately disagrees with `zeroFilled` —
+ * do not "fix" it to match the charts. A Watch left on the charger reads
+ * identically to a day in bed, and only one of those deserves a worse ring. So a
+ * rest day scores on whatever else moved, or reads "No data"; `counted` drives
+ * the dial's "N of 4 metrics" caption.
  *
  * Each metric is capped at its goal: a 30 km walk banks a perfect distance
  * score, it does not pay for a day of no exercise.
@@ -353,12 +315,8 @@ export function dayScore(sections, index) {
 }
 
 /**
- * The bands a score reads in, as one word and one color.
- *
- * Kept together so the word and the ring can never disagree: `scoreLabel` and
- * `scoreTone` are two views of the same threshold, not two lists to keep in
- * sync. The ramp runs green → amber → orange → rose, so the ring says roughly
- * how the day went before the number is read.
+ * The bands a score reads in, as one word and one colour. Kept together so
+ * `scoreLabel` and `scoreTone` can never disagree.
  */
 const SCORE_BANDS = [
 	{ from: 85, label: 'Excellent', tone: 'excellent' },

@@ -1,49 +1,20 @@
 /**
  * Turn images in markdown into a `<Gallery />`.
  *
- * There are two ways in. The first is implicit — a paragraph that is nothing
- * but images:
+ * Implicit form: a top-level paragraph that is nothing but images. Consecutive
+ * lines are one paragraph in mdast, so the run is one the author already grouped
+ * by hand. A blank line between images makes them separate paragraphs, and is
+ * the escape hatch.
  *
- * ```md
- * ![Snowflake](/one.png)
- * ![Framer](/two.png)
- * ![Vercel](/three.png)
- * ```
+ * Explicit form: a `:::gallery` ... `:::` fence, which groups however the images
+ * are spaced — including a single image. Three rules keep a typo from eating a
+ * post: only images are collected (anything else is re-emitted after the
+ * gallery), an unclosed fence transforms nothing, and a fence with no images
+ * transforms nothing.
  *
- * Three images on consecutive lines are one paragraph in mdast, so this is a
- * run the author has already grouped by hand — it just used to render as three
- * full-width photos in a column. Images separated by a blank line are separate
- * paragraphs and are left alone, which is the escape hatch: put a blank line
- * between them and they stay stacked.
- *
- * The second is explicit, and is what that escape hatch costs you back:
- *
- * ```md
- * :::gallery
- * ![One](/one.png)
- *
- * ![Two](/two.png "A caption")
- * :::
- * ```
- *
- * Everything between the fences becomes one gallery however the images are
- * spaced, so a run written with blank lines between it — or one image, or a
- * hundred — can still be a gallery. The rules around it:
- *
- * - **Only images are collected.** Anything else inside the fence (a
- *   paragraph of prose, a heading) is kept and re-emitted after the gallery
- *   rather than silently dropped.
- * - **An unclosed fence transforms nothing.** The `:::gallery` line is left as
- *   the literal text the author typed, so the mistake is visible in the post
- *   instead of swallowing every image to the end of the file.
- * - **A fence with no images transforms nothing** either, for the same reason.
- * - Top-level only, like the implicit form.
- *
- * The component reaches the compiled markdown the same way a hand-written
- * `<LazyVideo />` does — through an import in the file's instance `<script>`.
- * mdsvex hoists that script wherever it appears, and does exactly this splice
- * for its own layout import, so injecting into an author's existing script is
- * the supported shape rather than a trick.
+ * The component reaches the compiled markdown through an import in the file's
+ * instance `<script>`, the same way a hand-written `<LazyVideo />` does. mdsvex
+ * performs this same splice for its own layout import.
  */
 
 const GALLERY_PATH = '$lib/lightbox/Gallery.svelte';
@@ -89,11 +60,10 @@ function imagesOnly(paragraph, minImages) {
 /**
  * Read a paragraph as a stream of fence markers, images and everything else.
  *
- * The markers do not get a node of their own: `:::gallery` on the line above an
- * image is the *same* paragraph as that image, and remark keeps the line break
- * inside a text node. So the markers have to be found inside the text, and the
- * rest of that text has to survive — a paragraph is only reconstructed from
- * what is left once the markers are taken out.
+ * The markers get no node of their own: `:::gallery` on the line above an image
+ * is the *same* paragraph as that image, with the line break inside a text node.
+ * So they are found inside the text, and a paragraph is rebuilt from what is
+ * left once they are taken out.
  *
  * @param {{ children: any[] }} paragraph
  * @returns {Array<{ kind: 'open' | 'close' | 'image' | 'other', node?: any, image?: any }>}

@@ -1,13 +1,7 @@
 /**
- * Every number the /health charts are drawn with, in one place.
- *
- * These are the shipped values — the chart reads them and nothing writes them
- * in production. On preview deployments `HealthDials.svelte` binds a DialKit
- * panel to this same object, so the sliders move the real charts rather than a
- * mock, and whatever settles can be copied straight back into `CHART_DEFAULTS`.
- *
- * A `$state` object costs one proxy in the builds that never open the panel,
- * which is cheaper than threading a dozen props through two components.
+ * Every number the /health charts are drawn with. Production reads them and
+ * writes nothing; on preview, `HealthDials.svelte` binds a DialKit panel to this
+ * same object. Whatever settles is copied back into `CHART_DEFAULTS` by hand.
  */
 
 export const CHART_DEFAULTS = {
@@ -16,23 +10,11 @@ export const CHART_DEFAULTS = {
 	/** `smooth` reads better on sparse windows, `linear` is honest on dense ones. */
 	curve: 'linear',
 	strokeWidth: 1.5,
-	/**
-	 * Alpha at the top of the wash, where it meets the line. From there it eases
-	 * to nothing along `WASH_RAMP`.
-	 */
+	/** Alpha where the wash meets the line; it eases to nothing along `WASH_RAMP`. */
 	washAlpha: 0.24,
-	/**
-	 * Plot height in px, from `sm` up. The section reserves this before hydration.
-	 *
-	 * Tall, because there are only four of these: at 120 the sections left a band
-	 * of empty column under them on anything wider than a phone, and a sparkline
-	 * with more vertical range is a sparkline you can actually read a shape off.
-	 */
+	/** Plot height in px from `sm` up. The section reserves this before hydration. */
 	height: 176,
-	/**
-	 * And shorter below `sm`, where the four sections stack into one column and
-	 * the full height turned the page into five thousand pixels of scrolling.
-	 */
+	/** Shorter below `sm`, where the four sections stack into one column. */
 	heightSm: 140,
 	/** Left gutter the y axis labels are right-aligned into. */
 	gutter: 34,
@@ -50,22 +32,13 @@ export const CHART_VARIANTS = ['area', 'line'];
 export const CHART_CURVES = ['linear', 'smooth'];
 
 /**
- * How the wash falls away under the line, as `[offset, share of washAlpha]`.
+ * How the wash falls away under the line, as `[offset, share of washAlpha]`. An
+ * ease-out, not a linear ramp, which held a flat film and stopped dead at the
+ * baseline.
  *
- * Two stops and a linear ramp did not read as a fade — it dropped off fast near
- * the line, then held a flat film all the way down and stopped dead at the
- * baseline, which is a visible edge rather than a gradient. This is an ease-out:
- * most of the alpha is spent in the top third, and the deltas shrink the whole
- * way down, so the last of it dissolves into the page instead of ending.
- *
- * The final stop is a true zero, and every stop is mixed from the accent rather
- * than toward the keyword `transparent` — `transparent` is transparent *black*,
- * so interpolating to it drags the tail through grey and leaves exactly the
- * muddy halo this ramp exists to avoid. Mixing in oklab at alpha 0 keeps the
- * hue and takes the alpha to nothing.
- *
- * The gradient uses `objectBoundingBox`, so offset 100% is the bottom of the
- * area shape — the baseline — not the bottom of the chart box.
+ * Every stop is mixed from the accent, never toward the keyword `transparent` —
+ * that is transparent *black*, so interpolating to it drags the tail through
+ * grey. Offsets are `objectBoundingBox`, so 100% is the baseline.
  */
 export const WASH_RAMP = [
 	[0, 1],
@@ -77,18 +50,11 @@ export const WASH_RAMP = [
 ];
 
 /**
- * Colour is the one thing here the charts do _not_ read from this object.
- *
- * Every chart colour is already a CSS custom property, which is what carries
- * the site's dark mode — so the panel tunes them by overriding those properties
- * on `:root` rather than by threading values through the components. Nothing in
- * the shipped path changes, and the light/dark pair in `app.css` stays the
- * single source of truth.
- *
- * These are the light-mode values from `app.css`, and they are compared against
- * before an override is written: a control still sitting on its default leaves
- * the stylesheet alone, so opening the panel in dark mode doesn't snap the page
- * to light colours.
+ * Colours are the one thing the charts do NOT read from this object — they are
+ * CSS custom properties, which is what carries dark mode, so the panel overrides
+ * those on `:root` instead. These are the light values from `app.css`, compared
+ * against before writing: a control on its default writes nothing, so opening
+ * the panel in dark mode does not snap the page to light colours.
  */
 export const CHART_COLORS = {
 	accent: '#f97316', // orange-500

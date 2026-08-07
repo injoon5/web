@@ -1,12 +1,8 @@
 /**
  * Pure helpers for the two home-page feeds (no `ctx`, no `Date.now()`), so the
- * upstream-shape wrangling is unit-testable without a deployment.
- *
- * Both feeds are normalized at write time rather than stored raw. The page only
- * ever renders a cover, a title, a link and a timestamp, and the raw payloads
- * are ~20x that — Last.fm alone ships four image sizes and two mbids per track.
- * Normalizing here keeps the row small and keeps `#text`/`@attr` keys out of
- * the schema.
+ * upstream-shape wrangling is testable without a deployment. Both feeds are
+ * normalized at write time: the raw payloads are ~20x what the page renders and
+ * carry `#text`/`@attr` keys the schema should not hold.
  */
 
 /** Last.fm account the recent-tracks feed is read for. */
@@ -33,10 +29,8 @@ export function lastfmUrl(apiKey) {
 const str = (value) => (typeof value === 'string' ? value : '');
 
 /**
- * Last.fm returns four image sizes per track, ordered small → extralarge. The
- * page renders a 192px cover, so 'large' (174px) is the closest fit; fall back
- * to whichever entry has a URL if the ordering ever changes.
- *
+ * Last.fm returns four sizes, small → extralarge. The page renders a 192px
+ * cover, so 'large' (174px) fits closest; fall back to any entry with a URL.
  * @param {unknown} images
  */
 function coverUrl(images) {
@@ -47,10 +41,8 @@ function coverUrl(images) {
 }
 
 /**
- * `date` is absent on the currently-playing track — Last.fm marks that one with
- * `@attr.nowplaying` instead — so `playedAt` is null there and the page skips it
- * when it labels the last scrobble.
- *
+ * `date` is absent on the currently-playing track (Last.fm marks it with
+ * `@attr.nowplaying`), so `playedAt` is null there.
  * @param {unknown} payload — parsed user.getrecenttracks response
  */
 export function normalizeTracks(payload) {
@@ -73,10 +65,8 @@ export function normalizeTracks(payload) {
 }
 
 /**
- * `takenAtNaive` stays a string: it's the photo site's own already-formatted,
- * timezone-naive capture time ('09 May 2026 7:50PM'), and re-deriving it from an
- * instant would move it into the viewer's zone.
- *
+ * `takenAtNaive` stays a string: it is the photo site's own timezone-naive
+ * capture time, and re-deriving it would move it into the viewer's zone.
  * @param {unknown} payload — parsed photos feed.json
  */
 export function normalizePhotos(payload) {
@@ -95,14 +85,10 @@ export function normalizePhotos(payload) {
 }
 
 /**
- * Whether a freshly-fetched feed list matches the one already stored.
- *
- * The crons run every five minutes; the feeds change far less often than that.
- * Writing an identical row anyway still changes the document (`updatedAt` moves
- * if nothing else), and Convex invalidates on the document — so every open home
- * page took a websocket push 288 times a day per feed to be told nothing had
- * happened. Both lists are short, flat and same-shaped, so this comparison is
- * cheap enough to run before every write.
+ * Whether a freshly-fetched feed matches the stored one. An unchanged feed must
+ * not be written: Convex invalidates on the document, so re-patching an
+ * identical row pushed a websocket update to every open home page 288 times a
+ * day per feed to say nothing had happened.
  *
  * @param {Array<Record<string, unknown>> | undefined} stored
  * @param {Array<Record<string, unknown>>} fetched

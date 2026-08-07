@@ -1,22 +1,15 @@
 /**
- * The one public health query, and the reason it is allowed to exist.
+ * The one public health query. Everything else in this tier is internal because
+ * a query cannot see an HTTP header and so cannot be gated on the API key; this
+ * one serves only what /health already publishes to every visitor.
  *
- * Everything else in this tier is internal because a public query can't see an
- * HTTP header, so it can't be gated on the API key. That argument does not
- * apply to the data /health already publishes: the page renders these five
- * daily metrics to anyone who visits injoon5.com, so a query that serves
- * exactly that — and nothing else — leaks nothing.
+ * The limits are enforced here, never by the caller: the metric list is fixed
+ * (`PUBLIC_METRICS`) and cannot be widened by arguments, `days` must be one of
+ * the range picker's steps, and there are no workouts, buckets or raw samples.
  *
- * "Exactly that" is enforced here, not by the caller:
- *   - the metric list is fixed (`PUBLIC_METRICS`), never taken from arguments,
- *     so no one can ask this for weight or body fat;
- *   - `days` must be one of the range picker's own steps;
- *   - no workouts, no hourly buckets, no raw samples, no per-metric history
- *     beyond the page.
- *
- * `startDate` is an argument rather than derived from the clock: a query doesn't
- * re-run when the clock moves, so a `Date.now()` bound would go stale and churn
- * the cache. The page passes back the window its server render already used.
+ * `startDate` is an argument, not derived from the clock — a query does not
+ * re-run when the clock moves, so a `Date.now()` bound goes stale and churns
+ * the cache.
  */
 
 import { ConvexError, v } from 'convex/values';
