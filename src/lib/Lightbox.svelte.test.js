@@ -254,6 +254,102 @@ describe('Lightbox groups', () => {
 	});
 });
 
+describe('Lightbox swipe paging', () => {
+	const track = () => screen.getByRole('dialog').querySelector('.lb-track');
+
+	/** jsdom has no PointerEvent, and the component only reads these four fields. */
+	function pointer(type, x, y, t, id = 1) {
+		const e = new MouseEvent(type, { bubbles: true, clientX: x, clientY: y, button: 0 });
+		Object.defineProperty(e, 'pointerId', { value: id });
+		Object.defineProperty(e, 'pointerType', { value: 'touch' });
+		Object.defineProperty(e, 'timeStamp', { value: t });
+		return e;
+	}
+
+	/**
+	 * A drag as a real pointer stream: one event every few ms, which is what the
+	 * windowed velocity is measured over. `hold` is a pause between the last move
+	 * and the release — a finger that came to rest is not a flick, however fast it
+	 * was travelling on the way.
+	 */
+	async function drag({ dx, ms, steps = 8, hold = 0 }) {
+		const viewport = screen.getByRole('dialog').querySelector('.lb-viewport');
+		viewport.dispatchEvent(pointer('pointerdown', 0, 0, 0));
+		for (let i = 1; i <= steps; i++) {
+			window.dispatchEvent(pointer('pointermove', (dx * i) / steps, 0, (ms * i) / steps));
+		}
+		window.dispatchEvent(pointer('pointerup', dx, 0, ms + hold));
+		await tick();
+	}
+
+	it('pages on a flick that barely moved, and not on a slow drag that did not', async () => {
+		await openGroup(0);
+		// 30px in 40ms — 0.75px/ms, well past the flick threshold.
+		await drag({ dx: -30, ms: 40 });
+		expect(currentSrc()).toBe(group[1].src);
+
+		// 100px in 800ms — under a fifth of the viewport and far too slow to flick.
+		await drag({ dx: -100, ms: 800, steps: 20 });
+		expect(currentSrc()).toBe(group[1].src);
+	});
+
+	it('does not page a fast drag that came to rest before the finger lifted', async () => {
+		// Velocity is measured over a window ending at the release, so samples from
+		// a fling that stopped 300ms ago fall out of it. A single-sample velocity
+		// read off the last pointermove would have paged here.
+		await openGroup(0);
+		await drag({ dx: -60, ms: 60, hold: 300 });
+		expect(currentSrc()).toBe(group[0].src);
+	});
+
+	it('gives the released swipe a settle of its own, and hands the track back after', async () => {
+		await openGroup(0);
+		expect(track().style.transition).toContain('340ms');
+
+		await drag({ dx: -400, ms: 200, steps: 16 });
+		expect(currentSrc()).toBe(group[1].src);
+		// Its own duration, scaled to the distance still to travel.
+		const settle = track().style.transition;
+		expect(settle).toMatch(/^transform (\d+)ms /);
+		const ms = Number(settle.match(/^transform (\d+)ms /)[1]);
+		expect(ms).toBeGreaterThanOrEqual(190);
+		// Strictly under the shared curve's 340: most of the page is already behind
+		// the finger, so there is less of it left to travel.
+		expect(ms).toBeLessThan(340);
+
+		// ...and the next arrow key must not inherit this swipe's velocity.
+		await new Promise((r) => setTimeout(r, ms + 120));
+		expect(track().style.transition).toContain('340ms');
+	});
+
+	it('rubber-bands rather than paging off the end of the group', async () => {
+		await openGroup(0);
+		await drag({ dx: 400, ms: 200, steps: 16 });
+		expect(currentSrc()).toBe(group[0].src);
+	});
+
+	it('moves the track with a trackpad swipe instead of jumping a page at 80px', async () => {
+		await openGroup(0);
+		const viewport = screen.getByRole('dialog').querySelector('.lb-viewport');
+		const wheel = (deltaX) =>
+			viewport.dispatchEvent(new WheelEvent('wheel', { bubbles: true, deltaX, deltaY: 0 }));
+
+		wheel(30);
+		await tick();
+		// Following the fingers, and no transition fighting them for the track.
+		expect(track().style.transition).toBe('none');
+		expect(currentSrc()).toBe(group[0].src);
+
+		for (let i = 0; i < 9; i++) wheel(30);
+		await tick();
+		expect(currentSrc()).toBe(group[0].src);
+
+		// The gesture is over when the events stop, not when a finger lifts.
+		await waitFor(() => expect(currentSrc()).toBe(group[1].src));
+		expect(track().style.transition).not.toBe('none');
+	});
+});
+
 describe('Lightbox shared-element flight', () => {
 	/**
 	 * jsdom has no layout and no `Element.animate`, so the flight itself cannot

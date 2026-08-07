@@ -445,10 +445,23 @@ away over nothing. Consequences worth knowing:
 - **The track is `position: absolute; inset: 0`, and the slides overflow it.**
   Its own width therefore stays one page, which is what lets `translateX(-i *
 100%)` mean "one page per step" rather than a fraction of the whole strip.
-- **Only the current slide and its neighbours carry a `src`.** A gallery of
-  forty is forty slides and three requests.
+- **Only the current slide and its neighbours carry a `src`** — a gallery of
+  forty is forty slides and three requests — but that window is `windowIndex`,
+  which is `index` **one frame late**. Mounting the next neighbour's `<img>` in
+  the same commit that starts the page made that commit long, so the settle
+  began late and the whole slide read as a stutter. A frame later the track's
+  transform is already on the compositor and no DOM work can stall it. A jump of
+  more than one step catches up immediately: there is no in-between to protect,
+  and the tests page synchronously.
 - **Chrome lives outside the transform.** Caption, dots and buttons are siblings
   of the track, so a swipe moves the photo and nothing else.
+- **`will-change` on the current image is gated on `.zoomed`.** Paging moves
+  `data-current` from one image to the next, so a hint hanging on that attribute
+  alone tore down a compositor layer and built another in the very commit that
+  starts the settle. The track is promoted either way, so the slides composite
+  through it; the per-image hint is for pinch and pan, the only times an image
+  moves inside the track. The flights need none — a WAAPI transform is
+  composited on its own.
 - The image the tests mean is `.lb-img[data-current="true"]`.
 
 The swipe axis is **locked once**, on the first 8px of movement, and not
@@ -457,6 +470,48 @@ diagonal flick do both. A release pages on **velocity or distance** — a fast
 flick that moved 30px pages, and so does a slow drag past a fifth of the
 viewport; distance alone made a real flick feel ignored. Drags past either end
 get the iOS rubber band, which asymptotes rather than stopping dead.
+
+### Paging has to feel like the strip in the article
+
+The gallery outside is a native scroll-snap container. The lightbox re-implements
+paging by hand, and everything that made it read as janky next to the strip was
+somewhere the hand-rolled version diverged from what a scroller does for free:
+
+- **The lock threshold is taken back out of the first frame.** The photo used to
+  sit still for 8px and then jump 8px, at the one moment the eye is certain to be
+  on it. `slopX`/`slopY` subtract however much of the threshold the axis was
+  decided on.
+- **A settle is interruptible.** `pickUpTrack` reads the track's live matrix when
+  a gesture takes over — the axis lock for a finger, the first event for a
+  trackpad — and seeds the drag with it, so grabbing a page still in flight stops
+  it under the finger instead of teleporting it to where it was heading. The page
+  decision is then made on `dragX - carryX`, the distance the gesture itself
+  travelled: counting the carry as movement paged on a finger that never moved.
+- **The settle leaves at the speed the gesture ended at.** `springEasing` takes an
+  initial velocity (fractions of the remaining distance per unit of its own
+  duration) and `armTrackSettle` hands the track a one-off `transition` built from
+  how far it still has to go and how fast it was going. A fixed curve leaves at
+  the same rate whether the photo was thrown or nudged, which is the whole of why
+  paging felt detached from the swipe. Capped at 6, where a critically damped
+  spring starts to overshoot — a page sailing past its slot and coming back is a
+  bounce the scroller outside does not have. Negative is a release still
+  travelling out of a rubber band, and that one does carry on and return.
+  Duration scales with `sqrt(distance / page)` between 190 and 340ms. Non-gesture
+  paging — an arrow key, a tapped dot — has no velocity to carry and keeps the
+  shared curve.
+- **Flick velocity is measured over a 60ms window**, not off the last
+  `pointermove`. Two events 4ms apart on a 120Hz screen make a single-sample
+  velocity mostly noise, which let an obvious flick fail to page and a careful
+  nudge shoot away. A finger resting on the photo sends no moves at all, so its
+  samples fall out of the window and it has no velocity — which is right.
+- **A trackpad swipe moves the track under the fingers.** It used to accumulate
+  80px in silence and then jump a whole page. macOS momentum keeps arriving after
+  the fingers lift and has decayed to nothing by the time the events stop, so the
+  gesture ends on 90ms of quiet and settles on where it came to rest — there is no
+  flick left to read off it.
+
+`springEasing`'s two flight callers pass no velocity and are byte-identical to
+what they were; the critically damped branch is the same expression with `v0 = 0`.
 
 Zoom is **one number** (`scale` + `panX`/`panY`). It used to be two — a
 click-to-zoom flag that swapped the image's width and a separate pinch scale —
