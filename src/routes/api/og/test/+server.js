@@ -1,7 +1,11 @@
+import { error } from '@sveltejs/kit';
 import { OG_FIXTURES, OG_FIXTURE_IDS } from '$lib/og/fixtures.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url }) {
+	// A preview gallery, not a public endpoint.
+	if (!__DIALS__) throw error(404, 'Not found');
+
 	const origin = url.origin;
 	const cards = OG_FIXTURE_IDS.map((id) => {
 		const fixture = OG_FIXTURES[id];

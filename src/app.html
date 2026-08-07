@@ -16,13 +16,7 @@
 				};
 
 				apply();
-
-				const onChange = () => {
-					apply();
-				};
-
-				if (mql.addEventListener) mql.addEventListener('change', onChange);
-				else mql.addListener(onChange); // Safari fallback
+				mql.addEventListener('change', apply);
 			})();
 		</script>
 

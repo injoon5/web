@@ -1,6 +1,6 @@
 <script>
 	import { createDialKit } from 'dialkit/svelte';
-	import { HOME_DEFAULTS, homeSettings } from '$lib/home/home-settings.svelte.js';
+	import { HOME_DEFAULTS, homeSettings } from '$lib/home/settings.svelte.js';
 
 	/**
 	 * The home page's tuning panel, on preview deployments only.

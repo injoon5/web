@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // The route imports the real Convex HTTP client, which needs PUBLIC_CONVEX_URL
 // and a live deployment; swap it for spies so we can assert call order.
-vi.mock('$lib/server/convex', () => ({
+vi.mock('$lib/server/convex.js', () => ({
 	convex: {
 		query: vi.fn().mockResolvedValue([]),
 		mutation: vi.fn().mockResolvedValue({ _id: 'c1' })
@@ -11,7 +11,7 @@ vi.mock('$lib/server/convex', () => ({
 
 // Every URL is a real page here; `valid-urls` builds its set from the content
 // globs, which is not what these cases are about.
-vi.mock('$lib/server/valid-urls', () => ({ isValidPageUrl: () => true }));
+vi.mock('$lib/server/valid-urls.js', () => ({ isValidPageUrl: () => true }));
 
 vi.mock('bcryptjs', () => ({
 	default: { hash: vi.fn().mockResolvedValue('$2a$10$hashed') }
@@ -20,8 +20,8 @@ vi.mock('bcryptjs', () => ({
 import { ConvexError } from 'convex/values';
 import { getFunctionName } from 'convex/server';
 import bcrypt from 'bcryptjs';
-import { convex } from '$lib/server/convex';
-import { POST } from './+server.ts';
+import { convex } from '$lib/server/convex.js';
+import { POST } from './+server.js';
 
 function postRequest(body = {}) {
 	return new Request('http://x/api/comments', {

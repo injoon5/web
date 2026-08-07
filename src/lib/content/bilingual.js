@@ -1,10 +1,6 @@
 /**
- * Shared en/ko module resolution for the bilingual content pages
- * (blog/[slug] and projects/[slug]).
- *
- * The `import.meta.glob` calls must stay in each route (their patterns are
- * relative to the calling file); this module holds everything downstream of
- * them.
+ * Shared en/ko module resolution for the bilingual content pages. The
+ * `import.meta.glob` calls stay in each route; this holds what is downstream.
  */
 
 /** @param {string} path */

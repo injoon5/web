@@ -1,10 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { ADMIN_SECRET } from '$env/static/private';
-import { requireAdmin } from '$lib/server/admin';
-import { convex } from '$lib/server/convex';
+import { requireAdmin } from '$lib/server/admin.js';
+import { convex } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
-import { nowSchema } from '$lib/server/validation';
-import { parseBody, runConvex } from '$lib/server/api';
+import { nowSchema } from '$lib/server/validation.js';
+import { parseBody, runConvex } from '$lib/server/api.js';
 
 export async function POST({ request }) {
 	// Use the shared header-or-cookie admin check (consistent with every other

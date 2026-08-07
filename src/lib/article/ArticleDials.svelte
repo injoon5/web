@@ -1,20 +1,11 @@
 <script>
 	import { createDialKit } from 'dialkit/svelte';
-	import { ARTICLE_DEFAULTS, articleSettings } from '$lib/article/article-settings.svelte.js';
+	import { ARTICLE_DEFAULTS, articleSettings } from '$lib/article/settings.svelte.js';
 
 	/**
-	 * The article tuning panel, on preview deployments only.
-	 *
-	 * Reached through a dynamic import behind `__DIALS__` in
-	 * `ArticleDialsMount.svelte`, so a production build folds it away entirely.
-	 * It registers a folder into the overlay `DialsHost` already mounted from the
-	 * root layout, and disappears again when the route changes.
-	 *
-	 * The controls are the four arguments worth having about body text — whether
-	 * links are underlined and how heavily, how far apart the lines sit, how big
-	 * they are, and how wide the column runs — and all four are unanswerable
-	 * without a real paragraph in front of you. Nothing persists: what settles
-	 * gets copied into `ARTICLE_DEFAULTS` and `app.css` by hand.
+	 * The article tuning panel, preview only. Registers a folder into the
+	 * `DialsHost` mounted from the root layout, and goes with the route. Nothing
+	 * persists; what settles is copied into `ARTICLE_DEFAULTS` and `app.css`.
 	 */
 
 	const dials = createDialKit('Article', {

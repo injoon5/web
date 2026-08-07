@@ -1,18 +1,14 @@
 /**
  * The framework-agnostic half of pasito, ported from
- * https://github.com/joshpuckett/pasito (`packages/pasito/src/core`).
- *
- * Upstream ships React and Vue wrappers around this core; the Svelte wrapper
- * lives next door in `Stepper.svelte` and `autoplay.svelte.js`. Keeping the
- * logic here rather than inside the component is what makes it testable
- * without a DOM, which is where most of the port's tests live.
+ * https://github.com/joshpuckett/pasito (`packages/pasito/src/core`). Upstream
+ * ships React and Vue wrappers around this core; the Svelte one lives next door.
+ * Keeping the logic here is what makes it testable without a DOM.
  */
 
 /**
- * Step geometry, in px. These have to agree with the `--pill-*` defaults in
- * `Stepper.svelte`: the windowing maths below converts a step index into a
- * pixel offset, so a CSS-only change to the dot size would slide the track to
- * the wrong place.
+ * Step geometry, in px. Must agree with the `--pill-*` defaults in
+ * `Stepper.svelte` — this turns a step index into a pixel offset, so changing
+ * the dot size in CSS alone slides the track wrong.
  */
 export const DEFAULT_METRICS = { dotSize: 8, activeWidth: 24, gap: 6 };
 
@@ -61,12 +57,9 @@ export function computeStepWindow(
  */
 
 /**
- * Keeps a stable, keyed list of steps across count changes so a step that is
- * being added or removed can be animated instead of appearing or vanishing.
- *
- * A removed step stays in the list with phase `exiting` until the caller has
- * given its transition time to run, which is why this is a mutable object and
- * not a pure function of `count`.
+ * A stable, keyed list of steps across count changes, so an added or removed
+ * step can animate. A removed step stays with phase `exiting` until its
+ * transition has run, which is why this is mutable rather than pure.
  */
 export class StepAnimator {
 	/** @param {number} count */

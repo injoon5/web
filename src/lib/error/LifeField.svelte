@@ -1,30 +1,22 @@
 <script>
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import { onMount } from 'svelte';
-	import { theme } from '$lib/theme.js';
-	import { lifeSettings } from './error-settings.svelte.js';
+	import { theme } from '$lib/theme.svelte.js';
+	import { lifeSettings } from './settings.svelte.js';
 	import { gridsEqual, seedField, step } from './life.js';
 	import { stampText, waitForFont } from './glyph.js';
 
 	/**
-	 * The Life field behind an error page.
+	 * The Life field behind an error page. Fixed to the viewport, so it is not
+	 * clipped to the content column and goes on running behind the footer.
 	 *
-	 * Fixed to the viewport rather than laid out in the page, for two reasons.
-	 * The site's content lives in a `max-w-6xl` column, and a background that
-	 * stopped at that column would read as a card; and a fixed element is the
-	 * only one whose box is the viewport itself, which is what lets the field go
-	 * on running behind the footer as you scroll rather than scrolling away.
+	 * `aria-hidden` with no pointer events: the stamped status code is decoration,
+	 * and the heading is what anyone actually reads.
 	 *
-	 * Nothing here is interactive and nothing here is content. It is
-	 * `aria-hidden` with no pointer events: the status code is stamped into the
-	 * grid because it is beautiful, not because it is how anyone is meant to
-	 * read it — the heading does that.
-	 *
-	 * The stamp is a loan, not a fixture. It holds for `holdMs` and then the
-	 * simulation takes it apart, and `onrelease` fires on that exact frame so
-	 * the page can bring the same numeral back as real type. It is never
-	 * stamped again after that — a reseed a hundred seconds later would drop a
-	 * numeral straight onto the heading, which by then is sitting where it used
-	 * to be.
+	 * The stamp is a loan. It holds for `holdMs`, then the simulation takes it
+	 * apart and `onrelease` fires on that frame so the page can bring the same
+	 * numeral back as real type. Never stamped again after that — a later reseed
+	 * would drop a numeral straight onto the heading.
 	 */
 
 	/**
@@ -43,7 +35,7 @@
 	$effect(() => {
 		// Re-read on every theme flip. `$theme` is the dependency; the value is
 		// only ever the trigger.
-		void $theme;
+		void theme.current;
 		if (canvas) fill = getComputedStyle(canvas).color;
 	});
 
@@ -55,8 +47,6 @@
 			onrelease?.();
 			return;
 		}
-
-		const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 		let cols = 0;
 		let rows = 0;
@@ -75,17 +65,13 @@
 		let disposed = false;
 		/** Whether the next composition carries the numeral. True for the first
 		    one only — see the note at the top of the file. */
-		let stamped = !motion.matches;
+		let stamped = !motion.reduced;
 		let released = false;
 
 		/**
-		 * Hand the numeral over to the page, once.
-		 *
-		 * Under reduced motion this happens immediately rather than after the
-		 * hold: no generation will ever run, so a stamp there is not a hold, it
-		 * is permanent — and a permanent numeral is one the type would have to
-		 * live on top of. That field gets no stamp at all, and the page's own
-		 * type is the only 404 on screen.
+		 * Hand the numeral over to the page, once. Under reduced motion this happens
+		 * immediately: no generation ever runs, so a stamp there would be permanent
+		 * rather than held, and the type would have to live on top of it.
 		 */
 		function release() {
 			if (released) return;
@@ -255,14 +241,10 @@
 		}
 
 		/**
-		 * A resize keeps the field it already has, rather than starting over.
-		 *
-		 * On a phone, scrolling shows and hides the URL bar, and every one of those
-		 * is a resize. Reseeding on each would restart the composition — including
-		 * the numeral, and its hold — several times on the way down the page. So
-		 * the grid is reallocated and the overlapping region copied across; the
-		 * gained strip fills itself in within a few generations, which is what the
-		 * glider guns are for.
+		 * A resize keeps the field it has rather than starting over: on a phone the
+		 * URL bar showing and hiding is a resize, and reseeding on each would
+		 * restart the composition several times on the way down the page. The grid
+		 * is reallocated and the overlap copied across.
 		 */
 		function resize() {
 			const { cols: nextCols, rows: nextRows, width, height } = measure();
@@ -304,7 +286,7 @@
 			concealed = false;
 
 			observer.observe(canvas);
-			if (motion.matches) {
+			if (motion.reduced) {
 				release();
 				return;
 			}

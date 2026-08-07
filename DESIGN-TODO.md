@@ -83,10 +83,6 @@ Plus the giant commented-out blocks at `+page.svelte:283-302` and
 These came up in the review but weren't on the implementation list yet.
 Not blocking; queue them for a future pass.
 
-- **`LayoutDefault.svelte`** is a one-line `<slot />` passthrough — delete
-  and any consumers.
-- **`PostLink.svelte`** appears unused (home / blog / projects each have
-  their own list rendering). Confirm and delete.
 - **Tech-stack grid math** at `+page.svelte:240-262` uses
   `grid-cols-4 sm:grid-cols-8 md:grid-cols-12` with every child spanning
   `col-span-4`, which always gives 1/2/3 columns. Collapse to
@@ -102,8 +98,6 @@ Not blocking; queue them for a future pass.
   to `new Date().getFullYear()`.
 - **Footer icons** — Email / GitHub / RSS lack icons; small lucide
   monolines would help scanning.
-- **TableOfContents** label is currently `text-[10px]`. Bump to 11px once
-  the type scale is defined.
 - **Series posts in `/blog`** could swap the `ml-6` indent for a left
   border guide for a stronger visual anchor.
 - **NumberFlow / view counter** — once page views start meaningful,

@@ -1,26 +1,18 @@
 /**
  * Conway's Game of Life, as the error pages' background.
  *
- * The grid is a flat `Uint8Array` of `cols * rows` bytes and the world is a
- * torus — the left edge neighbours the right, the top neighbours the bottom.
- * That is not a shortcut around edge handling, it is what keeps the field
- * alive: on a bounded grid every spaceship eventually walks off the side and
- * the composition bleeds out from the rim inward. Wrapped, a glider that
- * leaves at the top-right re-enters at the bottom-left and goes on being a
- * glider.
+ * A flat `Uint8Array` of `cols * rows`, on a torus — wrapping is not a shortcut
+ * around edge handling but what keeps the field alive: on a bounded grid every
+ * spaceship walks off the side and the composition bleeds out from the rim.
  *
- * Nothing in here touches the DOM. The glyph stamp needs a canvas and lives in
- * `glyph.js`; this file is the rules, the shape library and the seeding, so it
- * can be reasoned about (and tested) on its own.
+ * Nothing here touches the DOM; the glyph stamp needs a canvas and lives in
+ * `glyph.js`.
  */
 
 /**
- * One generation, written into `next` and returned.
- *
- * The row offsets are hoisted out of the inner loop and the column wrap is a
- * conditional rather than a `%`: this runs over every cell of a full-viewport
- * grid several times a second, and a modulo per neighbour is eight of them per
- * cell. The rule itself is the standard B3/S23.
+ * One generation (B3/S23), written into `next`. Row offsets are hoisted and the
+ * column wrap is a conditional rather than a `%` — this runs over every cell of
+ * a full-viewport grid several times a second.
  */
 export function step(cur, next, cols, rows) {
 	for (let y = 0; y < rows; y++) {
@@ -62,12 +54,9 @@ export function gridsEqual(a, b) {
 }
 
 /**
- * The shape library.
- *
- * Written as ASCII rather than coordinate pairs so a pattern can be read — and
- * corrected — by looking at it. `O` is alive, everything else is dead. Each one
- * is here for a reason; a field of random noise settles into still lifes in
- * about a hundred and fifty generations and then just sits there.
+ * The shape library, as ASCII so a pattern can be read and corrected by looking
+ * at it. `O` is alive. Random noise settles into still lifes within ~150
+ * generations and then sits there, which is why these are seeded deliberately.
  */
 const SHAPES = {
 	// Travels diagonally forever. The workhorse — most of the motion on screen
@@ -191,12 +180,8 @@ function overlaps(a, b, margin) {
 }
 
 /**
- * The composition, as a recipe rather than a fixed list.
- *
- * Counts scale with the area of the grid so a phone doesn't get a desktop's
- * worth of shapes crammed into a third of the space, and each entry names how
- * many of that shape per 10,000 cells. The ordering matters: the entries are
- * placed in sequence and placement is first-come, so the big structural pieces
+ * The composition as a recipe: counts per 10,000 cells, so they scale with the
+ * grid. Order matters — placement is first-come, so the big structural pieces
  * claim their room before the small ones fill in around them.
  */
 const RECIPE = [
@@ -220,17 +205,12 @@ const RECIPE = [
 ];
 
 /**
- * Lay a fresh composition into `grid`.
+ * Lay a fresh composition into `grid`. `reserved` is boxes nothing may be placed
+ * inside — the caller passes the numeral's bounding box, so the stamp reads clean
+ * at generation zero. Placement is rejection sampling with a margin: shapes that
+ * start touching interact on the first step.
  *
- * `reserved` is a list of `{ x, y, w, h }` boxes nothing may be placed inside —
- * the caller passes the status number's bounding box, so the stamp reads clean
- * at generation zero instead of being immediately elbowed by a glider gun.
- * Placement is rejection sampling with a small margin: shapes that start
- * touching interact on the first step, and a pulsar that dissolves before it
- * has oscillated once is a pulsar nobody saw.
- *
- * `random` is injectable so the tests get a deterministic field; production
- * passes nothing and gets a different composition on every error.
+ * `random` is injectable so tests get a deterministic field.
  */
 export function seedField(
 	grid,

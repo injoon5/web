@@ -7,27 +7,18 @@
 		CHART_VARIANTS,
 		COLOR_VARS,
 		chartSettings
-	} from '$lib/health/chart-settings.svelte.js';
+	} from '$lib/health/settings.svelte.js';
 
 	/**
-	 * The /health tuning panel, on preview deployments only.
+	 * The /health tuning panel, preview only. Registers a folder into the
+	 * `DialsHost` mounted from the root layout; renders no `<DialRoot />` of its
+	 * own, since the site mounts exactly one.
 	 *
-	 * This component is never imported statically — `HealthDialsMount.svelte`
-	 * reaches it through a dynamic import behind `__DIALS__`, which Vite
-	 * bakes in as a literal. In a production build that branch folds away, the
-	 * import is unreachable, and neither DialKit nor its stylesheet is emitted.
+	 * Dimensions write into `chartSettings`. Colours take the other route — they
+	 * are already CSS custom properties, so the panel overrides those on `:root`
+	 * and a control on its default writes nothing, which is what keeps dark mode.
 	 *
-	 * It registers a panel but renders no `<DialRoot />`: the site mounts exactly
-	 * one, from the root layout, and this shows up inside it as a folder that
-	 * appears on /health and disappears again on the way out.
-	 *
-	 * Dimensions write into `chartSettings`, the object the charts read. Colours
-	 * take the other route: they are already CSS custom properties, so the panel
-	 * overrides those on `:root` and the components never learn about it.
-	 *
-	 * Nothing here persists. Whatever settles gets copied back into
-	 * `CHART_DEFAULTS` or `app.css` by hand, which is the point — the shipped
-	 * values stay in source, reviewed, rather than in a preview's local storage.
+	 * Nothing persists; what settles is copied into `CHART_DEFAULTS` or `app.css`.
 	 */
 
 	const dials = createDialKit('Health chart', {

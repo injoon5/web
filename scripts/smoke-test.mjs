@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { parseFrontmatter } from '../src/lib/server/frontmatter.js';
+import { parseFrontmatter } from './lib/frontmatter.js';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 // Frontmatter

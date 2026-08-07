@@ -2,12 +2,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
-	import { heroNameVisible } from '$lib/heroNav.js';
+	import { heroName } from '$lib/nav/hero.svelte.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
-	import TechStack from '$lib/TechStack.svelte';
+	import TechStack from '$lib/techstack/TechStack.svelte';
 	import HomeDialsMount from '$lib/home/HomeDialsMount.svelte';
-	import { homeSettings, homeStyle } from '$lib/home/home-settings.svelte.js';
-	import { techstack } from '$lib/techstack-data.js';
+	import { homeSettings, homeStyle } from '$lib/home/settings.svelte.js';
+	import { techstack } from '$lib/techstack/data.js';
 
 	const { data } = $props();
 
@@ -50,7 +50,7 @@
 			document.getElementById('site-nav')?.getBoundingClientRect().height ?? 56
 		);
 		heroObserver = new IntersectionObserver(
-			([entry]) => heroNameVisible.set(entry.isIntersecting),
+			([entry]) => (heroName.visible = entry.isIntersecting),
 			{ rootMargin: `-${navHeight}px 0px 0px 0px`, threshold: 0 }
 		);
 		if (heroNameEl) heroObserver.observe(heroNameEl);
@@ -58,7 +58,7 @@
 
 	onDestroy(() => {
 		heroObserver?.disconnect();
-		heroNameVisible.set(true);
+		heroName.visible = true;
 	});
 </script>
 

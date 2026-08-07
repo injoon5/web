@@ -1,18 +1,19 @@
 <script>
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import ArticleDialsMount from '$lib/article/ArticleDialsMount.svelte';
-	import { articleSettings, articleStyle } from '$lib/article/article-settings.svelte.js';
-	import { formatDate } from '$lib/utils';
-	import SeriesList from '$lib/SeriesList.svelte';
+	import { articleSettings, articleStyle } from '$lib/article/settings.svelte.js';
+	import { formatDate } from '$lib/format.js';
+	import SeriesList from '$lib/ui/SeriesList.svelte';
 	import CommentsSection from '$lib/comments/CommentsSection.svelte';
-	import LikeButton from '$lib/LikeButton.svelte';
+	import LikeButton from '$lib/likes/LikeButton.svelte';
 	import { page } from '$app/state';
-	import Lightbox from '../../../lib/Lightbox.svelte';
-	import { lightboxAction } from '$lib/lightbox.js';
+	import Lightbox from '$lib/lightbox/Lightbox.svelte';
+	import { lightboxAction } from '$lib/lightbox/store.svelte.js';
 	import Languages from '@lucide/svelte/icons/languages';
 	import NumberFlow from '@number-flow/svelte';
-	import { autoHeight } from '$lib/autoHeight.js';
-	import LanguageSwitcher from '$lib/LanguageSwitcher.svelte';
-	import StableLangStack from '$lib/StableLangStack.svelte';
+	import { autoHeight } from '$lib/actions/auto-height.js';
+	import LanguageSwitcher from '$lib/ui/LanguageSwitcher.svelte';
+	import StableLangStack from '$lib/ui/StableLangStack.svelte';
 
 	import { onMount, tick, untrack } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -53,14 +54,12 @@
 
 	// Direction of the language swap, used to slide content the right way.
 	let dir = $state(1);
-	let reduceMotion = $state(false);
 	// Stays false until after the initial (possibly localStorage-restored) language
 	// is applied, so that first paint and that restore don't animate.
 	let mounted = $state(false);
 	let animating = $state(false);
 
 	onMount(async () => {
-		reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		// The server already applied ?lang=/cookie. This only covers legacy users
 		// who have a localStorage preference but no cookie yet: apply it (instant,
 		// no animation since not mounted) and write the cookie so future server
@@ -112,7 +111,7 @@
 
 	let bodyWidth = $state(0);
 
-	const animate = $derived(mounted && !reduceMotion);
+	const animate = $derived(mounted && !motion.reduced);
 	const titleBlur = $derived({
 		amount: 8,
 		opacity: 0,
