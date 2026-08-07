@@ -2,6 +2,25 @@
 	import { motion } from '$lib/reduced-motion.svelte.js';
 	import { lightboxStore, MAX_LIGHTBOX_HEIGHT, normalizeLightboxValue } from './store.svelte.js';
 	import Stepper from '$lib/pasito/Stepper.svelte';
+	import { springEasing, springOr } from './spring.js';
+	import {
+		clampPanTo,
+		containSize,
+		deltaBetween,
+		pageStep,
+		panAfterScale,
+		rubber as rubberBand,
+		settleSpec
+	} from './geometry.js';
+	import { createVelocityTracker } from './velocity.js';
+	import { createModalHost, focusablesIn } from './modal.js';
+	import {
+		alignOrigin,
+		createFlightRunner,
+		flightTransform,
+		IDENTITY,
+		isOffScreen
+	} from './flight.js';
 	import { onDestroy } from 'svelte';
 
 	// --- tuning ---------------------------------------------------------------
@@ -154,42 +173,7 @@
 	let wheelCarry = 0;
 	let wheelTimer;
 
-	/**
-	 * Recent pointer positions, newest last. A release is judged on the whole
-	 * `VELOCITY_WINDOW` rather than on the last pointermove: two events 4ms apart
-	 * on a 120Hz screen make a single-sample velocity mostly noise, which is what
-	 * let an obvious flick fail to page and a careful nudge shoot away.
-	 * Deliberately not `$state` — nothing renders from it and it changes on every
-	 * move.
-	 * @type {Array<{ x: number, y: number, t: number }>}
-	 */
-	let samples = [];
-
-	function sample(x, y, t) {
-		samples.push({ x, y, t });
-		if (samples.length > 16) samples.shift();
-	}
-
-	/**
-	 * px/ms over the window ending at `now`. A finger that has been resting sends
-	 * no moves at all, so its samples fall out of the window and it has no
-	 * velocity — which is right: a held finger is not a flick, however fast it
-	 * arrived.
-	 */
-	function velocityAt(now) {
-		let first = null;
-		for (const s of samples) {
-			if (now - s.t <= VELOCITY_WINDOW) {
-				first = s;
-				break;
-			}
-		}
-		const last = samples[samples.length - 1];
-		if (!first || !last || first === last) return { x: 0, y: 0 };
-		const dt = last.t - first.t;
-		if (dt <= 0) return { x: 0, y: 0 };
-		return { x: (last.x - first.x) / dt, y: (last.y - first.y) / dt };
-	}
+	const velocity = createVelocityTracker(VELOCITY_WINDOW);
 
 	function resetZoom() {
 		scale = 1;
@@ -204,7 +188,7 @@
 		dragging = false;
 		pinching = false;
 		pointers = [];
-		samples = [];
+		velocity.clear();
 		slopX = slopY = carryX = 0;
 		unbindPointerStream();
 		endWheelGesture();
@@ -212,8 +196,7 @@
 		resetZoom();
 		clearTimeout(settleTimer);
 		trackSettle = null;
-		flightAnim?.cancel();
-		flightAnim = null;
+		flight.cancel();
 	}
 
 	// --- viewport -------------------------------------------------------------
@@ -233,18 +216,7 @@
 		Math.max(80, Math.min(winH - CHROME_TOP - reserveBottom, MAX_LIGHTBOX_HEIGHT))
 	);
 
-	/**
-	 * Displayed size, computed the way `object-fit: contain` would but from the
-	 * known natural dimensions, so the box has its final size before the src
-	 * loads and nothing shifts when it arrives. Never upscales.
-	 */
-	function fitFor(item) {
-		if (!item?.naturalWidth || !item?.naturalHeight || !winW || !winH) return null;
-		const s = Math.min(availW / item.naturalWidth, availH / item.naturalHeight, 1);
-		return { w: Math.round(item.naturalWidth * s), h: Math.round(item.naturalHeight * s) };
-	}
-
-	const currentFit = $derived(fitFor(current));
+	const currentFit = $derived(winW && winH ? containSize(current, availW, availH) : null);
 
 	/** Layout centre of the image box, in viewport coordinates. */
 	const centreX = $derived(winW / 2);
@@ -306,99 +278,8 @@
 	// --- open / close bookkeeping --------------------------------------------
 	let previouslyFocused = null;
 	let wasVisible = false;
-	let savedThemeColor = null;
-	let scrollLock = null;
-	let inerted = [];
 
-	// While the lightbox is open, darken the browser chrome (mobile address bar)
-	// to match the dark blurred backdrop instead of the page's light/dark theme.
-	function applyLightboxThemeColor() {
-		if (typeof document === 'undefined' || savedThemeColor) return;
-		const metas = Array.from(document.querySelectorAll('meta[name="theme-color"]'));
-		if (metas.length === 0) {
-			// Nothing to override — inject a temporary meta we remove on close.
-			const el = document.createElement('meta');
-			el.setAttribute('name', 'theme-color');
-			el.setAttribute('content', LIGHTBOX_THEME_COLOR);
-			document.head.appendChild(el);
-			savedThemeColor = [{ el, content: null, media: null, injected: true }];
-			return;
-		}
-		// Drop the media gate and force dark so the override wins in any scheme.
-		savedThemeColor = metas.map((el) => ({
-			el,
-			content: el.getAttribute('content'),
-			media: el.getAttribute('media')
-		}));
-		for (const { el } of savedThemeColor) {
-			el.removeAttribute('media');
-			el.setAttribute('content', LIGHTBOX_THEME_COLOR);
-		}
-	}
-
-	function restoreThemeColor() {
-		if (!savedThemeColor) return;
-		for (const entry of savedThemeColor) {
-			if (entry.injected) {
-				entry.el.remove();
-				continue;
-			}
-			if (entry.content === null) entry.el.removeAttribute('content');
-			else entry.el.setAttribute('content', entry.content);
-			if (entry.media === null) entry.el.removeAttribute('media');
-			else entry.el.setAttribute('media', entry.media);
-		}
-		savedThemeColor = null;
-	}
-
-	/**
-	 * The page behind a modal must not scroll. Compensating for the scrollbar's
-	 * width keeps the (blurred, still visible) page from jumping sideways as it
-	 * disappears.
-	 */
-	function lockScroll() {
-		if (typeof document === 'undefined' || scrollLock) return;
-		const body = document.body;
-		const gap = window.innerWidth - document.documentElement.clientWidth;
-		scrollLock = { overflow: body.style.overflow, paddingRight: body.style.paddingRight };
-		body.style.overflow = 'hidden';
-		// A scrollbar is a scrollbar, never half the window — anything wider than
-		// that is a browser (or a jsdom) that does not lay out at all.
-		if (gap > 0 && gap < 40) body.style.paddingRight = `${gap}px`;
-	}
-
-	function unlockScroll() {
-		if (!scrollLock) return;
-		document.body.style.overflow = scrollLock.overflow;
-		document.body.style.paddingRight = scrollLock.paddingRight;
-		scrollLock = null;
-	}
-
-	/**
-	 * `aria-modal` is a promise to assistive tech that the rest of the page is
-	 * unreachable; `inert` is what actually makes it true. Applied to <body>'s
-	 * children rather than a wrapper because the dialog is portalled there.
-	 */
-	function inertBackground(root) {
-		if (typeof document === 'undefined' || !root) return;
-		for (const el of Array.from(document.body.children)) {
-			if (el === root || el.contains(root)) continue;
-			if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'LINK') continue;
-			inerted.push({ el, inert: el.getAttribute('inert'), hidden: el.getAttribute('aria-hidden') });
-			el.setAttribute('inert', '');
-			el.setAttribute('aria-hidden', 'true');
-		}
-	}
-
-	function releaseBackground() {
-		for (const { el, inert, hidden } of inerted) {
-			if (inert === null) el.removeAttribute('inert');
-			else el.setAttribute('inert', inert);
-			if (hidden === null) el.removeAttribute('aria-hidden');
-			else el.setAttribute('aria-hidden', hidden);
-		}
-		inerted = [];
-	}
+	const modal = createModalHost({ themeColor: LIGHTBOX_THEME_COLOR });
 
 	// Capture/restore focus only on the actual open<->close transition. Gating on
 	// `wasVisible` stops a re-run (e.g. when `closeBtn` binds) from re-capturing
@@ -407,15 +288,13 @@
 	$effect(() => {
 		if (visible && !wasVisible) {
 			previouslyFocused = document.activeElement;
-			applyLightboxThemeColor();
-			lockScroll();
+			modal.open();
 			queueMicrotask(() => closeBtn?.focus());
 			wasVisible = true;
 		} else if (!visible && wasVisible) {
-			restoreThemeColor();
-			unlockScroll();
-			// Release before restoring focus: focus cannot land inside an inert tree.
-			releaseBackground();
+			// Releases the inert background too, before focus is restored: focus
+			// cannot land inside an inert tree.
+			modal.close();
 			if (previouslyFocused) {
 				try {
 					previouslyFocused.focus();
@@ -440,13 +319,13 @@
 		// first moment the node is provably a child of <body>: `bind:this` and that
 		// effect land in the same flush, and which of them runs first is not ours
 		// to decide.
-		inertBackground(node);
+		modal.inertBackground(node);
 		// Same reason the inerting lives here: this is the first moment the whole
 		// subtree is in the document and can be measured.
 		startOpenFlight(node);
 		return {
 			destroy() {
-				releaseBackground();
+				modal.releaseBackground();
 				// Only now — the flying copy is gone this frame, so the page-side
 				// image reappears exactly as the lightbox's lands on it.
 				showOrigin();
@@ -497,66 +376,12 @@
 	}
 
 	// --- shared-element flight ------------------------------------------------
-	// Driven through the Web Animations API rather than a class or an inline
-	// transform. WAAPI runs off the main thread, and — unlike an imperative
-	// `style.transform` — Svelte rewriting the `style` attribute mid-flight
-	// (which it does whenever the fit is recomputed) cannot wipe it out. No
-	// `fill: forwards` on the way in, so control returns to the inline transform
-	// the moment it lands and pan/zoom still work.
-	const IDENTITY = 'translate3d(0px, 0px, 0) scale(1)';
-	const flightTransform = (f) => `translate3d(${f.x}px, ${f.y}px, 0) scale(${f.scale})`;
-
-	/**
-	 * A spring, written out as a `linear()` easing so WAAPI can still run it on
-	 * the compositor — a real spring, not a curve that resembles one.
-	 *
-	 * Parameterised by bounce rather than by mass, stiffness and damping, which
-	 * are three numbers that only mean something tuned together. `bounce` is the
-	 * damping ratio read the other way up: 0 settles without ever passing its
-	 * mark, 0.25 passes it by about 3%.
-	 *
-	 * The ease-out this replaces was 80% of the way there a quarter of the way
-	 * through and then crawled, which is what made the lightbox feel stiff on the
-	 * way in. A spring leaves at rest and accelerates.
-	 *
-	 * `velocity` is what the spring is already travelling at when it starts, in
-	 * fractions of the distance per unit of the animation's own duration. A
-	 * settle handed the speed the finger left at is continuous with the gesture;
-	 * a fixed curve leaves at the same rate whether the photo was thrown or
-	 * nudged, which is the whole of why paging felt detached from the swipe.
-	 * Zero is a spring released from rest, which is every flight.
-	 */
-	function springEasing(bounce, velocity = 0, steps = 32) {
-		const zeta = Math.min(1, Math.max(0.05, 1 - bounce));
-		const omega = 2 * Math.PI;
-		const omegaD = omega * Math.sqrt(Math.max(1e-6, 1 - zeta * zeta));
-		const points = [];
-		for (let i = 0; i <= steps; i++) {
-			const t = i / steps;
-			const v =
-				zeta < 1
-					? 1 -
-						Math.exp(-zeta * omega * t) *
-							(Math.cos(omegaD * t) + ((zeta * omega - velocity) / omegaD) * Math.sin(omegaD * t))
-					: 1 + (-1 + (velocity - omega) * t) * Math.exp(-omega * t);
-			points.push(Math.round(v * 1e4) / 1e4);
-		}
-		points[points.length - 1] = 1;
-		return `linear(${points.join(',')})`;
-	}
-
 	// Opening overshoots a little — it is arriving. Coming home does not: past
 	// the mark would mean past the slot the photo belongs in.
 	const SPRING_IN = springEasing(0.25);
 	const SPRING_HOME = springEasing(0);
 
-	let linearEasing;
-	function springOr(fallback, spring) {
-		linearEasing ??= !!globalThis.CSS?.supports?.('animation-timing-function', 'linear(0, 1)');
-		return linearEasing ? spring : fallback;
-	}
-
-	let flightAnim = null;
+	const flight = createFlightRunner();
 	let hiddenOrigin = null;
 
 	/** The element on the page the current image came from, if it is still there. */
@@ -589,47 +414,6 @@
 		return rootEl?.querySelector('.lb-img[data-current="true"]') ?? null;
 	}
 
-	/**
-	 * Bring the element the lightbox is about to fly back to into view inside its
-	 * own scroller, so closing on the fourth image of a strip lands on the fourth
-	 * image rather than off the side of it. Horizontal scrollers only, and never
-	 * the page — that one is locked while the lightbox is open.
-	 */
-	function alignOrigin(el) {
-		for (let node = el.parentElement; node && node !== document.body; node = node.parentElement) {
-			if (node.scrollWidth - node.clientWidth < 2) continue;
-			const overflowX = getComputedStyle(node).overflowX;
-			if (overflowX !== 'auto' && overflowX !== 'scroll') continue;
-			// This scroll has to land before the flight is measured a line later. A
-			// scroller with `scroll-behavior: smooth` would animate instead, and the
-			// flight would be measured against a position it has not reached yet.
-			const behaviour = node.style.scrollBehavior;
-			node.style.scrollBehavior = 'auto';
-			const r = el.getBoundingClientRect();
-			const cr = node.getBoundingClientRect();
-			node.scrollLeft += r.left + r.width / 2 - (cr.left + cr.width / 2);
-			node.style.scrollBehavior = behaviour;
-		}
-	}
-
-	/**
-	 * The transform that moves an element from the box it lays out in to some
-	 * other box on screen.
-	 *
-	 * One uniform scale, not a separate scaleX and scaleY: both ends are
-	 * `object-fit: contain` around the same file, so their aspect ratios agree
-	 * and a second axis could only ever distort the photo in flight.
-	 */
-	function deltaBetween(base, target) {
-		if (!base || !target) return null;
-		if (base.width < 1 || base.height < 1 || target.width < 1 || target.height < 1) return null;
-		return {
-			scale: target.width / base.width,
-			x: target.left + target.width / 2 - (base.left + base.width / 2),
-			y: target.top + target.height / 2 - (base.top + base.height / 2)
-		};
-	}
-
 	function flightBetween(fromEl, toEl) {
 		if (!fromEl || !toEl || typeof toEl.animate !== 'function') return null;
 		return deltaBetween(toEl.getBoundingClientRect(), fromEl.getBoundingClientRect());
@@ -648,32 +432,6 @@
 		strip.style.transform = 'none';
 	}
 
-	/** Called from the portal action — the first moment the subtree is laid out. */
-	/**
-	 * Track the running flight, and never let a stale handler clear its successor
-	 * — `oncancel` is dispatched asynchronously, so it can land after the
-	 * animation that replaced it has already been stored.
-	 *
-	 * `fill` is the whole difference between the two directions. On the way in,
-	 * `backwards` puts the photo at its origin for the first paint and then hands
-	 * the transform back, so pan and zoom work the moment it lands. On the way
-	 * out, `forwards` holds it at the origin for the frame between the animation
-	 * ending and the lightbox unmounting — without it the photo snaps back to
-	 * full size for that frame.
-	 */
-	function runFlight(el, keyframes, duration, fill, easing, onfinish) {
-		const anim = el.animate(keyframes, { duration, easing, fill });
-		flightAnim = anim;
-		anim.oncancel = () => {
-			if (flightAnim === anim) flightAnim = null;
-		};
-		anim.onfinish = () => {
-			if (flightAnim === anim) flightAnim = null;
-			onfinish?.();
-		};
-		return anim;
-	}
-
 	function startOpenFlight(root) {
 		const from = originEl();
 		if (from) hideOrigin(from);
@@ -684,8 +442,8 @@
 		const f = flightBetween(from, to);
 		if (!f) return;
 		flew = true;
-		flightAnim?.cancel();
-		runFlight(
+		flight.cancel();
+		flight.run(
 			to,
 			[{ transform: flightTransform(f) }, { transform: IDENTITY }],
 			FLIGHT_IN_MS,
@@ -704,12 +462,6 @@
 		const track = rootEl?.querySelector('.lb-track');
 		if (!track) return;
 		track.style.transition = 'none';
-	}
-
-	/** Has the element been scrolled or laid out clean off the screen? */
-	function offScreen(el) {
-		const r = el.getBoundingClientRect();
-		return r.bottom <= 0 || r.top >= winH || r.right <= 0 || r.left >= winW;
 	}
 
 	/**
@@ -733,7 +485,7 @@
 		alignOrigin(to);
 		// Aligned and still off-screen: there is nowhere on screen to fly to, and
 		// a flight there would just be the photo leaving in a strange direction.
-		if (offScreen(to)) return false;
+		if (isOffScreen(to, winW, winH)) return false;
 
 		// Measured before anything is undone: this is the box the eye is on.
 		const cur = img.getBoundingClientRect();
@@ -742,7 +494,7 @@
 		// Every write first, then every read. Interleaving them forces a fresh
 		// layout per read, and this all happens inside the one frame a finger is
 		// lifted — the frame the eye is most likely to catch.
-		flightAnim?.cancel();
+		flight.cancel();
 		if (carried) {
 			unwindStrip();
 			dragX = 0;
@@ -757,7 +509,7 @@
 		if (!from || !home) return false;
 
 		flyingHome = true;
-		runFlight(
+		flight.run(
 			img,
 			[{ transform: flightTransform(from) }, { transform: flightTransform(home) }],
 			duration,
@@ -786,27 +538,25 @@
 	});
 
 	// --- pointer gestures -----------------------------------------------------
-	/** iOS's rubber band: resistance that grows with distance, never past `dim * RUBBER`. */
-	function rubber(delta, dim) {
-		const sign = Math.sign(delta);
-		const a = Math.abs(delta);
-		return (sign * (a * dim * RUBBER)) / (dim + RUBBER * a) || 0;
-	}
+	const rubber = (delta, dim) => rubberBand(delta, dim, RUBBER);
 
 	function clampPan() {
-		const f = currentFit;
-		if (!f) return;
-		const maxX = Math.max(0, (f.w * scale - availW) / 2);
-		const maxY = Math.max(0, (f.h * scale - availH) / 2);
-		panX = Math.max(-maxX, Math.min(maxX, panX));
-		panY = Math.max(-maxY, Math.min(maxY, panY));
+		if (!currentFit) return;
+		({ x: panX, y: panY } = clampPanTo(currentFit, scale, availW, availH, panX, panY));
 	}
 
 	/** Re-anchor the pan so the point under the fingers/cursor stays put. */
 	function scaleAbout(nextScale, x, y, baseScale, basePanX, basePanY) {
-		const r = nextScale / baseScale;
-		panX = (1 - r) * (x - centreX) + r * basePanX;
-		panY = (1 - r) * (y - centreY) + r * basePanY;
+		({ x: panX, y: panY } = panAfterScale({
+			nextScale,
+			baseScale,
+			x,
+			y,
+			centreX,
+			centreY,
+			panX: basePanX,
+			panY: basePanY
+		}));
 		scale = nextScale;
 	}
 
@@ -840,7 +590,7 @@
 	function seedDrag(x, y, t) {
 		startX = x;
 		startY = y;
-		samples = [{ x, y, t }];
+		velocity.reset(x, y, t);
 		slopX = slopY = carryX = 0;
 		panStartX = panX;
 		panStartY = panY;
@@ -899,7 +649,7 @@
 		const dy = e.clientY - startY;
 		if (!moved && Math.hypot(dx, dy) > TAP_SLOP) moved = true;
 
-		sample(e.clientX, e.clientY, e.timeStamp);
+		velocity.push(e.clientX, e.clientY, e.timeStamp);
 
 		if (axis === 'pan') {
 			panX = panStartX + dx;
@@ -961,24 +711,19 @@
 	 * Called before `goTo`, so `index` and `dragX` still describe where the photo
 	 * is rather than where it is going.
 	 */
-	function armTrackSettle(target, velocity) {
+	function armTrackSettle(target, v) {
 		clearTimeout(settleTimer);
 		trackSettle = null;
 		if (motion.reduced) return;
 		const page = winW || 1;
-		const remaining = (index - target) * page - dragX;
-		const distance = Math.abs(remaining);
-		if (distance < 1) return;
-		// A short journey takes less time than a whole page. Not proportional —
-		// the square root keeps a small correction from being over before it can
-		// be seen.
-		const duration = Math.round(
-			Math.max(SETTLE_MIN_MS, Math.min(SETTLE_MS, SETTLE_MS * Math.sqrt(distance / page)))
-		);
-		// Positive is already travelling towards the slot; negative is a release
-		// still heading out of a rubber band, which carries on and comes back.
-		const along = (velocity * Math.sign(remaining) * duration) / distance;
-		const v0 = Math.max(SETTLE_V0_MIN, Math.min(SETTLE_V0_MAX, along));
+		const spec = settleSpec((index - target) * page - dragX, page, v, {
+			min: SETTLE_MIN_MS,
+			max: SETTLE_MS,
+			v0Min: SETTLE_V0_MIN,
+			v0Max: SETTLE_V0_MAX
+		});
+		if (!spec) return;
+		const { duration, v0 } = spec;
 		trackSettle = `transform ${duration}ms ${springOr(SETTLE_EASE, springEasing(0, v0))}`;
 		// Back to the shared curve once it has landed, so the next arrow key does
 		// not inherit this swipe's velocity. Changing the declaration alone moves
@@ -987,26 +732,28 @@
 	}
 
 	/** Which slide a released horizontal gesture belongs on. */
-	function pageTarget(travelled, velocity) {
-		const flick = Math.abs(velocity) > PAGE_VELOCITY && Math.abs(travelled) > AXIS_LOCK;
-		const far = Math.abs(travelled) > (winW || 1) * PAGE_RATIO;
-		const next = flick || far ? index + (travelled < 0 ? 1 : -1) : index;
-		return Math.max(0, Math.min(count - 1, next));
+	function pageTarget(travelled, v) {
+		const step = pageStep(travelled, v, winW, {
+			lock: AXIS_LOCK,
+			ratio: PAGE_RATIO,
+			flickVelocity: PAGE_VELOCITY
+		});
+		return Math.max(0, Math.min(count - 1, index + step));
 	}
 
 	function settleX(now) {
-		const velocity = velocityAt(now).x;
+		const vx = velocity.at(now).x;
 		// Measured from where the drag took the track over, not from the resting
 		// slot: a swipe that interrupted a settle starts with the whole of that
 		// settle's remaining distance already on `dragX`, and counting it as
 		// movement would page on a finger that never went anywhere.
-		const target = pageTarget(dragX - carryX, velocity);
-		armTrackSettle(target, velocity);
+		const target = pageTarget(dragX - carryX, vx);
+		armTrackSettle(target, vx);
 		goTo(target);
 	}
 
 	function settleY(now) {
-		const velY = velocityAt(now).y;
+		const velY = velocity.at(now).y;
 		const far = Math.abs(dragY) > DISMISS_DISTANCE;
 		const flick = Math.abs(velY) > DISMISS_VELOCITY && Math.abs(dragY) > 24;
 		axis = null;
@@ -1066,7 +813,7 @@
 			dragging = false;
 			pinching = false;
 			axis = null;
-			samples = [];
+			velocity.clear();
 			slopX = slopY = carryX = 0;
 			dragX = 0;
 			dragY = 0;
@@ -1168,14 +915,6 @@
 	}
 
 	// --- keyboard -------------------------------------------------------------
-	/** Everything inside the dialog a Tab can legitimately land on. */
-	function focusables() {
-		if (!rootEl) return [];
-		return Array.from(
-			rootEl.querySelectorAll('button:not([disabled]):not([tabindex="-1"]), [tabindex="0"]')
-		);
-	}
-
 	function handleKeydown(e) {
 		if (!visible) return;
 		if (e.key === 'Escape') {
@@ -1215,7 +954,7 @@
 		if (e.key === 'Tab') {
 			// Keep focus in the dialog. With one focusable it parks there, which is
 			// what this did before the group chrome added any others.
-			const list = focusables();
+			const list = focusablesIn(rootEl);
 			if (list.length === 0) return;
 			e.preventDefault();
 			const at = list.indexOf(document.activeElement);
@@ -1235,10 +974,8 @@
 		clearTimeout(wheelTimer);
 		clearTimeout(settleTimer);
 		unbindPointerStream();
-		flightAnim?.cancel();
-		restoreThemeColor();
-		unlockScroll();
-		releaseBackground();
+		flight.cancel();
+		modal.close();
 		showOrigin();
 		previouslyFocused = null;
 	});
@@ -1334,7 +1071,7 @@
 					<div class="lb-track" style:transform={trackTransform} style:transition={trackTransition}>
 						{#each items as item, i (item.src + i)}
 							{@const near = Math.abs(i - windowIndex) <= 1}
-							{@const f = fitFor(item)}
+							{@const f = winW && winH ? containSize(item, availW, availH) : null}
 							<div class="lb-slide" aria-hidden={i === index ? undefined : 'true'}>
 								{#if near}
 									<img
