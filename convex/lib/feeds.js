@@ -10,7 +10,7 @@
  */
 
 /** Last.fm account the recent-tracks feed is read for. */
-export const LASTFM_USER = 'injoon5';
+const LASTFM_USER = 'injoon5';
 
 /** The marquee loops 20 covers; the grid shows 6 of the 8 kept. */
 export const TRACK_LIMIT = 20;

@@ -5,9 +5,9 @@
  * after batched backfills finish. Add a new key per backfill job.
  */
 
-export const URL_COUNTS_KEY = 'urlCounts';
-export const VOTE_COUNTS_KEY = 'voteCounts';
-export const LIKE_COUNTS_KEY = 'likeCounts';
+const URL_COUNTS_KEY = 'urlCounts';
+const VOTE_COUNTS_KEY = 'voteCounts';
+const LIKE_COUNTS_KEY = 'likeCounts';
 
 async function isBackfillComplete(ctx, key) {
 	const row = await ctx.db
@@ -37,10 +37,6 @@ export function isUrlCountsBackfillComplete(ctx) {
 
 export function setUrlCountsBackfillComplete(ctx) {
 	return setBackfillComplete(ctx, URL_COUNTS_KEY);
-}
-
-export function isVoteCountsBackfillComplete(ctx) {
-	return isBackfillComplete(ctx, VOTE_COUNTS_KEY);
 }
 
 export function setVoteCountsBackfillComplete(ctx) {

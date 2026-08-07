@@ -3,7 +3,7 @@
  */
 
 /** Invoke `onBatch` for each page of comments. Returns last pagination result. */
-export async function paginateCommentBatches(ctx, { pageSize, onBatch }) {
+async function paginateCommentBatches(ctx, { pageSize, onBatch }) {
 	let cursor = null;
 	// Assigned on the first pass of the do-while below, so it is never read unset.
 	let lastBatch;
