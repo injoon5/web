@@ -21,7 +21,7 @@ export const HOME_DEFAULTS = {
 	coverSize: 10,
 	coverSizeLg: 12,
 	/** Space between covers, in rem. Was `mr-3`. */
-	coverGap: 0.75,
+	coverGap: 1,
 	/** Corner radius shared by covers and photos, in rem. Was `rounded-xl`. */
 	radius: 0.75,
 	/**
