@@ -264,6 +264,32 @@
 	let previouslyFocused = null;
 	let wasVisible = false;
 
+	/**
+	 * What the page's own fixed chrome is being asked to do, on `<html>` so the
+	 * header can read it without either component importing the other.
+	 *
+	 * The header is `position: sticky`, and the box a photo flies home to is
+	 * routinely underneath it. A dialog at `z-index: 9999` puts the photo over the
+	 * bar for the whole flight and then the page takes it back *under* the bar in
+	 * one frame — the top of the photo is sliced off at the exact moment the eye
+	 * has followed it there. So the header is lifted above the dialog and taken out
+	 * of sight instead: `open` while the scrim covers it anyway (it is invisible
+	 * behind 86% black either way), `returning` to hand it back on the same curve
+	 * and duration the scrim leaves on, so it reads as the backdrop clearing rather
+	 * than a header appearing.
+	 *
+	 * @param {'open' | 'returning' | null} state
+	 */
+	function markPage(state) {
+		if (typeof document === 'undefined') return;
+		if (state) document.documentElement.dataset.lightbox = state;
+		else delete document.documentElement.dataset.lightbox;
+	}
+
+	$effect(() => {
+		markPage(visible ? (closing || dismissing ? 'returning' : 'open') : null);
+	});
+
 	const modal = createModalHost({ themeColor: LIGHTBOX_THEME_COLOR });
 
 	// Only on the actual open<->close transition: without the `wasVisible` gate a
@@ -290,6 +316,34 @@
 		}
 	});
 
+	/**
+	 * Reserve the room the chrome actually takes, before anything is measured
+	 * against the box that leaves for the photo.
+	 *
+	 * `bind:clientHeight` reports through a ResizeObserver, and that does not run
+	 * until the frame's rendering step — after this action, though still before
+	 * anything is painted. So the layout standing here is one with no room
+	 * reserved for the caption, and the reserve grows by its height a moment
+	 * later. Nothing on screen suffers for that (every painted frame is already
+	 * the corrected one), but the flight is measured *here*, against a box that
+	 * then moves half the difference out from under it.
+	 *
+	 * Everything downstream of `bottomH` is a `$derived`, and those are pull-based:
+	 * `reserveBottom` and `currentFit` read as the values the next flush will
+	 * render the moment it is assigned, so writing them onto the node is only
+	 * bringing the DOM forward to the frame it is about to be in anyway.
+	 */
+	function settleChromeReserve(node) {
+		const bottom = node.querySelector('.lb-bottom');
+		if (!bottom) return;
+		bottomH = bottom.clientHeight;
+		node.style.setProperty('--lb-pad-bottom', `${reserveBottom}px`);
+		const img = node.querySelector('.lb-img[data-current="true"]');
+		if (!img || !currentFit) return;
+		img.style.width = `${currentFit.w}px`;
+		img.style.height = `${currentFit.h}px`;
+	}
+
 	/** Move the dialog to <body>; a modal is only a modal with nothing above it. */
 	function portal(node) {
 		if (typeof document === 'undefined') return;
@@ -299,6 +353,7 @@
 		modal.inertBackground(node);
 		// Same reason the inerting lives here: this is the first moment the whole
 		// subtree is in the document and can be measured.
+		settleChromeReserve(node);
 		startOpenFlight(node);
 		return {
 			destroy() {
@@ -387,11 +442,6 @@
 		return rootEl?.querySelector('.lb-img[data-current="true"]') ?? null;
 	}
 
-	function flightBetween(fromEl, toEl) {
-		if (!fromEl || !toEl || typeof toEl.animate !== 'function') return null;
-		return deltaBetween(toEl.getBoundingClientRect(), fromEl.getBoundingClientRect());
-	}
-
 	/**
 	 * A dismiss drag moves the strip, not the photo. Unwind it and hand the
 	 * distance to the photo's first keyframe, so one animation carries the whole
@@ -404,6 +454,11 @@
 		strip.style.transform = 'none';
 	}
 
+	/** The stage's own entrance, whatever state it is in. See `startOpenFlight`. */
+	function stageEntrance(root) {
+		return root.querySelector('.lb-stage')?.getAnimations?.() ?? [];
+	}
+
 	function startOpenFlight(root) {
 		const from = originEl();
 		if (from) hideOrigin(from);
@@ -411,7 +466,23 @@
 		// `onload` would resize it out from under the animation.
 		if (motion.reduced || !currentFit) return;
 		const to = root.querySelector('.lb-img[data-current="true"]');
-		const f = flightBetween(from, to);
+		if (!from || !to || typeof to.animate !== 'function') return;
+		// Every refusal first, and this one measures the origin: no layout at all
+		// (jsdom) leaves the entrance below untouched.
+		const base = from.getBoundingClientRect();
+		if (base.width < 1 || base.height < 1) return;
+
+		// `lb-in` is already in effect — a CSS animation with a backwards fill
+		// applies from the moment the element is first styled — so the stage is
+		// holding `scale(0.92)`, and a rect is read through every ancestor
+		// transform. Measured through it the photo's box comes out 8% smaller than
+		// the one it actually lands in, and `flew` then takes the entrance away: the
+		// flight's first frame paints the photo 8% *bigger* than the thumbnail it is
+		// supposed to be leaving, which is the pop before the flight. Cancel it here
+		// rather than trusting `flew` — that class is a state change, and it lands a
+		// flush after this measurement.
+		for (const entrance of stageEntrance(root)) entrance.cancel();
+		const f = deltaBetween(to.getBoundingClientRect(), base);
 		if (!f) return;
 		flew = true;
 		flight.cancel();
@@ -927,6 +998,7 @@
 		flight.cancel();
 		modal.close();
 		showOrigin();
+		markPage(null);
 		previouslyFocused = null;
 	});
 

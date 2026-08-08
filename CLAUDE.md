@@ -343,6 +343,56 @@ full-screen**, and back to wherever that image sits when you close.
   handed back from the flight's `onfinish` rather than the portal's teardown, so
   the swap is invisible.
 
+### Nothing may be in effect on the box the flight is measured against
+
+Both ends are measured with `getBoundingClientRect`, which reads through every
+ancestor transform and reports the box as it stands _at that instant_. The flight
+then animates a transform relative to a layout box it assumed was final. Anything
+that changes that box afterwards offsets the whole flight, and its first frame —
+the one that is supposed to sit exactly on the thumbnail — is where it shows.
+
+Two things had to be taken out of the way in `portal`, in this order:
+
+- **The stage's own entrance.** `lb-in` starts at `scale(0.92)`, and a CSS
+  animation with a backwards fill is in effect from the moment the element is
+  first styled. The photo was measured through it and `flew` then took the
+  entrance away, so the flight's first frame painted the photo **8% larger than
+  the thumbnail it was leaving** — 1/0.92 exactly. `startOpenFlight` cancels the
+  stage's animations before measuring; `flew` is a state change and lands a flush
+  later, which is too late to measure against.
+- **The chrome's reserved height.** `bottomH` comes from `bind:clientHeight`,
+  i.e. a ResizeObserver, which does not run until the frame's rendering step —
+  after the action, though still before paint. So the box measured in the action
+  is one with no room reserved for the caption, and the photo moved half the
+  difference (8px on a phone) out from under a flight already measured against
+  it. `settleChromeReserve` reads the chrome and writes the reserve onto the node
+  first. It can do that because everything downstream of `bottomH` is a
+  `$derived`, and those are pull-based: they read as the values the next flush
+  will render the moment it is assigned. `flushSync` is not an option here —
+  Svelte throws on it inside an effect, and an action is one.
+
+Anything else added between the photo's box and the viewport has to be settled in
+the same place. `Lightbox.svelte.test.js` cannot catch this: jsdom has no layout,
+so the flight never runs.
+
+### The page's own chrome has to be able to get above it
+
+The header is `position: sticky`, and the box a photo flies home to is routinely
+underneath it. A dialog at `z-index: 9999` draws the photo **over** the bar for
+the whole flight and then the page takes it back **under** the bar in one frame,
+slicing the top off it at the exact moment the eye has followed it there.
+
+So the lightbox sets `data-lightbox` on `<html>` — `open`, then `returning` from
+the moment a close starts — and `NavBar` reads it: the header lifts above the
+dialog and is faded out instead of being covered by it. Neither component imports
+the other. The fade is what makes the swap invisible: the header is behind an 86%
+black scrim either way, so what it replaces is a reveal, not a state, and it runs
+on the scrim's own two durations (0.28s in, 0.2s out).
+
+`returning` is set for **every** close, not only one that flies — a close that
+cannot fly still has to hand the header back, or the scrim fades out onto a page
+with no header on it.
+
 ### Performance
 
 - **`-webkit-backdrop-filter` goes before `backdrop-filter`, always.** Written

@@ -201,7 +201,10 @@
 	data-scrolled={!scrollLinked && scrolled}
 	style="--nav-open-extra:{openExtra}px{__DIALS__ ? ';' + navStyle() : ''}"
 >
-	<div class="relative">
+	<!-- One element for the header's own presence, so the lightbox can take the
+	     whole bar out of sight without touching the surface's opacity — that one
+	     belongs to the scroll position and the disclosure. -->
+	<div class="nav-presence relative">
 		<!-- One surface for the whole header, grown from the bottom, rather than one
 		     per row. Two adjacent backdrop-filter layers each clamp their blur at
 		     the shared edge, so neither pulls in what is behind the other and the
@@ -454,6 +457,32 @@
 		transition:
 			--nav-surface-scroll 200ms ease,
 			--nav-surface-menu 200ms ease;
+	}
+
+	/* The lightbox flies a photo out of the article and back into it, and the box
+	   it comes from is often under this header. The dialog paints at `z-index:
+	   9999`, so without this the photo passes over the bar on the way out and is
+	   sliced off by it in the single frame the page takes it back — the one frame
+	   the eye is certainly on it. `html[data-lightbox]` is set by the lightbox
+	   itself: while it is up, the header sits *above* the dialog and is faded out
+	   instead, which is what lets the photo travel underneath the bar the way it
+	   lives underneath it on the page.
+
+	   Fading rather than hiding, and on the same durations and curves as the
+	   scrim's own two: 0.28s in, 0.2s out. The header is invisible behind an 86%
+	   black scrim either way, so what this replaces is a reveal, not a state. */
+	.nav-presence {
+		transition: opacity 0.2s var(--ease-out-soft);
+	}
+
+	:global(html[data-lightbox]) .nav-shell {
+		z-index: 10000;
+	}
+
+	:global(html[data-lightbox='open']) .nav-presence {
+		opacity: 0;
+		transition-duration: 0.28s;
+		transition-timing-function: var(--ease-out-fast);
 	}
 
 	.nav-shell[data-menu-open='true'] {
