@@ -5,11 +5,33 @@ import {
 	deltaBetween,
 	pageStep,
 	panAfterScale,
+	ratioFit,
 	rubber,
 	settleSpec
 } from './geometry.js';
 
 const rect = (left, top, width, height) => ({ left, top, width, height });
+
+describe('ratioFit', () => {
+	it('fills the space with a box of the given shape', () => {
+		expect(ratioFit(2, 800, 600)).toEqual({ w: 800, h: 400 });
+		expect(ratioFit(0.5, 800, 600)).toEqual({ w: 300, h: 600 });
+	});
+
+	// The one thing `containSize` will not do, and the reason this exists: the
+	// shape comes from the article's thumbnail, and `data-lightbox-src` points at
+	// a file that is bigger than it.
+	it('upscales, unlike containSize', () => {
+		expect(ratioFit(1, 800, 600)).toEqual({ w: 600, h: 600 });
+	});
+
+	it('has nothing to give for a nonsense ratio or an empty viewport', () => {
+		expect(ratioFit(0, 800, 600)).toBeNull();
+		expect(ratioFit(Number.NaN, 800, 600)).toBeNull();
+		expect(ratioFit(-2, 800, 600)).toBeNull();
+		expect(ratioFit(2, 0, 600)).toBeNull();
+	});
+});
 
 describe('containSize', () => {
 	it('fits a wide image to the available width', () => {

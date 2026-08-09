@@ -57,6 +57,12 @@
 	:root {
 		--nav-h: 3.5rem;
 
+		/* How tall an image in an article is allowed to be. A token because the
+		   placeholder has to compute the same box the loaded photo will occupy,
+		   and a tall photo's width is decided by this cap rather than by the
+		   column — the two rules cannot be allowed to drift apart. */
+		--prose-img-max-h: min(70vh, 900px);
+
 		/* The home page's hero name declares a view timeline under this name, and
 		   the header's wordmark animates on it. Neither is an ancestor of the
 		   other — they are siblings under `body` — so the name has to be hoisted
@@ -167,6 +173,71 @@
 	background-image:
 		linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%),
 		linear-gradient(var(--color-neutral-800), var(--color-neutral-800));
+}
+
+/* An image whose box is known but whose bytes are not here yet.
+   `remarkImageSize` stamps `width`/`height` and this attribute at build time —
+   so the placeholder is in the first paint, not added at hydration, by which
+   point the browser has long since decided what to fetch — and `trackImage`
+   takes it away on the first `load`.
+
+   Painted on the image itself rather than on a wrapper behind it: the
+   placeholder is then the same box as the photo by construction, at the same
+   size and in the same place, with nothing to keep in step as the article's
+   `max-width` and `max-height` rules scale it. */
+img[data-img-pending] {
+	/* The box, computed to be the one the photo will land in.
+
+	   It cannot simply be left to `width`/`height`: the article sizes images with
+	   `width: auto`, which is what lets a tall photo give up width when it hits
+	   `--prose-img-max-h` — and an `auto`-sized image the browser has not fetched
+	   is 0x0 no matter what its attributes say. So the same three constraints the
+	   loaded photo answers to are written out here against the build's own
+	   numbers: the column, the file's own width (nothing is ever upscaled), and
+	   the height cap converted into a width through the aspect ratio.
+
+	   An image with no `--img-w` makes all three invalid at computed-value time,
+	   which is `unset` — exactly the layout it had before.
+
+	   The width is named so a context with a different height cap — a gallery
+	   slide, whose own rules outrank this one — can re-apply it without restating
+	   the arithmetic and drifting from it. It has to be declared *here*, on the
+	   image: a custom property's own `var()`s are substituted on the element that
+	   declares it, so the same formula parked on `:root` would look for `--img-w`
+	   there, find nothing, and inherit down as invalid. */
+	aspect-ratio: var(--img-w) / var(--img-h);
+	--img-pending-w: min(
+		100%,
+		calc(var(--img-w) * 1px),
+		calc(var(--img-max-h, var(--prose-img-max-h)) * var(--img-w) / var(--img-h))
+	);
+	width: var(--img-pending-w);
+	height: auto;
+
+	background-color: var(--color-neutral-100);
+	background-image: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(0, 0, 0, 0.045) 50%,
+		transparent 100%
+	);
+	background-size: 200% 100%;
+	background-repeat: no-repeat;
+	animation: shimmer 1.6s var(--ease-out-soft) infinite;
+	/* The alt text would otherwise be typeset across the placeholder, and then
+	   vanish when the photo arrives. A broken image drops the attribute and gets
+	   it back. */
+	color: transparent;
+}
+
+.dark img[data-img-pending] {
+	background-color: var(--color-neutral-800);
+	background-image: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.05) 50%,
+		transparent 100%
+	);
 }
 
 /* Tabular numerals for metrics, dates, counters */
@@ -400,6 +471,7 @@
 /* Honor reduced-motion globally for our keyframe utilities */
 @media (prefers-reduced-motion: reduce) {
 	.shimmer,
+	img[data-img-pending],
 	.heart-particle,
 	.vote-pop,
 	.marquee-track,
@@ -470,7 +542,7 @@
 	@apply prose-h3:tracking-tight prose-h4:tracking-tight;
 	@apply prose-a:underline prose-a:decoration-neutral-300 dark:prose-a:decoration-neutral-700 prose-a:underline-offset-2 prose-a:decoration-1;
 	@apply hover:prose-a:decoration-neutral-700 dark:hover:prose-a:decoration-neutral-300;
-	@apply prose-img:mx-auto prose-img:h-auto prose-img:w-auto prose-img:max-w-full prose-img:max-h-[min(70vh,900px)] prose-img:cursor-zoom-in;
+	@apply prose-img:mx-auto prose-img:h-auto prose-img:w-auto prose-img:max-w-full prose-img:max-h-[var(--prose-img-max-h)] prose-img:cursor-zoom-in;
 }
 
 @utility prose {

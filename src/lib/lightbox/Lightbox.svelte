@@ -9,9 +9,11 @@
 		deltaBetween,
 		pageStep,
 		panAfterScale,
+		ratioFit,
 		rubber as rubberBand,
 		settleSpec
 	} from './geometry.js';
+	import { noteImage } from './image-cache.js';
 	import { createVelocityTracker } from './velocity.js';
 	import { createModalHost, focusablesIn } from './modal.js';
 	import {
@@ -201,7 +203,28 @@
 		Math.max(80, Math.min(winH - CHROME_TOP - reserveBottom, MAX_LIGHTBOX_HEIGHT))
 	);
 
-	const currentFit = $derived(winW && winH ? containSize(current, availW, availH) : null);
+	/**
+	 * The box an image occupies full-screen.
+	 *
+	 * `containSize` answers from the natural size, which is known before the file
+	 * arrives now that the build stamps it on the article's `<img>` — so the box
+	 * is the final one from the first frame, and the placeholder, the poster and
+	 * the flight all share it.
+	 *
+	 * When it cannot answer, the article's thumbnail supplies the shape. That box
+	 * is marked `provisional`: it is right to place a placeholder in, and wrong to
+	 * fly to, because `onload` may resize it mid-animation.
+	 */
+	function fitFor(item) {
+		if (!winW || !winH || !item) return null;
+		const exact = containSize(item, availW, availH);
+		if (exact) return exact;
+		if (!item.posterWidth || !item.posterHeight) return null;
+		const guess = ratioFit(item.posterWidth / item.posterHeight, availW, availH);
+		return guess && { ...guess, provisional: true };
+	}
+
+	const currentFit = $derived(fitFor(current));
 
 	/** Layout centre of the image box, in viewport coordinates. */
 	const centreX = $derived(winW / 2);
@@ -342,13 +365,24 @@
 	/**
 	 * An image collected before it loaded carries no natural size, and
 	 * `containSize` needs one to reserve the box. Fill it in once.
+	 *
+	 * The load is also reported to the shared cache, which is what lets the
+	 * article's own copy paint from memory when the lightbox closes onto an image
+	 * the page had not finished downloading.
 	 */
 	function onImageLoad(e, item) {
 		const el = e.currentTarget;
+		noteImage(el);
 		item.loaded = true;
+		item.ready = true;
 		if (item.naturalWidth) return;
 		item.naturalWidth = el.naturalWidth;
 		item.naturalHeight = el.naturalHeight;
+	}
+
+	/** A URL inside `url("...")`. Only quotes and backslashes can break out. */
+	function cssUrl(src) {
+		return `url("${String(src).replace(/["\\]/g, '\\$&')}")`;
 	}
 
 	// --- shared-element flight ------------------------------------------------
@@ -407,9 +441,10 @@
 	function startOpenFlight(root) {
 		const from = originEl();
 		if (from) hideOrigin(from);
-		// Without a known natural size the image has no settled box yet, and
-		// `onload` would resize it out from under the animation.
-		if (motion.reduced || !currentFit) return;
+		// Without a settled box there is nothing to fly to: a provisional one is
+		// sized from a thumbnail, and `onload` would resize it out from under the
+		// animation.
+		if (motion.reduced || !currentFit || currentFit.provisional) return;
 		const to = root.querySelector('.lb-img[data-current="true"]');
 		const f = flightBetween(from, to);
 		if (!f) return;
@@ -1019,17 +1054,38 @@
 					<div class="lb-track" style:transform={trackTransform} style:transition={trackTransition}>
 						{#each items as item, i (item.src + i)}
 							{@const near = Math.abs(i - windowIndex) <= 1}
-							{@const f = winW && winH ? containSize(item, availW, availH) : null}
+							{@const f = fitFor(item)}
 							<div class="lb-slide" aria-hidden={i === index ? undefined : 'true'}>
 								{#if near}
+									<!--
+										Three things share this one box, in this order, and only ever
+										one of them is on screen:
+
+										- the photo, once its own bytes are decoded;
+										- before that, the pixels the article already has, painted as
+										  the element's own background. Same URL in every case but
+										  `data-lightbox-src`, so it costs no request — it is the
+										  browser handing back what it fetched for the page. This is
+										  what stops a fully-loaded article image from opening into an
+										  empty lightbox while its second copy downloads;
+										- and only when there are no such pixels, the placeholder.
+
+										`pending` — the opacity-0 fade-in — is left for the one case
+										with no box at all, where there is nothing to hold the space
+										and an image appearing at full opacity is the alternative.
+									-->
 									<img
 										src={item.src}
 										alt={item.alt ?? ''}
 										class="lb-img"
-										class:pending={!item.loaded && !item.naturalWidth}
+										class:pending={!item.ready && !f}
 										data-current={i === index ? 'true' : 'false'}
+										data-img-pending={!item.loaded && f && !item.poster ? 'true' : undefined}
 										style:width={f ? `${f.w}px` : undefined}
 										style:height={f ? `${f.h}px` : undefined}
+										style:background-image={!item.loaded && item.poster
+											? cssUrl(item.poster)
+											: undefined}
 										style:transform={i === index ? imageTransform : undefined}
 										style:transition={i === index ? imageTransition : undefined}
 										draggable="false"
@@ -1278,6 +1334,13 @@
 		width: auto;
 		height: auto;
 		object-fit: contain;
+		/* Where the article's already-downloaded copy is painted while this one
+		   decodes. `contain` and `center` are what `object-fit: contain` does to
+		   the photo itself, so the two land on exactly the same pixels and the
+		   swap cannot be seen. */
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: contain;
 		border-radius: 0.375rem;
 		box-shadow:
 			0 25px 60px rgba(0, 0, 0, 0.5),
@@ -1350,6 +1413,32 @@
 	   at full opacity the instant it decodes. */
 	.lb-img.pending {
 		opacity: 0;
+	}
+
+	/* ...and one that does have a box, but no pixels anywhere on the page to fill
+	   it with, gets the placeholder — in the dark, because it is sitting on the
+	   scrim rather than in the article, and the page's own theme is irrelevant
+	   behind it. The rule in `app.css` is written for the page and would be a
+	   white card in the middle of a black screen. */
+	.lb-img[data-img-pending] {
+		background-color: rgba(255, 255, 255, 0.07);
+		background-image: linear-gradient(
+			90deg,
+			transparent 0%,
+			rgba(255, 255, 255, 0.07) 50%,
+			transparent 100%
+		);
+		background-size: 200% 100%;
+		animation: lb-shimmer 1.6s var(--ease-out) infinite;
+	}
+
+	@keyframes lb-shimmer {
+		from {
+			background-position: -200% 0;
+		}
+		to {
+			background-position: 200% 0;
+		}
 	}
 
 	.lb-chrome {

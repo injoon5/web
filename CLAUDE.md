@@ -52,10 +52,12 @@ src/
     health/                # MetricChart, MetricSection, RangePicker, ScoreDial, metrics
     home/                  # HomeDials + settings
     lightbox/              # Lightbox, Gallery, store, geometry, spring, velocity,
-                           # flight, modal
+                           # flight, modal, image-cache
     likes/LikeButton.svelte
-    markdown/              # remark-gallery, remark-reading-time, reading-time,
-                           # rehype-strip-code-tabindex, pretty-code-highlighter
+    markdown/              # remark-gallery, remark-image-size, image-size,
+                           # remark-lazy-video, splice-import, remark-reading-time,
+                           # reading-time, rehype-strip-code-tabindex,
+                           # pretty-code-highlighter
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
@@ -456,6 +458,94 @@ nothing, and a fence with no images transforms nothing.
 The plugin runs **before rehype**, so `rehype-figure` never sees those images.
 The component reaches the compiled markdown through an import spliced into the
 file's instance `<script>` — mdsvex does exactly this for its own layout import.
+That splice lives in `markdown/splice-import.js` and is shared with
+`remarkLazyVideo`: the interesting part is the regexp for "the instance script,
+not the module one", and both plugins getting it wrong the same way is the
+failure mode.
+
+---
+
+## Videos in Markdown (`src/lib/markdown/remark-lazy-video.js`)
+
+**A top-level paragraph that is nothing but one video reference becomes a
+`<LazyVideo />`** — either `![Label](/videos/x.mp4)`, which would otherwise
+compile to a broken `<img>`, or `[Label](/videos/x.mp4)`, which would otherwise
+navigate away to the browser's bare player. The import is spliced in the same way
+the gallery's is, and an author who wrote their own is left alone.
+
+The rule is narrow on purpose: a video is written on its own line, and anything
+looser has to decide what a player does mid-sentence. Mixed content stays exactly
+as written. It runs **before `remarkGallery`**, which would otherwise collect a
+video's image node into a photo strip.
+
+The label is the title, then the alt text or the link text; with none of them the
+prop is left off so the component's own default applies.
+
+---
+
+## Images: the box, and loading them once
+
+### The box is reserved before the file arrives
+
+`remarkImageSize` measures every local image at build time — straight out of the
+file header (`markdown/image-size.js`: PNG, JPEG, GIF, WebP), not through a
+decoder — and stamps `width`/`height`, `loading`, `decoding`, a
+`data-img-pending` marker and `--img-w`/`--img-h` onto the `<img>`. Gallery
+slides get the same numbers, carried on the node's `data.imageSize`.
+
+- **EXIF orientation is applied.** Browsers rotate a photo before drawing it, so
+  a portrait shot the camera stored landscape reserves a _portrait_ box. The
+  probe was checked against `sharp` for all 108 files in `static/`. **The first
+  Exif segment wins** — XMP rides in an APP1 too, and answering "no orientation"
+  for it un-rotated every iPhone photo on the site.
+- **`width`/`height` alone are not enough.** The article sizes images with
+  `width: auto`, which is what lets a tall photo give up width when it hits
+  `--prose-img-max-h` — and an `auto`-sized image the browser has not fetched is
+  **0x0 no matter what its attributes say**. So `img[data-img-pending]` in
+  `app.css` writes the same three constraints out against the build's numbers:
+  the column, the file's own width, and the height cap turned into a width
+  through the aspect ratio. Verified in Chromium against the loaded box; it is
+  exact, including the tall photo that the height cap decides.
+- **`--img-pending-w` is declared on the image, not on `:root`.** A custom
+  property's own `var()`s are substituted on the element that _declares_ it, so
+  the formula parked on `:root` looks for `--img-w` there, finds nothing, and
+  inherits down as invalid. It is named so the gallery — whose scoped
+  `width: auto` outranks the global rule — can re-apply it with its own
+  `--img-max-h` instead of restating the arithmetic.
+- An image with no `--img-w` makes all of it invalid at computed-value time,
+  which is `unset`: exactly the layout it had before.
+
+### The lightbox does not download it again
+
+`lightbox/image-cache.js` is the shared record of what this page has loaded,
+keyed by URL. Every `<img>` that lands reports itself (`trackImage`, which also
+clears the placeholder — including for an image that finished before hydration
+reached it, which fires no `load`).
+
+The lightbox cannot reuse the article's element — it flies from it and back to it
+— so the same photo is on screen as two elements, and the browser is the only
+thing keeping that from being two downloads. It visibly was not enough on a slow
+connection. So:
+
+- **`toItem` seeds the item from what the page already knows**: the natural size,
+  else the cache, else the build's attributes. An unloaded image now opens into
+  the right box and can be flown to.
+- **The article's own pixels are painted under the lightbox's copy** as a
+  `background-image` on the same box with the same `contain` fit, until that copy
+  decodes. Same URL in every case but `data-lightbox-src`, so it costs no
+  request. Measured: opening the lightbox on a loaded photo makes **zero**
+  network requests, and with the network cut afterwards the photo still shows.
+- The old opacity-0 fade-in is left for the one case with no box at all.
+- **Sizes are kept for every URL; decoded elements are bounded** at 24, LRU. A
+  photo essay is a hundred images and holding every bitmap is a leak.
+- **The "tiny icon" guard measures the same way.** It read `naturalWidth`
+  straight off the element, which is 0 while downloading — so every photo in a
+  slow-loading article was a 0x0 icon and clicking one did nothing at all.
+
+`/images` and `/videos` are served `immutable` for a year (`vercel.json`). These
+files are written once and named by the camera or the screenshot that made them;
+a replacement is a new file. Vercel's default is `max-age=0, must-revalidate`,
+which costs a round trip per photo per page view.
 
 ---
 
