@@ -345,6 +345,71 @@ full-screen**, and back to wherever that image sits when you close.
   handed back from the flight's `onfinish` rather than the portal's teardown, so
   the swap is invisible.
 
+### Nothing may be in effect on the box the flight is measured against
+
+Both ends are measured with `getBoundingClientRect`, which reads through every
+ancestor transform and reports the box as it stands _at that instant_. The flight
+then animates a transform relative to a layout box it assumed was final. Anything
+that changes that box afterwards offsets the whole flight, and its first frame —
+the one that is supposed to sit exactly on the thumbnail — is where it shows.
+
+Two things had to be taken out of the way in `portal`, in this order:
+
+- **The stage's own entrance.** `lb-in` starts at `scale(0.92)`, and a CSS
+  animation with a backwards fill is in effect from the moment the element is
+  first styled. The photo was measured through it and `flew` then took the
+  entrance away, so the flight's first frame painted the photo **8% larger than
+  the thumbnail it was leaving** — 1/0.92 exactly. `startOpenFlight` cancels the
+  stage's animations before measuring; `flew` is a state change and lands a flush
+  later, which is too late to measure against.
+- **The chrome's reserved height.** `bottomH` comes from `bind:clientHeight`,
+  i.e. a ResizeObserver, which does not run until the frame's rendering step —
+  after the action, though still before paint. So the box measured in the action
+  is one with no room reserved for the caption, and the photo moved half the
+  difference (8px on a phone) out from under a flight already measured against
+  it. `settleChromeReserve` reads the chrome and writes the reserve onto the node
+  first. It can do that because everything downstream of `bottomH` is a
+  `$derived`, and those are pull-based: they read as the values the next flush
+  will render the moment it is assigned. `flushSync` is not an option here —
+  Svelte throws on it inside an effect, and an action is one.
+
+Anything else added between the photo's box and the viewport has to be settled in
+the same place. `Lightbox.svelte.test.js` cannot catch this: jsdom has no layout,
+so the flight never runs.
+
+### The page's own chrome has to get above it, at one exact moment
+
+The header is `position: sticky`, and the box a photo flies home to is routinely
+underneath it. A dialog at `z-index: 9999` draws the photo **over** the bar for
+the whole flight and then the page takes it back **under** the bar in one frame,
+slicing the top off it at the moment the eye has followed it there.
+
+The rule is: **the header is above everything except an open lightbox.** The
+lightbox hands it the top of the stack by setting `data-lightbox="returning"` on
+`<html>`, which `NavBar` answers with a `z-index` and nothing else. Neither
+component imports the other, and the header does not move, fade or change in any
+way — it is a paint order.
+
+**The swap is timed off the photo's box, not off a clock.** It happens on the
+frame the photo's top edge reaches the reserved band, which is the last frame on
+which the two do not overlap at all — so there is nothing to see, at any scroll
+position. Waiting for the scrim to fade instead loses the race exactly where it
+matters: measured, a photo whose article box sits 200px under the header is
+already 90px across the bar by the time the backdrop is gone, and 230px at 400px
+under. The cost is one `getBoundingClientRect` per frame of one 260ms animation.
+
+- **The band is asked for as a depth, not as a header**, so the lightbox still
+  knows nothing about what is up there: the root's used `scroll-padding-top`, the
+  page's own statement of what a `#hash` target must clear. Not `--nav-h`
+  directly — a custom property is a token, and until `NavBar` republishes it in px
+  it computes as `3.5rem`, which `parseFloat` reads as **3.5**. That put the swap
+  52px inside the bar. The used length is the header plus 1rem, so the swap lands
+  just _before_ the photo reaches the bar — the only direction that is free.
+- **Never fade the header to hide it.** Grouped opacity anywhere above
+  `.nav-surface` makes a new backdrop root, and its `backdrop-filter` then has
+  nothing to sample: the blur dies for the whole fade and snaps back at the end.
+  This was shipped once and is very visible against a photo.
+
 ### Performance
 
 - **`-webkit-backdrop-filter` goes before `backdrop-filter`, always.** Written
@@ -397,6 +462,18 @@ rubber band.
 - **A trackpad swipe moves the track under the fingers.** macOS momentum keeps
   arriving after the fingers lift and has decayed by the time events stop, so the
   gesture ends on 90ms of quiet and settles where it came to rest.
+- **One gesture carries the track one page and no further** (`clampTravel`). A
+  finger is bounded by the screen, momentum by nothing, and a settle pages by one
+  either way — so a hard flick used to slide five images past and take four back.
+  Past the page it will land on, and past either end of the group, it gives a
+  tenth of a page and stops. Enough to feel the limit; too little to reveal the
+  image beyond it. Only the wheel is bounded — the finger path is already bounded
+  by the hand, and its rubber band is tuned as shipped.
+- **A long continuous two-finger scroll pages once, not once per page crossed.**
+  A native strip would cross several, but only for a real drag: `scroll-snap-stop:
+always` stops a _fling_ at the next snap point. A wheel event carries no phase,
+  so momentum and fingers-still-down are indistinguishable here — and one page per
+  gesture is what the finger drag beside it already does.
 
 Zoom is **one number** (`scale` + `panX`/`panY`). Pan is clamped to the image's
 edges, tap and pinch share `panAfterScale`, and the chrome except the close

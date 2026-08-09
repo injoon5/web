@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	clampPanTo,
+	clampTravel,
 	containSize,
 	deltaBetween,
 	pageStep,
@@ -80,6 +81,38 @@ describe('rubber', () => {
 	it('keeps the sign of the drag and maps zero to zero', () => {
 		expect(rubber(-100, 400, 0.55)).toBeLessThan(0);
 		expect(rubber(0, 400, 0.55)).toBe(0);
+	});
+});
+
+describe('clampTravel', () => {
+	const PAGE = 400;
+	const GIVE = PAGE * 0.1;
+
+	it('leaves anything within reach exactly where it is', () => {
+		expect(clampTravel(0, PAGE, GIVE, 0.55)).toBe(0);
+		expect(clampTravel(-399, PAGE, GIVE, 0.55)).toBe(-399);
+		expect(clampTravel(PAGE, PAGE, GIVE, 0.55)).toBe(PAGE);
+	});
+
+	it('resists past reach instead of stopping dead, and never passes the give', () => {
+		const little = clampTravel(-PAGE - 100, PAGE, GIVE, 0.55);
+		const lots = clampTravel(-PAGE - 100000, PAGE, GIVE, 0.55);
+		expect(Math.abs(little)).toBeGreaterThan(PAGE);
+		expect(Math.abs(lots)).toBeGreaterThan(Math.abs(little));
+		expect(Math.abs(lots)).toBeLessThan(PAGE + GIVE);
+	});
+
+	it('holds a trackpad flick to the page the settle will honour', () => {
+		// The measured case: 6000px of momentum on a 1100px viewport carried the
+		// track 5.5 pages and then took four and a half of them back.
+		const carried = clampTravel(-6000, 1100, 110, 0.55);
+		expect(Math.abs(carried) / 1100).toBeLessThan(1.1);
+	});
+
+	it('gives only the give at an end, where there is no next image at all', () => {
+		const pulled = clampTravel(4000, 0, GIVE, 0.55);
+		expect(pulled).toBeGreaterThan(0);
+		expect(pulled).toBeLessThan(GIVE);
 	});
 });
 

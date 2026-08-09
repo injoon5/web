@@ -5,6 +5,7 @@
 	import { springEasing, springOr } from './spring.js';
 	import {
 		clampPanTo,
+		clampTravel,
 		containSize,
 		deltaBetween,
 		pageStep,
@@ -48,6 +49,9 @@
 	// A trackpad's momentum keeps arriving after the fingers are gone, so the
 	// gesture is over when the events stop, not when a finger lifts.
 	const WHEEL_IDLE_MS = 90;
+	// Fraction of a page a trackpad may pull past the image it will settle on.
+	// Enough to feel the limit, too little to reveal the image beyond it.
+	const WHEEL_GIVE = 0.1;
 	const ZOOM_MS = 280;
 	// The curve every settle uses: fast out of the finger, long soft landing.
 	// (Ionic's drawer curve — the same one Vaul uses.)
@@ -241,6 +245,7 @@
 			// The first paint has to carry the image, not wait a frame for it.
 			windowIndex = val.index;
 			resetGesture();
+			dropChromeLift();
 			closing = false;
 			dismissing = false;
 			flew = false;
@@ -286,6 +291,67 @@
 	// --- open / close bookkeeping --------------------------------------------
 	let previouslyFocused = null;
 	let wasVisible = false;
+	let liftFrame = 0;
+
+	/**
+	 * The page's own fixed top chrome — the header — is above everything except an
+	 * open lightbox, which covers it. The one exception is a photo flying back into
+	 * the article: the box it lands in is routinely *under* that bar, and this
+	 * dialog paints at `z-index: 9999`, so the photo crosses over the bar and the
+	 * page then takes it back underneath in one frame, slicing the top off it at
+	 * the exact moment the eye has followed it there.
+	 *
+	 * So the header is handed the top of the stack for the rest of the flight — on
+	 * `<html>`, so neither component has to know the other exists. Nothing about
+	 * the header itself changes: no fade, no opacity, which would break its
+	 * `backdrop-filter` outright (any grouped opacity above a backdrop-filtered
+	 * element is a new backdrop root, and the blur then has nothing to sample).
+	 *
+	 * Undone on every teardown *and* at the top of every open, because a reopen
+	 * inside a close window never unmounts the dialog to be torn down.
+	 */
+	function dropChromeLift() {
+		if (typeof document === 'undefined') return;
+		cancelAnimationFrame(liftFrame);
+		delete document.documentElement.dataset.lightbox;
+	}
+
+	/**
+	 * Hand the page's chrome the top of the stack at the frame the photo reaches
+	 * it — the last frame on which the two still do not overlap, so the swap is
+	 * invisible by construction rather than by timing.
+	 *
+	 * Waiting for the backdrop to fade instead loses the race exactly where it
+	 * matters: measured, a photo whose article box sits 200px under the header is
+	 * already 90px across the bar by the time the scrim is gone. Watching the box
+	 * costs one rect read per frame of one 260ms animation, and it is right at
+	 * every scroll position rather than at most of them.
+	 *
+	 * @param {HTMLElement} img the flying photo
+	 * @param {DOMRect} home the box it is flying to
+	 */
+	function liftChromeOnApproach(img, home) {
+		// The band is asked for as a depth, not as a header, so this still knows
+		// nothing about what is up there. `scroll-padding-top` and not `--nav-h`
+		// itself: a custom property is a token, and until `NavBar` republishes it in
+		// px it computes as `3.5rem` — which `parseFloat` reads as **3.5**, putting
+		// the swap 52px inside the bar. A used length is resolved by the cascade.
+		// It is the header plus 1rem, so the swap lands a little *before* the photo
+		// reaches the bar, which is the only direction that is free.
+		const depth = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+		// NaN when the page reserves nothing; `>=` when the photo lands clear of the
+		// bar. Either way there is never anything to get behind.
+		if (!(depth > 0) || home.top >= depth) return;
+		const watch = () => {
+			if (!visible) return;
+			if (img.getBoundingClientRect().top <= depth) {
+				document.documentElement.dataset.lightbox = 'returning';
+				return;
+			}
+			liftFrame = requestAnimationFrame(watch);
+		};
+		watch();
+	}
 
 	const modal = createModalHost({ themeColor: LIGHTBOX_THEME_COLOR });
 
@@ -313,6 +379,34 @@
 		}
 	});
 
+	/**
+	 * Reserve the room the chrome actually takes, before anything is measured
+	 * against the box that leaves for the photo.
+	 *
+	 * `bind:clientHeight` reports through a ResizeObserver, and that does not run
+	 * until the frame's rendering step — after this action, though still before
+	 * anything is painted. So the layout standing here is one with no room
+	 * reserved for the caption, and the reserve grows by its height a moment
+	 * later. Nothing on screen suffers for that (every painted frame is already
+	 * the corrected one), but the flight is measured *here*, against a box that
+	 * then moves half the difference out from under it.
+	 *
+	 * Everything downstream of `bottomH` is a `$derived`, and those are pull-based:
+	 * `reserveBottom` and `currentFit` read as the values the next flush will
+	 * render the moment it is assigned, so writing them onto the node is only
+	 * bringing the DOM forward to the frame it is about to be in anyway.
+	 */
+	function settleChromeReserve(node) {
+		const bottom = node.querySelector('.lb-bottom');
+		if (!bottom) return;
+		bottomH = bottom.clientHeight;
+		node.style.setProperty('--lb-pad-bottom', `${reserveBottom}px`);
+		const img = node.querySelector('.lb-img[data-current="true"]');
+		if (!img || !currentFit) return;
+		img.style.width = `${currentFit.w}px`;
+		img.style.height = `${currentFit.h}px`;
+	}
+
 	/** Move the dialog to <body>; a modal is only a modal with nothing above it. */
 	function portal(node) {
 		if (typeof document === 'undefined') return;
@@ -322,6 +416,7 @@
 		modal.inertBackground(node);
 		// Same reason the inerting lives here: this is the first moment the whole
 		// subtree is in the document and can be measured.
+		settleChromeReserve(node);
 		startOpenFlight(node);
 		return {
 			destroy() {
@@ -329,6 +424,7 @@
 				// Only now — the flying copy is gone this frame, so the page-side
 				// image reappears exactly as the lightbox's lands on it.
 				showOrigin();
+				dropChromeLift();
 				node.remove();
 				flew = false;
 				flyingHome = false;
@@ -421,11 +517,6 @@
 		return rootEl?.querySelector('.lb-img[data-current="true"]') ?? null;
 	}
 
-	function flightBetween(fromEl, toEl) {
-		if (!fromEl || !toEl || typeof toEl.animate !== 'function') return null;
-		return deltaBetween(toEl.getBoundingClientRect(), fromEl.getBoundingClientRect());
-	}
-
 	/**
 	 * A dismiss drag moves the strip, not the photo. Unwind it and hand the
 	 * distance to the photo's first keyframe, so one animation carries the whole
@@ -446,7 +537,23 @@
 		// animation.
 		if (motion.reduced || !currentFit || currentFit.provisional) return;
 		const to = root.querySelector('.lb-img[data-current="true"]');
-		const f = flightBetween(from, to);
+		if (!from || !to || typeof to.animate !== 'function') return;
+		// Every refusal first, and this one measures the origin: no layout at all
+		// (jsdom) leaves the entrance below untouched.
+		const base = from.getBoundingClientRect();
+		if (base.width < 1 || base.height < 1) return;
+
+		// `lb-in` is already in effect — a CSS animation with a backwards fill
+		// applies from the moment the element is first styled — so the stage is
+		// holding `scale(0.92)`, and a rect is read through every ancestor
+		// transform. Measured through it the photo's box comes out 8% smaller than
+		// the one it actually lands in, and `flew` then takes the entrance away: the
+		// flight's first frame paints the photo 8% *bigger* than the thumbnail it is
+		// supposed to be leaving, which is the pop before the flight. Cancel it here
+		// rather than trusting `flew` — that class is a state change, and it lands a
+		// flush after this measurement.
+		for (const a of root.querySelector('.lb-stage')?.getAnimations?.() ?? []) a.cancel();
+		const f = deltaBetween(to.getBoundingClientRect(), base);
 		if (!f) return;
 		flew = true;
 		flight.cancel();
@@ -503,8 +610,9 @@
 
 		// ...and now the photo's own layout box, with every transform off it.
 		const base = img.getBoundingClientRect();
+		const homeRect = to.getBoundingClientRect();
 		const from = deltaBetween(base, cur);
-		const home = deltaBetween(base, to.getBoundingClientRect());
+		const home = deltaBetween(base, homeRect);
 		if (!from || !home) return false;
 
 		flyingHome = true;
@@ -523,6 +631,7 @@
 		);
 		// A cancelled or dropped animation must not strand the lightbox open.
 		scheduleClose(duration + 120);
+		liftChromeOnApproach(img, homeRect);
 		return true;
 	}
 
@@ -875,8 +984,12 @@
 			trackSettle = null;
 		}
 		wheelRaw -= e.deltaX;
+		const page = winW || 1;
 		const atEnd = (wheelRaw > 0 && index === 0) || (wheelRaw < 0 && index === count - 1);
-		dragX = atEnd ? rubber(wheelRaw, winW || 1) : wheelRaw;
+		// One page is all a settle can honour, and at the ends there is not even
+		// that. Momentum carries far past either, and the strip was sliding several
+		// images by and taking them back. See `clampTravel`.
+		dragX = clampTravel(wheelRaw, atEnd ? 0 : page, page * WHEEL_GIVE, RUBBER);
 		clearTimeout(wheelTimer);
 		wheelTimer = setTimeout(settleWheel, WHEEL_IDLE_MS);
 	}
@@ -962,6 +1075,7 @@
 		flight.cancel();
 		modal.close();
 		showOrigin();
+		dropChromeLift();
 		previouslyFocused = null;
 	});
 

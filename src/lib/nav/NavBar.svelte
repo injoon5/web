@@ -456,6 +456,19 @@
 			--nav-surface-menu 200ms ease;
 	}
 
+	/* The header is above everything except an open lightbox — that one covers it,
+	   which is the whole point of the scrim. The exception is the photo flying
+	   back into the article: the box it lands in is often under this bar, and the
+	   dialog paints at `z-index: 9999`, so the photo would cross over the bar and
+	   then be sliced by it in the single frame the page takes it back.
+
+	   The lightbox sets this the moment the photo reaches the bar's lower edge —
+	   a moment when the two do not overlap at all, so nothing about the header
+	   moves or fades. It is a paint order and nothing else. */
+	:global(html[data-lightbox='returning']) .nav-shell {
+		z-index: 10000;
+	}
+
 	.nav-shell[data-menu-open='true'] {
 		--nav-surface-menu: 1;
 	}

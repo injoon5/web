@@ -576,6 +576,25 @@ describe('Lightbox modality', () => {
 
 		sibling.remove();
 	});
+
+	it('leaves the page chrome under the dialog, and never strands the flag it lifts it with', async () => {
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+		await screen.findByRole('dialog');
+
+		// The header reads this off <html>. An open lightbox covers it, so nothing
+		// is set: it is raised only for the stretch of a flight home that ends
+		// underneath it, which needs layout and so never happens here.
+		expect(document.documentElement.dataset.lightbox).toBeUndefined();
+
+		screen.getByRole('button', { name: 'Close image' }).click();
+		await tick();
+
+		lightboxStore.set(null);
+		await tick();
+		await waitFor(() => expect(document.documentElement.dataset.lightbox).toBeUndefined());
+	});
 });
 
 describe('lightboxAction', () => {

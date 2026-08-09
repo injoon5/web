@@ -77,6 +77,32 @@ export function rubber(delta, dim, constant) {
 }
 
 /**
+ * How far a gesture may carry the track: freely up to `reach`, then resistance
+ * that asymptotes to `give` and never passes it.
+ *
+ * A finger never needs this — it cannot carry the track further than one page,
+ * because the screen is only that wide. A trackpad's momentum can, and a settle
+ * only ever pages by one, so without it the strip promises travel it is about to
+ * take back: measured, a hard flick slid five images past and returned four. It
+ * is the bound `scroll-snap-stop: always` puts on the article's own strip.
+ *
+ * `reach` is one page mid-group and zero at either end, where the next image is
+ * the one thing there is none of. `give` is small on purpose: past the page it
+ * settles on, anything shown is the image *after* that, which this gesture is
+ * never going to reach.
+ *
+ * @param {number} offset
+ * @param {number} reach
+ * @param {number} give
+ * @param {number} constant
+ */
+export function clampTravel(offset, reach, give, constant) {
+	const past = Math.abs(offset) - reach;
+	if (past <= 0) return offset;
+	return Math.sign(offset) * (reach + rubber(past, give, constant));
+}
+
+/**
  * Pan offsets clamped to the scaled image's own edges.
  *
  * @param {{ w: number, h: number }} fit
