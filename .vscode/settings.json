@@ -1,1 +1,21 @@
-{}
+{
+	// The built-in markdown handler copies dropped media next to the document.
+	// This tree serves media out of `static/`, so it is turned off and the
+	// Web Authoring extension (tools/vscode-extension) handles it instead.
+	"markdown.editor.drop.copyIntoWorkspace": "never",
+	"markdown.editor.filePaste.copyIntoWorkspace": "never",
+
+	// Prefer this extension's edit when more than one provider offers one, so a
+	// drop or paste does not open the "paste as" picker every time.
+	"editor.pasteAs.preferences": ["image.webAuthoring", "text"],
+	"editor.dropIntoEditor.preferences": ["image.webAuthoring", "text"],
+
+	"[markdown]": {
+		"editor.quickSuggestions": {
+			"other": true,
+			"comments": false,
+			"strings": true
+		},
+		"editor.wordWrap": "on"
+	}
+}

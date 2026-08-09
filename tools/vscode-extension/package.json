@@ -1,0 +1,254 @@
+{
+	"name": "web-authoring",
+	"displayName": "Web Authoring",
+	"description": "Drag-and-drop media, bilingual navigation and content linting for the injoon5/web content tree.",
+	"version": "0.1.0",
+	"private": true,
+	"publisher": "injoon5",
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.96.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"keywords": [
+		"sveltekit",
+		"mdsvex",
+		"markdown",
+		"images"
+	],
+	"main": "./src/extension.js",
+	"scripts": {
+		"test": "node --test 'src/**/*.test.js'"
+	},
+	"activationEvents": [
+		"onLanguage:markdown",
+		"workspaceContains:mdsvex.config.js"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "webAuthoring.insertMedia",
+				"title": "Insert Image or Video...",
+				"category": "Web Authoring"
+			},
+			{
+				"command": "webAuthoring.openCounterpart",
+				"title": "Open Translation Counterpart",
+				"category": "Web Authoring"
+			},
+			{
+				"command": "webAuthoring.wrapGallery",
+				"title": "Wrap Selection in Gallery Fence",
+				"category": "Web Authoring"
+			},
+			{
+				"command": "webAuthoring.newContent",
+				"title": "New Post or Project...",
+				"category": "Web Authoring"
+			},
+			{
+				"command": "webAuthoring.revealAssets",
+				"title": "Reveal Asset Folder",
+				"category": "Web Authoring"
+			},
+			{
+				"command": "webAuthoring.togglePublished",
+				"title": "Toggle Published",
+				"category": "Web Authoring"
+			},
+			{
+				"command": "webAuthoring.findUnusedAssets",
+				"title": "Find Unreferenced Assets",
+				"category": "Web Authoring"
+			},
+			{
+				"command": "webAuthoring.optimizeImages",
+				"title": "Run Image Optimization",
+				"category": "Web Authoring"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "webAuthoring.openCounterpart",
+				"key": "ctrl+alt+l",
+				"mac": "cmd+alt+l",
+				"when": "editorLangId == markdown"
+			},
+			{
+				"command": "webAuthoring.wrapGallery",
+				"key": "ctrl+alt+g",
+				"mac": "cmd+alt+g",
+				"when": "editorLangId == markdown && editorTextFocus"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"command": "webAuthoring.insertMedia",
+					"when": "editorLangId == markdown",
+					"group": "webAuthoring@1"
+				},
+				{
+					"command": "webAuthoring.wrapGallery",
+					"when": "editorLangId == markdown && editorHasSelection",
+					"group": "webAuthoring@2"
+				},
+				{
+					"command": "webAuthoring.openCounterpart",
+					"when": "editorLangId == markdown",
+					"group": "webAuthoring@3"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "webAuthoring.insertMedia",
+					"when": "editorLangId == markdown"
+				},
+				{
+					"command": "webAuthoring.wrapGallery",
+					"when": "editorLangId == markdown"
+				},
+				{
+					"command": "webAuthoring.revealAssets",
+					"when": "editorLangId == markdown"
+				},
+				{
+					"command": "webAuthoring.togglePublished",
+					"when": "editorLangId == markdown"
+				}
+			]
+		},
+		"configuration": {
+			"title": "Web Authoring",
+			"properties": {
+				"webAuthoring.contentRoot": {
+					"type": "string",
+					"default": "src/content",
+					"markdownDescription": "Workspace-relative root of the content tree. Files are expected at `<contentRoot>/<kind>/<lang>/<slug>.md`."
+				},
+				"webAuthoring.staticRoot": {
+					"type": "string",
+					"default": "static",
+					"markdownDescription": "Workspace-relative folder served at `/`. Dropped media lands under here, and every `/...` URL in a post is resolved against it."
+				},
+				"webAuthoring.languages": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"default": [
+						"en",
+						"ko"
+					],
+					"description": "Language folders under each content kind, in the order the counterpart command cycles through them."
+				},
+				"webAuthoring.assetFolders": {
+					"type": "object",
+					"default": {
+						"blog": {
+							"image": "images/uploads/{slug}",
+							"video": "videos/uploads/{slug}"
+						},
+						"projects": {
+							"image": "images/projects/{slug}",
+							"video": "videos/projects/{slug}"
+						}
+					},
+					"markdownDescription": "Where media for a given content kind is filed, relative to `#webAuthoring.staticRoot#`. `{slug}` and `{kind}` are substituted. Both languages of a post share one folder."
+				},
+				"webAuthoring.fallbackAssetFolder": {
+					"type": "object",
+					"default": {
+						"image": "images/uploads/{slug}",
+						"video": "videos/uploads/{slug}"
+					},
+					"markdownDescription": "Used for markdown files outside the content tree, where `{slug}` is the file's own name."
+				},
+				"webAuthoring.naming": {
+					"type": "string",
+					"enum": [
+						"auto",
+						"original",
+						"sequence"
+					],
+					"enumDescriptions": [
+						"Keep a descriptive filename, but replace camera and screenshot names with <slug>-NN.",
+						"Always kebab-case the original filename.",
+						"Always use <slug>-NN."
+					],
+					"default": "auto",
+					"description": "How a dropped file is named inside its asset folder."
+				},
+				"webAuthoring.transcode": {
+					"type": "string",
+					"enum": [
+						"off",
+						"heicOnly",
+						"always"
+					],
+					"enumDescriptions": [
+						"Copy every dropped file byte for byte.",
+						"Only convert formats browsers cannot render (HEIC/HEIF/TIFF).",
+						"Also re-encode and downscale ordinary images on drop."
+					],
+					"default": "heicOnly",
+					"markdownDescription": "The repo already compresses images at build time (`npm run optimize-images`), so the default only converts what a browser could not display at all."
+				},
+				"webAuthoring.transcodeTarget": {
+					"type": "string",
+					"enum": [
+						"jpeg",
+						"webp"
+					],
+					"default": "jpeg",
+					"description": "Output format when a file is transcoded."
+				},
+				"webAuthoring.maxWidth": {
+					"type": "number",
+					"default": 2400,
+					"description": "Bounding box applied when transcoding. 0 disables resizing."
+				},
+				"webAuthoring.altTextPlaceholder": {
+					"type": "boolean",
+					"default": true,
+					"description": "Insert alt text as a snippet tab stop so it is filled in before anything else."
+				},
+				"webAuthoring.videoComponent": {
+					"type": "object",
+					"default": {
+						"name": "LazyVideo",
+						"path": "$lib/ui/LazyVideo.svelte"
+					},
+					"description": "Component inserted for a dropped video. Its import is spliced into the file's instance <script> block."
+				},
+				"webAuthoring.statusBar": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show the kind, slug and available translations of the open content file."
+				},
+				"webAuthoring.diagnostics.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Lint content files for broken media links, unbalanced gallery fences, frontmatter problems and smart quotes."
+				},
+				"webAuthoring.diagnostics.requireAltText": {
+					"type": "boolean",
+					"default": true,
+					"description": "Warn about images with empty alt text."
+				},
+				"webAuthoring.diagnostics.missingTranslation": {
+					"type": "boolean",
+					"default": true,
+					"description": "Report content that exists in one language only."
+				},
+				"webAuthoring.diagnostics.oversizeWidth": {
+					"type": "number",
+					"default": 4000,
+					"description": "Warn about referenced images wider than this many pixels. 0 disables the check."
+				}
+			}
+		}
+	}
+}
