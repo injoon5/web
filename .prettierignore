@@ -3,6 +3,12 @@ pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
-# Agent skills and Convex generated output (not app source)
+# Agent skills and Convex generated output (not app source). `.claude/skills/`
+# and its lockfile are installed by `npx convex ai-files install` and rewritten
+# wholesale on every update, so formatting them only ever produces churn — and a
+# failing `npm run lint` the next time upstream ships an unformatted file.
+# `.claude/settings.json` and `.claude/hooks/` are hand-maintained, so they stay.
 .agents/
+.claude/skills/
+skills-lock.json
 convex/_generated/

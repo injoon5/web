@@ -25,8 +25,9 @@ npm run dev
 | `npm run dev`             | Dev server                                       |
 | `npm run build`           | Production build                                 |
 | `npm run preview`         | Serve the production build locally               |
-| `npm test`                | Vitest, once                                     |
+| `npm test`                | Vitest, then the editor extension's tests        |
 | `npm run test:watch`      | Vitest, watching                                 |
+| `npm run test:extension`  | `node:test` over `tools/vscode-extension`        |
 | `npm run check`           | `svelte-check` against `tsconfig.json`           |
 | `npm run lint`            | Prettier check + ESLint                          |
 | `npm run format`          | Prettier write                                   |
@@ -52,7 +53,16 @@ src/lib/        Components, plus health/, comments/, og/ and dev/ (DialKit)
 src/routes/     Pages and the JSON API routes under api/
 convex/         Schema, queries, mutations, actions, crons, HTTP actions
 shortcuts/      The iOS Health Shortcut, its payload fixtures and a smoke script
+tools/          The VS Code / Cursor authoring extension
 ```
+
+## Writing
+
+[`tools/vscode-extension`](./tools/vscode-extension) is a VS Code / Cursor
+extension for the content tree: drop an image onto a post and it is filed under
+`static/images/{uploads,projects}/<slug>/` and linked, several at once become a
+gallery, and the frontmatter, media paths and cross-links autocomplete against
+what is actually in the repo. Press <kbd>F5</kbd> to run it from source.
 
 Architecture notes, the Convex schema, and the reasoning behind the parts that
 look odd live in [`CLAUDE.md`](./CLAUDE.md).

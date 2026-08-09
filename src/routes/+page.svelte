@@ -311,7 +311,7 @@
 			>
 				{#each [...tracks, ...tracks] as track, i (i)}
 					<a
-						class="now-cover border-opacity-50 group relative aspect-square shrink-0 overflow-hidden border border-neutral-300 shadow-md dark:border dark:border-neutral-800"
+						class="now-cover group relative aspect-square shrink-0 overflow-hidden shadow-md"
 						href={track.url}
 					>
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
@@ -319,7 +319,7 @@
 							loading="lazy"
 							src={track.image}
 							alt={track.name || 'Album cover'}
-							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+							class="absolute inset-0 h-full w-full object-cover"
 						/>
 						<div
 							class="now-cover-scrim absolute inset-0 transition-opacity duration-300 group-hover:opacity-0"
@@ -362,7 +362,7 @@
 		<div class="photo-grid mt-1 grid grid-cols-2">
 			{#if photosQuery.isLoading}
 				{#each Array.from({ length: 6 }, (_, index) => index) as index (index)}
-					<div class="photo-tile shimmer aspect-square w-full"></div>
+					<div class="shimmer aspect-square w-full"></div>
 				{/each}
 			{:else if photosQuery.error != null}
 				<div class="col-span-2 sm:col-span-3">
@@ -377,19 +377,19 @@
 				{#each photos.slice(0, homeSettings.photoCount) as photo (photo.url)}
 					<a
 						href={photo.url}
-						class="photo-tile group border-opacity-50 relative block aspect-square w-full overflow-hidden border border-neutral-300 bg-neutral-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:border-neutral-800 dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+						class="group relative block aspect-square w-full overflow-hidden shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)] dark:bg-neutral-900 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
 					>
 						<img
 							loading="lazy"
 							src={photo.image}
 							alt={photo.title || 'Photo'}
-							class="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+							class="transitition-brightness absolute inset-0 h-full w-full object-cover duration-100 group-hover:brightness-70"
 						/>
 
 						<div
-							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 group-hover:opacity-0"
+							class="absolute inset-x-0 bottom-0 p-2.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 						>
-							<p class="tabular truncate text-sm font-medium text-white/30">
+							<p class="tabular truncate text-sm text-white/30">
 								{photo.takenAt}
 							</p>
 						</div>
@@ -400,7 +400,7 @@
 
 		<div class="mt-2 flex justify-end">
 			<a
-				class="group relative inline-flex items-center text-base font-medium -tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
+				class="group relative inline-flex items-center text-base font-medium tracking-normal text-neutral-600 transition-colors duration-100 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100"
 				href="https://photos.injoon5.com"
 				target="_blank"
 				rel="noopener noreferrer"
@@ -445,7 +445,6 @@
 	.now-cover {
 		width: var(--cover-size, 10rem);
 		margin-right: var(--cover-gap, 0.75rem);
-		border-radius: var(--media-radius, 0.75rem);
 	}
 
 	@media (min-width: 64rem) {
@@ -473,10 +472,6 @@
 		.photo-grid {
 			grid-template-columns: repeat(var(--photo-columns, 3), minmax(0, 1fr));
 		}
-	}
-
-	.photo-tile {
-		border-radius: var(--media-radius, 0.75rem);
 	}
 
 	.now-marquee {

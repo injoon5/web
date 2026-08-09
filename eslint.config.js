@@ -53,6 +53,23 @@ export default ts.config(
 		rules: { '@typescript-eslint/no-empty-object-type': 'off' }
 	},
 	{
+		// The editor extension. VS Code's extension host loads extensions through
+		// `require`, so this tree is CommonJS however the rest of the repo is
+		// written — and `vscode` itself only ever exists as a host-injected
+		// CommonJS module, never on disk.
+		files: ['tools/vscode-extension/**/*.js'],
+		languageOptions: {
+			sourceType: 'commonjs',
+			globals: { ...globals.node }
+		},
+		rules: {
+			'@typescript-eslint/no-require-imports': 'off',
+			// The plugin's wrapper around the core rule reads scope state that only
+			// exists for module sourceType, and throws on a CommonJS file.
+			'svelte/no-inner-declarations': 'off'
+		}
+	},
+	{
 		// Generated, vendored or non-source trees. Flat config has no
 		// `.eslintignore`, so every ignore lives here.
 		ignores: [
