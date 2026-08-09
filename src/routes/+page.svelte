@@ -288,8 +288,6 @@
 		</div>
 	</div>
 
-
-
 	<div
 		class="relative left-1/2 col-span-full mt-4 w-screen -translate-x-1/2 overflow-hidden pb-4 lg:col-span-12 lg:mt-0"
 		style={homeStyle(homeSettings)}
@@ -385,12 +383,11 @@
 							loading="lazy"
 							src={photo.image}
 							alt={photo.title || 'Photo'}
-							class="absolute inset-0 h-full w-full object-cover transitition-brightness duration-100 group-hover:brightness-70"
-		
+							class="transitition-brightness absolute inset-0 h-full w-full object-cover duration-100 group-hover:brightness-70"
 						/>
 
 						<div
-							class="absolute inset-x-0 bottom-0 p-2.5 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
+							class="absolute inset-x-0 bottom-0 p-2.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 						>
 							<p class="tabular truncate text-sm text-white/30">
 								{photo.takenAt}
