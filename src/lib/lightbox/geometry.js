@@ -21,6 +21,27 @@ export function containSize(item, availW, availH) {
 }
 
 /**
+ * The largest box of a given aspect ratio that fits the space — upscaling if it
+ * has to, which is the one thing `containSize` will not do.
+ *
+ * This is for the image whose own size is not known yet but whose shape is:
+ * `data-lightbox-src` points at a *larger* file than the article's, so the
+ * thumbnail's dimensions are a floor, not a size. Filling the space is the right
+ * guess for it, and it gives the placeholder and the article's own pixels a box
+ * to sit in instead of nothing.
+ *
+ * @param {number} ratio width / height
+ * @param {number} availW
+ * @param {number} availH
+ * @returns {{ w: number, h: number } | null}
+ */
+export function ratioFit(ratio, availW, availH) {
+	if (!ratio || !Number.isFinite(ratio) || ratio <= 0 || !availW || !availH) return null;
+	const w = Math.min(availW, availH * ratio);
+	return { w: Math.round(w), h: Math.round(w / ratio) };
+}
+
+/**
  * The transform that moves an element from the box it lays out in to some other
  * box on screen.
  *

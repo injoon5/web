@@ -12,6 +12,8 @@ import rehypeExternalLinks from 'rehype-external-links';
 import { createHighlighter } from './src/lib/markdown/pretty-code-highlighter.js';
 import { remarkReadingTime } from './src/lib/markdown/remark-reading-time.js';
 import { remarkGallery } from './src/lib/markdown/remark-gallery.js';
+import { remarkImageSize } from './src/lib/markdown/remark-image-size.js';
+import { remarkLazyVideo } from './src/lib/markdown/remark-lazy-video.js';
 import { rehypeStripCodeTabindex } from './src/lib/markdown/rehype-strip-code-tabindex.js';
 
 const config = {
@@ -27,6 +29,10 @@ const config = {
 	},
 	remarkPlugins: [
 		remarkReadingTime,
+		// Ahead of the gallery, which lifts the sizes it measures onto its slides.
+		remarkImageSize,
+		// ...and ahead of it too, or a video written as an image joins a photo strip.
+		remarkLazyVideo,
 		// Ahead of rehype, so rehype-figure never sees the images it consumes and
 		// the gallery keeps its own caption instead of getting four <figure>s.
 		remarkGallery,

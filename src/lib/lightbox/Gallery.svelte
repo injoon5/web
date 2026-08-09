@@ -13,9 +13,17 @@
 <script>
 	import { motion } from '$lib/reduced-motion.svelte.js';
 	import Stepper from '$lib/pasito/Stepper.svelte';
+	import { trackImages } from './image-cache.js';
 
 	let {
-		/** @type {Array<{ src: string, alt?: string, title?: string }>} */
+		/**
+		 * `width`/`height` are the file's own, measured at build time by
+		 * `remarkImageSize` and carried here by `remarkGallery`. They are what let
+		 * a slide hold the photo's exact box — and so its placeholder — before any
+		 * of it has arrived.
+		 *
+		 * @type {Array<{ src: string, alt?: string, title?: string, width?: number, height?: number }>}
+		 */
 		images = [],
 		/**
 		 * Height of the strip. Every slide is the same height on purpose — a
@@ -135,6 +143,11 @@
 
 	$effect(() => {
 		syncActive();
+		// Clears each slide's placeholder as it lands, and reports the load to the
+		// shared cache so the lightbox knows it already has these pixels. The
+		// article's own action does this too for a gallery inside a post; a
+		// hand-written `<Gallery />` anywhere else needs it here.
+		trackImages(trackEl);
 		return () => {
 			cancelAnimationFrame(scrollFrame);
 			clearTimeout(settleTimer);
@@ -171,6 +184,12 @@
 						src={image.src}
 						alt={image.alt ?? ''}
 						data-lightbox-caption={image.title || undefined}
+						width={image.width || undefined}
+						height={image.height || undefined}
+						style={image.width && image.height
+							? `--img-w: ${image.width}; --img-h: ${image.height}`
+							: undefined}
+						data-img-pending={image.width && image.height ? 'true' : undefined}
 						loading="lazy"
 						decoding="async"
 						draggable="false"
@@ -335,6 +354,10 @@
 		   look like it had shrunk. */
 		max-width: 100%;
 		max-height: 100%;
+		/* What caps a slide's height, for the placeholder rule in `app.css` that
+		   works the box out before the photo is here. The slide is this tall, and
+		   `max-height: 100%` is that. */
+		--img-max-h: var(--gallery-height, clamp(220px, 52vw, 460px));
 		width: auto;
 		height: auto;
 		object-fit: contain;
@@ -342,6 +365,16 @@
 		cursor: zoom-in;
 		user-select: none;
 		-webkit-user-drag: none;
+	}
+
+	/* The `width: auto` above outranks the global placeholder rule — this one is
+	   scoped, so it carries the component's class too — and an `auto`-sized image
+	   the browser has not fetched is 0x0 whatever its attributes say. The width
+	   itself comes from `app.css`, computed against the `--img-max-h` set above,
+	   so the arithmetic is not written out a second time to drift from. */
+	.gallery-slide img[data-img-pending] {
+		width: var(--img-pending-w);
+		height: auto;
 	}
 
 	.gallery-arrow {

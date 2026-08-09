@@ -32,6 +32,84 @@ describe('Lightbox rendering', () => {
 	});
 });
 
+// Three things can occupy the image's box, and only ever one at a time: the
+// photo itself, the pixels the article already had, or the placeholder. What is
+// being tested here is which one, and when.
+describe('Lightbox placeholder', () => {
+	it('paints the pixels the page already has under its own copy', async () => {
+		render(Lightbox);
+		lightboxStore.set({ ...openValue, poster: openValue.src, ready: true });
+		await tick();
+
+		const img = screen.getByRole('img', { name: 'A cat' });
+		expect(img.style.backgroundImage).toBe(`url("${openValue.src}")`);
+		// There is a photo on screen, so there is nothing for a placeholder to do.
+		expect(img).not.toHaveAttribute('data-img-pending');
+	});
+
+	it('shows a placeholder when no copy of the image exists on the page', async () => {
+		render(Lightbox);
+		lightboxStore.set(openValue);
+		await tick();
+
+		const img = screen.getByRole('img', { name: 'A cat' });
+		// A known natural size means the box is the real one, so the placeholder is
+		// exactly where the photo will be.
+		expect(img).toHaveAttribute('data-img-pending', 'true');
+		expect(img.style.width).toBe('800px');
+		expect(img.style.height).toBe('600px');
+	});
+
+	it('drops both the moment its own copy lands', async () => {
+		render(Lightbox);
+		lightboxStore.set({ ...openValue, poster: openValue.src });
+		await tick();
+
+		const img = screen.getByRole('img', { name: 'A cat' });
+		img.dispatchEvent(new Event('load'));
+		await tick();
+
+		expect(img).not.toHaveAttribute('data-img-pending');
+		expect(img.style.backgroundImage).toBe('');
+	});
+
+	// Nothing holding the box and nothing to put in it: the old behaviour, kept
+	// for the one case it was written for.
+	it('fades in from nothing when there is no box at all', async () => {
+		render(Lightbox);
+		lightboxStore.set({ src: 'https://example.com/unknown.jpg', alt: 'Unknown' });
+		await tick();
+
+		const img = screen.getByRole('img', { name: 'Unknown' });
+		expect(img.className).toContain('pending');
+		expect(img).not.toHaveAttribute('data-img-pending');
+	});
+
+	// `data-lightbox-src` is a second, larger file, so its size is not known — but
+	// the thumbnail's shape is, and a box of the right shape is what the article's
+	// own pixels need to be painted into.
+	it('sizes an unmeasured image from the shape of the one on the page', async () => {
+		render(Lightbox);
+		lightboxStore.set({
+			src: 'https://example.com/full.jpg',
+			alt: 'Big',
+			poster: 'https://example.com/thumb.jpg',
+			posterWidth: 400,
+			posterHeight: 200
+		});
+		await tick();
+
+		const img = screen.getByRole('img', { name: 'Big' });
+		expect(img.style.backgroundImage).toBe('url("https://example.com/thumb.jpg")');
+		expect(img.style.width).not.toBe('');
+		// 2:1, whatever the viewport made of it.
+		expect(Number.parseFloat(img.style.width) / Number.parseFloat(img.style.height)).toBeCloseTo(
+			2,
+			1
+		);
+	});
+});
+
 describe('Lightbox focus management', () => {
 	it('moves focus to the close button on open', async () => {
 		render(Lightbox);
@@ -588,6 +666,50 @@ describe('lightboxAction', () => {
 		expect(
 			Array.from(node.querySelectorAll('img')).every((i) => i.getAttribute('loading') === 'lazy')
 		).toBe(true);
+		destroy();
+	});
+
+	// The build stamps the file's real dimensions on the element, so an image the
+	// reader clicks while it is still downloading opens into the box it is going
+	// to fill — and the flight has something to fly to. Before this it opened at
+	// nothing and resized when the bytes landed.
+	it('takes the size off the build-time attributes when nothing has loaded', () => {
+		const { node, destroy } = mount('<img src="/a.png" alt="A" width="1600" height="900">');
+		node.querySelector('img').click();
+
+		expect(lightboxStore.value.items[0]).toMatchObject({
+			naturalWidth: 1600,
+			naturalHeight: 900
+		});
+		destroy();
+	});
+
+	it('prefers what the browser has actually decoded over the attributes', () => {
+		const { node, destroy } = mount('<img src="/a.png" alt="A" width="1600" height="900">');
+		const img = node.querySelector('img');
+		size(img, 800, 600);
+		img.click();
+
+		expect(lightboxStore.value.items[0]).toMatchObject({
+			naturalWidth: 800,
+			naturalHeight: 600
+		});
+		destroy();
+	});
+
+	it('does not read the article file as the size of a different lightbox file', () => {
+		const { node, destroy } = mount(
+			'<img src="/thumb.png" data-lightbox-src="/full.png" alt="A" width="400" height="300">'
+		);
+		const img = node.querySelector('img');
+		size(img, 400, 300);
+		img.click();
+
+		const item = lightboxStore.value.items[0];
+		expect(item.src).toBe('/full.png');
+		// Unknown, because nothing has measured that file — but the shape is not.
+		expect(item.naturalWidth).toBe(0);
+		expect(item.posterWidth).toBe(400);
 		destroy();
 	});
 });

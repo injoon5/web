@@ -17,21 +17,23 @@
  * performs this same splice for its own layout import.
  */
 
-const GALLERY_PATH = '$lib/lightbox/Gallery.svelte';
-const GALLERY_IMPORT = `import Gallery from '${GALLERY_PATH}';`;
+import { addComponentImport } from './splice-import.js';
 
-/** `<script>` / `<script lang="ts">`, but not `<script module>` or `context="module"`. */
-const INSTANCE_SCRIPT = /^<script(?![^>]*\bmodule\b)[^>]*>/;
+const GALLERY = { name: 'Gallery', path: '$lib/lightbox/Gallery.svelte' };
 
 const FENCE_OPEN = /^:::\s*gallery\s*$/;
 const FENCE_CLOSE = /^:::\s*$/;
 
 /** @param {any} node */
 function toImage(node) {
+	// `remarkImageSize` ran first and measured the file. A slide that knows the
+	// aspect ratio can hold the photo's box open before a byte of it arrives.
+	const size = node.data?.imageSize;
 	return {
 		src: node.url,
 		alt: node.alt ?? '',
-		...(node.title ? { title: node.title } : {})
+		...(node.title ? { title: node.title } : {}),
+		...(size ? { width: size.width, height: size.height } : {})
 	};
 }
 
@@ -113,25 +115,6 @@ function toParagraph(tokens) {
 /** @param {Array<{ src: string, alt: string, title?: string }>} images */
 function galleryNode(images) {
 	return { type: 'html', value: `<Gallery images={${JSON.stringify(images)}} />` };
-}
-
-/** @param {any} tree */
-function addImport(tree) {
-	const at = tree.children.findIndex(
-		(node) => node.type === 'html' && INSTANCE_SCRIPT.test(node.value.trimStart())
-	);
-
-	if (at === -1) {
-		tree.children.unshift({ type: 'html', value: `<script>\n\t${GALLERY_IMPORT}\n</script>` });
-		return;
-	}
-
-	// An author who already imported it keeps their own import.
-	if (tree.children[at].value.includes(GALLERY_PATH)) return;
-	tree.children[at].value = tree.children[at].value.replace(
-		INSTANCE_SCRIPT,
-		(open) => `${open}\n\t${GALLERY_IMPORT}`
-	);
 }
 
 /**
@@ -254,7 +237,7 @@ export function remarkGallery(options = {}) {
 		if (fenceOpen) abandonFence();
 
 		tree.children = out;
-		if (found) addImport(tree);
+		if (found) addComponentImport(tree, GALLERY);
 	};
 }
 
