@@ -201,10 +201,7 @@
 	data-scrolled={!scrollLinked && scrolled}
 	style="--nav-open-extra:{openExtra}px{__DIALS__ ? ';' + navStyle() : ''}"
 >
-	<!-- One element for the header's own presence, so the lightbox can take the
-	     whole bar out of sight without touching the surface's opacity — that one
-	     belongs to the scroll position and the disclosure. -->
-	<div class="nav-presence relative">
+	<div class="relative">
 		<!-- One surface for the whole header, grown from the bottom, rather than one
 		     per row. Two adjacent backdrop-filter layers each clamp their blur at
 		     the shared edge, so neither pulls in what is behind the other and the
@@ -459,30 +456,17 @@
 			--nav-surface-menu 200ms ease;
 	}
 
-	/* The lightbox flies a photo out of the article and back into it, and the box
-	   it comes from is often under this header. The dialog paints at `z-index:
-	   9999`, so without this the photo passes over the bar on the way out and is
-	   sliced off by it in the single frame the page takes it back — the one frame
-	   the eye is certainly on it. `html[data-lightbox]` is set by the lightbox
-	   itself: while it is up, the header sits *above* the dialog and is faded out
-	   instead, which is what lets the photo travel underneath the bar the way it
-	   lives underneath it on the page.
+	/* The header is above everything except an open lightbox — that one covers it,
+	   which is the whole point of the scrim. The exception is the photo flying
+	   back into the article: the box it lands in is often under this bar, and the
+	   dialog paints at `z-index: 9999`, so the photo would cross over the bar and
+	   then be sliced by it in the single frame the page takes it back.
 
-	   Fading rather than hiding, and on the same durations and curves as the
-	   scrim's own two: 0.28s in, 0.2s out. The header is invisible behind an 86%
-	   black scrim either way, so what this replaces is a reveal, not a state. */
-	.nav-presence {
-		transition: opacity 0.2s var(--ease-out-soft);
-	}
-
-	:global(html[data-lightbox]) .nav-shell {
+	   The lightbox sets this the moment the photo reaches the bar's lower edge —
+	   a moment when the two do not overlap at all, so nothing about the header
+	   moves or fades. It is a paint order and nothing else. */
+	:global(html[data-lightbox='returning']) .nav-shell {
 		z-index: 10000;
-	}
-
-	:global(html[data-lightbox='open']) .nav-presence {
-		opacity: 0;
-		transition-duration: 0.28s;
-		transition-timing-function: var(--ease-out-fast);
 	}
 
 	.nav-shell[data-menu-open='true'] {

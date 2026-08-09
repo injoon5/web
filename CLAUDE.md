@@ -375,23 +375,40 @@ Anything else added between the photo's box and the viewport has to be settled i
 the same place. `Lightbox.svelte.test.js` cannot catch this: jsdom has no layout,
 so the flight never runs.
 
-### The page's own chrome has to be able to get above it
+### The page's own chrome has to get above it, at one exact moment
 
 The header is `position: sticky`, and the box a photo flies home to is routinely
 underneath it. A dialog at `z-index: 9999` draws the photo **over** the bar for
 the whole flight and then the page takes it back **under** the bar in one frame,
-slicing the top off it at the exact moment the eye has followed it there.
+slicing the top off it at the moment the eye has followed it there.
 
-So the lightbox sets `data-lightbox` on `<html>` — `open`, then `returning` from
-the moment a close starts — and `NavBar` reads it: the header lifts above the
-dialog and is faded out instead of being covered by it. Neither component imports
-the other. The fade is what makes the swap invisible: the header is behind an 86%
-black scrim either way, so what it replaces is a reveal, not a state, and it runs
-on the scrim's own two durations (0.28s in, 0.2s out).
+The rule is: **the header is above everything except an open lightbox.** The
+lightbox hands it the top of the stack by setting `data-lightbox="returning"` on
+`<html>`, which `NavBar` answers with a `z-index` and nothing else. Neither
+component imports the other, and the header does not move, fade or change in any
+way — it is a paint order.
 
-`returning` is set for **every** close, not only one that flies — a close that
-cannot fly still has to hand the header back, or the scrim fades out onto a page
-with no header on it.
+**The swap is timed off the photo's box, not off a clock.** It happens on the
+frame the photo's top edge reaches the reserved band, which is the last frame on
+which the two do not overlap at all — so there is nothing to see, at any scroll
+position. Waiting for the scrim to fade instead loses the race exactly where it
+matters: measured, a photo whose article box sits 200px under the header is
+already 90px across the bar by the time the backdrop is gone, and 230px at 400px
+under. The cost is one `getBoundingClientRect` per frame of one 260ms animation.
+
+- **The band is asked for as a depth, not as a header.** `topChromeDepth()` reads
+  the root's used `scroll-padding-top` — the page's own statement of what a
+  `#hash` target must clear. Not `--nav-h` directly: a custom property is a token,
+  and until `NavBar` republishes it in px it computes as `3.5rem`, which
+  `parseFloat` reads as **3.5**. That put the swap 52px inside the bar. The used
+  length is the header plus 1rem, so the swap lands just _before_ the photo
+  reaches the bar — the only direction that is free.
+- **A flight that lands clear of the bar arms no watcher**, so the ordinary case
+  costs nothing.
+- **Never fade the header to hide it.** Grouped opacity anywhere above
+  `.nav-surface` makes a new backdrop root, and its `backdrop-filter` then has
+  nothing to sample: the blur dies for the whole fade and snaps back at the end.
+  This was shipped once and is very visible against a photo.
 
 ### Performance
 

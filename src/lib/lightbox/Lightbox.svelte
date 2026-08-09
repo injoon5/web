@@ -185,6 +185,7 @@
 		clearTimeout(settleTimer);
 		trackSettle = null;
 		flight.cancel();
+		stopLiftWatch();
 	}
 
 	// --- viewport -------------------------------------------------------------
@@ -265,20 +266,20 @@
 	let wasVisible = false;
 
 	/**
-	 * What the page's own fixed chrome is being asked to do, on `<html>` so the
-	 * header can read it without either component importing the other.
+	 * The page's own fixed top chrome — the header — is above everything except an
+	 * open lightbox, which covers it. The one exception is a photo flying back into
+	 * the article: the box it lands in is routinely *under* that bar, and this
+	 * dialog paints at `z-index: 9999`, so the photo crosses over the bar and the
+	 * page then takes it back underneath in one frame, slicing the top off it at
+	 * the exact moment the eye has followed it there.
 	 *
-	 * The header is `position: sticky`, and the box a photo flies home to is
-	 * routinely underneath it. A dialog at `z-index: 9999` puts the photo over the
-	 * bar for the whole flight and then the page takes it back *under* the bar in
-	 * one frame — the top of the photo is sliced off at the exact moment the eye
-	 * has followed it there. So the header is lifted above the dialog and taken out
-	 * of sight instead: `open` while the scrim covers it anyway (it is invisible
-	 * behind 86% black either way), `returning` to hand it back on the same curve
-	 * and duration the scrim leaves on, so it reads as the backdrop clearing rather
-	 * than a header appearing.
+	 * So the header is handed the top of the stack for the rest of the flight — on
+	 * `<html>`, so neither component has to know the other exists. Nothing about
+	 * the header itself changes: no fade, no opacity, which would break its
+	 * `backdrop-filter` outright (any grouped opacity above a backdrop-filtered
+	 * element is a new backdrop root, and the blur then has nothing to sample).
 	 *
-	 * @param {'open' | 'returning' | null} state
+	 * @param {'returning' | null} state
 	 */
 	function markPage(state) {
 		if (typeof document === 'undefined') return;
@@ -286,9 +287,65 @@
 		else delete document.documentElement.dataset.lightbox;
 	}
 
+	// Back under the dialog for every open, and for a reopen inside a close window.
 	$effect(() => {
-		markPage(visible ? (closing || dismissing ? 'returning' : 'open') : null);
+		if (!visible || !(closing || dismissing)) markPage(null);
 	});
+
+	/**
+	 * How deep a band of fixed chrome the page reserves at the top — asked as how
+	 * deep the band is, not what is in it, so this component still knows nothing
+	 * about the header.
+	 *
+	 * `scroll-padding-top`, not `--nav-h` itself: the custom property is a token,
+	 * and until `NavBar` republishes it as px it computes as `3.5rem`, which
+	 * `parseFloat` reads as **3.5** — the lift then landed 52px into the bar. A
+	 * used length is resolved to px by the cascade. It is the header plus 1rem, so
+	 * the swap happens a little *before* the photo reaches the bar, which is the
+	 * only direction that is free.
+	 */
+	function topChromeDepth() {
+		if (typeof document === 'undefined') return 0;
+		const px = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+		return Number.isFinite(px) ? px : 0;
+	}
+
+	let liftFrame = 0;
+
+	/** Guarded: `onDestroy` also runs on the server, where there are no frames. */
+	function stopLiftWatch() {
+		if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(liftFrame);
+	}
+
+	/**
+	 * Hand the page's chrome the top of the stack at the frame the photo reaches
+	 * it — the last frame on which the two still do not overlap, so the swap is
+	 * invisible by construction rather than by timing.
+	 *
+	 * Waiting for the backdrop to fade instead loses the race exactly where it
+	 * matters: measured, a photo whose article box sits 200px under the header is
+	 * already 90px across the bar by the time the scrim is gone. Watching the box
+	 * costs one rect read per frame of one 260ms animation, and it is right at
+	 * every scroll position rather than at most of them.
+	 *
+	 * @param {HTMLElement} img the flying photo
+	 * @param {DOMRect} home the box it is flying to
+	 */
+	function liftChromeOnApproach(img, home) {
+		stopLiftWatch();
+		const depth = topChromeDepth();
+		// It lands clear of the bar, so it never has anything to get behind.
+		if (!depth || home.top >= depth) return;
+		const watch = () => {
+			if (!visible) return;
+			if (img.getBoundingClientRect().top <= depth) {
+				markPage('returning');
+				return;
+			}
+			liftFrame = requestAnimationFrame(watch);
+		};
+		watch();
+	}
 
 	const modal = createModalHost({ themeColor: LIGHTBOX_THEME_COLOR });
 
@@ -539,8 +596,9 @@
 
 		// ...and now the photo's own layout box, with every transform off it.
 		const base = img.getBoundingClientRect();
+		const homeRect = to.getBoundingClientRect();
 		const from = deltaBetween(base, cur);
-		const home = deltaBetween(base, to.getBoundingClientRect());
+		const home = deltaBetween(base, homeRect);
 		if (!from || !home) return false;
 
 		flyingHome = true;
@@ -559,6 +617,7 @@
 		);
 		// A cancelled or dropped animation must not strand the lightbox open.
 		scheduleClose(duration + 120);
+		liftChromeOnApproach(img, homeRect);
 		return true;
 	}
 
@@ -994,6 +1053,7 @@
 		clearTimeout(closeTimer);
 		clearTimeout(wheelTimer);
 		clearTimeout(settleTimer);
+		stopLiftWatch();
 		unbindPointerStream();
 		flight.cancel();
 		modal.close();

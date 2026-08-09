@@ -499,22 +499,19 @@ describe('Lightbox modality', () => {
 		sibling.remove();
 	});
 
-	it('tells the page to lift its own fixed chrome, and hands it back on the way out', async () => {
+	it('leaves the page chrome under the dialog, and never strands the flag it lifts it with', async () => {
 		render(Lightbox);
 		lightboxStore.set(openValue);
 		await tick();
 		await screen.findByRole('dialog');
 
-		// The header reads this off <html>: while the dialog is up it belongs above
-		// it and out of sight, so a photo can fly home *under* the bar it lives
-		// under on the page rather than over it and then be sliced by it.
-		await waitFor(() => expect(document.documentElement.dataset.lightbox).toBe('open'));
+		// The header reads this off <html>. An open lightbox covers it, so nothing
+		// is set: it is raised only for the stretch of a flight home that ends
+		// underneath it, which needs layout and so never happens here.
+		expect(document.documentElement.dataset.lightbox).toBeUndefined();
 
 		screen.getByRole('button', { name: 'Close image' }).click();
 		await tick();
-		// Handed back the moment the close starts, not when the dialog unmounts —
-		// it arrives on the same curve the scrim leaves on.
-		await waitFor(() => expect(document.documentElement.dataset.lightbox).toBe('returning'));
 
 		lightboxStore.set(null);
 		await tick();
