@@ -460,6 +460,18 @@ rubber band.
 - **A trackpad swipe moves the track under the fingers.** macOS momentum keeps
   arriving after the fingers lift and has decayed by the time events stop, so the
   gesture ends on 90ms of quiet and settles where it came to rest.
+- **One gesture carries the track one page and no further** (`clampTravel`). A
+  finger is bounded by the screen, momentum by nothing, and a settle pages by one
+  either way — so a hard flick used to slide five images past and take four back.
+  Past the page it will land on, and past either end of the group, it gives a
+  tenth of a page and stops. Enough to feel the limit; too little to reveal the
+  image beyond it. Only the wheel is bounded — the finger path is already bounded
+  by the hand, and its rubber band is tuned as shipped.
+- **A long continuous two-finger scroll pages once, not once per page crossed.**
+  A native strip would cross several, but only for a real drag: `scroll-snap-stop:
+always` stops a _fling_ at the next snap point. A wheel event carries no phase,
+  so momentum and fingers-still-down are indistinguishable here — and one page per
+  gesture is what the finger drag beside it already does.
 
 Zoom is **one number** (`scale` + `panX`/`panY`). Pan is clamped to the image's
 edges, tap and pinch share `panAfterScale`, and the chrome except the close

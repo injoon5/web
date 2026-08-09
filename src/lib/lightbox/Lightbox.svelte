@@ -5,6 +5,7 @@
 	import { springEasing, springOr } from './spring.js';
 	import {
 		clampPanTo,
+		clampTravel,
 		containSize,
 		deltaBetween,
 		pageStep,
@@ -46,6 +47,9 @@
 	// A trackpad's momentum keeps arriving after the fingers are gone, so the
 	// gesture is over when the events stop, not when a finger lifts.
 	const WHEEL_IDLE_MS = 90;
+	// Fraction of a page a trackpad may pull past the image it will settle on.
+	// Enough to feel the limit, too little to reveal the image beyond it.
+	const WHEEL_GIVE = 0.1;
 	const ZOOM_MS = 280;
 	// The curve every settle uses: fast out of the finger, long soft landing.
 	// (Ionic's drawer curve — the same one Vaul uses.)
@@ -945,8 +949,12 @@
 			trackSettle = null;
 		}
 		wheelRaw -= e.deltaX;
+		const page = winW || 1;
 		const atEnd = (wheelRaw > 0 && index === 0) || (wheelRaw < 0 && index === count - 1);
-		dragX = atEnd ? rubber(wheelRaw, winW || 1) : wheelRaw;
+		// One page is all a settle can honour, and at the ends there is not even
+		// that. Momentum carries far past either, and the strip was sliding several
+		// images by and taking them back. See `clampTravel`.
+		dragX = clampTravel(wheelRaw, atEnd ? 0 : page, page * WHEEL_GIVE, RUBBER);
 		clearTimeout(wheelTimer);
 		wheelTimer = setTimeout(settleWheel, WHEEL_IDLE_MS);
 	}
