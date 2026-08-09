@@ -396,15 +396,13 @@ matters: measured, a photo whose article box sits 200px under the header is
 already 90px across the bar by the time the backdrop is gone, and 230px at 400px
 under. The cost is one `getBoundingClientRect` per frame of one 260ms animation.
 
-- **The band is asked for as a depth, not as a header.** `topChromeDepth()` reads
-  the root's used `scroll-padding-top` — the page's own statement of what a
-  `#hash` target must clear. Not `--nav-h` directly: a custom property is a token,
-  and until `NavBar` republishes it in px it computes as `3.5rem`, which
-  `parseFloat` reads as **3.5**. That put the swap 52px inside the bar. The used
-  length is the header plus 1rem, so the swap lands just _before_ the photo
-  reaches the bar — the only direction that is free.
-- **A flight that lands clear of the bar arms no watcher**, so the ordinary case
-  costs nothing.
+- **The band is asked for as a depth, not as a header**, so the lightbox still
+  knows nothing about what is up there: the root's used `scroll-padding-top`, the
+  page's own statement of what a `#hash` target must clear. Not `--nav-h`
+  directly — a custom property is a token, and until `NavBar` republishes it in px
+  it computes as `3.5rem`, which `parseFloat` reads as **3.5**. That put the swap
+  52px inside the bar. The used length is the header plus 1rem, so the swap lands
+  just _before_ the photo reaches the bar — the only direction that is free.
 - **Never fade the header to hide it.** Grouped opacity anywhere above
   `.nav-surface` makes a new backdrop root, and its `backdrop-filter` then has
   nothing to sample: the blur dies for the whole fade and snaps back at the end.

@@ -185,7 +185,6 @@
 		clearTimeout(settleTimer);
 		trackSettle = null;
 		flight.cancel();
-		stopLiftWatch();
 	}
 
 	// --- viewport -------------------------------------------------------------
@@ -219,6 +218,7 @@
 			// The first paint has to carry the image, not wait a frame for it.
 			windowIndex = val.index;
 			resetGesture();
+			dropChromeLift();
 			closing = false;
 			dismissing = false;
 			flew = false;
@@ -264,6 +264,7 @@
 	// --- open / close bookkeeping --------------------------------------------
 	let previouslyFocused = null;
 	let wasVisible = false;
+	let liftFrame = 0;
 
 	/**
 	 * The page's own fixed top chrome — the header — is above everything except an
@@ -279,42 +280,13 @@
 	 * `backdrop-filter` outright (any grouped opacity above a backdrop-filtered
 	 * element is a new backdrop root, and the blur then has nothing to sample).
 	 *
-	 * @param {'returning' | null} state
+	 * Undone on every teardown *and* at the top of every open, because a reopen
+	 * inside a close window never unmounts the dialog to be torn down.
 	 */
-	function markPage(state) {
+	function dropChromeLift() {
 		if (typeof document === 'undefined') return;
-		if (state) document.documentElement.dataset.lightbox = state;
-		else delete document.documentElement.dataset.lightbox;
-	}
-
-	// Back under the dialog for every open, and for a reopen inside a close window.
-	$effect(() => {
-		if (!visible || !(closing || dismissing)) markPage(null);
-	});
-
-	/**
-	 * How deep a band of fixed chrome the page reserves at the top — asked as how
-	 * deep the band is, not what is in it, so this component still knows nothing
-	 * about the header.
-	 *
-	 * `scroll-padding-top`, not `--nav-h` itself: the custom property is a token,
-	 * and until `NavBar` republishes it as px it computes as `3.5rem`, which
-	 * `parseFloat` reads as **3.5** — the lift then landed 52px into the bar. A
-	 * used length is resolved to px by the cascade. It is the header plus 1rem, so
-	 * the swap happens a little *before* the photo reaches the bar, which is the
-	 * only direction that is free.
-	 */
-	function topChromeDepth() {
-		if (typeof document === 'undefined') return 0;
-		const px = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
-		return Number.isFinite(px) ? px : 0;
-	}
-
-	let liftFrame = 0;
-
-	/** Guarded: `onDestroy` also runs on the server, where there are no frames. */
-	function stopLiftWatch() {
-		if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(liftFrame);
+		cancelAnimationFrame(liftFrame);
+		delete document.documentElement.dataset.lightbox;
 	}
 
 	/**
@@ -332,14 +304,21 @@
 	 * @param {DOMRect} home the box it is flying to
 	 */
 	function liftChromeOnApproach(img, home) {
-		stopLiftWatch();
-		const depth = topChromeDepth();
-		// It lands clear of the bar, so it never has anything to get behind.
-		if (!depth || home.top >= depth) return;
+		// The band is asked for as a depth, not as a header, so this still knows
+		// nothing about what is up there. `scroll-padding-top` and not `--nav-h`
+		// itself: a custom property is a token, and until `NavBar` republishes it in
+		// px it computes as `3.5rem` — which `parseFloat` reads as **3.5**, putting
+		// the swap 52px inside the bar. A used length is resolved by the cascade.
+		// It is the header plus 1rem, so the swap lands a little *before* the photo
+		// reaches the bar, which is the only direction that is free.
+		const depth = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop);
+		// NaN when the page reserves nothing; `>=` when the photo lands clear of the
+		// bar. Either way there is never anything to get behind.
+		if (!(depth > 0) || home.top >= depth) return;
 		const watch = () => {
 			if (!visible) return;
 			if (img.getBoundingClientRect().top <= depth) {
-				markPage('returning');
+				document.documentElement.dataset.lightbox = 'returning';
 				return;
 			}
 			liftFrame = requestAnimationFrame(watch);
@@ -418,6 +397,7 @@
 				// Only now — the flying copy is gone this frame, so the page-side
 				// image reappears exactly as the lightbox's lands on it.
 				showOrigin();
+				dropChromeLift();
 				node.remove();
 				flew = false;
 				flyingHome = false;
@@ -511,11 +491,6 @@
 		strip.style.transform = 'none';
 	}
 
-	/** The stage's own entrance, whatever state it is in. See `startOpenFlight`. */
-	function stageEntrance(root) {
-		return root.querySelector('.lb-stage')?.getAnimations?.() ?? [];
-	}
-
 	function startOpenFlight(root) {
 		const from = originEl();
 		if (from) hideOrigin(from);
@@ -538,7 +513,7 @@
 		// supposed to be leaving, which is the pop before the flight. Cancel it here
 		// rather than trusting `flew` — that class is a state change, and it lands a
 		// flush after this measurement.
-		for (const entrance of stageEntrance(root)) entrance.cancel();
+		for (const a of root.querySelector('.lb-stage')?.getAnimations?.() ?? []) a.cancel();
 		const f = deltaBetween(to.getBoundingClientRect(), base);
 		if (!f) return;
 		flew = true;
@@ -1053,12 +1028,11 @@
 		clearTimeout(closeTimer);
 		clearTimeout(wheelTimer);
 		clearTimeout(settleTimer);
-		stopLiftWatch();
 		unbindPointerStream();
 		flight.cancel();
 		modal.close();
 		showOrigin();
-		markPage(null);
+		dropChromeLift();
 		previouslyFocused = null;
 	});
 
