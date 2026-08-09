@@ -4,8 +4,30 @@
 
 	let { src, label = 'Play demo video' } = $props();
 
+	/* The skin's controls live in its shadow root, and the packaged skin ships
+	   no rule for the `hidden`/`data-*` state the button components expose. So
+	   the one control this site does not want is turned off with a sheet of our
+	   own rather than by ejecting the whole skin.
+
+	   Casting is off entirely. AirPlay already hides itself where it is
+	   unsupported, but the cast button only goes to
+	   `data-availability="unavailable"` and stays on screen greyed out, which
+	   reads as something broken rather than something absent.
+
+	   The captions button needs nothing here: it sets its own `hidden` once the
+	   media carries no caption track, so it comes back by itself if one is ever
+	   added. */
+	const HIDE_CASTING = `
+		media-cast-button,
+		media-airplay-button {
+			display: none !important;
+		}
+	`;
+
 	/** @type {HTMLVideoElement | null} */
 	let video = $state(null);
+	/** @type {(HTMLElement & { shadowRoot: ShadowRoot | null }) | null} */
+	let skin = $state(null);
 	let loaded = $state(false);
 	/* The player is a set of custom elements. If their definitions never arrive
 	   the markup below stays inert, so the <video> falls back to native
@@ -31,6 +53,16 @@
 
 			loaded = true;
 			await tick();
+
+			/* The skin builds its shadow root in its constructor, so it is there
+			   as soon as the element upgrades — which the await above guarantees
+			   has already happened. */
+			const root = skin?.shadowRoot;
+			if (root) {
+				const sheet = new CSSStyleSheet();
+				sheet.replaceSync(HIDE_CASTING);
+				root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+			}
 		}
 
 		await video?.play();
@@ -48,12 +80,15 @@
 			     above already clips at `rounded-lg`, so that is turned off rather
 			     than nested inside a tighter radius. -->
 			<video-player>
-				<video-skin class="aspect-video w-full" style="--media-border-radius: 0">
+				<video-skin bind:this={skin} class="aspect-video w-full" style="--media-border-radius: 0">
 					<!-- The skin draws the controls, so the media element carries
-					     none of its own unless the definitions failed to load. -->
-					<video bind:this={video} {src} class="bg-black" controls={native} playsinline>
-						<track kind="captions" />
-					</video>
+					     none of its own unless the definitions failed to load.
+
+					     Deliberately no <track>: an empty one counts as a caption
+					     track, which is what had the captions button reporting
+					     itself available on clips that carry no subtitles. -->
+					<!-- svelte-ignore a11y_media_has_caption -->
+					<video bind:this={video} {src} class="bg-black" controls={native} playsinline></video>
 				</video-skin>
 			</video-player>
 		{:else}
