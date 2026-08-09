@@ -1,0 +1,4 @@
+.vscode/**
+jsconfig.json
+**/*.test.js
+**/.DS_Store

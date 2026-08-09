@@ -632,6 +632,56 @@ moving is read where the page is:
 
 ---
 
+## The Authoring Extension (`tools/vscode-extension/`)
+
+A VS Code / Cursor extension for the content tree. Plain CommonJS with JSDoc,
+no build step and no runtime dependencies — the extension host loads
+`src/extension.js` as it is. <kbd>F5</kbd> runs it from source; `npm run
+test:extension` runs its `node:test` suite, and `npm test` includes it.
+
+**CommonJS is not a style choice.** The extension host loads extensions through
+`require`, and `vscode` only ever exists as a host-injected module. That is why
+`eslint.config.js` carries an override for this tree — including turning off
+`svelte/no-inner-declarations`, whose wrapper around the core rule reads scope
+state that only exists for `sourceType: module` and throws otherwise.
+
+Everything that can be tested without an editor is in `src/lib/` and is:
+`markdown-scan` (one pass producing frontmatter, images, `src=` attributes,
+gallery fences, brace expressions and the instance `<script>`, with everything
+inside code masked), `frontmatter`, `content-file`, `naming`, `insert` and
+`image-size`. `src/providers/` and `src/commands/` are the thin editor-facing
+half.
+
+- **A drop is filed by the post, not by the file.** Editing
+  `blog/{en,ko}/us-camp.md` sends media to `static/images/uploads/us-camp/`;
+  a project sends it to `static/images/projects/<slug>/`. Both languages of an
+  entry share one folder — they are the same post.
+- **Several images at once land on consecutive lines with no blank line
+  between them**, which is exactly what `remark-gallery` reads as a group. The
+  drop produces a `<Gallery />` for the same reason a hand-typed run does.
+- **The copy is a `WorkspaceEdit.createFile`, not an `fs` write**, so the link
+  and the file are one undo.
+- **Only formats a browser cannot render are transcoded** (HEIC, TIFF).
+  `npm run optimize-images` already re-encodes from git HEAD at build time, and
+  a drop-time re-encode would hand it worse input. Conversion shells out to the
+  workspace's `sharp` in a child process — the extension host is Electron, and
+  sharp's prebuilt binaries are built against Node's ABI — then falls back to
+  `sips`, then to copying with a warning.
+- **`image-size.js` reads dimensions out of the file header** rather than
+  pulling in an image library for a hover and a width warning.
+- **The built-in markdown drop/paste handler has to be turned off**, which
+  `.vscode/settings.json` does: it copies media next to the document. The same
+  file names this extension's edit kind in `editor.pasteAs.preferences` so a
+  drop never opens the "paste as" picker.
+- The diagnostics cover the failure modes this tree actually has: a missing
+  media file, empty alt text, a `:::gallery` that never closes (which silently
+  transforms nothing), a component used without its import, frontmatter gaps, a
+  `slug` disagreeing with the filename, and **a smart quote inside `{}` or the
+  `<script>`** — the hard rule at the top of this file, which is invisible in a
+  proportional font and a `js_parse_error` at build time.
+
+---
+
 ## Environment Variables
 
 | Variable            | Used in                                                                                                        |

@@ -1,0 +1,16 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			// Opens a second window with the Web Authoring extension loaded from
+			// source. It is plain JavaScript, so there is nothing to build first.
+			"name": "Run Web Authoring extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}/tools/vscode-extension",
+				"${workspaceFolder}"
+			]
+		}
+	]
+}
