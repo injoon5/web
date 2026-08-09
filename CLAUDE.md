@@ -344,6 +344,21 @@ full-screen**, and back to wherever that image sits when you close.
 - Shadow and rounded corners are shed on the way home, and the page's copy is
   handed back from the flight's `onfinish` rather than the portal's teardown, so
   the swap is invisible.
+- **The caption travels with the photo.** A captioned image already has that line
+  on the page — `rehype-figure`'s `<figcaption>` for an article image, the
+  strip's own for a gallery — so the lightbox's caption flies from it on open and
+  back to it on close, measured in the same read blocks as the photo's flight.
+  A **translation and nothing else**: both are centred and set at the same size,
+  and scaling type is the one part of a shared-element move that always goes
+  soft. The blur carries the change of voice instead — the page's line is dark
+  type in the article and the lightbox's is white over a scrim, so it resolves
+  into its new setting rather than switching colour in mid-air. Opacity is left
+  to `.lb-chrome`, which already fades as a whole in both directions.
+  `restingCaption` cancels whatever is on the caption before it is measured: the
+  per-slide reveal is a `both`-filled CSS animation, in effect from the moment
+  the element is styled, and an interrupted open flight is still on it. Paging
+  keeps that reveal — a caption arriving mid-group has no page-side line to come
+  from.
 
 ### Nothing may be in effect on the box the flight is measured against
 

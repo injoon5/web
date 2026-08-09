@@ -518,6 +518,63 @@
 	}
 
 	/**
+	 * The line of type this photo already has on the page: `rehype-figure`'s
+	 * `<figcaption>` for an article image, the strip's own for a gallery. Both are
+	 * centred and set at the size the lightbox sets its caption, so the two are the
+	 * same line written in two places — which is what makes moving between them
+	 * read as the caption travelling with the photo rather than a second fade.
+	 */
+	function originCaptionEl() {
+		const cap = originEl()?.closest('figure')?.querySelector('figcaption');
+		return cap?.textContent?.trim() ? cap : null;
+	}
+
+	/**
+	 * The lightbox's caption with everything running on it dropped — including the
+	 * per-slide reveal, which is a `both`-filled CSS animation and so is in effect
+	 * from the moment the element is first styled. Left alone it fades the same
+	 * properties the flight is about to, and the box would measure through it
+	 * rather than as laid out.
+	 */
+	function restingCaption(root) {
+		const cap = root?.querySelector('.lb-caption');
+		if (!cap || typeof cap.animate !== 'function') return null;
+		for (const a of cap.getAnimations?.() ?? []) a.cancel();
+		return cap;
+	}
+
+	/**
+	 * How far the lightbox's caption sits from the page's. A translation and
+	 * nothing else: the two are the same size, and scaling type is the one part of
+	 * a shared-element move that always goes soft.
+	 */
+	function captionDelta(cap) {
+		const page = cap && originCaptionEl();
+		if (!page) return null;
+		return deltaBetween(cap.getBoundingClientRect(), page.getBoundingClientRect());
+	}
+
+	/**
+	 * Carry the caption between the two places it is written, in step with the
+	 * photo. The blur is what makes that one line moving rather than two swapped:
+	 * the page's is dark type in the article and the lightbox's is white over a
+	 * scrim, so it resolves into its new setting instead of changing colour in
+	 * mid-air.
+	 *
+	 * Opacity is deliberately untouched. `.lb-chrome` already fades as a whole in
+	 * both directions, and a second opacity on the caption only fights it.
+	 */
+	function runCaptionFlight(cap, d, { home, duration, easing }) {
+		const away = { transform: `translate3d(${d.x}px, ${d.y}px, 0)`, filter: 'blur(4px)' };
+		const there = { transform: 'translate3d(0px, 0px, 0)', filter: 'blur(0px)' };
+		cap.animate(home ? [there, away] : [away, there], {
+			duration,
+			easing,
+			fill: home ? 'forwards' : 'backwards'
+		});
+	}
+
+	/**
 	 * A dismiss drag moves the strip, not the photo. Unwind it and hand the
 	 * distance to the photo's first keyframe, so one animation carries the whole
 	 * journey rather than two transforms fighting over the same pixels.
@@ -555,6 +612,9 @@
 		for (const a of root.querySelector('.lb-stage')?.getAnimations?.() ?? []) a.cancel();
 		const f = deltaBetween(to.getBoundingClientRect(), base);
 		if (!f) return;
+		// Measured here, with the photo's own boxes and before anything is animated.
+		const cap = restingCaption(root);
+		const capFrom = captionDelta(cap);
 		flew = true;
 		flight.cancel();
 		flight.run(
@@ -564,6 +624,12 @@
 			'backwards',
 			springOr(FLIGHT_EASE, SPRING_IN)
 		);
+		if (capFrom)
+			runCaptionFlight(cap, capFrom, {
+				home: false,
+				duration: FLIGHT_IN_MS,
+				easing: springOr(FLIGHT_EASE, SPRING_IN)
+			});
 	}
 
 	/**
@@ -607,10 +673,14 @@
 			dragY = 0;
 		}
 		freezeTrack();
+		// A write too — an open flight may still be on the caption, and it has to
+		// come off before the box below is measured.
+		const cap = restingCaption(rootEl);
 
 		// ...and now the photo's own layout box, with every transform off it.
 		const base = img.getBoundingClientRect();
 		const homeRect = to.getBoundingClientRect();
+		const capHome = captionDelta(cap);
 		const from = deltaBetween(base, cur);
 		const home = deltaBetween(base, homeRect);
 		if (!from || !home) return false;
@@ -629,6 +699,12 @@
 				lightboxStore.set(null);
 			}
 		);
+		if (capHome)
+			runCaptionFlight(cap, capHome, {
+				home: true,
+				duration,
+				easing: springOr(FLIGHT_EASE, SPRING_HOME)
+			});
 		// A cancelled or dropped animation must not strand the lightbox open.
 		scheduleClose(duration + 120);
 		liftChromeOnApproach(img, homeRect);
@@ -1722,15 +1798,22 @@
 		   chrome's height reserves room for the photo, so a caption that wrapped
 		   where its neighbour did not resized the photo mid-slide. */
 		min-height: 2.9em;
-		animation: lb-caption-in 0.2s var(--ease-out) both;
+		animation: lb-caption-in 0.28s var(--ease-out) both;
 	}
 
+	/* The caption resolves rather than appears: it comes up out of focus and
+	   settles, which reads as the photo's own label catching up with it. The
+	   blur is on one short line of text and nothing else, so it costs nothing
+	   next to the backdrop. `will-change` is deliberately absent — the layer
+	   would be promoted for the whole open to serve 280ms. */
 	@keyframes lb-caption-in {
 		from {
 			opacity: 0;
+			filter: blur(6px);
 		}
 		to {
 			opacity: 1;
+			filter: blur(0);
 		}
 	}
 
