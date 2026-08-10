@@ -240,8 +240,12 @@
 		{/if}
 	</div>
 
+	<!-- `data-lightbox-steps` is the whole contract with the lightbox: these dots
+	     sit between the two places this group's caption is written, so they step
+	     aside while the caption flies across them. Neither component imports the
+	     other, the same way the header is told to raise itself. -->
 	{#if multiple}
-		<div class="gallery-steps">
+		<div class="gallery-steps" data-lightbox-steps>
 			<Stepper
 				count={images.length}
 				{active}

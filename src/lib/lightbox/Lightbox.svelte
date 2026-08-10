@@ -87,6 +87,13 @@
 	let flew = $state(false);
 	/** A flight home is running, so the stage's exit stays off for it. */
 	let flyingHome = $state(false);
+	/**
+	 * A piece of the bottom cluster — the caption, the stepper, or both — is flying
+	 * to or from what the page already shows, so the chrome's own fade is off it
+	 * and on the pieces that fade was for. See the `.bottom-flew` rules.
+	 */
+	let bottomFlew = $state(false);
+	let bottomFlyingHome = $state(false);
 	let closeBtn = $state(null);
 	/** Measured, so the image box reserves exactly the room the chrome uses. */
 	let bottomH = $state(0);
@@ -250,6 +257,8 @@
 			dismissing = false;
 			flew = false;
 			flyingHome = false;
+			bottomFlew = false;
+			bottomFlyingHome = false;
 			visible = true;
 		} else {
 			visible = false;
@@ -424,6 +433,10 @@
 				// Only now — the flying copy is gone this frame, so the page-side
 				// image reappears exactly as the lightbox's lands on it.
 				showOrigin();
+				// A close that never flew home leaves the page's line faded out under
+				// a `forwards` fill; nothing else would ever put it back.
+				restoreOriginCaption();
+				restoreOriginSteps();
 				dropChromeLift();
 				node.remove();
 				flew = false;
@@ -518,6 +531,253 @@
 	}
 
 	/**
+	 * The line of type this photo already has on the page: `rehype-figure`'s
+	 * `<figcaption>` for an article image, the strip's own for a gallery. Both are
+	 * centred and set at the size the lightbox sets its caption, so the two are the
+	 * same line written in two places — which is what makes moving between them
+	 * read as the caption travelling with the photo rather than a second fade.
+	 */
+	function originCaptionEl() {
+		const cap = originEl()?.closest('figure')?.querySelector('figcaption');
+		return cap?.textContent?.trim() ? cap : null;
+	}
+
+	function originStepsEl() {
+		return originEl()?.closest('figure')?.querySelector('[data-lightbox-steps]') ?? null;
+	}
+
+	/**
+	 * The page's own line steps aside for the copy that is flying, exactly the way
+	 * the article's photo does for the photo — and it can be a swap rather than a
+	 * fade because the copy leaves wearing the page's own voice. `visibility`, not
+	 * `display`: this box is what the flight was measured against.
+	 */
+	let hiddenCaption = null;
+
+	function hideOriginCaption(page) {
+		if (hiddenCaption?.el === page) return;
+		restoreOriginCaption();
+		if (!page) return;
+		hiddenCaption = { el: page, visibility: page.style.visibility };
+		page.style.visibility = 'hidden';
+	}
+
+	function restoreOriginCaption() {
+		if (!hiddenCaption) return;
+		hiddenCaption.el.style.visibility = hiddenCaption.visibility;
+		hiddenCaption = null;
+	}
+
+	/**
+	 * The lightbox's own stepper, with anything running on it dropped so its box
+	 * measures as laid out rather than through the chrome's entrance.
+	 */
+	function restingSteps(root) {
+		const el = root?.querySelector('.lb-steps');
+		if (!el || typeof el.animate !== 'function') return null;
+		for (const a of el.getAnimations?.() ?? []) a.cancel();
+		return el;
+	}
+
+	/**
+	 * How far the lightbox's stepper sits from the strip's own. A translation and
+	 * nothing else, and this one is exact rather than close: the two are the same
+	 * component showing the same group, and neither overrides `--pill-dot-size`,
+	 * `--pill-active-width` or `--pill-gap`, so they are the same row of pills in
+	 * two places.
+	 */
+	function stepsDelta(steps) {
+		const page = steps && originStepsEl();
+		if (!page) return null;
+		// The capsule, not the box around it: both sides are a wrapper holding one
+		// `Stepper`, and the wrappers are not the same shape — the strip's spans the
+		// article's width, the lightbox's shrinks to its pills. Centring those puts
+		// the row 1.5px off. The pills are the only thing anyone sees.
+		return deltaBetween(capsule(steps), capsule(page));
+	}
+
+	function capsule(wrapper) {
+		return (wrapper.firstElementChild ?? wrapper).getBoundingClientRect();
+	}
+
+	/**
+	 * Carry the stepper between those two places, alongside the photo and the
+	 * caption — it is the same indicator for the same group, and it was the one
+	 * piece that only faded while everything else travelled.
+	 *
+	 * **The hand-over is a crossfade, not the caption's swap.** What separates the
+	 * two is a palette — dark pills on the article, white ones over a scrim in a
+	 * dark capsule — and a palette here is custom properties, which do not
+	 * interpolate unless they are registered, and which pasito's own 500ms
+	 * `background` transition would chase if they did. So the copy dissolves into
+	 * the strip's at the ends, where the two are in the same place and there is no
+	 * distance for the dissolve to have to cover.
+	 */
+	function runStepsFlight(steps, d, { home, duration, easing }) {
+		const away = `translate3d(${d.x}px, ${d.y}px, 0)`;
+		const there = 'translate3d(0px, 0px, 0)';
+		// The dissolve waits until the two are on the same spot. This spring spends
+		// its last 7% of distance over 75ms, so a hand-over anywhere earlier is two
+		// pill rows a dozen pixels apart in different palettes, dissolving through
+		// each other — measured at 90% they are 11px apart and it reads as a smear.
+		// At 97% it is under 4px, which is no distance at all for a row of 8px dots.
+		const frames = home
+			? [
+					{ transform: there, opacity: 1 },
+					{ opacity: 1, offset: 0.97 },
+					{ transform: away, opacity: 0 }
+				]
+			: [
+					{ transform: away, opacity: 0 },
+					{ opacity: 1, offset: 0.06 },
+					{ transform: there, opacity: 1 }
+				];
+		if (home) bottomFlyingHome = true;
+		else bottomFlew = true;
+		// Beats the entrance the `.bottom-flew` rules put on `.lb-steps`: an
+		// animation from `element.animate` sorts after every CSS animation for the
+		// property it runs on, and the rules are still wanted for a group whose page
+		// side has no stepper to fly to.
+		steps.animate(frames, { duration, easing, fill: home ? 'forwards' : 'backwards' });
+		fadeOriginSteps(originStepsEl(), { home, duration, easing });
+	}
+
+	/**
+	 * The strip's own dots, which the copy above is flying to or from. They go out
+	 * under the arriving backdrop, and come back only at the very end — the
+	 * caption's glyphs are over them from 100ms to about 170ms of a 260ms trip
+	 * home, and a row of pills punched through the middle of the type is the whole
+	 * of what that looks like.
+	 */
+	let hiddenSteps = null;
+
+	function fadeOriginSteps(steps, { home, duration, easing }) {
+		if (!steps || typeof steps.animate !== 'function') return;
+		if (hiddenSteps && hiddenSteps !== steps) restoreOriginSteps();
+		hiddenSteps = steps;
+		steps.animate(
+			home
+				? // Down until the caption's glyphs are past them (they clear at 92% of
+					// this spring), then up on the same window the flying copy goes out on,
+					// which is the only window where the two are in the same place.
+					[{ opacity: 0 }, { opacity: 0, offset: 0.97 }, { opacity: 1 }]
+				: [{ opacity: 1 }, { opacity: 0, offset: 0.06 }, { opacity: 0 }],
+			{ duration, easing, fill: 'forwards' }
+		);
+	}
+
+	function restoreOriginSteps() {
+		if (!hiddenSteps) return;
+		for (const a of hiddenSteps.getAnimations?.() ?? []) a.cancel();
+		hiddenSteps = null;
+	}
+
+	/**
+	 * The lightbox's caption with everything running on it dropped — including the
+	 * per-slide reveal, which is a `both`-filled CSS animation and so is in effect
+	 * from the moment the element is first styled. Left alone it fades the same
+	 * properties the flight is about to, and the box would measure through it
+	 * rather than as laid out.
+	 */
+	function restingCaption(root) {
+		const cap = root?.querySelector('.lb-caption');
+		if (!cap || typeof cap.animate !== 'function') return null;
+		for (const a of cap.getAnimations?.() ?? []) a.cancel();
+		return cap;
+	}
+
+	/**
+	 * What the flight has to know about the two lines, read in one block: how far
+	 * apart they sit, and the voice each of them is written in.
+	 *
+	 * **The type is measured, not the boxes.** The lightbox holds two lines' worth
+	 * of room open across the group, so a one-line caption sits in the top half of
+	 * its slot — centring the boxes would land the words 10px above the page's own.
+	 * A Range around the contents is the line itself, and it stays right for the
+	 * two-line case as well.
+	 */
+	function captionFlightSpec(cap) {
+		const page = cap && originCaptionEl();
+		if (!page) return null;
+		const d = deltaBetween(textRect(cap), textRect(page));
+		if (!d) return null;
+		const lb = getComputedStyle(cap);
+		return {
+			d,
+			lb: { color: lb.color, textShadow: lb.textShadow },
+			// The page's line carries no shadow, and `none` is a keyword that will not
+			// interpolate — so it is the lightbox's own shadow with the colour taken
+			// out, which lands on the same geometry from the other end.
+			page: { color: getComputedStyle(page).color, textShadow: shadowOff(lb.textShadow) }
+		};
+	}
+
+	function textRect(el) {
+		const range = document.createRange();
+		range.selectNodeContents(el);
+		return range.getBoundingClientRect();
+	}
+
+	/** Computed `text-shadow` always leads with its colour. */
+	function shadowOff(shadow) {
+		return shadow.replace(/^rgba?\([^)]*\)/, 'rgba(0, 0, 0, 0)');
+	}
+
+	/**
+	 * Carry the caption between the two places it is written, in step with the
+	 * photo.
+	 *
+	 * **It changes voice rather than fading.** The two lines are the same family at
+	 * the same 14px and the same weight — the only difference is colour: the page's
+	 * is grey on the article, the lightbox's is white over a scrim with a shadow
+	 * under it. So the copy leaves wearing the page's own voice and takes the
+	 * lightbox's on as the backdrop arrives, and puts it back down as the backdrop
+	 * goes. That is what lets it hold full opacity for the whole flight in both
+	 * directions: it is legible at both ends and every point between, it starts and
+	 * lands with the photo, and at the page end it is pixel-identical to the line it
+	 * came from — which is what makes hiding that line an invisible swap rather than
+	 * a flash.
+	 *
+	 * The window is the backdrop's, not the flight's: measured, the scrim is 55% in
+	 * by 33ms of an open and 88% gone by 67ms of a close, so the voice changes over
+	 * the first quarter going out and the first third coming home. White type left
+	 * on a bright article is the whole failure mode here — its dark halo is all that
+	 * shows, and it reads as a grey smear following the photo home.
+	 *
+	 * The caption also carries its own opacity, which the chrome cannot do for it:
+	 * `.lb-chrome` fades as a whole a beat behind the photo, and opacity multiplies
+	 * down, so a parent at zero cannot be argued with from the child. Setting the
+	 * flag moves that fade onto the pieces it was for — see the `.bottom-flew`
+	 * rules.
+	 */
+	function runCaptionFlight(cap, spec, { home, duration, easing }) {
+		const { d, lb, page } = spec;
+		const awayT = `translate3d(${d.x}px, ${d.y}px, 0)`;
+		const thereT = 'translate3d(0px, 0px, 0)';
+		// Offsets per property: WAAPI interpolates each across only the frames that
+		// name it, so the voice can have its own window while the transform runs the
+		// whole way on the photo's curve.
+		const frames = home
+			? [
+					{ transform: thereT, ...lb },
+					{ ...lb, offset: 0.05 },
+					{ ...page, offset: 0.35 },
+					{ transform: awayT, ...page }
+				]
+			: [
+					{ transform: awayT, ...page },
+					{ ...lb, offset: 0.12 },
+					{ transform: thereT, ...lb }
+				];
+		if (home) bottomFlyingHome = true;
+		else bottomFlew = true;
+		cap.animate(frames, { duration, easing, fill: home ? 'forwards' : 'backwards' });
+		// Only going out: coming home the page's line stays down until the copy has
+		// landed on it, and the photo's own `onfinish` hands both back together.
+		if (!home) hideOriginCaption(originCaptionEl());
+	}
+
+	/**
 	 * A dismiss drag moves the strip, not the photo. Unwind it and hand the
 	 * distance to the photo's first keyframe, so one animation carries the whole
 	 * journey rather than two transforms fighting over the same pixels.
@@ -555,6 +815,11 @@
 		for (const a of root.querySelector('.lb-stage')?.getAnimations?.() ?? []) a.cancel();
 		const f = deltaBetween(to.getBoundingClientRect(), base);
 		if (!f) return;
+		// Measured here, with the photo's own boxes and before anything is animated.
+		const cap = restingCaption(root);
+		const capFrom = captionFlightSpec(cap);
+		const steps = restingSteps(root);
+		const stepsFrom = stepsDelta(steps);
 		flew = true;
 		flight.cancel();
 		flight.run(
@@ -564,6 +829,18 @@
 			'backwards',
 			springOr(FLIGHT_EASE, SPRING_IN)
 		);
+		if (capFrom)
+			runCaptionFlight(cap, capFrom, {
+				home: false,
+				duration: FLIGHT_IN_MS,
+				easing: springOr(FLIGHT_EASE, SPRING_IN)
+			});
+		if (stepsFrom)
+			runStepsFlight(steps, stepsFrom, {
+				home: false,
+				duration: FLIGHT_IN_MS,
+				easing: springOr(FLIGHT_EASE, SPRING_IN)
+			});
 	}
 
 	/**
@@ -607,10 +884,16 @@
 			dragY = 0;
 		}
 		freezeTrack();
+		// A write too — an open flight may still be on the caption, and it has to
+		// come off before the box below is measured.
+		const cap = restingCaption(rootEl);
+		const steps = restingSteps(rootEl);
 
 		// ...and now the photo's own layout box, with every transform off it.
 		const base = img.getBoundingClientRect();
 		const homeRect = to.getBoundingClientRect();
+		const capHome = captionFlightSpec(cap);
+		const stepsHome = stepsDelta(steps);
 		const from = deltaBetween(base, cur);
 		const home = deltaBetween(base, homeRect);
 		if (!from || !home) return false;
@@ -624,11 +907,26 @@
 			springOr(FLIGHT_EASE, SPRING_HOME),
 			() => {
 				// The instant the flying copy lands, not after Svelte unmounts: the two
-				// overlap exactly, so the swap is invisible.
+				// overlap exactly, so the swap is invisible. True of the caption as well
+				// by then — it has put the page's own voice back on during the trip.
 				showOrigin();
+				restoreOriginCaption();
+				restoreOriginSteps();
 				lightboxStore.set(null);
 			}
 		);
+		if (capHome)
+			runCaptionFlight(cap, capHome, {
+				home: true,
+				duration,
+				easing: springOr(FLIGHT_EASE, SPRING_HOME)
+			});
+		if (stepsHome)
+			runStepsFlight(steps, stepsHome, {
+				home: true,
+				duration,
+				easing: springOr(FLIGHT_EASE, SPRING_HOME)
+			});
 		// A cancelled or dropped animation must not strand the lightbox open.
 		scheduleClose(duration + 120);
 		liftChromeOnApproach(img, homeRect);
@@ -636,11 +934,13 @@
 	}
 
 	// Keep exactly one page-side image hidden: the one the lightbox is showing,
-	// which is also the one it will fly back to.
+	// which is also the one it will fly back to. Its caption goes with it, so
+	// paging out of a captioned image gives the article's line back.
 	$effect(() => {
 		if (!visible) return;
 		const el = originEl();
 		if (el) hideOrigin(el);
+		if (bottomFlew) hideOriginCaption(originCaptionEl());
 	});
 
 	// --- pointer gestures -----------------------------------------------------
@@ -1112,8 +1412,11 @@
 
 	// Only the flat scrim's alpha follows the drag. See the note on `.lb-blur`.
 	const scrimOpacity = $derived(closing || dismissing ? 0 : 1 - dismissProgress * 0.8);
+	// The exit is held off the chrome while a caption is flying home inside it —
+	// the pieces take it themselves, so the caption stays legible until it lands
+	// rather than being faded out from above at 200ms of a 260ms flight.
 	const chromeOpacity = $derived(
-		closing || dismissing ? 0 : Math.max(0, 1 - dismissProgress * 2.4)
+		(closing || dismissing) && !bottomFlyingHome ? 0 : Math.max(0, 1 - dismissProgress * 2.4)
 	);
 
 	const dialogLabel = $derived(
@@ -1134,6 +1437,8 @@
 		class:zoomed={scale > 1}
 		class:flew
 		class:flying-home={flyingHome}
+		class:bottom-flew={bottomFlew}
+		class:bottom-flying-home={bottomFlyingHome}
 		class:dragging
 		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
 		style:--lb-spring={springOr(null, SPRING_IN)}
@@ -1607,6 +1912,39 @@
 		transition: none;
 	}
 
+	/* A caption flying from the line the page already shows cannot wait for the
+	   chrome. Opacity multiplies down, so a parent at zero cannot be argued with
+	   from the child: for the 70ms the chrome waits and most of the 300ms it takes
+	   to arrive, the caption is simply not on screen. On a phone that is 25px of
+	   travel and invisible either way — on a wide screen the caption's path is ten
+	   times as long and the missing stretch is exactly the part that crosses the
+	   photo, so the line looks like it comes out from behind the picture instead
+	   of off the page.
+
+	   So the fade comes off the chrome and goes to the pieces it was always for:
+	   the controls and the two long scrims. The caption's entrance is its flight.
+	   A class can do what the stage's entrance could not, because this only has to
+	   be true by the first *paint*, not by the measurement a flush earlier. */
+	.lb-root.bottom-flew .lb-chrome {
+		animation: none;
+	}
+
+	.lb-root.bottom-flew .lb-btn,
+	.lb-root.bottom-flew .lb-steps,
+	.lb-root.bottom-flew .lb-chrome::before,
+	.lb-root.bottom-flew .lb-chrome::after {
+		animation: lb-fade-in 0.3s var(--ease-out) 0.07s backwards;
+	}
+
+	/* Coming home, the same in reverse: `chromeOpacity` holds the chrome at 1 for
+	   the flight and the pieces take the exit themselves. */
+	.lb-root.bottom-flying-home .lb-btn,
+	.lb-root.bottom-flying-home .lb-steps,
+	.lb-root.bottom-flying-home .lb-chrome::before,
+	.lb-root.bottom-flying-home .lb-chrome::after {
+		animation: lb-fade-out 0.2s var(--ease-out) forwards;
+	}
+
 	.lb-btn {
 		position: absolute;
 		width: 2.5rem;
@@ -1698,9 +2036,20 @@
 		padding: 0 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
 	}
 
+	/* The flying caption crosses whatever lies between the two places the line is
+	   written, and in a group that is a stepper at each end: the lightbox's, and
+	   the strip's own down on the page. Over the page's it wins by being in the
+	   dialog; under the lightbox's it lost, because `Stepper` is positioned and a
+	   positioned element paints above the inline text of a sibling that is not,
+	   whatever the DOM order says. So the same trip went over one pill row and
+	   under the other. It is one line of type moving: it belongs on top of both.
+	   Unconditional — at rest the two are stacked in a flex column and never
+	   overlap, so this only decides the moments they do. */
 	.lb-caption-slot {
 		display: grid;
 		max-width: min(60ch, 100%);
+		position: relative;
+		z-index: 1;
 	}
 
 	.lb-caption {
@@ -1722,15 +2071,30 @@
 		   chrome's height reserves room for the photo, so a caption that wrapped
 		   where its neighbour did not resized the photo mid-slide. */
 		min-height: 2.9em;
-		animation: lb-caption-in 0.2s var(--ease-out) both;
+		animation: lb-caption-in 0.28s var(--ease-out) both;
 	}
 
+	/* The caption resolves rather than appears: it comes up out of focus and
+	   settles, which reads as the photo's own label catching up with it. The
+	   blur is on one short line of text and nothing else, so it costs nothing
+	   next to the backdrop. `will-change` is deliberately absent — the layer
+	   would be promoted for the whole open to serve 280ms.
+
+	   Small, and spent early. At 14px a radius that would be a soft focus on a
+	   photograph pulls the glyphs apart instead, and blurs the text-shadow into
+	   them until white type and its dark halo average out to grey. It is gone by
+	   the third of the way that the line is still faint over. */
 	@keyframes lb-caption-in {
 		from {
 			opacity: 0;
+			filter: blur(2px);
+		}
+		35% {
+			filter: blur(0);
 		}
 		to {
 			opacity: 1;
+			filter: blur(0);
 		}
 	}
 

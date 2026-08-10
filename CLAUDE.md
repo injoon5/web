@@ -344,6 +344,82 @@ full-screen**, and back to wherever that image sits when you close.
 - Shadow and rounded corners are shed on the way home, and the page's copy is
   handed back from the flight's `onfinish` rather than the portal's teardown, so
   the swap is invisible.
+- **The caption travels with the photo.** A captioned image already has that line
+  on the page — `rehype-figure`'s `<figcaption>` for an article image, the
+  strip's own for a gallery — so the lightbox's caption flies from it on open and
+  back to it on close, measured in the same read blocks as the photo's flight.
+  A **translation and nothing else**: the two are the same family at the same
+  14px and the same weight, and scaling type is the one part of a shared-element
+  move that always goes soft.
+  **The type is measured, not the boxes.** The lightbox holds two lines' worth of
+  room open across the group, so a one-line caption sits in the top half of its
+  slot — centring the boxes landed the words 10px above the page's own. A `Range`
+  around the contents is the line itself, and it stays right for two lines too.
+  **It changes voice rather than fading.** The only difference between the two is
+  colour: the page's line is grey on the article, the lightbox's is white over a
+  scrim with a shadow under it. So the copy leaves wearing the page's own voice
+  and takes the lightbox's on as the backdrop arrives, putting it back down as the
+  backdrop goes. Both are read off `getComputedStyle`, so dark mode needs no
+  second answer, and `none` is not interpolable — the page end is the lightbox's
+  own shadow with the colour taken out.
+  That is what lets it hold **full opacity for the whole flight in both
+  directions**: it is legible at both ends and every point between, it starts and
+  lands with the photo, and at the page end it is pixel-identical to the line it
+  came from — which makes hiding that line a swap, exactly like the photo's, and
+  not a flash.
+  **The window is the backdrop's, not the flight's.** Measured, the scrim is 55%
+  in by 33ms of an open and 88% _gone_ by 67ms of a close, while the spring's own
+  progress at 17ms is 5.8% — so keying the voice to travel lags the light. It
+  changes over the first 12% going out and the first 35% coming home. White type
+  left on a bright article is the whole failure mode: its dark halo is all that
+  shows, and it reads as a grey smear following the photo home.
+  `restingCaption` cancels whatever is on the caption before it is measured: the
+  per-slide reveal is a `both`-filled CSS animation, in effect from the moment
+  the element is styled, and an interrupted open flight is still on it. Paging
+  keeps that reveal — a caption arriving mid-group has no page-side line to come
+  from, and its blur is 2px: at 14px a radius that would be a soft focus on a
+  photograph pulls the glyphs apart, and blurs the `text-shadow` into them until
+  white type and its dark halo average out to grey mush.
+  `restoreOriginCaption` runs from the photo flight's `onfinish`, beside
+  `showOrigin`, and from the portal's teardown for the close that never flew.
+- **The stepper travels too.** It is the same indicator for the same group in
+  two places, and both are the same row of pills — neither side overrides
+  `--pill-dot-size`, `--pill-active-width` or `--pill-gap` — so the lightbox's
+  flies to and from the strip's on the photo's own curve. The capsule is
+  measured, not the box around it: the strip's wrapper spans the article's width
+  and the lightbox's shrinks to its pills, and centring _those_ puts the row
+  1.5px out.
+  **Its hand-over is a crossfade where the caption's is a swap.** What separates
+  the two is a palette, and a palette is custom properties, which do not
+  interpolate unless registered — and which pasito's own 500ms `background`
+  transition would chase if they did. **The dissolve has to wait until the two
+  are on the same spot:** this spring spends its last 7% of distance over 75ms,
+  so at 90% the two rows are 11px apart and dissolving through each other reads
+  as a smear. It runs over the last 3% going home (under 4px) and the first 6%
+  going out. `data-lightbox-steps` is the whole contract: neither component
+  imports the other, the same way the header is told to raise itself.
+  The strip's row also has to stay down while the **caption's** glyphs cross it —
+  measured, they are over the dots from 100ms to about 170ms of a 260ms trip home,
+  and a row of pills punched through the middle of the type is the whole of what
+  that looks like. It clears at 92%, which the 97% hand-over sits safely after.
+  **`.lb-caption-slot` carries a `z-index`** because `Stepper` is positioned, and
+  a positioned element paints above the inline text of a sibling that is not,
+  whatever the DOM order says — so the same trip went over the page's pill row
+  and under the lightbox's own. It is one line of type moving: it belongs on top
+  of both.
+- **The chrome's fade cannot be over the pieces that fly.** The caption
+  lives inside `.lb-chrome`, which fades in as a whole a beat behind the photo
+  (and out over 200ms of a 260ms flight home) — and opacity multiplies down, so a
+  parent at zero cannot be argued with from the child. The caption was invisible
+  for the first 90ms of its flight. On a phone that is 25px of travel and nobody
+  sees it; on a wide screen the path is ten times as long and the missing stretch
+  is exactly the part that crosses the photo, so the line appeared to come out
+  from _behind_ the picture. `.bottom-flew` / `.bottom-flying-home` take the
+  fade off the chrome and give it to the pieces it was always for — the controls
+  and the two scrims — so the caption's own opacity is the only one over it, and
+  that one never leaves 1. A class is enough here, unlike the stage's entrance:
+  this only has to be true by the first _paint_, not by a measurement a flush
+  earlier.
 
 ### Nothing may be in effect on the box the flight is measured against
 
