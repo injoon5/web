@@ -359,6 +359,20 @@ full-screen**, and back to wherever that image sits when you close.
   the element is styled, and an interrupted open flight is still on it. Paging
   keeps that reveal — a caption arriving mid-group has no page-side line to come
   from.
+- **The chrome's fade cannot be over the caption while it flies.** The caption
+  lives inside `.lb-chrome`, which fades in as a whole a beat behind the photo
+  (and out over 200ms of a 260ms flight home) — and opacity multiplies down, so a
+  parent at zero cannot be argued with from the child. The caption was invisible
+  for the first 90ms of its flight. On a phone that is 25px of travel and nobody
+  sees it; on a wide screen the path is ten times as long and the missing stretch
+  is exactly the part that crosses the photo, so the line appeared to come out
+  from _behind_ the picture. `.caption-flew` / `.caption-flying-home` take the
+  fade off the chrome and give it to the pieces it was always for — the controls
+  and the two scrims — and the caption carries its own opacity in its flight
+  keyframes: up with the backdrop on the way out, held until it is nearly home
+  and then out onto the page's own line. A class is enough here, unlike the
+  stage's entrance: this only has to be true by the first _paint_, not by a
+  measurement a flush earlier.
 
 ### Nothing may be in effect on the box the flight is measured against
 

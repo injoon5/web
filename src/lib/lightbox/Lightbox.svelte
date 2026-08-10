@@ -87,6 +87,13 @@
 	let flew = $state(false);
 	/** A flight home is running, so the stage's exit stays off for it. */
 	let flyingHome = $state(false);
+	/**
+	 * A caption is flying to or from the line the page already shows, so the
+	 * chrome's own fade is off it and on the pieces that fade was for. See the
+	 * `.caption-flew` rules.
+	 */
+	let captionFlew = $state(false);
+	let captionFlyingHome = $state(false);
 	let closeBtn = $state(null);
 	/** Measured, so the image box reserves exactly the room the chrome uses. */
 	let bottomH = $state(0);
@@ -250,6 +257,8 @@
 			dismissing = false;
 			flew = false;
 			flyingHome = false;
+			captionFlew = false;
+			captionFlyingHome = false;
 			visible = true;
 		} else {
 			visible = false;
@@ -561,17 +570,34 @@
 	 * scrim, so it resolves into its new setting instead of changing colour in
 	 * mid-air.
 	 *
-	 * Opacity is deliberately untouched. `.lb-chrome` already fades as a whole in
-	 * both directions, and a second opacity on the caption only fights it.
+	 * The caption carries its own opacity here, which the chrome cannot do for it:
+	 * `.lb-chrome` fades in as a whole a beat behind the photo, and opacity
+	 * multiplies down, so a parent at zero cannot be argued with from the child.
+	 * Setting the flag moves that fade onto the pieces it was for — see the
+	 * `.caption-flew` rules.
+	 *
+	 * Going out it ramps up with the backdrop, so white type is never sitting on
+	 * the still-lit article. Coming home it holds until it is nearly there and
+	 * then goes out onto the page's own line, which is underneath it the whole way
+	 * in the article's own colour.
 	 */
 	function runCaptionFlight(cap, d, { home, duration, easing }) {
 		const away = { transform: `translate3d(${d.x}px, ${d.y}px, 0)`, filter: 'blur(4px)' };
 		const there = { transform: 'translate3d(0px, 0px, 0)', filter: 'blur(0px)' };
-		cap.animate(home ? [there, away] : [away, there], {
-			duration,
-			easing,
-			fill: home ? 'forwards' : 'backwards'
-		});
+		const frames = home
+			? [
+					{ ...there, opacity: 1 },
+					{ opacity: 1, offset: 0.45 },
+					{ ...away, opacity: 0 }
+				]
+			: [
+					{ ...away, opacity: 0 },
+					{ opacity: 1, offset: 0.3 },
+					{ ...there, opacity: 1 }
+				];
+		if (home) captionFlyingHome = true;
+		else captionFlew = true;
+		cap.animate(frames, { duration, easing, fill: home ? 'forwards' : 'backwards' });
 	}
 
 	/**
@@ -1188,8 +1214,11 @@
 
 	// Only the flat scrim's alpha follows the drag. See the note on `.lb-blur`.
 	const scrimOpacity = $derived(closing || dismissing ? 0 : 1 - dismissProgress * 0.8);
+	// The exit is held off the chrome while a caption is flying home inside it —
+	// the pieces take it themselves, so the caption stays legible until it lands
+	// rather than being faded out from above at 200ms of a 260ms flight.
 	const chromeOpacity = $derived(
-		closing || dismissing ? 0 : Math.max(0, 1 - dismissProgress * 2.4)
+		(closing || dismissing) && !captionFlyingHome ? 0 : Math.max(0, 1 - dismissProgress * 2.4)
 	);
 
 	const dialogLabel = $derived(
@@ -1210,6 +1239,8 @@
 		class:zoomed={scale > 1}
 		class:flew
 		class:flying-home={flyingHome}
+		class:caption-flew={captionFlew}
+		class:caption-flying-home={captionFlyingHome}
 		class:dragging
 		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
 		style:--lb-spring={springOr(null, SPRING_IN)}
@@ -1681,6 +1712,39 @@
 
 	.lb-root.dragging .lb-chrome {
 		transition: none;
+	}
+
+	/* A caption flying from the line the page already shows cannot wait for the
+	   chrome. Opacity multiplies down, so a parent at zero cannot be argued with
+	   from the child: for the 70ms the chrome waits and most of the 300ms it takes
+	   to arrive, the caption is simply not on screen. On a phone that is 25px of
+	   travel and invisible either way — on a wide screen the caption's path is ten
+	   times as long and the missing stretch is exactly the part that crosses the
+	   photo, so the line looks like it comes out from behind the picture instead
+	   of off the page.
+
+	   So the fade comes off the chrome and goes to the pieces it was always for:
+	   the controls and the two long scrims. The caption's entrance is its flight.
+	   A class can do what the stage's entrance could not, because this only has to
+	   be true by the first *paint*, not by the measurement a flush earlier. */
+	.lb-root.caption-flew .lb-chrome {
+		animation: none;
+	}
+
+	.lb-root.caption-flew .lb-btn,
+	.lb-root.caption-flew .lb-steps,
+	.lb-root.caption-flew .lb-chrome::before,
+	.lb-root.caption-flew .lb-chrome::after {
+		animation: lb-fade-in 0.3s var(--ease-out) 0.07s backwards;
+	}
+
+	/* Coming home, the same in reverse: `chromeOpacity` holds the chrome at 1 for
+	   the flight and the pieces take the exit themselves. */
+	.lb-root.caption-flying-home .lb-btn,
+	.lb-root.caption-flying-home .lb-steps,
+	.lb-root.caption-flying-home .lb-chrome::before,
+	.lb-root.caption-flying-home .lb-chrome::after {
+		animation: lb-fade-out 0.2s var(--ease-out) forwards;
 	}
 
 	.lb-btn {
