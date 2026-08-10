@@ -348,32 +348,40 @@ full-screen**, and back to wherever that image sits when you close.
   on the page — `rehype-figure`'s `<figcaption>` for an article image, the
   strip's own for a gallery — so the lightbox's caption flies from it on open and
   back to it on close, measured in the same read blocks as the photo's flight.
-  A **translation and nothing else**: both are centred and set at the same size,
-  and scaling type is the one part of a shared-element move that always goes
-  soft. The blur carries the change of voice instead — the page's line is dark
-  type in the article and the lightbox's is white over a scrim, so it resolves
-  into its new setting rather than switching colour in mid-air. **It is 2px and
-  spent inside the first 20%.** Type is not a photograph: at 14px a radius that
-  would be a soft focus on an image pulls the glyphs apart, and it blurs the
-  `text-shadow` into them until white type and its dark halo average out to grey
-  mush. It lives inside the opacity ramp, so softness only ever shows on a line
-  that is still faint.
-  **The page's own line fades out under the copy that is flying** — the way the
-  article's photo is hidden for the photo, but faded rather than swapped: two
-  images are the same pixels and hand over invisibly, two captions are the same
-  words in two colours and an instant hand-over is a flash. Left alone they are
-  simply two lines, 45px apart and both sharp, a beat into the flight. The fade
-  sits in the same ends the flying copy's does, so the pair sums to one caption
-  at full strength and they are only both up while they overlap.
-  `restoreOriginCaption` runs from the portal's teardown as well: a close that
-  never flew home would otherwise leave the article's line under a `forwards`
-  fill at zero, and nothing else would put it back. Opacity is left
-  to `.lb-chrome`, which already fades as a whole in both directions.
+  A **translation and nothing else**: the two are the same family at the same
+  14px and the same weight, and scaling type is the one part of a shared-element
+  move that always goes soft.
+  **The type is measured, not the boxes.** The lightbox holds two lines' worth of
+  room open across the group, so a one-line caption sits in the top half of its
+  slot — centring the boxes landed the words 10px above the page's own. A `Range`
+  around the contents is the line itself, and it stays right for two lines too.
+  **It changes voice rather than fading.** The only difference between the two is
+  colour: the page's line is grey on the article, the lightbox's is white over a
+  scrim with a shadow under it. So the copy leaves wearing the page's own voice
+  and takes the lightbox's on as the backdrop arrives, putting it back down as the
+  backdrop goes. Both are read off `getComputedStyle`, so dark mode needs no
+  second answer, and `none` is not interpolable — the page end is the lightbox's
+  own shadow with the colour taken out.
+  That is what lets it hold **full opacity for the whole flight in both
+  directions**: it is legible at both ends and every point between, it starts and
+  lands with the photo, and at the page end it is pixel-identical to the line it
+  came from — which makes hiding that line a swap, exactly like the photo's, and
+  not a flash.
+  **The window is the backdrop's, not the flight's.** Measured, the scrim is 55%
+  in by 33ms of an open and 88% _gone_ by 67ms of a close, while the spring's own
+  progress at 17ms is 5.8% — so keying the voice to travel lags the light. It
+  changes over the first 12% going out and the first 35% coming home. White type
+  left on a bright article is the whole failure mode: its dark halo is all that
+  shows, and it reads as a grey smear following the photo home.
   `restingCaption` cancels whatever is on the caption before it is measured: the
   per-slide reveal is a `both`-filled CSS animation, in effect from the moment
   the element is styled, and an interrupted open flight is still on it. Paging
   keeps that reveal — a caption arriving mid-group has no page-side line to come
-  from.
+  from, and its blur is 2px: at 14px a radius that would be a soft focus on a
+  photograph pulls the glyphs apart, and blurs the `text-shadow` into them until
+  white type and its dark halo average out to grey mush.
+  `restoreOriginCaption` runs from the photo flight's `onfinish`, beside
+  `showOrigin`, and from the portal's teardown for the close that never flew.
 - **The chrome's fade cannot be over the caption while it flies.** The caption
   lives inside `.lb-chrome`, which fades in as a whole a beat behind the photo
   (and out over 200ms of a 260ms flight home) — and opacity multiplies down, so a
@@ -383,11 +391,10 @@ full-screen**, and back to wherever that image sits when you close.
   is exactly the part that crosses the photo, so the line appeared to come out
   from _behind_ the picture. `.caption-flew` / `.caption-flying-home` take the
   fade off the chrome and give it to the pieces it was always for — the controls
-  and the two scrims — and the caption carries its own opacity in its flight
-  keyframes: up with the backdrop on the way out, held until it is nearly home
-  and then out onto the page's own line. A class is enough here, unlike the
-  stage's entrance: this only has to be true by the first _paint_, not by a
-  measurement a flush earlier.
+  and the two scrims — so the caption's own opacity is the only one over it, and
+  that one never leaves 1. A class is enough here, unlike the stage's entrance:
+  this only has to be true by the first _paint_, not by a measurement a flush
+  earlier.
 
 ### Nothing may be in effect on the box the flight is measured against
 

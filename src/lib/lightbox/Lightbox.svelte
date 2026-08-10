@@ -542,34 +542,24 @@
 	}
 
 	/**
-	 * The page's own line gets out of the way for the copy that is flying, the way
-	 * the article's photo does for the photo — but faded rather than swapped. The
-	 * two images are the same pixels and hand over invisibly; these are the same
-	 * words in two different colours, and an instant hand-over is a flash. Left
-	 * alone they are simply two lines: a beat into the flight the flying copy is
-	 * 45px clear of the one on the page, and both are sharp.
-	 *
-	 * The fade sits inside the same ends the flying copy's own does, so at every
-	 * moment there is one caption at full strength — they are only ever both up
-	 * while they overlap.
+	 * The page's own line steps aside for the copy that is flying, exactly the way
+	 * the article's photo does for the photo — and it can be a swap rather than a
+	 * fade because the copy leaves wearing the page's own voice. `visibility`, not
+	 * `display`: this box is what the flight was measured against.
 	 */
 	let hiddenCaption = null;
 
-	function fadeOriginCaption(page, { home, duration, easing }) {
-		if (!page || typeof page.animate !== 'function') return;
-		if (hiddenCaption && hiddenCaption !== page) restoreOriginCaption();
-		hiddenCaption = page;
-		page.animate(
-			home
-				? [{ opacity: 0 }, { opacity: 0, offset: 0.85 }, { opacity: 1 }]
-				: [{ opacity: 1 }, { opacity: 0, offset: 0.15 }, { opacity: 0 }],
-			{ duration, easing, fill: 'forwards' }
-		);
+	function hideOriginCaption(page) {
+		if (hiddenCaption?.el === page) return;
+		restoreOriginCaption();
+		if (!page) return;
+		hiddenCaption = { el: page, visibility: page.style.visibility };
+		page.style.visibility = 'hidden';
 	}
 
 	function restoreOriginCaption() {
 		if (!hiddenCaption) return;
-		for (const a of hiddenCaption.getAnimations?.() ?? []) a.cancel();
+		hiddenCaption.el.style.visibility = hiddenCaption.visibility;
 		hiddenCaption = null;
 	}
 
@@ -588,73 +578,94 @@
 	}
 
 	/**
-	 * How far the lightbox's caption sits from the page's. A translation and
-	 * nothing else: the two are the same size, and scaling type is the one part of
-	 * a shared-element move that always goes soft.
+	 * What the flight has to know about the two lines, read in one block: how far
+	 * apart they sit, and the voice each of them is written in.
+	 *
+	 * **The type is measured, not the boxes.** The lightbox holds two lines' worth
+	 * of room open across the group, so a one-line caption sits in the top half of
+	 * its slot — centring the boxes would land the words 10px above the page's own.
+	 * A Range around the contents is the line itself, and it stays right for the
+	 * two-line case as well.
 	 */
-	function captionDelta(cap) {
+	function captionFlightSpec(cap) {
 		const page = cap && originCaptionEl();
 		if (!page) return null;
-		return deltaBetween(cap.getBoundingClientRect(), page.getBoundingClientRect());
+		const d = deltaBetween(textRect(cap), textRect(page));
+		if (!d) return null;
+		const lb = getComputedStyle(cap);
+		return {
+			d,
+			lb: { color: lb.color, textShadow: lb.textShadow },
+			// The page's line carries no shadow, and `none` is a keyword that will not
+			// interpolate — so it is the lightbox's own shadow with the colour taken
+			// out, which lands on the same geometry from the other end.
+			page: { color: getComputedStyle(page).color, textShadow: shadowOff(lb.textShadow) }
+		};
+	}
+
+	function textRect(el) {
+		const range = document.createRange();
+		range.selectNodeContents(el);
+		return range.getBoundingClientRect();
+	}
+
+	/** Computed `text-shadow` always leads with its colour. */
+	function shadowOff(shadow) {
+		return shadow.replace(/^rgba?\([^)]*\)/, 'rgba(0, 0, 0, 0)');
 	}
 
 	/**
 	 * Carry the caption between the two places it is written, in step with the
-	 * photo. The blur is what makes that one line moving rather than two swapped:
-	 * the page's is dark type in the article and the lightbox's is white over a
-	 * scrim, so it resolves into its new setting instead of changing colour in
-	 * mid-air.
+	 * photo.
 	 *
-	 * The caption carries its own opacity here, which the chrome cannot do for it:
-	 * `.lb-chrome` fades in as a whole a beat behind the photo, and opacity
-	 * multiplies down, so a parent at zero cannot be argued with from the child.
-	 * Setting the flag moves that fade onto the pieces it was for — see the
-	 * `.caption-flew` rules.
+	 * **It changes voice rather than fading.** The two lines are the same family at
+	 * the same 14px and the same weight — the only difference is colour: the page's
+	 * is grey on the article, the lightbox's is white over a scrim with a shadow
+	 * under it. So the copy leaves wearing the page's own voice and takes the
+	 * lightbox's on as the backdrop arrives, and puts it back down as the backdrop
+	 * goes. That is what lets it hold full opacity for the whole flight in both
+	 * directions: it is legible at both ends and every point between, it starts and
+	 * lands with the photo, and at the page end it is pixel-identical to the line it
+	 * came from — which is what makes hiding that line an invisible swap rather than
+	 * a flash.
 	 *
-	 * **The opacity is kept clear of the travel.** The duration and the easing are
-	 * the photo's own, so the two are in lockstep to the pixel — but a line that
-	 * is transparent for the first third of the way out, or gone before the photo
-	 * lands, is one the eye sees start late and stop early, and that is the same
-	 * complaint as moving at a different rate. So the ramps are pushed into the
-	 * ends: up within the first 8% going out, which is under two frames and only
-	 * there because white type would otherwise sit for one frame on an article the
-	 * backdrop has not covered yet; held to 85% coming home, so it goes out onto
-	 * the page's own line — underneath it the whole way, in the article's colour —
-	 * as the photo reaches its box rather than well before it.
+	 * The window is the backdrop's, not the flight's: measured, the scrim is 55% in
+	 * by 33ms of an open and 88% gone by 67ms of a close, so the voice changes over
+	 * the first quarter going out and the first third coming home. White type left
+	 * on a bright article is the whole failure mode here — its dark halo is all that
+	 * shows, and it reads as a grey smear following the photo home.
 	 *
-	 * **And the blur sits inside those ramps.** Type is not a photograph: this line
-	 * is 14px, so a radius that would be a soft focus on an image is a smear that
-	 * takes the glyphs apart — and it takes the `text-shadow` with them, so white
-	 * type and its dark halo average out to grey mush. It is small (2px, a seventh
-	 * of the em) and it is spent inside the same 20% the opacity ramp covers, so
-	 * the softness only ever shows on a line that is still faint. Once the caption
-	 * is legible it is sharp, for the whole of the travel that matters.
+	 * The caption also carries its own opacity, which the chrome cannot do for it:
+	 * `.lb-chrome` fades as a whole a beat behind the photo, and opacity multiplies
+	 * down, so a parent at zero cannot be argued with from the child. Setting the
+	 * flag moves that fade onto the pieces it was for — see the `.caption-flew`
+	 * rules.
 	 */
-	const CAPTION_BLUR = 'blur(2px)';
-
-	function runCaptionFlight(cap, d, { home, duration, easing }) {
+	function runCaptionFlight(cap, spec, { home, duration, easing }) {
+		const { d, lb, page } = spec;
 		const awayT = `translate3d(${d.x}px, ${d.y}px, 0)`;
 		const thereT = 'translate3d(0px, 0px, 0)';
-		// Offsets per property: WAAPI interpolates each one across only the frames
-		// that name it, which is what lets opacity and blur have their own shapes
-		// while the transform runs the whole way on the photo's curve.
+		// Offsets per property: WAAPI interpolates each across only the frames that
+		// name it, so the voice can have its own window while the transform runs the
+		// whole way on the photo's curve.
 		const frames = home
 			? [
-					{ transform: thereT, filter: 'blur(0px)', opacity: 1 },
-					{ filter: 'blur(0px)', offset: 0.8 },
-					{ opacity: 1, offset: 0.85 },
-					{ transform: awayT, filter: CAPTION_BLUR, opacity: 0 }
+					{ transform: thereT, ...lb },
+					{ ...lb, offset: 0.05 },
+					{ ...page, offset: 0.35 },
+					{ transform: awayT, ...page }
 				]
 			: [
-					{ transform: awayT, filter: CAPTION_BLUR, opacity: 0 },
-					{ opacity: 1, offset: 0.08 },
-					{ filter: 'blur(0px)', offset: 0.2 },
-					{ transform: thereT, filter: 'blur(0px)', opacity: 1 }
+					{ transform: awayT, ...page },
+					{ ...lb, offset: 0.12 },
+					{ transform: thereT, ...lb }
 				];
 		if (home) captionFlyingHome = true;
 		else captionFlew = true;
 		cap.animate(frames, { duration, easing, fill: home ? 'forwards' : 'backwards' });
-		fadeOriginCaption(originCaptionEl(), { home, duration, easing });
+		// Only going out: coming home the page's line stays down until the copy has
+		// landed on it, and the photo's own `onfinish` hands both back together.
+		if (!home) hideOriginCaption(originCaptionEl());
 	}
 
 	/**
@@ -697,7 +708,7 @@
 		if (!f) return;
 		// Measured here, with the photo's own boxes and before anything is animated.
 		const cap = restingCaption(root);
-		const capFrom = captionDelta(cap);
+		const capFrom = captionFlightSpec(cap);
 		flew = true;
 		flight.cancel();
 		flight.run(
@@ -763,7 +774,7 @@
 		// ...and now the photo's own layout box, with every transform off it.
 		const base = img.getBoundingClientRect();
 		const homeRect = to.getBoundingClientRect();
-		const capHome = captionDelta(cap);
+		const capHome = captionFlightSpec(cap);
 		const from = deltaBetween(base, cur);
 		const home = deltaBetween(base, homeRect);
 		if (!from || !home) return false;
@@ -777,8 +788,10 @@
 			springOr(FLIGHT_EASE, SPRING_HOME),
 			() => {
 				// The instant the flying copy lands, not after Svelte unmounts: the two
-				// overlap exactly, so the swap is invisible.
+				// overlap exactly, so the swap is invisible. True of the caption as well
+				// by then — it has put the page's own voice back on during the trip.
 				showOrigin();
+				restoreOriginCaption();
 				lightboxStore.set(null);
 			}
 		);
@@ -795,11 +808,13 @@
 	}
 
 	// Keep exactly one page-side image hidden: the one the lightbox is showing,
-	// which is also the one it will fly back to.
+	// which is also the one it will fly back to. Its caption goes with it, so
+	// paging out of a captioned image gives the article's line back.
 	$effect(() => {
 		if (!visible) return;
 		const el = originEl();
 		if (el) hideOrigin(el);
+		if (captionFlew) hideOriginCaption(originCaptionEl());
 	});
 
 	// --- pointer gestures -----------------------------------------------------
