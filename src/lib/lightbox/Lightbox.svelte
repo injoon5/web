@@ -436,6 +436,7 @@
 				// A close that never flew home leaves the page's line faded out under
 				// a `forwards` fill; nothing else would ever put it back.
 				restoreOriginCaption();
+				restoreOriginSteps();
 				dropChromeLift();
 				node.remove();
 				flew = false;
@@ -541,6 +542,10 @@
 		return cap?.textContent?.trim() ? cap : null;
 	}
 
+	function originStepsEl() {
+		return originEl()?.closest('figure')?.querySelector('[data-lightbox-steps]') ?? null;
+	}
+
 	/**
 	 * The page's own line steps aside for the copy that is flying, exactly the way
 	 * the article's photo does for the photo — and it can be a swap rather than a
@@ -561,6 +566,44 @@
 		if (!hiddenCaption) return;
 		hiddenCaption.el.style.visibility = hiddenCaption.visibility;
 		hiddenCaption = null;
+	}
+
+	/**
+	 * The strip's own dots, which lie between the two places this group's caption
+	 * is written and are the one thing the flight has to cross. Measured, the
+	 * caption is on top of them from 100ms to past 150ms of a 260ms trip home, and
+	 * a row of dots punched through the middle of the glyphs is the whole of what
+	 * that looks like.
+	 *
+	 * They describe the very group the lightbox has taken over and is already
+	 * showing a stepper for, so they step aside for the trip. A fade, not the
+	 * caption's instant swap: unlike the line above them they have no flying copy
+	 * to hand over to, and going out under the arriving backdrop is what keeps
+	 * their leaving invisible. They are back before the caption lands.
+	 */
+	let hiddenSteps = null;
+
+	function fadeOriginSteps(steps, { home, duration, easing }) {
+		if (!steps || typeof steps.animate !== 'function') return;
+		if (hiddenSteps && hiddenSteps !== steps) restoreOriginSteps();
+		hiddenSteps = steps;
+		steps.animate(
+			home
+				? // Held down until the type is past them. The glyphs are over the dots
+					// from 100ms to about 170ms of the way home, which on this spring is
+					// 57% to 92% of the trip; the rest of the way back is still 95ms of
+					// real time, so they rise as the caption lands rather than popping in
+					// behind it.
+					[{ opacity: 0 }, { opacity: 0, offset: 0.9 }, { opacity: 1 }]
+				: [{ opacity: 1 }, { opacity: 0, offset: 0.15 }, { opacity: 0 }],
+			{ duration, easing, fill: 'forwards' }
+		);
+	}
+
+	function restoreOriginSteps() {
+		if (!hiddenSteps) return;
+		for (const a of hiddenSteps.getAnimations?.() ?? []) a.cancel();
+		hiddenSteps = null;
 	}
 
 	/**
@@ -666,6 +709,7 @@
 		// Only going out: coming home the page's line stays down until the copy has
 		// landed on it, and the photo's own `onfinish` hands both back together.
 		if (!home) hideOriginCaption(originCaptionEl());
+		fadeOriginSteps(originStepsEl(), { home, duration, easing });
 	}
 
 	/**
@@ -792,6 +836,7 @@
 				// by then — it has put the page's own voice back on during the trip.
 				showOrigin();
 				restoreOriginCaption();
+				restoreOriginSteps();
 				lightboxStore.set(null);
 			}
 		);
@@ -1910,9 +1955,20 @@
 		padding: 0 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
 	}
 
+	/* The flying caption crosses whatever lies between the two places the line is
+	   written, and in a group that is a stepper at each end: the lightbox's, and
+	   the strip's own down on the page. Over the page's it wins by being in the
+	   dialog; under the lightbox's it lost, because `Stepper` is positioned and a
+	   positioned element paints above the inline text of a sibling that is not,
+	   whatever the DOM order says. So the same trip went over one pill row and
+	   under the other. It is one line of type moving: it belongs on top of both.
+	   Unconditional — at rest the two are stacked in a flex column and never
+	   overlap, so this only decides the moments they do. */
 	.lb-caption-slot {
 		display: grid;
 		max-width: min(60ch, 100%);
+		position: relative;
+		z-index: 1;
 	}
 
 	.lb-caption {

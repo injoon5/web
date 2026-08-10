@@ -382,6 +382,22 @@ full-screen**, and back to wherever that image sits when you close.
   white type and its dark halo average out to grey mush.
   `restoreOriginCaption` runs from the photo flight's `onfinish`, beside
   `showOrigin`, and from the portal's teardown for the close that never flew.
+- **The strip's own dots step aside for the caption.** They sit between the two
+  places a gallery's caption is written, so the flight has to cross them:
+  measured, the glyphs are over the dots from 100ms to about 170ms of a 260ms
+  trip home, and a row of pills punched through the middle of the type is the
+  whole of what that looks like. They describe the very group the lightbox has
+  taken over and is already showing a stepper for, so they fade out under the
+  arriving backdrop and come back up over the last 10% of the way home — after
+  the type has passed, and still 95ms of real time, so they rise as the caption
+  lands rather than popping in behind it. `data-lightbox-steps` is the whole
+  contract: neither component imports the other, the same way the header is told
+  to raise itself.
+  **`.lb-caption-slot` carries a `z-index`** because `Stepper` is positioned, and
+  a positioned element paints above the inline text of a sibling that is not,
+  whatever the DOM order says — so the same trip went over the page's pill row
+  and under the lightbox's own. It is one line of type moving: it belongs on top
+  of both.
 - **The chrome's fade cannot be over the caption while it flies.** The caption
   lives inside `.lb-chrome`, which fades in as a whole a beat behind the photo
   (and out over 200ms of a 260ms flight home) — and opacity multiplies down, so a
