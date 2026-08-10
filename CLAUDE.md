@@ -352,7 +352,22 @@ full-screen**, and back to wherever that image sits when you close.
   and scaling type is the one part of a shared-element move that always goes
   soft. The blur carries the change of voice instead — the page's line is dark
   type in the article and the lightbox's is white over a scrim, so it resolves
-  into its new setting rather than switching colour in mid-air. Opacity is left
+  into its new setting rather than switching colour in mid-air. **It is 2px and
+  spent inside the first 20%.** Type is not a photograph: at 14px a radius that
+  would be a soft focus on an image pulls the glyphs apart, and it blurs the
+  `text-shadow` into them until white type and its dark halo average out to grey
+  mush. It lives inside the opacity ramp, so softness only ever shows on a line
+  that is still faint.
+  **The page's own line fades out under the copy that is flying** — the way the
+  article's photo is hidden for the photo, but faded rather than swapped: two
+  images are the same pixels and hand over invisibly, two captions are the same
+  words in two colours and an instant hand-over is a flash. Left alone they are
+  simply two lines, 45px apart and both sharp, a beat into the flight. The fade
+  sits in the same ends the flying copy's does, so the pair sums to one caption
+  at full strength and they are only both up while they overlap.
+  `restoreOriginCaption` runs from the portal's teardown as well: a close that
+  never flew home would otherwise leave the article's line under a `forwards`
+  fill at zero, and nothing else would put it back. Opacity is left
   to `.lb-chrome`, which already fades as a whole in both directions.
   `restingCaption` cancels whatever is on the caption before it is measured: the
   per-slide reveal is a `both`-filled CSS animation, in effect from the moment

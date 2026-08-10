@@ -433,6 +433,9 @@
 				// Only now — the flying copy is gone this frame, so the page-side
 				// image reappears exactly as the lightbox's lands on it.
 				showOrigin();
+				// A close that never flew home leaves the page's line faded out under
+				// a `forwards` fill; nothing else would ever put it back.
+				restoreOriginCaption();
 				dropChromeLift();
 				node.remove();
 				flew = false;
@@ -539,6 +542,38 @@
 	}
 
 	/**
+	 * The page's own line gets out of the way for the copy that is flying, the way
+	 * the article's photo does for the photo — but faded rather than swapped. The
+	 * two images are the same pixels and hand over invisibly; these are the same
+	 * words in two different colours, and an instant hand-over is a flash. Left
+	 * alone they are simply two lines: a beat into the flight the flying copy is
+	 * 45px clear of the one on the page, and both are sharp.
+	 *
+	 * The fade sits inside the same ends the flying copy's own does, so at every
+	 * moment there is one caption at full strength — they are only ever both up
+	 * while they overlap.
+	 */
+	let hiddenCaption = null;
+
+	function fadeOriginCaption(page, { home, duration, easing }) {
+		if (!page || typeof page.animate !== 'function') return;
+		if (hiddenCaption && hiddenCaption !== page) restoreOriginCaption();
+		hiddenCaption = page;
+		page.animate(
+			home
+				? [{ opacity: 0 }, { opacity: 0, offset: 0.85 }, { opacity: 1 }]
+				: [{ opacity: 1 }, { opacity: 0, offset: 0.15 }, { opacity: 0 }],
+			{ duration, easing, fill: 'forwards' }
+		);
+	}
+
+	function restoreOriginCaption() {
+		if (!hiddenCaption) return;
+		for (const a of hiddenCaption.getAnimations?.() ?? []) a.cancel();
+		hiddenCaption = null;
+	}
+
+	/**
 	 * The lightbox's caption with everything running on it dropped — including the
 	 * per-slide reveal, which is a `both`-filled CSS animation and so is in effect
 	 * from the moment the element is first styled. Left alone it fades the same
@@ -586,24 +621,40 @@
 	 * backdrop has not covered yet; held to 85% coming home, so it goes out onto
 	 * the page's own line — underneath it the whole way, in the article's colour —
 	 * as the photo reaches its box rather than well before it.
+	 *
+	 * **And the blur sits inside those ramps.** Type is not a photograph: this line
+	 * is 14px, so a radius that would be a soft focus on an image is a smear that
+	 * takes the glyphs apart — and it takes the `text-shadow` with them, so white
+	 * type and its dark halo average out to grey mush. It is small (2px, a seventh
+	 * of the em) and it is spent inside the same 20% the opacity ramp covers, so
+	 * the softness only ever shows on a line that is still faint. Once the caption
+	 * is legible it is sharp, for the whole of the travel that matters.
 	 */
+	const CAPTION_BLUR = 'blur(2px)';
+
 	function runCaptionFlight(cap, d, { home, duration, easing }) {
-		const away = { transform: `translate3d(${d.x}px, ${d.y}px, 0)`, filter: 'blur(4px)' };
-		const there = { transform: 'translate3d(0px, 0px, 0)', filter: 'blur(0px)' };
+		const awayT = `translate3d(${d.x}px, ${d.y}px, 0)`;
+		const thereT = 'translate3d(0px, 0px, 0)';
+		// Offsets per property: WAAPI interpolates each one across only the frames
+		// that name it, which is what lets opacity and blur have their own shapes
+		// while the transform runs the whole way on the photo's curve.
 		const frames = home
 			? [
-					{ ...there, opacity: 1 },
+					{ transform: thereT, filter: 'blur(0px)', opacity: 1 },
+					{ filter: 'blur(0px)', offset: 0.8 },
 					{ opacity: 1, offset: 0.85 },
-					{ ...away, opacity: 0 }
+					{ transform: awayT, filter: CAPTION_BLUR, opacity: 0 }
 				]
 			: [
-					{ ...away, opacity: 0 },
+					{ transform: awayT, filter: CAPTION_BLUR, opacity: 0 },
 					{ opacity: 1, offset: 0.08 },
-					{ ...there, opacity: 1 }
+					{ filter: 'blur(0px)', offset: 0.2 },
+					{ transform: thereT, filter: 'blur(0px)', opacity: 1 }
 				];
 		if (home) captionFlyingHome = true;
 		else captionFlew = true;
 		cap.animate(frames, { duration, easing, fill: home ? 'forwards' : 'backwards' });
+		fadeOriginCaption(originCaptionEl(), { home, duration, easing });
 	}
 
 	/**
@@ -1875,11 +1926,19 @@
 	   settles, which reads as the photo's own label catching up with it. The
 	   blur is on one short line of text and nothing else, so it costs nothing
 	   next to the backdrop. `will-change` is deliberately absent — the layer
-	   would be promoted for the whole open to serve 280ms. */
+	   would be promoted for the whole open to serve 280ms.
+
+	   Small, and spent early. At 14px a radius that would be a soft focus on a
+	   photograph pulls the glyphs apart instead, and blurs the text-shadow into
+	   them until white type and its dark halo average out to grey. It is gone by
+	   the third of the way that the line is still faint over. */
 	@keyframes lb-caption-in {
 		from {
 			opacity: 0;
-			filter: blur(6px);
+			filter: blur(2px);
+		}
+		35% {
+			filter: blur(0);
 		}
 		to {
 			opacity: 1;
