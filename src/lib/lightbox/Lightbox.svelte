@@ -576,10 +576,16 @@
 	 * Setting the flag moves that fade onto the pieces it was for — see the
 	 * `.caption-flew` rules.
 	 *
-	 * Going out it ramps up with the backdrop, so white type is never sitting on
-	 * the still-lit article. Coming home it holds until it is nearly there and
-	 * then goes out onto the page's own line, which is underneath it the whole way
-	 * in the article's own colour.
+	 * **The opacity is kept clear of the travel.** The duration and the easing are
+	 * the photo's own, so the two are in lockstep to the pixel — but a line that
+	 * is transparent for the first third of the way out, or gone before the photo
+	 * lands, is one the eye sees start late and stop early, and that is the same
+	 * complaint as moving at a different rate. So the ramps are pushed into the
+	 * ends: up within the first 8% going out, which is under two frames and only
+	 * there because white type would otherwise sit for one frame on an article the
+	 * backdrop has not covered yet; held to 85% coming home, so it goes out onto
+	 * the page's own line — underneath it the whole way, in the article's colour —
+	 * as the photo reaches its box rather than well before it.
 	 */
 	function runCaptionFlight(cap, d, { home, duration, easing }) {
 		const away = { transform: `translate3d(${d.x}px, ${d.y}px, 0)`, filter: 'blur(4px)' };
@@ -587,12 +593,12 @@
 		const frames = home
 			? [
 					{ ...there, opacity: 1 },
-					{ opacity: 1, offset: 0.45 },
+					{ opacity: 1, offset: 0.85 },
 					{ ...away, opacity: 0 }
 				]
 			: [
 					{ ...away, opacity: 0 },
-					{ opacity: 1, offset: 0.3 },
+					{ opacity: 1, offset: 0.08 },
 					{ ...there, opacity: 1 }
 				];
 		if (home) captionFlyingHome = true;
