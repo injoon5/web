@@ -382,30 +382,39 @@ full-screen**, and back to wherever that image sits when you close.
   white type and its dark halo average out to grey mush.
   `restoreOriginCaption` runs from the photo flight's `onfinish`, beside
   `showOrigin`, and from the portal's teardown for the close that never flew.
-- **The strip's own dots step aside for the caption.** They sit between the two
-  places a gallery's caption is written, so the flight has to cross them:
-  measured, the glyphs are over the dots from 100ms to about 170ms of a 260ms
-  trip home, and a row of pills punched through the middle of the type is the
-  whole of what that looks like. They describe the very group the lightbox has
-  taken over and is already showing a stepper for, so they fade out under the
-  arriving backdrop and come back up over the last 10% of the way home — after
-  the type has passed, and still 95ms of real time, so they rise as the caption
-  lands rather than popping in behind it. `data-lightbox-steps` is the whole
-  contract: neither component imports the other, the same way the header is told
-  to raise itself.
+- **The stepper travels too.** It is the same indicator for the same group in
+  two places, and both are the same row of pills — neither side overrides
+  `--pill-dot-size`, `--pill-active-width` or `--pill-gap` — so the lightbox's
+  flies to and from the strip's on the photo's own curve. The capsule is
+  measured, not the box around it: the strip's wrapper spans the article's width
+  and the lightbox's shrinks to its pills, and centring _those_ puts the row
+  1.5px out.
+  **Its hand-over is a crossfade where the caption's is a swap.** What separates
+  the two is a palette, and a palette is custom properties, which do not
+  interpolate unless registered — and which pasito's own 500ms `background`
+  transition would chase if they did. **The dissolve has to wait until the two
+  are on the same spot:** this spring spends its last 7% of distance over 75ms,
+  so at 90% the two rows are 11px apart and dissolving through each other reads
+  as a smear. It runs over the last 3% going home (under 4px) and the first 6%
+  going out. `data-lightbox-steps` is the whole contract: neither component
+  imports the other, the same way the header is told to raise itself.
+  The strip's row also has to stay down while the **caption's** glyphs cross it —
+  measured, they are over the dots from 100ms to about 170ms of a 260ms trip home,
+  and a row of pills punched through the middle of the type is the whole of what
+  that looks like. It clears at 92%, which the 97% hand-over sits safely after.
   **`.lb-caption-slot` carries a `z-index`** because `Stepper` is positioned, and
   a positioned element paints above the inline text of a sibling that is not,
   whatever the DOM order says — so the same trip went over the page's pill row
   and under the lightbox's own. It is one line of type moving: it belongs on top
   of both.
-- **The chrome's fade cannot be over the caption while it flies.** The caption
+- **The chrome's fade cannot be over the pieces that fly.** The caption
   lives inside `.lb-chrome`, which fades in as a whole a beat behind the photo
   (and out over 200ms of a 260ms flight home) — and opacity multiplies down, so a
   parent at zero cannot be argued with from the child. The caption was invisible
   for the first 90ms of its flight. On a phone that is 25px of travel and nobody
   sees it; on a wide screen the path is ten times as long and the missing stretch
   is exactly the part that crosses the photo, so the line appeared to come out
-  from _behind_ the picture. `.caption-flew` / `.caption-flying-home` take the
+  from _behind_ the picture. `.bottom-flew` / `.bottom-flying-home` take the
   fade off the chrome and give it to the pieces it was always for — the controls
   and the two scrims — so the caption's own opacity is the only one over it, and
   that one never leaves 1. A class is enough here, unlike the stage's entrance:
