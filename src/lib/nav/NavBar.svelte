@@ -213,6 +213,17 @@
 		     the top of the page, doing its work behind a fully transparent tint, and
 		     fading the element takes the filter with it — so a header sitting over
 		     nothing composites nothing. -->
+		<!-- The tint and the blur stay on this child and never move up onto the
+		     sticky shell, for a second reason now. Safari 26 no longer reads
+		     `theme-color`: it tints its own status bar by sampling the
+		     `background-color` and `backdrop-filter` of a fixed or sticky element at
+		     the top of the viewport, and it skips that element's absolutely
+		     positioned children. The shell staying transparent is what leaves the
+		     status bar transparent — Safari composites the real page there, which is
+		     this surface, spanning the band under the clock at whatever opacity the
+		     scroll position has it. Given a colour to sample, it would paint the
+		     header's *scrolled* appearance as a slab from the first frame, over a
+		     header that is still entirely see-through. -->
 		<div
 			aria-hidden="true"
 			class="nav-surface absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
@@ -405,9 +416,20 @@
 	   Tailwind class carries, so a build with the panel folded away renders
 	   exactly what the classes say. Overrides with `sm` variants are held below
 	   that breakpoint: the dial is for the phone header. */
+	/* The status bar's band is reserved inside the row, not above it. The page is
+	   laid out `viewport-fit=cover`, so the sticky shell's `top: 0` is the
+	   display's own top edge and the clock sits over whatever is in the first
+	   59px of the header — the wordmark, on every page. Padding the row down out
+	   of that band leaves the surface, which is `inset-0` of the wrapper around
+	   this row, spanning it: the material goes edge to edge and the type does not.
+
+	   The alternative — padding the shell — would have put the band *outside* the
+	   surface's box and painted the header's blur short of the top of the screen,
+	   which is the thing being fixed. */
 	.nav-row {
 		align-items: var(--nav-align, center);
-		padding-block: var(--nav-row-pad-y, 0.75rem);
+		padding-block: calc(var(--nav-row-pad-y, 0.75rem) + var(--nav-safe-top, 0px))
+			var(--nav-row-pad-y, 0.75rem);
 	}
 
 	.nav-cluster {
@@ -514,11 +536,15 @@
 	   It lands *on* the hero name, not merely in step with it. `--nav-name-travel`
 	   is the gap between them and is derived, not chosen: the inset starts the
 	   range with the hero name `--nav-h` down, the wordmark rests
-	   `(--nav-h - 2rem) / 2` from the row's top, and the difference folds to
-	   `(--nav-h + 2rem) / 2` — 44px. That same value is the range's end in px of
-	   scroll, which is what makes the rate exactly 1:1. Anything else leaves the
-	   two names a constant 12px apart, which is a double image. There is
-	   deliberately no dial for it.
+	   `--nav-safe-top + (--nav-h - --nav-safe-top - 2rem) / 2` from the top of the
+	   viewport, and the difference folds to `(--nav-h - --nav-safe-top + 2rem) / 2`
+	   — 44px on a desktop, and still 44px on a phone, because the status bar's
+	   band lengthens the header and the wordmark's rest position by exactly the
+	   same amount. That value is also the range's end in px of scroll, which is
+	   what makes the rate exactly 1:1. Anything else leaves the two names a
+	   constant gap apart, which is a double image — and taking the reserve out is
+	   not optional here: left in, the two would be 30px apart for the whole
+	   handover on every iPhone. There is deliberately no dial for it.
 
 	   `.nav-name` is the hole it rolls through, and has to be a second element:
 	   the clip must hold still while the type inside it moves.
@@ -542,7 +568,7 @@
 	}
 
 	.nav-name-roll {
-		--nav-name-travel: calc((var(--nav-h, 3.5rem) + 2rem) / 2);
+		--nav-name-travel: calc((var(--nav-h, 3.5rem) - var(--nav-safe-top, 0px) + 2rem) / 2);
 
 		opacity: 1;
 		translate: 0 0;

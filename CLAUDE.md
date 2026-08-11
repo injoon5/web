@@ -839,6 +839,27 @@ moving is read where the page is:
   entirely behind the bar. It cannot simply be measured, because the browser
   scrolls to a deep link while the document is still parsing. `NavBar`
   re-publishes the row's measured height once it has one.
+- **The status bar's band is reserved inside the row, and the material spans
+  it.** The page is laid out `viewport-fit=cover`, so on a phone the sticky
+  shell's `top: 0` is the display's own top edge and the clock sits over the
+  first 59px of the header. `--nav-safe-top` (`env(safe-area-inset-top)`) is
+  added to the row's `padding-block-start` — not to the shell, which would put
+  the band outside the surface's box and stop the blur short of the top of the
+  screen. `--nav-h` is that reserve plus the row, so `scroll-padding-top` and the
+  hero's timeline inset both clear the taller bar; `--nav-name-travel` takes the
+  reserve back out, because the band moves the header's bottom edge and the
+  wordmark's resting position by the same amount and the handover is the
+  difference. Everywhere else it resolves to 0px and every one of these is the
+  number it always was.
+- **Safari 26 tints its status bar by sampling the page, not by reading
+  `theme-color`** (which it ignores outright): the `background-color` and
+  `backdrop-filter` of a fixed or sticky element at the top of the viewport,
+  skipping that element's absolutely positioned children. So the tint and the
+  blur have to stay on `.nav-surface` and never move up onto `.nav-shell` — a
+  transparent shell is what leaves the status bar transparent and lets the real
+  surface show through it. A colour on the shell paints the header's _scrolled_
+  appearance over the bar from the first frame. The `theme-color` metas in
+  `app.html` are still what Chrome's toolbar reads.
 - **The surface is a scroll-driven animation, not a scroll listener.** A
   `scroll(root block)` timeline carries `--nav-surface-scroll` from 0 to 1 over
   `--nav-surface-range`. The listener is installed only where

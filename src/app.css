@@ -55,7 +55,19 @@
 	   height once it has one, so a row that is ever set taller — or moved by the
 	   dials on a preview — carries all of this with it. */
 	:root {
-		--nav-h: 3.5rem;
+		/* The page is laid out `viewport-fit=cover`, so on a phone it starts at the
+		   physical top edge and the status bar's clock and battery sit over the
+		   first 59px of it. The header reserves that band inside itself — the row
+		   is padded down out of it while the surface and the hairline still span
+		   it — so the material reaches the edge and nothing legible is under the
+		   furniture. It is a token because it is part of the header's height, and
+		   everything that measures from the bottom of the bar has to see it.
+
+		   Every other browser, and iOS in landscape, resolves this to 0px and
+		   every rule below is exactly what it was. */
+		--nav-safe-top: env(safe-area-inset-top, 0px);
+
+		--nav-h: calc(3.5rem + var(--nav-safe-top));
 
 		/* How tall an image in an article is allowed to be. A token because the
 		   placeholder has to compute the same box the loaded photo will occupy,
