@@ -5,7 +5,9 @@
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import { apiFetch } from '$lib/api-client.js';
 
-	let { comment, activeFormId, setActiveForm, onChange, onError } = $props();
+	// No `onChange`: the dashboard subscribes to `admin.listForUrl`, so every
+	// write here comes back down the websocket on its own.
+	let { comment, activeFormId, setActiveForm, onError } = $props();
 
 	let mode = $state(null); // 'reply' | 'ban' | 'delete' | null
 
@@ -57,7 +59,6 @@
 			return;
 		}
 		closeForm();
-		onChange();
 	}
 
 	async function confirmBan() {
@@ -72,7 +73,6 @@
 			return;
 		}
 		closeForm();
-		onChange();
 	}
 
 	async function doDelete() {
@@ -84,7 +84,6 @@
 			return;
 		}
 		closeForm();
-		onChange();
 	}
 </script>
 
@@ -218,7 +217,7 @@
 					: 'border-neutral-200/70 dark:border-neutral-700/70'}"
 			>
 				{#each comment.children as child (child.id)}
-					<Self comment={child} {activeFormId} {setActiveForm} {onChange} {onError} />
+					<Self comment={child} {activeFormId} {setActiveForm} {onError} />
 				{/each}
 			</div>
 		{/if}

@@ -72,7 +72,7 @@ src/
     api/                   # comments, likes, now, og, posts, projects, admin/*
     rss.xml/+server.js
 convex/
-  schema.js comments.js likes.js bans.js now.js feeds.js admin.js
+  schema.js comments.js likes.js bans.js now.js feeds.js admin.js adminSessions.js
   rateLimits.js health.js healthPublic.js http.js crons.js backfill.js
   lib/                     # Shared helpers; the pure ones are unit-tested
 ```
@@ -94,6 +94,7 @@ defines three projects: `unit` (node), `convex` (edge-runtime), `component`
 | `likeCounts`       | url, count                                                                                                             | `by_url`                                   |
 | `migrationMeta`    | key, complete                                                                                                          | `by_key`                                   |
 | `bannedIps`        | ipHash, reason                                                                                                         | `by_ip`                                    |
+| `adminSessions`    | tokenHash (SHA-256 of the `admin_token` cookie), expiresAt                                                             | `by_token`                                 |
 | `nowPage`          | content, updatedAt                                                                                                     | —                                          |
 | `nowPlaying`       | tracks[], updatedAt — one row                                                                                          | —                                          |
 | `photos`           | photos[], updatedAt — one row                                                                                          | —                                          |
@@ -126,11 +127,42 @@ migration files.
 - **Page auth:** `routes/admin/+page.server.js` checks the password with
   `secretsMatch` (HMAC, constant-time) and issues a signed
   `expiresAt.nonce.signature` token as an httpOnly, sameSite=strict cookie for
-  24h. The secret never reaches the page — `load` returns only
-  `{ authenticated }`.
+  24h. The secret never reaches the page — `load` returns
+  `{ authenticated, sessionToken }`, and the token is the cookie's own value.
 - All `/api/admin/*` routes require the header and return 401 otherwise.
 - Convex mutations take an optional `adminSecret`; when valid it bypasses rate
   limits and per-IP checks.
+
+### Two admin credentials, because the dashboard subscribes for itself
+
+The dashboard reads Convex over the websocket (see Realtime Queries), so the
+browser needs something to authenticate with, and **`ADMIN_SECRET` is not it** —
+it is the master key, it bypasses every rate limit and per-IP check, and it never
+expires. The session cookie is: scoped, 24h, revocable.
+
+So `load` also registers that token with Convex (`adminSessions.ensure`, which
+holds only its SHA-256) and hands it to the page. `assertAdminAccess` in
+`convex/lib/adminSession.js` takes either credential — the server routes send
+`adminSecret`, the dashboard's own subscriptions send `sessionToken`. **Only the
+three admin _queries_ take the session token** (`admin.listUrls`,
+`admin.listForUrl`, `bans.list`); every write still goes through `/api/admin/*`,
+where the real secret stays.
+
+- **Expiry is a document deletion, not a clock read.** A query is not rerun
+  because time advanced, so an `expiresAt > Date.now()` check inside one would
+  keep streaming from a cached result past the deadline. The row is deleted by a
+  `scheduler.runAt(expiresAt, …)` job instead; `ensure` also sweeps stale rows as
+  a backstop, which it may do because it is a mutation. Reading the row puts it
+  in the query's read set, so the delete is what invalidates the subscription.
+- **Sign-out revokes.** `logout` deletes the row before the cookie, so a tab left
+  open elsewhere loses its subscriptions at once rather than at the token expiry.
+- **`ensure` must stay idempotent.** `/admin`'s load calls it on every visit, and
+  re-patching the row would push a websocket update to every open dashboard for
+  no change at all — the same trap as the feed rows.
+- The trade this makes: the token is readable by JS on `/admin` rather than
+  httpOnly-only. It buys read access to comment/ban data for at most the
+  cookie's own lifetime, where `ADMIN_SECRET` would buy everything forever.
+  `convex/adminSessions.test.js` covers the whole surface.
 
 ---
 
@@ -188,6 +220,20 @@ retains the _previous page's_ result across a client-side navigation. Both track
 `freshPath` and gate rendering and every write on
 `freshPath === page.url.pathname`. Any new `keepPreviousData` subscription keyed
 on the pathname needs the same guard, or visitors can act on the page they left.
+
+**The admin dashboard subscribes too** — `admin.listUrls`, `bans.list` and
+`admin.listForUrl` — with the session token described under Authentication &
+Admin. Consequences worth knowing:
+
+- **Nothing on that page refetches after a write.** Replies, bans, deletes and
+  unbans go out through `/api/admin/*` and come back down the websocket, so
+  `AdminCommentNode` has no `onChange` prop and the page has no reload helpers.
+  A comment posted by a visitor appears without a refresh, which is the point.
+- **`listForUrl` is subscribed only while a post is open** (`'skip'` otherwise).
+  One URL's thread is the only one the screen can show; every other subscription
+  would be websocket traffic for something nobody is looking at.
+- The stat tiles read the same live lists, so they are no longer stuck behind
+  whichever tab happens to be open.
 
 ---
 

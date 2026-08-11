@@ -60,6 +60,25 @@ export default defineSchema({
 		reason: v.union(v.string(), v.null())
 	}).index('by_ip', ['ipHash']),
 
+	// ---------------------------------------------------------------------------
+	// Admin sessions
+	//
+	// The dashboard subscribes to the admin queries over the websocket, so the
+	// browser needs a credential of its own — ADMIN_SECRET is the master key and
+	// never leaves the server. A row is the SHA-256 of the `admin_token` cookie
+	// SvelteKit already issues, so the table holds no bearer token in the clear.
+	//
+	// Expiry is a *document* deletion, scheduled at `expiresAt`, not a clock read
+	// in the query: a query is not rerun merely because time advances, so an
+	// `expiresAt > Date.now()` check inside one would keep streaming from a
+	// cached result past the deadline. Deleting the row invalidates every query
+	// that read it, which is exactly what revocation has to do.
+	// ---------------------------------------------------------------------------
+	adminSessions: defineTable({
+		tokenHash: v.string(),
+		expiresAt: v.number()
+	}).index('by_token', ['tokenHash']),
+
 	nowPage: defineTable({
 		content: v.string(),
 		updatedAt: v.number()

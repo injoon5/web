@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 import { query } from './_generated/server.js';
-import { assertAdmin } from './lib/auth.js';
+import { assertAdminAccess } from './lib/adminSession.js';
 import { countActiveCommentsByUrl } from './lib/commentsScan.js';
 import { adminComment } from './lib/serialize.js';
 import { isUrlCountsBackfillComplete } from './lib/migration.js';
@@ -9,10 +9,19 @@ import { getVoteCounts, voteCountsFromDoc } from './lib/votes.js';
 // One row per commented-on URL — a bound, not a page.
 const URL_LIMIT = 2000;
 
+// Both admin credentials are optional in the validator and neither is optional
+// in effect: `assertAdminAccess` throws unless one of them checks out. The
+// server routes send `adminSecret`; the dashboard's own subscriptions send
+// `sessionToken`. See convex/lib/adminSession.js.
+const adminAuthArgs = {
+	adminSecret: v.optional(v.string()),
+	sessionToken: v.optional(v.string())
+};
+
 export const listUrls = query({
-	args: { adminSecret: v.string() },
-	handler: async (ctx, { adminSecret }) => {
-		await assertAdmin(adminSecret);
+	args: adminAuthArgs,
+	handler: async (ctx, { adminSecret, sessionToken }) => {
+		await assertAdminAccess(ctx, { adminSecret, sessionToken });
 
 		const backfillComplete = await isUrlCountsBackfillComplete(ctx);
 		const rows = await ctx.db.query('commentUrlCounts').take(URL_LIMIT);
@@ -32,9 +41,9 @@ export const listUrls = query({
 });
 
 export const listForUrl = query({
-	args: { url: v.string(), adminSecret: v.string() },
-	handler: async (ctx, { url, adminSecret }) => {
-		await assertAdmin(adminSecret);
+	args: { url: v.string(), ...adminAuthArgs },
+	handler: async (ctx, { url, adminSecret, sessionToken }) => {
+		await assertAdminAccess(ctx, { adminSecret, sessionToken });
 
 		// Tombstones are skipped at the index — see the `by_url_deleted` note in
 		// convex/schema.js.
