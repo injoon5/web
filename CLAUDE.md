@@ -872,18 +872,32 @@ moving is read where the page is:
 
   The `theme-color` metas in `app.html` are still what Chrome's toolbar reads.
 
-- **The header's material is a ramp, not a pane.** Four masked
-  `backdrop-filter` passes whose bands each start a quarter higher than the
-  last, so the blur compounds upward — a `backdrop-filter` takes in its earlier
-  siblings — under one eased scrim of the page colour. There is no hairline: the
-  header has no bottom edge to draw. Everything still hangs off
-  `.nav-surface`, which keeps the opacity ramp and the growth, so the gradient
-  is always the height the header currently is. Two things the ramp cannot do
-  and are handled beside it: the open disclosure brings its own flat tint
-  (`.nav-panel`, on `--nav-surface-menu`), because a row of links cannot sit on
-  the transparent end of a gradient; and the deepest blur band stops at 87%,
-  because above that the scrim is solid and a blur under an opaque colour is
-  work nobody sees.
+- **The header's material is a ramp, not a pane**, and both halves of it are
+  built to be even. Four masked `backdrop-filter` passes, each band starting
+  exactly at the midpoint of the one below it — 18% apart, 36% wide — so the
+  number of passes over any point climbs 1, 2, 3, 4 in equal measure; a
+  `backdrop-filter` takes in its earlier siblings, so they compound. Bands that
+  abut show their seams and bands that overlap unevenly read as a ramp with a
+  lump in it. They stop at 90%, because above that the scrim is near-solid and a
+  blur under an opaque colour is work nobody sees.
+
+  Over them, one scrim of the page colour: **a smoothstep sampled at eight even
+  intervals, which is symmetric** — every pair either side of the middle sums to
+  1 — and flat at both ends. The flat ends are the point. A straight alpha ramp
+  gives way at the very top edge, where the article shows through the pixels
+  that are supposed to match the status bar, and it ends in a visible line at
+  the bottom. There is no hairline: the header has no bottom edge to draw.
+
+  It all hangs off `.nav-surface`, which keeps the opacity ramp and the growth,
+  and every stop is a percentage — so opening the disclosure lengthens the ramp
+  rather than sliding it down, ends pinned and the curve spread over the taller
+  header. The one thing a ramp cannot do is hold a row of links at its own
+  transparent end, so `.nav-panel` is a flat tint **under** the scrim at
+  `0.8 × --nav-surface-menu`. Compositing the gradient over it is the ramp lerped
+  into that floor — 1 at the top, floor at the far end, same shape between — which
+  is what keeps the fade running the full height of the open header instead of
+  collapsing into its top quarter. Putting the tint over the scrim instead just
+  flattens it.
 
 - **`--nav-safe-top` reserves the bar's band inside the row, for the cases where
   the page really is laid out under it** — a home-screen web app, and anything

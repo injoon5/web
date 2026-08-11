@@ -252,12 +252,14 @@
 			     gradient, which is a gradient with its ends pulled in. The stops are
 			     eased — a straight alpha ramp ends visibly, in a soft edge across the
 			     page about two thirds of the way down. -->
-			<div class="nav-scrim"></div>
-			<!-- The one thing a ramp cannot do is back a row of links at its own
-			     bottom edge, where it is transparent by construction. So the open
-			     disclosure brings its own flat tint over the whole grown box, on the
-			     menu's half of the same pair of properties the surface fades on. -->
+			<!-- Under the scrim, not over it, and that ordering is the whole of how the
+			     open disclosure stays legible without flattening the ramp. A gradient
+			     composited over a flat tint is the ramp lerped into it — floor at the
+			     far end, still 1 at the top, the same shape in between — so the links
+			     get their backing and the fade still runs the full height of the
+			     grown header instead of collapsing into its top quarter. -->
 			<div class="nav-panel"></div>
+			<div class="nav-scrim"></div>
 		</div>
 		<!-- Centred, so the name and the links hang from one middle axis rather than
 		     standing on one baseline — small links sharing a baseline with type this
@@ -699,53 +701,73 @@
 		backdrop-filter: blur(var(--nav-blur-step, 3px));
 	}
 
-	/* Each band starts a quarter higher and feathers over a quarter, so every
-	   point on the ramp is inside two of them. Written to the top, because that is
-	   the end the ramp is anchored to — an open disclosure lengthens it downward
-	   and the deep end stays put. */
+	/* Evenly stepped, and each band starts exactly at the midpoint of the one
+	   below it: 18% apart, 36% wide, so the count of passes over any given point
+	   climbs 1, 2, 3, 4 in equal measure from the bottom edge to the top. Even
+	   spacing is the whole difference between a ramp and four bars of increasing
+	   blur — bands that abut show their seams, and bands that overlap unevenly
+	   read as a ramp with a lump in it.
+
+	   Written to the top, because that is the end the ramp is anchored to: an open
+	   disclosure lengthens the box downward and the deep end stays where it is.
+	   They stop at 90% rather than 100% because the scrim is near-solid above
+	   that, and a blur under an opaque colour is work nobody sees. */
 	.nav-blur[data-step='1'] {
-		-webkit-mask-image: linear-gradient(to top, transparent 8%, #000 30%);
-		mask-image: linear-gradient(to top, transparent 8%, #000 30%);
+		-webkit-mask-image: linear-gradient(to top, transparent 0%, #000 36%);
+		mask-image: linear-gradient(to top, transparent 0%, #000 36%);
 	}
 
 	.nav-blur[data-step='2'] {
-		-webkit-mask-image: linear-gradient(to top, transparent 27%, #000 49%);
-		mask-image: linear-gradient(to top, transparent 27%, #000 49%);
+		-webkit-mask-image: linear-gradient(to top, transparent 18%, #000 54%);
+		mask-image: linear-gradient(to top, transparent 18%, #000 54%);
 	}
 
 	.nav-blur[data-step='3'] {
-		-webkit-mask-image: linear-gradient(to top, transparent 46%, #000 68%);
-		mask-image: linear-gradient(to top, transparent 46%, #000 68%);
+		-webkit-mask-image: linear-gradient(to top, transparent 36%, #000 72%);
+		mask-image: linear-gradient(to top, transparent 36%, #000 72%);
 	}
 
-	/* The deepest band tops out at 87% rather than 100%: above that the scrim is
-	   solid, and a blur under an opaque colour is work nobody sees. */
 	.nav-blur[data-step='4'] {
-		-webkit-mask-image: linear-gradient(to top, transparent 65%, #000 87%);
-		mask-image: linear-gradient(to top, transparent 65%, #000 87%);
+		-webkit-mask-image: linear-gradient(to top, transparent 54%, #000 90%);
+		mask-image: linear-gradient(to top, transparent 54%, #000 90%);
 	}
 
-	/* Solid for the first eighth, then eased away. The flat run is what the status
-	   bar joins onto — a ramp that starts giving way at the top edge shows the
-	   article through the very pixels that are supposed to match the bar, and on a
-	   light page that reads as dirt under the wordmark. */
+	/* A smoothstep, sampled at eight even intervals, and the reason to spend eight
+	   stops on it is that it is symmetric: every pair either side of the middle
+	   sums to 1, and the curve leaves both ends flat. That flatness is what a
+	   straight alpha ramp cannot give — it starts giving way at the very top edge,
+	   where the article then shows through the pixels that are supposed to match
+	   the status bar, and on a light page that reads as dirt under the wordmark.
+	   It ends the same way, so there is no line where the header stops.
+
+	   Every stop is a percentage of a box that is the row plus however far the
+	   disclosure currently reaches, so opening it lengthens the ramp rather than
+	   sliding it down: the ends stay pinned and the curve is spread over the
+	   taller header. That is why the stops are percentages and the growth is on
+	   the parent. */
 	.nav-scrim {
 		background-image: linear-gradient(
 			to bottom,
 			rgb(var(--nav-surface-rgb) / 1) 0%,
-			rgb(var(--nav-surface-rgb) / 1) 13%,
-			rgb(var(--nav-surface-rgb) / 0.93) 29%,
-			rgb(var(--nav-surface-rgb) / 0.74) 47%,
-			rgb(var(--nav-surface-rgb) / 0.46) 65%,
-			rgb(var(--nav-surface-rgb) / 0.18) 82%,
-			rgb(var(--nav-surface-rgb) / 0.04) 93%,
+			rgb(var(--nav-surface-rgb) / 0.959) 12.5%,
+			rgb(var(--nav-surface-rgb) / 0.844) 25%,
+			rgb(var(--nav-surface-rgb) / 0.684) 37.5%,
+			rgb(var(--nav-surface-rgb) / 0.5) 50%,
+			rgb(var(--nav-surface-rgb) / 0.316) 62.5%,
+			rgb(var(--nav-surface-rgb) / 0.156) 75%,
+			rgb(var(--nav-surface-rgb) / 0.041) 87.5%,
 			rgb(var(--nav-surface-rgb) / 0) 100%
 		);
 	}
 
+	/* The floor the ramp is lerped into while the disclosure is down. Its own
+	   opacity carries it, on the menu's half of the pair the surface fades on, so
+	   it eases in over the same 200ms as everything else the menu moves — and the
+	   closed header composites against nothing at all and is the ramp it has
+	   always been. */
 	.nav-panel {
-		background-color: rgb(var(--nav-surface-rgb) / 0.82);
-		opacity: var(--nav-surface-menu);
+		background-color: rgb(var(--nav-surface-rgb));
+		opacity: calc(0.8 * var(--nav-surface-menu));
 	}
 
 	/* Fixed rather than sticky: it answers to the viewport, which is what the scan
