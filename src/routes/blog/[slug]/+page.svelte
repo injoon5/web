@@ -231,21 +231,20 @@
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
 					<span class="tabular inline-flex whitespace-nowrap">
-						<span class="grid shrink-0 leading-none">
-							{#each data.availableLangs as l (`${l}-mins-ghost`)}
-								<span style="grid-area: 1 / 1" class="invisible" aria-hidden="true">
-									{parseInt(readingTimeFor(l) ?? '', 10) || 0}
-								</span>
-							{/each}
-							<span style="grid-area: 1 / 1">
-								<NumberFlow value={readingMinutes} />
-							</span>
+						<!-- No ghost stack behind the count: sizing it to the widest language leaves a
+						     whole tabular digit of dead space next to the shorter one (7 ko / 10 en).
+						     NumberFlow animates its own width across the swap. -->
+						<span class="shrink-0 leading-none">
+							<NumberFlow value={readingMinutes} />
 						</span>
+						<!-- The unit's gap is a no-break space: each label is its own grid item, and a
+						     plain leading space is dropped at the start of its line box (measured 0px,
+						     "10min read"). Korean sets the unit tight against the number, as it should. -->
 						<StableLangStack
 							langs={data.availableLangs}
 							{displayLang}
 							transition={titleBlur}
-							text={(l) => (l === 'ko' ? '분 읽기' : ' min read')}
+							text={(l) => (l === 'ko' ? '분 읽기' : '\u00a0min read')}
 						/>
 					</span>
 				{/if}
