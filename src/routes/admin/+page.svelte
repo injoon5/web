@@ -1,6 +1,8 @@
 <script>
 	import { enhance } from '$app/forms';
 	import { onDestroy } from 'svelte';
+	import { useQuery } from 'convex-svelte';
+	import { api } from '$convex/_generated/api';
 	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
 	import { buildTree } from '$lib/comments/build-tree.js';
 	import { apiFetch } from '$lib/api-client.js';
@@ -14,14 +16,25 @@
 	let view = $state('urls'); // 'urls' | 'comments'
 	let selectedUrl = $state(null);
 
-	// Server-fetched data
-	let urlList = $state([]);
-	let selectedComments = $state([]);
-	let bans = $state([]);
+	// The session cookie, handed down by `load` — the credential these
+	// subscriptions authenticate with. ADMIN_SECRET is never sent here; see
+	// convex/lib/adminSession.js.
+	const sessionToken = $derived(data.sessionToken ?? '');
 
-	let loadingUrls = $state(false);
-	let loadingComments = $state(false);
-	let loadingBans = $state(false);
+	// Live admin data. Writes still go through /api/admin/*, which holds the real
+	// secret — but their results arrive back here on the websocket, so nothing
+	// below refetches after a reply, ban or delete.
+	const urlsQuery = useQuery(api.admin.listUrls, () => (sessionToken ? { sessionToken } : 'skip'));
+	const bansQuery = useQuery(api.bans.list, () => (sessionToken ? { sessionToken } : 'skip'));
+	// Subscribed only while a post is open: one URL's thread is the only one the
+	// screen can show, and every other subscription is a websocket update for
+	// something nobody is looking at.
+	const commentsQuery = useQuery(api.admin.listForUrl, () =>
+		sessionToken && selectedUrl ? { url: selectedUrl, sessionToken } : 'skip'
+	);
+
+	const urlList = $derived(urlsQuery.data ?? []);
+	const bans = $derived(bansQuery.data ?? []);
 
 	// Cross-card form coordination
 	let activeFormId = $state(null);
@@ -41,59 +54,12 @@
 		if (errorTimer) clearTimeout(errorTimer);
 	});
 
-	async function loadUrls() {
-		loadingUrls = true;
-		const res = await apiFetch('/api/admin/comments');
-		loadingUrls = false;
-		if (!res.ok) {
-			showError('Failed to load posts.');
-			return;
-		}
-		urlList = res.data.urls ?? [];
-	}
-
-	async function loadComments(url) {
-		loadingComments = true;
-		const res = await apiFetch(`/api/admin/comments?url=${encodeURIComponent(url)}`);
-		loadingComments = false;
-		if (!res.ok) {
-			showError('Failed to load comments.');
-			return;
-		}
-		selectedComments = res.data.comments ?? [];
-	}
-
-	async function loadBans() {
-		loadingBans = true;
-		const res = await apiFetch('/api/admin/bans');
-		loadingBans = false;
-		if (!res.ok) {
-			showError('Failed to load bans.');
-			return;
-		}
-		bans = res.data.bans ?? [];
-	}
-
-	// Reactive fetches when auth/tab/view changes
-	$effect(() => {
-		if (!data.authenticated) return;
-		if (tab === 'comments' && view === 'urls') loadUrls();
-		if (tab === 'comments' && view === 'comments' && selectedUrl) loadComments(selectedUrl);
-		if (tab === 'bans') loadBans();
-	});
-
-	// Load bans once up front too, so the "Bans" stat tile isn't stuck at 0
-	// until the tab is first opened.
-	$effect(() => {
-		if (data.authenticated) loadBans();
-	});
-
 	const statsTotal = $derived({
 		comments: urlList.reduce((sum, u) => sum + u.count, 0),
 		bans: bans.length
 	});
 
-	const commentTree = $derived(buildTree(selectedComments));
+	const commentTree = $derived(buildTree(commentsQuery.data ?? []));
 
 	function selectUrl(url) {
 		selectedUrl = url;
@@ -107,17 +73,11 @@
 		activeFormId = null;
 	}
 
-	function onCommentChanged() {
-		if (selectedUrl) loadComments(selectedUrl);
-	}
-
 	async function unban(id) {
 		const res = await apiFetch(`/api/admin/bans/${id}`, { method: 'DELETE' });
 		if (!res.ok) {
 			showError(res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to unban.'));
-			return;
 		}
-		loadBans();
 	}
 </script>
 
@@ -216,7 +176,11 @@
 
 		{#if tab === 'comments'}
 			{#if view === 'urls'}
-				{#if loadingUrls}
+				{#if urlsQuery.error}
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+						Could not load posts.
+					</div>
+				{:else if urlsQuery.isLoading}
 					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
 						Loading…
 					</div>
@@ -254,7 +218,11 @@
 					<span class="truncate font-mono text-sm text-neutral-500">{selectedUrl}</span>
 				</div>
 
-				{#if loadingComments}
+				{#if commentsQuery.error}
+					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+						Could not load comments.
+					</div>
+				{:else if commentsQuery.isLoading}
 					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
 						Loading…
 					</div>
@@ -265,18 +233,16 @@
 				{:else}
 					<div class="space-y-4">
 						{#each commentTree as comment (comment.id)}
-							<AdminCommentNode
-								{comment}
-								{activeFormId}
-								{setActiveForm}
-								onChange={onCommentChanged}
-								onError={showError}
-							/>
+							<AdminCommentNode {comment} {activeFormId} {setActiveForm} onError={showError} />
 						{/each}
 					</div>
 				{/if}
 			{/if}
-		{:else if loadingBans}
+		{:else if bansQuery.error}
+			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+				Could not load bans.
+			</div>
+		{:else if bansQuery.isLoading}
 			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
 		{:else if bans.length === 0}
 			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">

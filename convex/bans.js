@@ -1,16 +1,23 @@
 import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
+import { assertAdminAccess } from './lib/adminSession.js';
 import { publicBan } from './lib/serialize.js';
 
 // The admin list is not paginated, so it reads a bounded page rather than the
 // whole table.
 const BAN_LIMIT = 1000;
 
+// Read by the dashboard's live subscription as well as the server route, so it
+// takes either credential — see convex/lib/adminSession.js. The mutations below
+// stay ADMIN_SECRET-only: writes still go through /api/admin/*.
 export const list = query({
-	args: { adminSecret: v.string() },
-	handler: async (ctx, { adminSecret }) => {
-		await assertAdmin(adminSecret);
+	args: {
+		adminSecret: v.optional(v.string()),
+		sessionToken: v.optional(v.string())
+	},
+	handler: async (ctx, { adminSecret, sessionToken }) => {
+		await assertAdminAccess(ctx, { adminSecret, sessionToken });
 		const rows = await ctx.db.query('bannedIps').take(BAN_LIMIT);
 		rows.sort((a, b) => b._creationTime - a._creationTime);
 		return rows.map(publicBan);

@@ -8,6 +8,7 @@ import {
 	verifyAdminSecret,
 	verifyAdminCookie,
 	requireAdmin,
+	sessionTokenExpiry,
 	SESSION_MAX_AGE_MS
 } from './admin';
 
@@ -64,6 +65,28 @@ describe('session token round-trip', () => {
 
 	it('rejects a non-hex signature without throwing', () => {
 		expect(verifyAdminSessionToken(`${Date.now() + 60_000}.nonce.zzzz`)).toBe(false);
+	});
+});
+
+describe('sessionTokenExpiry', () => {
+	// Convex schedules the session row's deletion at this number, so it has to be
+	// the token's own deadline and nothing else — a token that would still be
+	// accepted here but whose row is gone locks the dashboard out silently.
+	it('returns the expiry the token was signed with', () => {
+		const expiresAt = Date.now() + 60_000;
+		expect(sessionTokenExpiry(signToken(expiresAt))).toBe(expiresAt);
+	});
+
+	it('agrees with the cookie lifetime for a freshly issued token', () => {
+		const before = Date.now();
+		const expiresAt = sessionTokenExpiry(createAdminSessionToken());
+		expect(expiresAt).toBeGreaterThanOrEqual(before + SESSION_MAX_AGE_MS);
+	});
+
+	it('returns null for anything verifyAdminSessionToken rejects', () => {
+		expect(sessionTokenExpiry('')).toBe(null);
+		expect(sessionTokenExpiry('a.b.c')).toBe(null);
+		expect(sessionTokenExpiry(signToken(Date.now() - 1000))).toBe(null);
 	});
 });
 

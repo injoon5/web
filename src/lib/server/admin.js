@@ -59,6 +59,21 @@ export function verifyAdminSessionToken(token) {
 }
 
 /**
+ * The expiry stamped into a valid session token, or null if the token does not
+ * verify. `/admin`'s load hands this to Convex so the session row can be
+ * scheduled for deletion at the same moment the cookie stops being accepted
+ * here — the two deadlines are the same number, read off the same token.
+ *
+ * @param {string} token
+ * @returns {number | null}
+ */
+export function sessionTokenExpiry(token) {
+	if (!verifyAdminSessionToken(token)) return null;
+	const expiresAt = Number(token.split('.')[0]);
+	return Number.isFinite(expiresAt) ? expiresAt : null;
+}
+
+/**
  * @param {Request} request
  * @returns {boolean}
  */
