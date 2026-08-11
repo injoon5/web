@@ -839,21 +839,33 @@ moving is read where the page is:
   entirely behind the bar. It cannot simply be measured, because the browser
   scrolls to a deep link while the document is still parsing. `NavBar`
   re-publishes the row's measured height once it has one.
-- **The status bar is not ours to paint, and `.nav-tint` is how it is asked.**
-  Safari 26 ignores `theme-color` outright, and in a tab the page is not laid out
-  under the bar either — `env(safe-area-inset-top)` is 0 there, so no pixel of
-  this site can reach it. What Safari does is take the `background-color` and
-  `backdrop-filter` of a fixed or sticky element flush with the top of the
-  viewport and carry that material up through the bar, **skipping that
-  element's absolutely positioned children**. `.nav-shell` is the candidate it
-  finds and it is transparent — the tint and the blur are on `.nav-surface`,
-  which is absolute — so Safari falls back to the body's colour and fills the bar
-  with an opaque slab above a frosted header. `.nav-tint` is a 4px, full-width,
-  `opacity: 0` sliver at `top: 0` carrying the surface's own tint and blur, and
-  its only job is to be the thing that gets read. It is `opacity: 0` and not
-  `display: none` because the scan reads styles, not pixels, and only the
-  properties that take an element out of layout take it out of the running.
-  The `theme-color` metas in `app.html` are still what Chrome's toolbar reads.
+- **The status bar is not ours to paint.** Safari 26 ignores `theme-color`
+  outright, and in a tab the page is not laid out under the bar either —
+  `env(safe-area-inset-top)` is 0 and `innerHeight` is 714 against a 874pt
+  screen — so no pixel of this site can reach it. What it does instead is read
+  the `background-color` of a fixed or sticky element at the top of the viewport
+  and fill the bar with that. `.nav-shell` is the candidate and it is
+  transparent, so there is nothing to read and the bar is glass over whatever
+  page content is beneath it: on a dark article that reads as a slab, which is
+  the seam above the frosted header.
+
+  Measured on an iPhone 16 Pro with `static/safari-bar-probe.html`, which is the
+  only reason any of this is written down — every account of the scan online
+  disagrees with the others, and two of them are wrong:
+  - an opaque `background-color` on the candidate paints the bar that colour
+    flat, and a semi-transparent one plus a `backdrop-filter` paints it as that
+    material over the content, which is the look this header wants;
+  - **an `opacity: 0` element is not read**, so there is no invisible element
+    that can hand Safari the tint — a 4px sliver doing exactly that was tried
+    and does nothing;
+  - with no candidate at all the bar is the page, blurred.
+
+  Handing it the tint therefore means putting the tint on `.nav-shell` itself,
+  whose box is the row alone — the disclosure grows out of an absolute panel —
+  so it cannot be the one material for the whole header the way `.nav-surface`
+  is. That trade is unresolved and deliberately not taken. The `theme-color`
+  metas in `app.html` are still what Chrome's toolbar reads.
+
 - **`--nav-safe-top` reserves the bar's band inside the row, for the cases where
   the page really is laid out under it** — a home-screen web app, and anything
   else where `env(safe-area-inset-top)` is not 0. It is added to the row's

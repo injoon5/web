@@ -178,35 +178,6 @@
 	</noscript>
 </svelte:head>
 
-<!-- Nothing renders here, on any screen. It exists to be read by one browser.
-
-     Safari 26 does not paint its status bar from `theme-color` — it ignores that
-     outright — and in a tab the page is not laid out under the bar either, so
-     there is no reaching it with a pixel: `env(safe-area-inset-top)` is 0 and the
-     material stops at the top of the page, which is under the bar's bottom edge.
-     What Safari does instead is take the `background-color` and the
-     `backdrop-filter` of a fixed or sticky element flush with the top of the
-     viewport and carry that material up through the bar itself.
-
-     `.nav-shell` is that element and it is transparent — the tint and the blur
-     are on `.nav-surface`, which is absolutely positioned, and the scan skips a
-     candidate's absolutely positioned children. With nothing to read Safari falls
-     back to the body's own colour and fills the bar with it: an opaque slab, hard
-     edged, sitting over a header that is frosted glass with the article sliding
-     under it.
-
-     So: a 4px sliver, flush with the top and the full width of it — which is what
-     the scan looks for — carrying the same tint and the same blur as the surface
-     it stands in for. It is `opacity: 0` rather than hidden because a
-     `display: none` element is not read and an invisible one still is, and that
-     asymmetry is the whole trick. It cannot paint, cannot be hit, and is not in
-     the accessibility tree; if a future Safari stops reading it, the bar goes back
-     to the colour it picks today and nothing on the page moves. -->
-<div
-	aria-hidden="true"
-	class="nav-tint fixed inset-x-0 top-0 h-1 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
-></div>
-
 <!-- The header's priority order, expressed as layout rather than hoped for: type
      never shrinks on a small screen — the link set does. Below `sm` the nav is
      'projects blog ⌄' and /now + /health live one tap down; the wordmark still
@@ -242,17 +213,15 @@
 		     the top of the page, doing its work behind a fully transparent tint, and
 		     fading the element takes the filter with it — so a header sitting over
 		     nothing composites nothing. -->
-		<!-- The tint and the blur stay on this child and never move up onto the
-		     sticky shell, for a second reason now. Safari 26 no longer reads
-		     `theme-color`: it tints its own status bar by sampling the
-		     `background-color` and `backdrop-filter` of a fixed or sticky element at
-		     the top of the viewport, and it skips that element's absolutely
-		     positioned children. The shell staying transparent is what leaves the
-		     status bar transparent — Safari composites the real page there, which is
-		     this surface, spanning the band under the clock at whatever opacity the
-		     scroll position has it. Given a colour to sample, it would paint the
-		     header's *scrolled* appearance as a slab from the first frame, over a
-		     header that is still entirely see-through. -->
+		<!-- This is also the element Safari 26 does *not* read when it decides what
+		     to put in its status bar. It reads the `background-color` of a fixed or
+		     sticky element at the top of the viewport — `.nav-shell`, which is
+		     transparent — and with no candidate the bar is glass over whatever page
+		     content sits under it. Measured on an iPhone: an `opacity: 0` element
+		     is not read either, so there is no invisible way to hand it this tint.
+		     Moving the tint up to the shell is the only thing that would, and the
+		     shell's box is the row alone — the disclosure grows out of an absolute
+		     panel — so it cannot carry the material for the whole header. -->
 		<div
 			aria-hidden="true"
 			class="nav-surface absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
@@ -463,14 +432,6 @@
 
 	.nav-cluster {
 		translate: 0 var(--nav-cluster-nudge, 0px);
-	}
-
-	/* Read, never seen. `opacity` and not `visibility` or `display`: the scan
-	   reads the styles rather than the pixels, and only the two that take the
-	   element out of the layout take it out of the running. */
-	.nav-tint {
-		opacity: 0;
-		pointer-events: none;
 	}
 
 	/* The lead changes form at zero: padding cannot go negative, and flush is not

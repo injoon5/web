@@ -130,12 +130,27 @@
 				pointer-events: none;
 			}
 
+			/* Starts transparent and is given the tint three seconds in. If the bar
+			   turns red on its own, Safari re-reads the candidate after load and a
+			   tint that ramps with scroll can drive it; if it never does, only a
+			   value that is there at first paint counts. */
+			body[data-v='6'] .bar {
+				background: transparent;
+				-webkit-backdrop-filter: blur(12px);
+				backdrop-filter: blur(12px);
+				transition: background 400ms linear;
+			}
+			body[data-v='6'].late .bar {
+				background: rgb(225 29 72 / 0.5);
+			}
+
 			body[data-v='0'] .bar,
 			body[data-v='0'] .sliver,
 			body[data-v='1'] .sliver,
 			body[data-v='2'] .sliver,
 			body[data-v='3'] .sliver,
-			body[data-v='4'] .sliver {
+			body[data-v='4'] .sliver,
+			body[data-v='6'] .sliver {
 				display: none;
 			}
 		</style>
@@ -159,7 +174,8 @@
 				['2', 'opacity 0'],
 				['3', 'abs child'],
 				['4', '50% + blur'],
-				['5', 'sliver']
+				['5', 'sliver'],
+				['6', 'tint after 3s']
 			];
 			const v = new URLSearchParams(location.search).get('v') ?? '0';
 			document.body.dataset.v = v;
@@ -171,6 +187,8 @@
 						`<a href="?v=${id}"${id === v ? ' aria-current="page"' : ''}>${id}. ${label}</a>`
 				)
 				.join('');
+
+			if (v === '6') setTimeout(() => document.body.classList.add('late'), 3000);
 
 			// env() is only readable through a property that uses it.
 			const probe = document.createElement('div');
