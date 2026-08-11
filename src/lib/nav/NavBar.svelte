@@ -178,6 +178,22 @@
 	</noscript>
 </svelte:head>
 
+<!-- The 4px that hands Safari the colour, and the one element on this page that
+     is there for the browser's chrome rather than for the page.
+
+     Safari 26 fills its status bar with the `background-color` of a fixed or
+     sticky element at the top of the viewport. Measured on an iPhone: an opaque
+     one paints the bar that colour flat and edge to edge, and with no candidate
+     the bar is the page behind it, blurred — which on a dark article is the slab
+     this is all about. `.nav-shell` cannot be the candidate: a colour on it
+     paints the whole row, and the row is a ramp now.
+
+     So this is the top stop of that ramp, on its own, 4px of it — over the
+     threshold the scan wants, and invisible by construction, because the pixels
+     directly under it are the same colour. At the top of the page it is the page
+     colour on the page colour; scrolled, it is the scrim's own first stop. -->
+<div aria-hidden="true" class="nav-edge"></div>
+
 <!-- The header's priority order, expressed as layout rather than hoped for: type
      never shrinks on a small screen — the link set does. Below `sm` the nav is
      'projects blog ⌄' and /now + /health live one tap down; the wordmark still
@@ -213,25 +229,36 @@
 		     the top of the page, doing its work behind a fully transparent tint, and
 		     fading the element takes the filter with it — so a header sitting over
 		     nothing composites nothing. -->
-		<!-- This is also the element Safari 26 does *not* read when it decides what
-		     to put in its status bar. It reads the `background-color` of a fixed or
-		     sticky element at the top of the viewport — `.nav-shell`, which is
-		     transparent — and with no candidate the bar is glass over whatever page
-		     content sits under it. Measured on an iPhone: an `opacity: 0` element
-		     is not read either, so there is no invisible way to hand it this tint.
-		     Moving the tint up to the shell is the only thing that would, and the
-		     shell's box is the row alone — the disclosure grows out of an absolute
-		     panel — so it cannot carry the material for the whole header. -->
-		<div
-			aria-hidden="true"
-			class="nav-surface absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
-		></div>
-		<!-- And one hairline, which slides down to the new bottom edge as the
-		     disclosure opens instead of a second one fading in beneath it. -->
-		<div
-			aria-hidden="true"
-			class="nav-hairline absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 dark:bg-neutral-800/70"
-		></div>
+		<!-- The material is a ramp rather than a pane: it is the page's own colour at
+		     the top edge and nothing at all at the bottom, with the blur deepening
+		     the same way. The header stops having a bottom — no hairline, no step —
+		     and the top is a colour rather than a translucency, which is what lets
+		     the status bar above it be the same colour and the two read as one
+		     surface running off the top of the screen. -->
+		<div aria-hidden="true" class="nav-surface absolute inset-0 -z-10">
+			<!-- Four passes, each masked to a band that starts higher than the last.
+			     A `backdrop-filter` takes everything painted beneath it, siblings
+			     included, so the passes compound: one radius at the bottom of the
+			     ramp and four of them at the top, from a step small enough that no
+			     single layer is expensive. The bands overlap by their own width, and
+			     that overlap is the whole reason it reads as a gradient rather than
+			     as four bars of increasing blur. -->
+			<div class="nav-blur" data-step="1"></div>
+			<div class="nav-blur" data-step="2"></div>
+			<div class="nav-blur" data-step="3"></div>
+			<div class="nav-blur" data-step="4"></div>
+			<!-- Over the blur, not under it: this is the colour the type sits on, and
+			     a scrim that had been through the passes above would be a blurred
+			     gradient, which is a gradient with its ends pulled in. The stops are
+			     eased — a straight alpha ramp ends visibly, in a soft edge across the
+			     page about two thirds of the way down. -->
+			<div class="nav-scrim"></div>
+			<!-- The one thing a ramp cannot do is back a row of links at its own
+			     bottom edge, where it is transparent by construction. So the open
+			     disclosure brings its own flat tint over the whole grown box, on the
+			     menu's half of the same pair of properties the surface fades on. -->
+			<div class="nav-panel"></div>
+		</div>
 		<!-- Centred, so the name and the links hang from one middle axis rather than
 		     standing on one baseline — small links sharing a baseline with type this
 		     much larger read as sitting on the floor beside it.
@@ -634,14 +661,106 @@
 	}
 
 	/* Sized by the row and stretched by however far the disclosure reaches, so one
-	   blurred pane covers the header at every point in the animation. Their
-	   presence is not transitioned here — the two properties above carry it, and a
-	   transition on top of a scroll-driven value would only make it lag. */
-	.nav-surface,
-	.nav-hairline {
+	   ramp covers the header at every point in the animation — and stretching it
+	   is what keeps the fade the height of whatever the header currently is,
+	   rather than a gradient that ends partway down an open menu. Its presence is
+	   not transitioned here — the two properties above carry it, and a transition
+	   on top of a scroll-driven value would only make it lag. */
+	.nav-surface {
 		opacity: max(var(--nav-surface-scroll), var(--nav-surface-menu));
 		bottom: calc(-1 * var(--nav-open-extra, 0px));
 		transition: bottom var(--nav-duration, 320ms) var(--nav-ease);
+	}
+
+	/* The page's own background, as the three numbers a gradient stop can be
+	   written from. `.nav-edge` is not inside the surface — it is fixed to the
+	   viewport — so both are named here rather than the value living on one of
+	   them. */
+	.nav-surface,
+	.nav-edge {
+		--nav-surface-rgb: 255 255 255;
+	}
+
+	:global(html.dark) .nav-surface,
+	:global(html.dark) .nav-edge {
+		--nav-surface-rgb: 10 10 10;
+	}
+
+	.nav-surface > * {
+		position: absolute;
+		inset: 0;
+	}
+
+	/* One radius per pass, compounding upward. 3px is chosen against the four of
+	   them: the top of the ramp lands near the 8px this header has always used,
+	   and no single layer is doing the expensive thing on its own. */
+	.nav-blur {
+		-webkit-backdrop-filter: blur(var(--nav-blur-step, 3px));
+		backdrop-filter: blur(var(--nav-blur-step, 3px));
+	}
+
+	/* Each band starts a quarter higher and feathers over a quarter, so every
+	   point on the ramp is inside two of them. Written to the top, because that is
+	   the end the ramp is anchored to — an open disclosure lengthens it downward
+	   and the deep end stays put. */
+	.nav-blur[data-step='1'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 8%, #000 30%);
+		mask-image: linear-gradient(to top, transparent 8%, #000 30%);
+	}
+
+	.nav-blur[data-step='2'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 27%, #000 49%);
+		mask-image: linear-gradient(to top, transparent 27%, #000 49%);
+	}
+
+	.nav-blur[data-step='3'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 46%, #000 68%);
+		mask-image: linear-gradient(to top, transparent 46%, #000 68%);
+	}
+
+	/* The deepest band tops out at 87% rather than 100%: above that the scrim is
+	   solid, and a blur under an opaque colour is work nobody sees. */
+	.nav-blur[data-step='4'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 65%, #000 87%);
+		mask-image: linear-gradient(to top, transparent 65%, #000 87%);
+	}
+
+	/* Solid for the first eighth, then eased away. The flat run is what the status
+	   bar joins onto — a ramp that starts giving way at the top edge shows the
+	   article through the very pixels that are supposed to match the bar, and on a
+	   light page that reads as dirt under the wordmark. */
+	.nav-scrim {
+		background-image: linear-gradient(
+			to bottom,
+			rgb(var(--nav-surface-rgb) / 1) 0%,
+			rgb(var(--nav-surface-rgb) / 1) 13%,
+			rgb(var(--nav-surface-rgb) / 0.93) 29%,
+			rgb(var(--nav-surface-rgb) / 0.74) 47%,
+			rgb(var(--nav-surface-rgb) / 0.46) 65%,
+			rgb(var(--nav-surface-rgb) / 0.18) 82%,
+			rgb(var(--nav-surface-rgb) / 0.04) 93%,
+			rgb(var(--nav-surface-rgb) / 0) 100%
+		);
+	}
+
+	.nav-panel {
+		background-color: rgb(var(--nav-surface-rgb) / 0.82);
+		opacity: var(--nav-surface-menu);
+	}
+
+	/* Fixed rather than sticky: it answers to the viewport, which is what the scan
+	   measures against, and it must not move with a header that is only sticky
+	   until the page is long enough. Never faded and never animated — the value
+	   Safari reads is the one that is there at first paint. */
+	.nav-edge {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 4px;
+		background-color: rgb(var(--nav-surface-rgb));
+		pointer-events: none;
+		z-index: 31;
 	}
 
 	.nav-more-row {

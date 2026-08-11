@@ -860,11 +860,30 @@ moving is read where the page is:
     and does nothing;
   - with no candidate at all the bar is the page, blurred.
 
-  Handing it the tint therefore means putting the tint on `.nav-shell` itself,
-  whose box is the row alone — the disclosure grows out of an absolute panel —
-  so it cannot be the one material for the whole header the way `.nav-surface`
-  is. That trade is unresolved and deliberately not taken. The `theme-color`
-  metas in `app.html` are still what Chrome's toolbar reads.
+  **`.nav-edge` is what answers it, and the header's ramp is what makes that
+  possible.** The material is a gradient now — the page's own colour, solid at
+  the top edge and gone at the bottom — so the colour the bar needs is a colour
+  the header already has. `.nav-edge` is 4px of it, `position: fixed` at
+  `top: 0`, over the scan's threshold and invisible by construction: the pixels
+  directly beneath it are the same colour, at the top of the page and scrolled.
+  It is never faded and never animated, because the value that counts is the one
+  there at first paint. The shell stays transparent — a colour on it would paint
+  the whole row and there would be no ramp to speak of.
+
+  The `theme-color` metas in `app.html` are still what Chrome's toolbar reads.
+
+- **The header's material is a ramp, not a pane.** Four masked
+  `backdrop-filter` passes whose bands each start a quarter higher than the
+  last, so the blur compounds upward — a `backdrop-filter` takes in its earlier
+  siblings — under one eased scrim of the page colour. There is no hairline: the
+  header has no bottom edge to draw. Everything still hangs off
+  `.nav-surface`, which keeps the opacity ramp and the growth, so the gradient
+  is always the height the header currently is. Two things the ramp cannot do
+  and are handled beside it: the open disclosure brings its own flat tint
+  (`.nav-panel`, on `--nav-surface-menu`), because a row of links cannot sit on
+  the transparent end of a gradient; and the deepest blur band stops at 87%,
+  because above that the scrim is solid and a blur under an opaque colour is
+  work nobody sees.
 
 - **`--nav-safe-top` reserves the bar's band inside the row, for the cases where
   the page really is laid out under it** — a home-screen web app, and anything
