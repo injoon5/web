@@ -89,6 +89,15 @@
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 
+		/* The site follows the system scheme — `app.html` reads the media query
+		   before first paint and puts the class on this element — but until this
+		   is declared the UA is still rendering everything it owns as a light
+		   page: the canvas behind the document, form controls, and the furniture
+		   a browser paints around the content, which on iOS 26 includes the
+		   status bar's own base. Both keywords, because the answer is the
+		   system's rather than ours. */
+		color-scheme: light dark;
+
 		/* Every kind of jump the browser performs lands its target at the top of
 		   the scrollport, which is behind the header: a `#hash` link, the table of
 		   contents, find-in-page, scroll-to-text-fragment and tabbing to something

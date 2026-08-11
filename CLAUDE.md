@@ -839,27 +839,31 @@ moving is read where the page is:
   entirely behind the bar. It cannot simply be measured, because the browser
   scrolls to a deep link while the document is still parsing. `NavBar`
   re-publishes the row's measured height once it has one.
-- **The status bar's band is reserved inside the row, and the material spans
-  it.** The page is laid out `viewport-fit=cover`, so on a phone the sticky
-  shell's `top: 0` is the display's own top edge and the clock sits over the
-  first 59px of the header. `--nav-safe-top` (`env(safe-area-inset-top)`) is
-  added to the row's `padding-block-start` — not to the shell, which would put
-  the band outside the surface's box and stop the blur short of the top of the
-  screen. `--nav-h` is that reserve plus the row, so `scroll-padding-top` and the
-  hero's timeline inset both clear the taller bar; `--nav-name-travel` takes the
-  reserve back out, because the band moves the header's bottom edge and the
-  wordmark's resting position by the same amount and the handover is the
-  difference. Everywhere else it resolves to 0px and every one of these is the
-  number it always was.
-- **Safari 26 tints its status bar by sampling the page, not by reading
-  `theme-color`** (which it ignores outright): the `background-color` and
-  `backdrop-filter` of a fixed or sticky element at the top of the viewport,
-  skipping that element's absolutely positioned children. So the tint and the
-  blur have to stay on `.nav-surface` and never move up onto `.nav-shell` — a
-  transparent shell is what leaves the status bar transparent and lets the real
-  surface show through it. A colour on the shell paints the header's _scrolled_
-  appearance over the bar from the first frame. The `theme-color` metas in
-  `app.html` are still what Chrome's toolbar reads.
+- **The status bar is not ours to paint, and `.nav-tint` is how it is asked.**
+  Safari 26 ignores `theme-color` outright, and in a tab the page is not laid out
+  under the bar either — `env(safe-area-inset-top)` is 0 there, so no pixel of
+  this site can reach it. What Safari does is take the `background-color` and
+  `backdrop-filter` of a fixed or sticky element flush with the top of the
+  viewport and carry that material up through the bar, **skipping that
+  element's absolutely positioned children**. `.nav-shell` is the candidate it
+  finds and it is transparent — the tint and the blur are on `.nav-surface`,
+  which is absolute — so Safari falls back to the body's colour and fills the bar
+  with an opaque slab above a frosted header. `.nav-tint` is a 4px, full-width,
+  `opacity: 0` sliver at `top: 0` carrying the surface's own tint and blur, and
+  its only job is to be the thing that gets read. It is `opacity: 0` and not
+  `display: none` because the scan reads styles, not pixels, and only the
+  properties that take an element out of layout take it out of the running.
+  The `theme-color` metas in `app.html` are still what Chrome's toolbar reads.
+- **`--nav-safe-top` reserves the bar's band inside the row, for the cases where
+  the page really is laid out under it** — a home-screen web app, and anything
+  else where `env(safe-area-inset-top)` is not 0. It is added to the row's
+  `padding-block-start`, not to the shell, which would put the band outside
+  `.nav-surface`'s box and stop the blur short of the top of the screen. `--nav-h`
+  is that reserve plus the row, so `scroll-padding-top` and the hero's timeline
+  inset both clear the taller bar; `--nav-name-travel` takes the reserve back
+  out, because the band moves the header's bottom edge and the wordmark's resting
+  position by the same amount and the handover is the difference. In a Safari tab
+  it resolves to 0px and every one of these is the number it always was.
 - **The surface is a scroll-driven animation, not a scroll listener.** A
   `scroll(root block)` timeline carries `--nav-surface-scroll` from 0 to 1 over
   `--nav-surface-range`. The listener is installed only where

@@ -178,6 +178,35 @@
 	</noscript>
 </svelte:head>
 
+<!-- Nothing renders here, on any screen. It exists to be read by one browser.
+
+     Safari 26 does not paint its status bar from `theme-color` — it ignores that
+     outright — and in a tab the page is not laid out under the bar either, so
+     there is no reaching it with a pixel: `env(safe-area-inset-top)` is 0 and the
+     material stops at the top of the page, which is under the bar's bottom edge.
+     What Safari does instead is take the `background-color` and the
+     `backdrop-filter` of a fixed or sticky element flush with the top of the
+     viewport and carry that material up through the bar itself.
+
+     `.nav-shell` is that element and it is transparent — the tint and the blur
+     are on `.nav-surface`, which is absolutely positioned, and the scan skips a
+     candidate's absolutely positioned children. With nothing to read Safari falls
+     back to the body's own colour and fills the bar with it: an opaque slab, hard
+     edged, sitting over a header that is frosted glass with the article sliding
+     under it.
+
+     So: a 4px sliver, flush with the top and the full width of it — which is what
+     the scan looks for — carrying the same tint and the same blur as the surface
+     it stands in for. It is `opacity: 0` rather than hidden because a
+     `display: none` element is not read and an invisible one still is, and that
+     asymmetry is the whole trick. It cannot paint, cannot be hit, and is not in
+     the accessibility tree; if a future Safari stops reading it, the bar goes back
+     to the colour it picks today and nothing on the page moves. -->
+<div
+	aria-hidden="true"
+	class="nav-tint fixed inset-x-0 top-0 h-1 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
+></div>
+
 <!-- The header's priority order, expressed as layout rather than hoped for: type
      never shrinks on a small screen — the link set does. Below `sm` the nav is
      'projects blog ⌄' and /now + /health live one tap down; the wordmark still
@@ -434,6 +463,14 @@
 
 	.nav-cluster {
 		translate: 0 var(--nav-cluster-nudge, 0px);
+	}
+
+	/* Read, never seen. `opacity` and not `visibility` or `display`: the scan
+	   reads the styles rather than the pixels, and only the two that take the
+	   element out of the layout take it out of the running. */
+	.nav-tint {
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	/* The lead changes form at zero: padding cannot go negative, and flush is not
