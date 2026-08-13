@@ -6,6 +6,10 @@ tags:
   - Swift
   - watchOS
 published: true
+keywords:
+  - watchOS school schedule app
+  - school timetable Apple Watch app
+  - watchOS app development
 ---
 
 <script>

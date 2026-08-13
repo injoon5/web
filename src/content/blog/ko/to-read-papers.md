@@ -6,6 +6,10 @@ description: '컴퓨터 과학 관련되어 언젠가 꼭 읽어보고 싶은 �
 date: '2024-09-15'
 coverimage: ''
 published: true
+keywords:
+  - 컴퓨터 과학 논문 추천
+  - 읽고 싶은 논문 목록
+  - CS 논문 모음
 ---
 
 - [ ] [Attention is All You Need](https://arxiv.org/abs/1706.03762)

@@ -8,6 +8,10 @@ tags:
   - Pillow
 published: true
 aiTranslated: true
+keywords:
+  - 텍스트 이미지 생성기
+  - Pillow PNG 생성기
+  - 디스코드 이미지 봇
 ---
 
 ## 무엇인가

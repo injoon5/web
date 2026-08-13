@@ -6,6 +6,10 @@ tags:
   - Python
   - pygame
 published: true
+keywords:
+  - pygame Galaga clone
+  - Python arcade shooter game
+  - pygame shooting game
 ---
 
 ## What it is

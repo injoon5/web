@@ -8,6 +8,11 @@ tags:
   - FastAPI
   - GPT-4
 published: true
+keywords:
+  - screen reader image description extension
+  - alt text browser extension
+  - YOLOv8 image captioning
+  - accessibility browser extension
 ---
 
 ## The problem

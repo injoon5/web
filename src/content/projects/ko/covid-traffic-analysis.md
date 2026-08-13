@@ -7,6 +7,11 @@ tags:
   - Pandas
 published: true
 aiTranslated: true
+keywords:
+  - 코로나 고속도로 교통량 분석
+  - 사회적 거리두기 교통량
+  - 데이터 분석 프로젝트
+  - 판다스 데이터 분석
 ---
 
 ## 질문

@@ -8,6 +8,10 @@ tags:
   - Next.js
 published: true
 aiTranslated: true
+keywords:
+  - 학교 대시보드 앱
+  - 학생 시간표 앱
+  - 학교 공지 앱
 ---
 
 ## 무엇이었나

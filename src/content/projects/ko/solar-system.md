@@ -8,6 +8,10 @@ tags:
   - Vite
 published: true
 aiTranslated: true
+keywords:
+  - Three.js 태양계 시뮬레이터
+  - WebGL 태양계
+  - 3D 행성 시뮬레이션
 ---
 
 ## 무엇인가

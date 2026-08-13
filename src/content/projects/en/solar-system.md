@@ -7,6 +7,10 @@ tags:
   - JavaScript
   - Vite
 published: true
+keywords:
+  - Three.js solar system simulator
+  - WebGL solar system
+  - 3D planet simulation
 ---
 
 ## What it is

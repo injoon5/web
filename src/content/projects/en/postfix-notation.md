@@ -5,6 +5,10 @@ year: '2020'
 tags:
   - Python
 published: true
+keywords:
+  - postfix notation explained
+  - infix to postfix Python
+  - stack expression evaluation
 ---
 
 ## Why I looked into this

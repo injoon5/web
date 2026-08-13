@@ -9,6 +9,11 @@ tags:
   - GPT-4
 published: true
 aiTranslated: true
+keywords:
+  - 스크린 리더 이미지 설명 확장 프로그램
+  - 대체 텍스트 자동 생성
+  - YOLOv8 이미지 캡셔닝
+  - 웹 접근성 확장 프로그램
 ---
 
 ## 문제
