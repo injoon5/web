@@ -35,6 +35,8 @@
 		property="og:description"
 		content="Stuff that just barely made it online. Take a look at what I've done, experienced, and wrote about."
 	/>
+	<meta name="author" content="Injoon Oh (오인준)" />
+	<meta name="keywords" content="오인준, Injoon Oh, 블로그, blog, 글, writing" />
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=blog" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=blog" />

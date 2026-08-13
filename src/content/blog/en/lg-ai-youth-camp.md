@@ -8,6 +8,11 @@ series: 'LG AI Youth Camp'
 coverimage: ''
 published: true
 aiTranslated: true
+keywords:
+  - LG AI Youth Camp review
+  - LG Discovery Lab
+  - Seoul National University AI camp
+  - AI youth program
 ---
 
 I had just transferred to Mongmun Middle School in November and was busy catching up on all the assignments I'd missed, when I spotted a poster while waiting in the lunch line.
