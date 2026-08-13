@@ -8,6 +8,10 @@ tags:
   - Last.fm
 published: true
 aiTranslated: true
+keywords:
+  - 애플 뮤직 재생 기록 위젯
+  - Last.fm GitHub Actions
+  - 애플 뮤직 API 대체
 ---
 
 ## 짧게 요약하면

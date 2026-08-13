@@ -7,6 +7,10 @@ tags:
   - pygame
 published: true
 aiTranslated: true
+keywords:
+  - pygame 갤러그 클론
+  - 파이썬 슈팅 게임
+  - pygame 게임 만들기
 ---
 
 ## 무엇인가

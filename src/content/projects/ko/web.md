@@ -8,6 +8,10 @@ tags:
   - Vercel
 published: true
 aiTranslated: true
+keywords:
+  - SvelteKit 개인 웹사이트
+  - Convex 블로그
+  - 개인 포트폴리오 사이트
 ---
 
 ## 지금 보고 있는 것

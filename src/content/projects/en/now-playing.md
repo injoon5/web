@@ -7,6 +7,10 @@ tags:
   - GitHub Actions
   - Last.fm
 published: true
+keywords:
+  - Apple Music now playing widget
+  - Last.fm GitHub Actions
+  - Apple Music API alternative
 ---
 
 ## The short version

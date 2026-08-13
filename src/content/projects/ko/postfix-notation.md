@@ -6,6 +6,10 @@ tags:
   - Python
 published: true
 aiTranslated: true
+keywords:
+  - 후위 표기법 설명
+  - 중위 후위 변환 파이썬
+  - 스택 수식 계산
 ---
 
 ## 왜 알아봤나

@@ -134,7 +134,11 @@
 	const projectUrl = $derived(`https://www.injoon5.com/projects/${page.params.slug}`);
 	const ogLocale = $derived(displayLang === 'en' ? 'en_US' : 'ko_KR');
 	const ogLocaleAlt = $derived(displayLang === 'en' ? 'ko_KR' : 'en_US');
-	const keywords = $derived(keywordsFor([headMeta.title, ...(currentMeta?.tags ?? [])]));
+	// The project's hand-picked keywords lead among the page terms — the phrases
+	// it targets — then its title and tags, the same order the blog page uses.
+	const keywords = $derived(
+		keywordsFor([...(currentMeta?.keywords ?? []), headMeta.title, ...(currentMeta?.tags ?? [])])
+	);
 	const keywordsContent = $derived(keywords.join(', '));
 	const projSchema = $derived(
 		projectSchema({

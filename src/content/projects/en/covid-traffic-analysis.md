@@ -6,6 +6,11 @@ tags:
   - Python
   - Pandas
 published: true
+keywords:
+  - COVID highway traffic analysis
+  - social distancing traffic data
+  - Korea traffic data analysis
+  - Pandas data analysis project
 ---
 
 ## The question

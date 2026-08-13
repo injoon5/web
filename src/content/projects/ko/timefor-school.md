@@ -10,6 +10,10 @@ tags:
   - MCP
 published: true
 aiTranslated: true
+keywords:
+  - NEIS API 학교 앱
+  - 실시간 학교 공지 게시판
+  - 학교 MCP 서버
 ---
 
 ## 아이디어

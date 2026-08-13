@@ -7,6 +7,10 @@ tags:
   - Python
   - Next.js
 published: true
+keywords:
+  - school dashboard app
+  - student timetable app
+  - school notice board app
 ---
 
 ## What it was

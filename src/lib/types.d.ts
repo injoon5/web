@@ -25,6 +25,7 @@ export type Project = {
 	coverimage: string;
 	published: boolean;
 	hasEn?: boolean;
+	keywords?: string[];
 };
 
 export type Tags = {

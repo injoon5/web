@@ -7,6 +7,10 @@ tags:
   - watchOS
 published: true
 aiTranslated: true
+keywords:
+  - watchOS 학교 시간표 앱
+  - 애플워치 시간표 앱
+  - watchOS 앱 개발
 ---
 
 <script>

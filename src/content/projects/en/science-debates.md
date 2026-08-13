@@ -6,6 +6,10 @@ tags:
   - Research
   - Writing
 published: true
+keywords:
+  - science debate competition
+  - AI regulation debate
+  - Anthropocene debate topic
 ---
 
 ## Overview

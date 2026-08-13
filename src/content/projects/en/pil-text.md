@@ -7,6 +7,10 @@ tags:
   - FastAPI
   - Pillow
 published: true
+keywords:
+  - text to image generator
+  - Pillow PNG text generator
+  - Discord image bot
 ---
 
 ## What it is

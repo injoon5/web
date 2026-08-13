@@ -7,6 +7,11 @@ date: '2025-02-09'
 coverimage: ''
 published: true
 aiTranslated: true
+keywords:
+  - 지금 듣는 음악 섹션
+  - Last.fm 연동
+  - 애플 뮤직 API 대체
+  - GitHub Actions Last.fm
 ---
 
 ## 아이디어

@@ -9,6 +9,10 @@ tags:
   - FastAPI
   - MCP
 published: true
+keywords:
+  - NEIS API school app
+  - realtime school notice board
+  - school MCP server
 ---
 
 ## The idea

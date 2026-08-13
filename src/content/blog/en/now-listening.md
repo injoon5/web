@@ -6,6 +6,11 @@ description: 'Not using the Apple Music API and finding a cool trick involving L
 date: '2025-02-09'
 coverimage: ''
 published: true
+keywords:
+  - Last.fm now playing website
+  - Now Listening section website
+  - Apple Music API alternative
+  - Last.fm GitHub Actions
 ---
 
 ## The idea

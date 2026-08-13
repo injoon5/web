@@ -7,6 +7,10 @@ tags:
   - Convex
   - Vercel
 published: true
+keywords:
+  - SvelteKit personal website
+  - Convex blog site
+  - personal portfolio site
 ---
 
 ## What you're looking at

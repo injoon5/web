@@ -7,6 +7,11 @@ tags:
   - Writing
 published: true
 aiTranslated: true
+keywords:
+  - 과학 토론 대회
+  - 서울시교육청 과학토론
+  - AI 규제 토론
+  - 인류세 토론 주제
 ---
 
 ## 개요
