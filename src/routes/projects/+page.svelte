@@ -13,6 +13,8 @@
 		property="og:description"
 		content="Some of the stuff I did to escape from a boring day. Everything from school projects to personal projects."
 	/>
+	<meta name="author" content="Injoon Oh (오인준)" />
+	<meta name="keywords" content="오인준, Injoon Oh, projects, 프로젝트, 개발, portfolio" />
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=projects" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=projects" />

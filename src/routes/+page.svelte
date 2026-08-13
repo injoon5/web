@@ -8,6 +8,7 @@
 	import HomeDialsMount from '$lib/home/HomeDialsMount.svelte';
 	import { homeSettings, homeStyle } from '$lib/home/settings.svelte.js';
 	import { techstack } from '$lib/techstack/data.js';
+	import { homeSchema, jsonLdScript } from '$lib/seo/jsonld.js';
 
 	const { data } = $props();
 
@@ -66,16 +67,26 @@
 	<title>Injoon Oh</title>
 	<meta charset="UTF-8" />
 	<meta property="og:title" content="Injoon Oh" />
-	<meta name="description" content="A student who is interested in math, science, and computers." />
+	<meta
+		name="description"
+		content="Injoon Oh (오인준) — a student interested in math, science, and computers. Blog, projects, and more."
+	/>
 	<meta
 		property="og:description"
-		content="A student who is interested in math, science, and computers."
+		content="Injoon Oh (오인준) — a student interested in math, science, and computers. Blog, projects, and more."
+	/>
+	<meta name="author" content="Injoon Oh (오인준)" />
+	<meta
+		name="keywords"
+		content="오인준, Injoon Oh, injoon5, 블로그, blog, projects, 개발자, developer"
 	/>
 	<meta property="og:image" content="https://www.injoon5.com/api/og?template=home" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=home" />
 
+	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://www.injoon5.com/" />
+	{@html jsonLdScript(homeSchema())}
 </svelte:head>
 
 <div

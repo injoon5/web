@@ -12,6 +12,8 @@ export type Post = {
 	tags: TagsList[];
 	published: boolean;
 	hasEn?: boolean;
+	series?: string;
+	keywords?: string[];
 };
 
 export type Project = {

@@ -11,6 +11,12 @@
 	import { autoHeight } from '$lib/actions/auto-height.js';
 	import LanguageSwitcher from '$lib/ui/LanguageSwitcher.svelte';
 	import StableLangStack from '$lib/ui/StableLangStack.svelte';
+	import {
+		projectSchema,
+		breadcrumbSchema,
+		keywordsFor,
+		jsonLdScript
+	} from '$lib/seo/jsonld.js';
 
 	import { onMount, tick, untrack } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -125,6 +131,29 @@
 	const ogImageUrl = $derived(
 		`https://www.injoon5.com/api/og?template=project&title=${encodeURIComponent(headMeta.title)}&description=${encodeURIComponent(headMeta.description || '')}&year=${encodeURIComponent(headMeta.year || '')}&tags=${encodeURIComponent((headMeta.tags || []).join(','))}`
 	);
+	const projectUrl = $derived(`https://www.injoon5.com/projects/${page.params.slug}`);
+	const ogLocale = $derived(displayLang === 'en' ? 'en_US' : 'ko_KR');
+	const ogLocaleAlt = $derived(displayLang === 'en' ? 'ko_KR' : 'en_US');
+	const keywords = $derived(keywordsFor([headMeta.title, ...(currentMeta?.tags ?? [])]));
+	const keywordsContent = $derived(keywords.join(', '));
+	const projSchema = $derived(
+		projectSchema({
+			title: headMeta.title,
+			description: headMeta.description ?? '',
+			year: headMeta.year ?? '',
+			url: projectUrl,
+			image: ogImageUrl,
+			lang: displayLang,
+			keywords
+		})
+	);
+	const crumbs = $derived(
+		breadcrumbSchema([
+			{ name: 'Injoon Oh', url: 'https://www.injoon5.com/' },
+			{ name: 'Projects', url: 'https://www.injoon5.com/projects' },
+			{ name: headMeta.title, url: projectUrl }
+		])
+	);
 	// Keep <html lang> in sync with the shown language (SSR sets it via hooks.server.ts).
 	$effect(() => {
 		document.documentElement.lang = displayLang;
@@ -133,13 +162,22 @@
 
 <svelte:head>
 	<title>{headMeta.title}</title>
+	<meta name="description" content={headMeta.description ?? ''} />
+	<meta name="author" content="Injoon Oh (오인준)" />
+	<meta name="keywords" content={keywordsContent} />
 	<meta property="og:type" content="article" />
 	<meta property="og:title" content={headMeta.title} />
 	<meta property="og:description" content={headMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta property="og:locale" content={ogLocale} />
+	{#if data.availableLangs.length > 1}
+		<meta property="og:locale:alternate" content={ogLocaleAlt} />
+	{/if}
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content={ogImageUrl} />
-	<meta property="og:url" content="https://www.injoon5.com/projects/{page.params.slug}" />
+	<meta property="og:url" content={projectUrl} />
+	{@html jsonLdScript(projSchema)}
+	{@html jsonLdScript(crumbs)}
 	{#each data.availableLangs as l (l)}
 		<link
 			rel="alternate"

@@ -14,6 +14,12 @@
 	import { autoHeight } from '$lib/actions/auto-height.js';
 	import LanguageSwitcher from '$lib/ui/LanguageSwitcher.svelte';
 	import StableLangStack from '$lib/ui/StableLangStack.svelte';
+	import {
+		blogPostingSchema,
+		breadcrumbSchema,
+		keywordsFor,
+		jsonLdScript
+	} from '$lib/seo/jsonld.js';
 
 	import { onMount, tick, untrack } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -156,6 +162,40 @@
 	const ogImageUrl = $derived(
 		`https://www.injoon5.com/api/og?template=blog-post&title=${encodeURIComponent(headMeta.title)}&description=${encodeURIComponent(headMeta.description || '')}&date=${encodeURIComponent(headMeta.date || '')}`
 	);
+	const postUrl = $derived(`https://www.injoon5.com/blog/${page.params.slug}`);
+	const ogLocale = $derived(displayLang === 'en' ? 'en_US' : 'ko_KR');
+	const ogLocaleAlt = $derived(displayLang === 'en' ? 'ko_KR' : 'en_US');
+	// Author names lead (so 오인준 rides on every article), then the post's own
+	// hand-picked keywords, its title, series and tags. The frontmatter keywords
+	// come first among the page terms — they are the phrases the post targets.
+	const keywords = $derived(
+		keywordsFor([
+			...(currentMeta?.keywords ?? []),
+			headMeta.title,
+			currentMeta?.series,
+			...(currentMeta?.tags ?? [])
+		])
+	);
+	const keywordsContent = $derived(keywords.join(', '));
+	const postSchema = $derived(
+		blogPostingSchema({
+			title: headMeta.title,
+			description: headMeta.description ?? '',
+			date: headMeta.date ?? '',
+			url: postUrl,
+			image: ogImageUrl,
+			lang: displayLang,
+			keywords,
+			section: currentMeta?.series
+		})
+	);
+	const crumbs = $derived(
+		breadcrumbSchema([
+			{ name: 'Injoon Oh', url: 'https://www.injoon5.com/' },
+			{ name: 'Blog', url: 'https://www.injoon5.com/blog' },
+			{ name: headMeta.title, url: postUrl }
+		])
+	);
 	// Keep <html lang> in sync with the shown language (SSR sets it via hooks.server.ts).
 	$effect(() => {
 		document.documentElement.lang = displayLang;
@@ -165,13 +205,30 @@
 <!-- SEO -->
 <svelte:head>
 	<title>{headMeta.title}</title>
+	<meta name="description" content={headMeta.description ?? ''} />
+	<meta name="author" content="Injoon Oh (오인준)" />
+	<meta name="keywords" content={keywordsContent} />
 	<meta property="og:type" content="article" />
 	<meta property="og:title" content={headMeta.title} />
 	<meta property="og:description" content={headMeta.description ?? ''} />
 	<meta property="og:image" content={ogImageUrl} />
+	<meta property="og:locale" content={ogLocale} />
+	{#if data.availableLangs.length > 1}
+		<meta property="og:locale:alternate" content={ogLocaleAlt} />
+	{/if}
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content={ogImageUrl} />
-	<meta property="og:url" content="https://www.injoon5.com/blog/{page.params.slug}" />
+	<meta property="og:url" content={postUrl} />
+	<meta property="article:published_time" content={headMeta.date ?? ''} />
+	<meta property="article:author" content="Injoon Oh (오인준)" />
+	{#if currentMeta?.series}
+		<meta property="article:section" content={currentMeta.series} />
+	{/if}
+	{#each currentMeta?.tags ?? [] as tag (tag)}
+		<meta property="article:tag" content={tag} />
+	{/each}
+	{@html jsonLdScript(postSchema)}
+	{@html jsonLdScript(crumbs)}
 	{#each data.availableLangs as l (l)}
 		<link
 			rel="alternate"

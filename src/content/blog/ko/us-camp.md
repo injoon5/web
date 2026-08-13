@@ -7,6 +7,12 @@ date: '2024-07-16'
 series: 'LG AI 청소년 캠프'
 coverimage: ''
 published: true
+keywords:
+  - 미국 캠프 후기
+  - 실리콘밸리 캠프 후기
+  - 청소년 해외 캠프 후기
+  - LG AI 청소년 캠프 미국
+  - DMA 캠프
 ---
 
 ## 출국 준비

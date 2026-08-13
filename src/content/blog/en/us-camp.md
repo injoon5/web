@@ -8,6 +8,11 @@ series: 'LG AI Youth Camp'
 coverimage: ''
 published: true
 aiTranslated: true
+keywords:
+  - Silicon Valley camp review
+  - LG AI Youth Camp USA
+  - tech summer camp abroad
+  - Digital Media Academy camp
 ---
 
 ## Getting Ready
