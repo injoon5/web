@@ -107,6 +107,43 @@
 	}
 }
 
+/* iOS Safari zooms the whole page in when a text field whose computed
+   font-size is under 16px takes focus — and it does not zoom back out when the
+   field is blurred, so the page is left enlarged with the header off screen.
+   Every field in a comment thread hits this: the reply box, the edit box and
+   both password prompts are `text-sm`, i.e. 14px.
+
+   The fix is a floor on the field, not `maximum-scale` on the viewport meta —
+   that would stop the zoom by taking pinch-zoom away from everyone, on every
+   page.
+
+   Three things this rule has to be:
+
+   - **Unlayered.** `text-sm` is a Tailwind utility, and a rule inside
+     `@layer base` loses to any utility no matter how specific it is. Unlayered
+     declarations outrank every layer in the same origin, which is the same
+     reason the DialKit rules are written outside the layers.
+   - **`max(16px, 1em)`, not `16px`.** Inside a `font-size` declaration `1em` is
+     the *parent's* size, so a field sitting in a larger context keeps the size
+     it inherits instead of being clamped down to the floor.
+   - **Coarse pointers only.** Desktop Safari never does this, and the 14px
+     fields are drawn at the size they were designed at there. */
+@media (pointer: coarse) {
+	input:not(
+		[type='button'],
+		[type='submit'],
+		[type='reset'],
+		[type='checkbox'],
+		[type='radio'],
+		[type='range'],
+		[type='color']
+	),
+	select,
+	textarea {
+		font-size: max(16px, 1em);
+	}
+}
+
 /* Vote button pop */
 @keyframes vote-pop {
 	0% {
