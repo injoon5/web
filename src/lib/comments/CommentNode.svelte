@@ -48,6 +48,15 @@
 	// otherwise show neutral arrows so a stale/unknown state can't be mis-toggled.
 	const myVote = $derived(voteKnown ? comment.myVote : null);
 	const voteDisabled = $derived(isVoting || !canVote);
+	// The score wears the visitor's own vote colour, so the tally itself says which
+	// way they leaned — a second, quieter cue alongside the lit-up button.
+	const scoreColor = $derived(
+		myVote === 'up'
+			? 'text-emerald-700 dark:text-emerald-400'
+			: myVote === 'down'
+				? 'text-rose-700 dark:text-rose-400'
+				: 'text-neutral-700 dark:text-neutral-300'
+	);
 	const replyCharsLeft = $derived(MAX_COMMENT_LENGTH - replyText.length);
 	const showReplyCharsLeft = $derived(replyText.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
 	const replyDisabled = $derived(
@@ -188,7 +197,7 @@
 				<div class="flex shrink-0 items-center gap-1.5">
 					{#if !isDeleted}
 						<span
-							class="tabular min-w-[1.25rem] text-center text-sm leading-none font-medium text-neutral-700 dark:text-neutral-300"
+							class="tabular min-w-[1.25rem] text-center text-sm leading-none font-semibold transition-colors duration-150 {scoreColor}"
 						>
 							<NumberFlow value={comment.score} trend={0} />
 						</span>
@@ -198,16 +207,20 @@
 							disabled={voteDisabled}
 							aria-label="Upvote"
 							aria-pressed={myVote === 'up'}
-							class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+							class="rounded-full p-2 transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'up' ? 'vote-pop' : ''}
 						{myVote === 'up'
-								? 'bg-emerald-200 text-emerald-800 dark:bg-emerald-900/70 dark:text-emerald-300'
+								? 'bg-emerald-600 text-white shadow-sm ring-2 shadow-emerald-600/40 ring-emerald-500/40 dark:bg-emerald-500 dark:text-white dark:shadow-emerald-500/30 dark:ring-emerald-400/40'
 								: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60'}"
 						>
 							{#if isVoting && votingAnim.side === 'up'}
 								<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 							{:else}
-								<ArrowUp size="16" strokeWidth="2.25" aria-hidden="true" />
+								<ArrowUp
+									size="16"
+									strokeWidth={myVote === 'up' ? '2.75' : '2.25'}
+									aria-hidden="true"
+								/>
 							{/if}
 						</button>
 
@@ -216,16 +229,20 @@
 							disabled={voteDisabled}
 							aria-label="Downvote"
 							aria-pressed={myVote === 'down'}
-							class="rounded-full p-2 transition-[background-color,color,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
+							class="rounded-full p-2 transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-90 disabled:cursor-not-allowed disabled:opacity-60
 						{votingAnim.id === comment.id && votingAnim.side === 'down' ? 'vote-pop' : ''}
 						{myVote === 'down'
-								? 'bg-rose-200 text-rose-800 dark:bg-rose-900/70 dark:text-rose-300'
+								? 'bg-rose-600 text-white shadow-sm ring-2 shadow-rose-600/40 ring-rose-500/40 dark:bg-rose-500 dark:text-white dark:shadow-rose-500/30 dark:ring-rose-400/40'
 								: 'bg-rose-100 text-rose-700 hover:bg-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:hover:bg-rose-950/60'}"
 						>
 							{#if isVoting && votingAnim.side === 'down'}
 								<LoaderCircle size="16" class="animate-spin" aria-hidden="true" />
 							{:else}
-								<ArrowDown size="16" strokeWidth="2.25" aria-hidden="true" />
+								<ArrowDown
+									size="16"
+									strokeWidth={myVote === 'down' ? '2.75' : '2.25'}
+									aria-hidden="true"
+								/>
 							{/if}
 						</button>
 
