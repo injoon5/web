@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from 'convex/server';
 import { ConvexError, v } from 'convex/values';
 import { internal } from './_generated/api.js';
 import { internalMutation, mutation, query } from './_generated/server.js';
@@ -12,13 +13,15 @@ import {
 	visitorVoteMap,
 	voteCountsFromDoc
 } from './lib/votes.js';
+import { isScoresBackfillComplete } from './lib/migration.js';
 import { applyUrlCountDeltas, incrementUrlCount } from './lib/urlCounts.js';
 
 const MAX_DEPTH = 2;
-const MAX_COMMENTS = 200;
 const MAX_TEXT_LENGTH = 200;
 const MAX_USERNAME_LENGTH = 32;
 const MAX_REPLY_LENGTH = 1000;
+// Bounds the legacy rank fallback below, before the score backfill has run.
+const MAX_LEGACY_COMMENTS = 200;
 
 async function consumeRateLimit(ctx, name, ipHash) {
 	await limiter.limit(ctx, name, { key: ipHash, throws: true });
@@ -67,64 +70,93 @@ export const beginOwnerAction = internalMutation({
 	}
 });
 
-export const list = query({
-	args: { url: v.string(), ipHash: v.string() },
-	handler: async (ctx, { url, ipHash }) => {
-		// Bound on `deletedAt` too, so hard-deleted tombstones — which stay in the
-		// table forever — are skipped at the index rather than read and filtered.
-		const active = await ctx.db
+/**
+ * Walk one thread from its root. Depth is capped at MAX_DEPTH, so this is a
+ * handful of `by_parent` reads, not a scan of the page.
+ */
+async function threadFromRoot(ctx, root) {
+	const docs = [root];
+	const queue = [root._id];
+	for (let i = 0; i < queue.length; i++) {
+		const children = await ctx.db
 			.query('comments')
-			.withIndex('by_url_deleted', (q) => q.eq('url', url).eq('deletedAt', null))
+			.withIndex('by_parent', (q) => q.eq('parentId', queue[i]))
 			.collect();
-
-		// Rank whole threads, not individual comments: slicing a flat score-sorted
-		// list could keep a reply while dropping its still-alive parent, which the
-		// client would then mis-render as an orphan of a deleted comment.
-		const byId = new Map(active.map((d) => [d._id, d]));
-		const childrenOf = new Map();
-		const roots = [];
-		for (const doc of active) {
-			if (doc.parentId && byId.has(doc.parentId)) {
-				let siblings = childrenOf.get(doc.parentId);
-				if (!siblings) childrenOf.set(doc.parentId, (siblings = []));
-				siblings.push(doc);
-			} else {
-				// True top-level comments, plus replies whose parent was hard-deleted
-				// (rendered as strays) — both rank as thread roots.
-				roots.push(doc);
-			}
+		for (const child of children) {
+			if (child.deletedAt !== null) continue;
+			docs.push(child);
+			queue.push(child._id);
 		}
+	}
+	return docs;
+}
 
-		roots.sort((a, b) => {
-			const scoreDiff = commentScore(b) - commentScore(a);
-			if (scoreDiff !== 0) return scoreDiff;
-			return b._creationTime - a._creationTime;
-		});
+/**
+ * Serialize a whole thread from its root into public comment shapes, in tree
+ * order (root, then its replies, then theirs).
+ */
+async function serializeThread(ctx, root, myVotes) {
+	const docs = await threadFromRoot(ctx, root);
+	return Promise.all(
+		docs.map(async (doc) => {
+			const counts = voteCountsFromDoc(doc) ?? (await countAllVotes(ctx, doc._id));
+			return publicComment(doc, { ...counts, myVote: myVotes.get(doc._id) ?? null });
+		})
+	);
+}
 
-		// Take threads in rank order until the cap is reached; the last thread is
-		// always included whole so replies never lose their parent.
-		const top = [];
-		for (const root of roots) {
-			if (top.length >= MAX_COMMENTS) break;
-			const stack = [root];
-			while (stack.length > 0) {
-				const doc = stack.pop();
-				top.push(doc);
-				for (const child of childrenOf.get(doc._id) ?? []) stack.push(child);
-			}
-		}
-
-		// One indexed scan for everything this visitor voted on, instead of a
-		// per-comment lookup. Denormalized doc counts cover the totals; the
-		// countAllVotes fallback only runs for legacy rows before the backfill.
+export const list = query({
+	args: {
+		url: v.string(),
+		ipHash: v.string(),
+		paginationOpts: v.optional(paginationOptsValidator)
+	},
+	handler: async (ctx, { url, ipHash, paginationOpts }) => {
+		const opts = paginationOpts ?? { numItems: 50, cursor: null };
 		const myVotes = await visitorVoteMap(ctx, ipHash);
 
-		return await Promise.all(
-			top.map(async (doc) => {
-				const counts = voteCountsFromDoc(doc) ?? (await countAllVotes(ctx, doc._id));
-				return publicComment(doc, { ...counts, myVote: myVotes.get(doc._id) ?? null });
-			})
-		);
+		// Roots are ranked by a denormalized `score`, kept in step with the vote
+		// counts on every write and backfilled for rows that predate it. Until
+		// that backfill has run, a root without a score has no entry in the ranked
+		// index, so it would silently vanish — fall back to a bounded whole-page
+		// rank instead (the same flag-gated pattern as `readLikeCount`).
+		if (!(await isScoresBackfillComplete(ctx))) {
+			const active = await ctx.db
+				.query('comments')
+				.withIndex('by_url_deleted', (q) => q.eq('url', url).eq('deletedAt', null))
+				.collect();
+
+			// Roots: true top-level comments, plus replies whose parent was
+			// hard-deleted (rendered as strays) — both rank as thread roots.
+			const byId = new Map(active.map((d) => [d._id, d]));
+			const roots = active.filter((d) => !d.parentId || !byId.has(d.parentId));
+			roots.sort((a, b) => commentScore(b) - commentScore(a) || b._creationTime - a._creationTime);
+
+			const page = [];
+			for (const root of roots) {
+				if (page.length >= MAX_LEGACY_COMMENTS) break;
+				page.push(...(await serializeThread(ctx, root, myVotes)));
+			}
+			return { page, isDone: true, continueCursor: '' };
+		}
+
+		// Whole threads per page, so a later page never holds a reply whose
+		// parent was on an earlier one. `.order('desc')` ranks by score desc,
+		// newest first on ties.
+		const result = await ctx.db
+			.query('comments')
+			.withIndex('by_url_deleted_parent_score', (q) =>
+				q.eq('url', url).eq('deletedAt', null).eq('parentId', null)
+			)
+			.order('desc')
+			.paginate(opts);
+
+		const page = [];
+		for (const root of result.page) {
+			page.push(...(await serializeThread(ctx, root, myVotes)));
+		}
+
+		return { ...result, page };
 	}
 });
 
@@ -196,7 +228,8 @@ export const create = mutation({
 			updatedAt: null,
 			deletedAt: null,
 			upvotes: 0,
-			downvotes: 0
+			downvotes: 0,
+			score: 0
 		});
 
 		await incrementUrlCount(ctx, args.url);

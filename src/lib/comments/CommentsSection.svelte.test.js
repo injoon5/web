@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 
-// useQuery needs a live Convex context; stub it with controllable state.
-vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
+// usePaginatedQuery needs a live Convex context; stub it with controllable state.
+vi.mock('convex-svelte', () => ({ usePaginatedQuery: vi.fn() }));
 
-import { useQuery } from 'convex-svelte';
+import { usePaginatedQuery } from 'convex-svelte';
 import { setPage } from '$app/state';
-import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
+import { createReactivePaginatedQuery } from '../../test/mocks/reactive-query.svelte.js';
+import { COMMENTS_PAGE_SIZE } from './constants.js';
 import CommentsSection from './CommentsSection.svelte';
 
 function comment(overrides = {}) {
@@ -29,11 +30,12 @@ function comment(overrides = {}) {
 }
 
 function mockQuery(overrides = {}) {
-	useQuery.mockReturnValue({
-		data: [],
+	usePaginatedQuery.mockReturnValue({
+		results: [],
+		status: 'Exhausted',
 		isLoading: false,
-		isStale: false,
 		error: null,
+		loadMore: () => false,
 		...overrides
 	});
 }
@@ -117,10 +119,37 @@ describe('CommentsSection list states', () => {
 	});
 
 	it('renders a comment from the query', () => {
-		mockQuery({ data: [comment({ username: 'carol', text: 'first!' })] });
+		mockQuery({ results: [comment({ username: 'carol', text: 'first!' })] });
 		render(CommentsSection);
 		expect(screen.getByText('carol')).toBeInTheDocument();
 		expect(screen.getByText('first!')).toBeInTheDocument();
+	});
+});
+
+describe('CommentsSection pagination', () => {
+	it('loads the next page of threads on request', async () => {
+		const loadMore = vi.fn(() => true);
+		usePaginatedQuery.mockReturnValue({
+			results: [comment({ text: 'first page' })],
+			status: 'CanLoadMore',
+			isLoading: false,
+			error: null,
+			loadMore
+		});
+		render(CommentsSection);
+		expect(await screen.findByText('first page')).toBeInTheDocument();
+
+		const button = screen.getByRole('button', { name: 'Load more comments' });
+		await fireEvent.click(button);
+
+		expect(loadMore).toHaveBeenCalledWith(COMMENTS_PAGE_SIZE);
+	});
+
+	it('hides the load-more button when the list is exhausted', async () => {
+		mockQuery({ results: [comment()] });
+		render(CommentsSection);
+		expect(await screen.findByText('hello world')).toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: 'Load more comments' })).toBeNull();
 	});
 });
 
@@ -128,46 +157,58 @@ describe('CommentsSection SPA navigation', () => {
 	// Regression: with `keepPreviousData`, the previous page's comments stayed on
 	// screen while the new page's list loaded, so a visitor could vote on (or
 	// edit/delete) a comment that belongs to the page they just left.
-	it('hides the previous page comments once the query goes stale', async () => {
-		const query = createReactiveQuery({ data: [comment({ text: 'post-a comment' })] });
-		useQuery.mockReturnValue(query);
+	it('hides the previous page comments once the new page starts loading', async () => {
+		const query = createReactivePaginatedQuery({
+			results: [comment({ text: 'post-a comment' })],
+			status: 'CanLoadMore',
+			isLoading: false
+		});
+		usePaginatedQuery.mockReturnValue(query);
 		render(CommentsSection);
 		expect(await screen.findByText('post-a comment')).toBeInTheDocument();
 
-		// Navigate: the args change, so convex-svelte hands back the retained
-		// post-a result flagged stale.
+		// Navigate: the args change, so convex-svelte retains the previous page's
+		// results (same array) while marking the load in flight.
 		setPage({ url: new URL('http://localhost/blog/post-b') });
-		query.set({ isStale: true });
+		query.set({ isLoading: true });
 
 		await waitFor(() => expect(screen.queryByText('post-a comment')).toBeNull());
 		expect(screen.queryByRole('button', { name: 'Upvote' })).toBeNull();
 	});
 
 	it('renders the new page comments once its own result arrives', async () => {
-		const query = createReactiveQuery({ data: [comment({ text: 'post-a comment' })] });
-		useQuery.mockReturnValue(query);
+		const query = createReactivePaginatedQuery({
+			results: [comment({ text: 'post-a comment' })],
+			status: 'CanLoadMore',
+			isLoading: false
+		});
+		usePaginatedQuery.mockReturnValue(query);
 		render(CommentsSection);
 		expect(await screen.findByText('post-a comment')).toBeInTheDocument();
 
 		setPage({ url: new URL('http://localhost/blog/post-b') });
-		query.set({ isStale: true });
+		query.set({ isLoading: true });
 		await waitFor(() => expect(screen.queryByText('post-a comment')).toBeNull());
 
-		query.set({ data: [comment({ id: 'c2', text: 'post-b comment' })], isStale: false });
+		query.set({ results: [comment({ id: 'c2', text: 'post-b comment' })], isLoading: false });
 
 		expect(await screen.findByText('post-b comment')).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: 'Upvote' })).toBeEnabled();
 	});
 
 	it('does not send a vote for a comment from the page just left', async () => {
-		const query = createReactiveQuery({ data: [comment({ id: 'abc' })] });
-		useQuery.mockReturnValue(query);
+		const query = createReactivePaginatedQuery({
+			results: [comment({ id: 'abc' })],
+			status: 'CanLoadMore',
+			isLoading: false
+		});
+		usePaginatedQuery.mockReturnValue(query);
 		render(CommentsSection);
 		const upvote = await screen.findByRole('button', { name: 'Upvote' });
 		fetch.mockClear();
 
 		setPage({ url: new URL('http://localhost/blog/post-b') });
-		query.set({ isStale: true });
+		query.set({ isLoading: true });
 		await waitFor(() => expect(screen.queryByText('hello world')).toBeNull());
 
 		// The node is detached, but a click that raced the navigation must be a
@@ -180,7 +221,7 @@ describe('CommentsSection SPA navigation', () => {
 
 describe('CommentsSection voting', () => {
 	it('POSTs a vote when a comment vote button is clicked', async () => {
-		mockQuery({ data: [comment({ id: 'abc' })] });
+		mockQuery({ results: [comment({ id: 'abc' })] });
 		render(CommentsSection);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Upvote' }));

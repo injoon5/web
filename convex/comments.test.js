@@ -98,6 +98,11 @@ describe('checkCanCreate', () => {
  * filtering. Tombstones never leave the table, so this is what stops a
  * moderated page from paying for its whole history on every read.
  */
+const listOpts = { numItems: 25, cursor: null };
+
+const listPage = (t) =>
+	t.query(api.comments.list, { url: '/blog/test', ipHash: IP, paginationOpts: listOpts });
+
 describe('list', () => {
 	it('serves live comments and omits hard-deleted ones', async () => {
 		const t = setup();
@@ -110,8 +115,8 @@ describe('list', () => {
 			adminSecret: 'test-admin-secret'
 		});
 
-		const list = await t.query(api.comments.list, { url: '/blog/test', ipHash: IP });
-		expect(list.map((c) => c.text)).toEqual(['kept']);
+		const list = await listPage(t);
+		expect(list.page.map((c) => c.text)).toEqual(['kept']);
 	});
 
 	it('still serves a soft-deleted comment, as the placeholder it became', async () => {
@@ -121,9 +126,9 @@ describe('list', () => {
 			await ctx.db.patch('comments', comment.id, { text: '[deleted]', username: '[deleted]' });
 		});
 
-		const list = await t.query(api.comments.list, { url: '/blog/test', ipHash: IP });
-		expect(list).toHaveLength(1);
-		expect(list[0].text).toBe('[deleted]');
+		const list = await listPage(t);
+		expect(list.page).toHaveLength(1);
+		expect(list.page[0].text).toBe('[deleted]');
 	});
 
 	it('keeps a reply attached to a parent that is still alive', async () => {
@@ -131,8 +136,60 @@ describe('list', () => {
 		const parent = await t.mutation(api.comments.create, newComment({ text: 'parent' }));
 		await t.mutation(api.comments.create, newComment({ text: 'reply', parentId: parent.id }));
 
-		const list = await t.query(api.comments.list, { url: '/blog/test', ipHash: IP });
-		expect(list).toHaveLength(2);
-		expect(list.find((c) => c.text === 'reply').parentId).toBe(parent.id);
+		const list = await listPage(t);
+		expect(list.page).toHaveLength(2);
+		expect(list.page.find((c) => c.text === 'reply').parentId).toBe(parent.id);
+	});
+
+	it('pages through threads ranked by score, keeping replies with their root', async () => {
+		const t = setup();
+		const lowRoot = await t.mutation(api.comments.create, newComment({ text: 'low root' }));
+		await t.mutation(api.comments.create, newComment({ text: 'low reply', parentId: lowRoot.id }));
+		const highRoot = await t.mutation(api.comments.create, newComment({ text: 'high root' }));
+		await t.mutation(
+			api.comments.create,
+			newComment({ text: 'high reply', parentId: highRoot.id })
+		);
+
+		// Seed what the score backfill writes: a ranked `score` per root plus the
+		// completion flag, so `list` reads the ranked index instead of the fallback.
+		await t.run(async (ctx) => {
+			await ctx.db.patch('comments', lowRoot.id, { score: 1 });
+			await ctx.db.patch('comments', highRoot.id, { score: 10 });
+			await ctx.db.insert('migrationMeta', { key: 'scores', complete: true });
+		});
+
+		const first = await t.query(api.comments.list, {
+			url: '/blog/test',
+			ipHash: IP,
+			paginationOpts: { numItems: 1, cursor: null }
+		});
+		// Highest-scored root first, and its reply rides along so it never orphans.
+		expect(first.page.map((c) => c.text)).toEqual(['high root', 'high reply']);
+		expect(first.isDone).toBe(false);
+
+		const second = await t.query(api.comments.list, {
+			url: '/blog/test',
+			ipHash: IP,
+			paginationOpts: { numItems: 1, cursor: first.continueCursor }
+		});
+		expect(second.page.map((c) => c.text)).toEqual(['low root', 'low reply']);
+		expect(second.isDone).toBe(true);
+	});
+
+	it('falls back to a bounded whole-page rank before the score backfill runs', async () => {
+		const t = setup();
+		const low = await t.mutation(api.comments.create, newComment({ text: 'low' }));
+		const high = await t.mutation(api.comments.create, newComment({ text: 'high' }));
+
+		// Legacy rows carry vote counts but no `score`, and no completion flag.
+		await t.run(async (ctx) => {
+			await ctx.db.patch('comments', low.id, { upvotes: 0, downvotes: 0 });
+			await ctx.db.patch('comments', high.id, { upvotes: 5, downvotes: 0 });
+		});
+
+		const list = await listPage(t);
+		expect(list.page.map((c) => c.text)).toEqual(['high', 'low']);
+		expect(list.isDone).toBe(true);
 	});
 });

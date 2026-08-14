@@ -9,14 +9,29 @@ import { runConvex, parseBody, handleConvexErr } from '$lib/server/api.js';
 import { ADMIN_SECRET } from '$env/static/private';
 import bcrypt from 'bcryptjs';
 
+const MAX_PAGE = 50;
+
 /** @type {import('./$types').RequestHandler} */
 export const GET = async ({ url, request }) => {
 	const pageUrl = url.searchParams.get('url');
 	if (!pageUrl) throw error(400, 'Missing url parameter');
+
+	const numItems = Math.min(
+		Math.max(Math.floor(Number(url.searchParams.get('numItems')) || 25), 1),
+		MAX_PAGE
+	);
+	const cursor = url.searchParams.get('cursor') ?? null;
 	const ipHash = requestIpHash(request);
+
 	return runConvex(
-		() => convex.query(api.comments.list, { url: pageUrl, ipHash }),
-		(comments) => json({ comments })
+		() =>
+			convex.query(api.comments.list, {
+				url: pageUrl,
+				ipHash,
+				paginationOpts: { numItems, cursor }
+			}),
+		(result) =>
+			json({ comments: result.page, continueCursor: result.continueCursor, isDone: result.isDone })
 	);
 };
 

@@ -85,23 +85,23 @@ defines three projects: `unit` (node), `convex` (edge-runtime), `component`
 
 ## Convex Schema (`convex/schema.js`)
 
-| Table              | Key fields                                                                                                             | Indexes                                    |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes | `by_url_deleted`, `by_parent`              |
-| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                         | `by_comment_ip`, `by_ip`                   |
-| `likes`            | url, ipHash                                                                                                            | `by_url_ip`                                |
-| `commentUrlCounts` | url, count                                                                                                             | `by_url`                                   |
-| `likeCounts`       | url, count                                                                                                             | `by_url`                                   |
-| `migrationMeta`    | key, complete                                                                                                          | `by_key`                                   |
-| `bannedIps`        | ipHash, reason                                                                                                         | `by_ip`                                    |
-| `adminSessions`    | tokenHash (SHA-256 of the `admin_token` cookie), expiresAt                                                             | `by_token`                                 |
-| `nowPage`          | content, updatedAt                                                                                                     | —                                          |
-| `nowPlaying`       | tracks[], updatedAt — one row                                                                                          | —                                          |
-| `photos`           | photos[], updatedAt — one row                                                                                          | —                                          |
-| `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                           | `by_metric_date`, `by_date`                |
-| `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                    | `by_metric_hour`, `by_hour`                |
-| `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                | `by_metric_time`, `by_time`                |
-| `healthWorkouts`   | externalId, type, start, end, duration, distance?, activeEnergy?, avgHeartRate?, maxHeartRate?, elevation?, source?    | `by_start`, `by_type_start`, `by_external` |
+| Table              | Key fields                                                                                                                     | Indexes                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes, score? | `by_url_deleted`, `by_url_deleted_parent_score`, `by_parent` |
+| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                                 | `by_comment_ip`, `by_ip`                                     |
+| `likes`            | url, ipHash                                                                                                                    | `by_url_ip`                                                  |
+| `commentUrlCounts` | url, count                                                                                                                     | `by_url`                                                     |
+| `likeCounts`       | url, count                                                                                                                     | `by_url`                                                     |
+| `migrationMeta`    | key, complete                                                                                                                  | `by_key`                                                     |
+| `bannedIps`        | ipHash, reason                                                                                                                 | `by_ip`                                                      |
+| `adminSessions`    | tokenHash (SHA-256 of the `admin_token` cookie), expiresAt                                                                     | `by_token`                                                   |
+| `nowPage`          | content, updatedAt                                                                                                             | —                                                            |
+| `nowPlaying`       | tracks[], updatedAt — one row                                                                                                  | —                                                            |
+| `photos`           | photos[], updatedAt — one row                                                                                                  | —                                                            |
+| `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                                   | `by_metric_date`, `by_date`                                  |
+| `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                            | `by_metric_hour`, `by_hour`                                  |
+| `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                        | `by_metric_time`, `by_time`                                  |
+| `healthWorkouts`   | externalId, type, start, end, duration, distance?, activeEnergy?, avgHeartRate?, maxHeartRate?, elevation?, source?            | `by_start`, `by_type_start`, `by_external`                   |
 
 **Prefix rule:** an index whose fields are a prefix of another is redundant —
 bind only the leading fields of the longer one. `by_url` on `comments` is gone

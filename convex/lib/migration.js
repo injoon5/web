@@ -8,6 +8,7 @@
 const URL_COUNTS_KEY = 'urlCounts';
 const VOTE_COUNTS_KEY = 'voteCounts';
 const LIKE_COUNTS_KEY = 'likeCounts';
+const SCORES_KEY = 'scores';
 
 async function isBackfillComplete(ctx, key) {
 	const row = await ctx.db
@@ -41,6 +42,14 @@ export function setUrlCountsBackfillComplete(ctx) {
 
 export function setVoteCountsBackfillComplete(ctx) {
 	return setBackfillComplete(ctx, VOTE_COUNTS_KEY);
+}
+
+export function isScoresBackfillComplete(ctx) {
+	return isBackfillComplete(ctx, SCORES_KEY);
+}
+
+export function setScoresBackfillComplete(ctx) {
+	return setBackfillComplete(ctx, SCORES_KEY);
 }
 
 export function isLikeCountsBackfillComplete(ctx) {

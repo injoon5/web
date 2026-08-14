@@ -27,3 +27,36 @@ export function createReactiveQuery(initial = {}) {
 		}
 	};
 }
+
+// Reactive stand-in for convex-svelte's `usePaginatedQuery` result. Same idea
+// as above, plus the pagination surface. Tests simulate navigation by updating
+// with the previous page's results retained (same array) and `isLoading: true`,
+// exactly like `keepPreviousData` behaves on an args change.
+export function createReactivePaginatedQuery(initial = {}) {
+	const { loadMore, ...rest } = initial;
+	const s = $state({
+		results: [],
+		status: 'LoadingFirstPage',
+		isLoading: true,
+		error: null,
+		...rest
+	});
+	return {
+		get results() {
+			return s.results;
+		},
+		get status() {
+			return s.status;
+		},
+		get isLoading() {
+			return s.isLoading;
+		},
+		get error() {
+			return s.error;
+		},
+		loadMore: loadMore ?? (() => false),
+		set(next) {
+			Object.assign(s, next);
+		}
+	};
+}

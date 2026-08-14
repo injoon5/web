@@ -3,12 +3,13 @@ import { internal } from './_generated/api.js';
 import { internalMutation } from './_generated/server.js';
 import {
 	setLikeCountsBackfillComplete,
+	setScoresBackfillComplete,
 	setUrlCountsBackfillComplete,
 	setVoteCountsBackfillComplete
 } from './lib/migration.js';
 import { applyUrlCountDeltas } from './lib/urlCounts.js';
 import { applyLikeCountDeltas } from './lib/likeCounts.js';
-import { countAllVotes } from './lib/votes.js';
+import { countAllVotes, voteCountsFromDoc } from './lib/votes.js';
 
 const BATCH_SIZE = 100;
 // One counter row per distinct URL, so this is comfortably the whole table.
@@ -36,6 +37,36 @@ export const backfillVoteCountsBatch = internalMutation({
 		}
 
 		await setVoteCountsBackfillComplete(ctx);
+	}
+});
+
+/**
+ * Backfill the denormalized `score` (upvotes - downvotes) onto rows that
+ * predate it. Without it a root has no entry in the ranked index, so `list`
+ * keeps using its whole-page rank fallback until this completes.
+ */
+export const backfillScoreBatch = internalMutation({
+	args: { cursor: v.union(v.string(), v.null()) },
+	handler: async (ctx, { cursor }) => {
+		const batch = await ctx.db.query('comments').paginate({
+			numItems: BATCH_SIZE,
+			cursor
+		});
+
+		for (const doc of batch.page) {
+			if (doc.score !== undefined) continue;
+			const counts = voteCountsFromDoc(doc) ?? (await countAllVotes(ctx, doc._id));
+			await ctx.db.patch('comments', doc._id, { score: counts.upvotes - counts.downvotes });
+		}
+
+		if (!batch.isDone) {
+			await ctx.scheduler.runAfter(0, internal.backfill.backfillScoreBatch, {
+				cursor: batch.continueCursor
+			});
+			return;
+		}
+
+		await setScoresBackfillComplete(ctx);
 	}
 });
 
@@ -123,6 +154,9 @@ export const run = internalMutation({
 	args: {},
 	handler: async (ctx) => {
 		await ctx.scheduler.runAfter(0, internal.backfill.backfillVoteCountsBatch, {
+			cursor: null
+		});
+		await ctx.scheduler.runAfter(0, internal.backfill.backfillScoreBatch, {
 			cursor: null
 		});
 		await ctx.scheduler.runAfter(0, internal.backfill.backfillUrlCountsBatch, {

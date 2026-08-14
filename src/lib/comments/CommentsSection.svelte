@@ -3,11 +3,16 @@
 	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { createWebHaptics } from 'web-haptics/svelte';
-	import { useQuery } from 'convex-svelte';
+	import { usePaginatedQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import CommentNode from './CommentNode.svelte';
 	import { buildTree } from './build-tree.js';
-	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
+	import {
+		COMMENTS_PAGE_SIZE,
+		MAX_COMMENT_LENGTH,
+		CHAR_THRESHOLD,
+		MIN_PASSWORD_LENGTH
+	} from './constants.js';
 	import { apiFetch } from '$lib/api-client.js';
 
 	const { trigger, destroy } = createWebHaptics();
@@ -51,31 +56,46 @@
 	const ipHash = $derived(page.data.ipHash ?? '');
 	const path = $derived(page.url.pathname);
 
-	// Reactive comments query — live updates across tabs
-	const query = useQuery(
+	// Reactive comments query — live updates across tabs, newest threads first.
+	// `paginationOpts` is injected by the hook; each page is whole threads, so a
+	// reply never arrives without the parent it hangs off.
+	const query = usePaginatedQuery(
 		api.comments.list,
 		() => ({
 			url: path,
 			ipHash
 		}),
-		// The runtime ipHash re-subscription swaps the query args on every visit.
-		// Keep the prior result so the comments don't flash back to loading.
-		// `freshPath` (below) tracks which page the latest non-stale result belongs
-		// to, so comments retained from a previous page are never rendered or acted
-		// on as if they belonged to this one.
-		{ keepPreviousData: true }
+		{
+			initialNumItems: COMMENTS_PAGE_SIZE,
+			// The runtime ipHash re-subscription swaps the query args on every
+			// visit. Keep the prior result so the comments don't flash back to
+			// loading.
+			keepPreviousData: true
+		}
 	);
 
-	// Pathname the most recent fresh (non-stale) result belongs to.
+	// `usePaginatedQuery` has no `isStale`. With `keepPreviousData` the previous
+	// page's results survive an args change as the *same* array reference while
+	// the new page loads, and every fresh server push hands back a new array — so
+	// a reference change is how we tell this page's list from the page we
+	// navigated away from.
 	let freshPath = $state(null);
+	let lastResults = null;
 	$effect(() => {
-		if (query.data && !query.isStale) freshPath = path;
+		const results = query.results;
+		if (results !== lastResults) {
+			lastResults = results;
+			if (!query.isLoading) freshPath = path;
+		}
 	});
 	// True only when the loaded list is this page's list. Everything downstream —
 	// rendering the tree, voting, editing, deleting — hangs off this, so a
 	// client-side navigation shows a skeleton rather than the previous page's
 	// comments, and there is nothing to act on until the new list lands.
-	const listReady = $derived(!query.isStale && !!query.data && freshPath === path);
+	// (Loading another page keeps the list up — only a first-page load hides it.)
+	const listReady = $derived(
+		!!query.results && freshPath === path && query.status !== 'LoadingFirstPage'
+	);
 
 	// Cross-card form coordination — only one form open at a time
 	let activeFormId = $state(null);
@@ -148,7 +168,7 @@
 			commentText.length > MAX_COMMENT_LENGTH
 	);
 
-	const commentTree = $derived(listReady ? buildTree(query.data ?? []) : []);
+	const commentTree = $derived(listReady ? buildTree(query.results ?? []) : []);
 
 	// Trust per-visitor vote state once ipHash is loaded and this page's list is fresh.
 	const voteKnown = $derived(listReady && !!ipHash);
@@ -294,6 +314,17 @@
 				/>
 			</div>
 		{/each}
+		{#if query.status === 'CanLoadMore' || query.status === 'LoadingMore'}
+			<div class="flex justify-center pt-4">
+				<button
+					onclick={() => query.loadMore(COMMENTS_PAGE_SIZE)}
+					disabled={query.status === 'LoadingMore'}
+					class="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
+				>
+					{query.status === 'LoadingMore' ? 'Loading…' : 'Load more comments'}
+				</button>
+			</div>
+		{/if}
 	{:else}
 		<p class="pt-10 text-center text-lg font-medium text-neutral-500 dark:text-neutral-500">
 			No comments yet. Be the first to comment!

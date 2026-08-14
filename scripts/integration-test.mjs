@@ -45,11 +45,12 @@ async function main() {
 
 	const comments = await runQuery('comments.list', {
 		url: '/blog/now-listening',
-		ipHash: 'test-ip-hash'
+		ipHash: 'test-ip-hash',
+		paginationOpts: { numItems: 25, cursor: null }
 	});
 	console.log(
 		'comments.list:',
-		Array.isArray(comments) ? `${comments.length} comments` : 'unexpected'
+		Array.isArray(comments.page) ? `${comments.page.length} comments` : 'unexpected'
 	);
 
 	const adminSecret = process.env.ADMIN_SECRET;

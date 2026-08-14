@@ -108,7 +108,10 @@ export async function applyVoteChange(ctx, comment, voteType, ipHash) {
 			}
 		: await countAllVotes(ctx, commentId);
 
-	await ctx.db.patch('comments', commentId, counts);
+	await ctx.db.patch('comments', commentId, {
+		...counts,
+		score: counts.upvotes - counts.downvotes
+	});
 
 	return { ...counts, myVote };
 }
