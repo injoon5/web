@@ -44,11 +44,10 @@
 		const diff = Math.round((date.getTime() - Date.now()) / 1000);
 		const abs = Math.abs(diff);
 		for (const { unit, secs } of RELATIVE_UNITS) {
-			if (abs >= secs || unit === 'second') {
-				return rtf.format(Math.round(diff / secs), unit);
-			}
+			if (abs >= secs) return rtf.format(Math.round(diff / secs), unit);
 		}
-		return rtf.format(diff, 'second');
+		// Under a second — "1 second ago" would be a lie, and 0 rounds to it.
+		return 'now';
 	}
 
 	/** @param {Date} date */
@@ -138,6 +137,7 @@
 				disabled={saving}
 				class="min-h-[320px] w-full resize-none rounded-none border-0 bg-neutral-50 px-4 py-3 font-mono text-sm leading-relaxed text-neutral-900 transition-colors outline-none focus:ring-1 focus:ring-neutral-300 disabled:opacity-50 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:ring-neutral-700"
 				placeholder="Write in markdown…"
+				aria-label="Content (markdown)"
 				spellcheck="false"
 				autocomplete="off"></textarea>
 		{:else if html}

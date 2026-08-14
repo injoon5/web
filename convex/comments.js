@@ -165,6 +165,14 @@ export const create = mutation({
 			if (!parent || parent.deletedAt !== null) {
 				throw new ConvexError({ kind: 'NotFound', message: 'Parent comment not found' });
 			}
+			// A reply must belong to the same page as its parent, or it renders as
+			// a cross-page stray whose hard-delete would still touch its URL count.
+			if (parent.url !== args.url) {
+				throw new ConvexError({
+					kind: 'BadRequest',
+					message: 'Parent comment is on a different page'
+				});
+			}
 			if (parent.depth >= MAX_DEPTH) {
 				throw new ConvexError({ kind: 'BadRequest', message: 'Maximum reply depth reached' });
 			}
@@ -242,6 +250,12 @@ export const applyEdit = internalMutation({
 		const comment = await ctx.db.get('comments', args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+		}
+
+		// Same limits as `create`, so a direct caller can't bypass the
+		// SvelteKit/Zod layer and store an unbounded edit.
+		if (args.text.length < 1 || args.text.length > MAX_TEXT_LENGTH) {
+			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
 		}
 
 		const updatedAt = Date.now();

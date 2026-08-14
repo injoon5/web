@@ -4,11 +4,12 @@
 
 /**
  * Article dates: "Jan 5, 2026".
- * @param {string} date
+ * @param {string | undefined | null} date
  * @param {DateStyle} [dateStyle]
  * @param {string} [locales]
  */
 export function formatDate(date, dateStyle = 'medium', locales = 'en-US') {
+	if (!date) return '';
 	// Safari is mad about dashes in the date.
 	return new Intl.DateTimeFormat(locales, { dateStyle }).format(
 		new Date(date.replaceAll('-', '/'))
@@ -41,10 +42,11 @@ export function formatDateTime(date) {
 }
 
 /**
- * @param {string} description
+ * @param {string | undefined | null} description
  * @param {number} limit
  */
 export function sliceText(description, limit) {
+	if (!description) return '';
 	const words = description.split(' ');
 	return words.length <= limit ? description : words.slice(0, limit).join(' ') + '...';
 }

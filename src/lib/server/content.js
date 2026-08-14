@@ -23,8 +23,14 @@ export function resolvePublished(enPaths, koPaths) {
 	/** @type {Set<string>} */
 	const enSlugs = new Set();
 	for (const path in enPaths) {
-		const slug = slugFromPath(path);
-		if (slug) enSlugs.add(slug);
+		// `hasEn` means "a published English twin exists", not merely that a file
+		// does — an unpublished English draft must not surface a language toggle
+		// that 404s when followed.
+		const metadata = /** @type {Metadata | undefined} */ (enPaths[path]);
+		if (metadata?.published === true) {
+			const slug = slugFromPath(path);
+			if (slug) enSlugs.add(slug);
+		}
 	}
 
 	/** @type {Record<string, Metadata>} */
@@ -36,7 +42,7 @@ export function resolvePublished(enPaths, koPaths) {
 			if (metadata && slug) {
 				/** @type {Metadata} */
 				const item = { ...metadata, slug, hasEn: enSlugs.has(slug) };
-				if (item.published) bySlug[slug] = item;
+				if (item.published === true) bySlug[slug] = item;
 			}
 		}
 	}
@@ -48,7 +54,13 @@ export function resolvePublished(enPaths, koPaths) {
  * @param {string | undefined} a
  * @param {string | undefined} b
  */
-const byDateDesc = (a, b) => new Date(b ?? '').getTime() - new Date(a ?? '').getTime();
+const byDateDesc = (a, b) => {
+	// A missing/unparseable date sorts to the end rather than returning NaN,
+	// which would violate the sort contract and scramble the order.
+	const ta = new Date(a ?? '').getTime();
+	const tb = new Date(b ?? '').getTime();
+	return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta);
+};
 
 /**
  * The published post list, newest first. One definition, shared by the page

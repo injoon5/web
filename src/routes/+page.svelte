@@ -86,6 +86,7 @@
 
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://www.injoon5.com/" />
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(homeSchema())}
 </svelte:head>
 
@@ -312,7 +313,7 @@
 		{:else if nowQuery.error != null}
 			<div class="text-neutral-700 dark:text-neutral-300">
 				<p>Couldn't load Now Listening</p>
-				<div class="mt-1 text-neutral-500">{nowQuery.error.message ?? 'Unknown error'}</div>
+				<div class="mt-1 text-neutral-500">Please try again later.</div>
 			</div>
 		{:else if tracks.length > 0}
 			<div
@@ -379,9 +380,7 @@
 				<div class="col-span-2 sm:col-span-3">
 					<div class="text-neutral-700 dark:text-neutral-300">
 						<p>Couldn't load Photos</p>
-						<div class="mt-1 text-neutral-500 dark:text-neutral-500">
-							{photosQuery.error.message ?? 'Unknown error'}
-						</div>
+						<div class="mt-1 text-neutral-500 dark:text-neutral-500">Please try again later.</div>
 					</div>
 				</div>
 			{:else}
@@ -394,7 +393,7 @@
 							loading="lazy"
 							src={photo.image}
 							alt={photo.title || 'Photo'}
-							class="transitition-brightness absolute inset-0 h-full w-full object-cover duration-100 group-hover:brightness-70"
+							class="absolute inset-0 h-full w-full object-cover transition-[filter] duration-100 group-hover:brightness-70"
 						/>
 
 						<div

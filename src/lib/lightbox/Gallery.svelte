@@ -148,9 +148,18 @@
 		// article's own action does this too for a gallery inside a post; a
 		// hand-written `<Gallery />` anywhere else needs it here.
 		trackImages(trackEl);
+		let ro;
+		if (trackEl && typeof ResizeObserver !== 'undefined') {
+			// A resize/rotate changes the geometry the active dot and the
+			// prev/next disabled state are computed from, and there is no scroll
+			// event to refresh them.
+			ro = new ResizeObserver(() => syncActive());
+			ro.observe(trackEl);
+		}
 		return () => {
 			cancelAnimationFrame(scrollFrame);
 			clearTimeout(settleTimer);
+			ro?.disconnect();
 		};
 	});
 </script>

@@ -3,7 +3,6 @@
 	import NavBar from '$lib/nav/NavBar.svelte';
 	import DialsMount from '$lib/dev/DialsMount.svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { configure } from 'onedollarstats';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { page } from '$app/state';
 	import { setupConvex } from 'convex-svelte';
@@ -34,6 +33,7 @@
 	onDestroy(destroy);
 
 	const SCROLL_DURATION = 500;
+	let scrollRaf = 0;
 
 	function scrollToTop() {
 		const start = window.scrollY;
@@ -47,15 +47,19 @@
 					? 4 * progress * progress * progress
 					: 1 - Math.pow(-2 * progress + 2, 3) / 2;
 			window.scrollTo(0, start * (1 - ease));
-			if (progress < 1) requestAnimationFrame(step);
+			if (progress < 1) scrollRaf = requestAnimationFrame(step);
 		}
 
-		requestAnimationFrame(step);
+		cancelAnimationFrame(scrollRaf);
+		scrollRaf = requestAnimationFrame(step);
 	}
 
 	let cleanupTheme;
 
 	onMount(async () => {
+		// Lazy-load analytics so it never rides in the initial JS for routes that
+		// don't need it (the only call site is here).
+		const { configure } = await import('onedollarstats');
 		configure({
 			collectorUrl: 'https://collector.onedollarstats.com/events',
 			autocollect: true
@@ -64,6 +68,7 @@
 	});
 
 	onDestroy(() => {
+		cancelAnimationFrame(scrollRaf);
 		cleanupTheme?.();
 	});
 </script>
@@ -127,7 +132,7 @@
 			<div class="col-span-12 lg:mt-10">
 				<p class="text-neutral-900 dark:text-neutral-100">Copyright © 2026 Injoon Oh</p>
 				{#if commit}
-					<p class="mt- tabular text-xs font-normal text-neutral-400 dark:text-neutral-600">
+					<p class="tabular text-xs font-normal text-neutral-400 dark:text-neutral-600">
 						Built from
 						<a
 							href="https://github.com/injoon5/web/commit/{commit}"

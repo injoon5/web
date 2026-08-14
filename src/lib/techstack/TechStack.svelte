@@ -524,7 +524,12 @@
 	}
 
 	.ts-tab:focus-visible {
-		outline: none;
+		outline: 2px solid var(--color-neutral-900);
+		outline-offset: 2px;
+	}
+
+	:global(.dark) .ts-tab:focus-visible {
+		outline-color: var(--color-neutral-100);
 	}
 
 	.ts-tabs-clip {

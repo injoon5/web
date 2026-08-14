@@ -11,12 +11,7 @@
 	import { autoHeight } from '$lib/actions/auto-height.js';
 	import LanguageSwitcher from '$lib/ui/LanguageSwitcher.svelte';
 	import StableLangStack from '$lib/ui/StableLangStack.svelte';
-	import {
-		projectSchema,
-		breadcrumbSchema,
-		keywordsFor,
-		jsonLdScript
-	} from '$lib/seo/jsonld.js';
+	import { projectSchema, breadcrumbSchema, keywordsFor, jsonLdScript } from '$lib/seo/jsonld.js';
 
 	import { onMount, tick, untrack } from 'svelte';
 	import { fly, blur } from 'svelte/transition';
@@ -180,7 +175,9 @@
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:image" content={ogImageUrl} />
 	<meta property="og:url" content={projectUrl} />
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(projSchema)}
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(crumbs)}
 	{#each data.availableLangs as l (l)}
 		<link

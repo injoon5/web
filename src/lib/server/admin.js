@@ -83,7 +83,14 @@ export function verifyAdminSecret(request) {
 
 	const cookie = request.headers.get('cookie') ?? '';
 	const match = cookie.match(/(?:^|;\s*)admin_token=([^;]+)/);
-	if (match) return verifyAdminSessionToken(decodeURIComponent(match[1]));
+	if (match) {
+		try {
+			return verifyAdminSessionToken(decodeURIComponent(match[1]));
+		} catch {
+			// A malformed percent-encoding throws URIError; treat it as no token.
+			return false;
+		}
+	}
 
 	return false;
 }

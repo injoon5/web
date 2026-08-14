@@ -38,9 +38,14 @@
 		{/key}
 	</div>
 	{#each ordered as post, index (post.slug)}
+		{@const current = post.slug === page.params.slug}
+		<!-- An `<a>` without `href` is not a link: it is neither focusable nor
+		     announced as one, and it cannot navigate. The current post is the
+		     active row, not a destination. -->
 		<a
-			href={post.slug === page.params.slug ? '' : post.slug}
-			class=" border-t border-neutral-200 dark:border-neutral-800 {post.slug === page.params.slug
+			href={current ? undefined : post.slug}
+			aria-current={current ? 'page' : undefined}
+			class=" border-t border-neutral-200 dark:border-neutral-800 {current
 				? 'cursor-default opacity-50'
 				: 'hover:bg-neutral-200  dark:hover:bg-neutral-800 '}  flex flex-row px-3 py-2 {index ===
 			ordered.length - 1

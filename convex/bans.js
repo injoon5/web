@@ -18,8 +18,9 @@ export const list = query({
 	},
 	handler: async (ctx, { adminSecret, sessionToken }) => {
 		await assertAdminAccess(ctx, { adminSecret, sessionToken });
-		const rows = await ctx.db.query('bannedIps').take(BAN_LIMIT);
-		rows.sort((a, b) => b._creationTime - a._creationTime);
+		// Newest first: a default table scan is ascending `_creationTime`, so a
+		// `.take()` before sorting captured the oldest bans and hid recent ones.
+		const rows = await ctx.db.query('bannedIps').order('desc').take(BAN_LIMIT);
 		return rows.map(publicBan);
 	}
 });

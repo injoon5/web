@@ -12,3 +12,7 @@ yarn.lock
 .claude/skills/
 skills-lock.json
 convex/_generated/
+
+# Third-party site-verification tokens (Naver, Google). Prettier must not
+# rewrite these — the services check for the token, not the formatting.
+static/*.html

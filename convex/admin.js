@@ -24,8 +24,15 @@ export const listUrls = query({
 		await assertAdminAccess(ctx, { adminSecret, sessionToken });
 
 		const backfillComplete = await isUrlCountsBackfillComplete(ctx);
-		const rows = await ctx.db.query('commentUrlCounts').take(URL_LIMIT);
-		const counts = new Map(rows.map(({ url, count }) => [url, count]));
+		// One row per commented-on URL (plus rare duplicate rows from a
+		// concurrent first insert). A bounded `.take()` read the oldest rows and
+		// dropped later URLs, so read the whole counter table — it is one row per
+		// URL — and fold duplicates by summing, matching `readLikeCount`.
+		const rows = await ctx.db.query('commentUrlCounts').collect();
+		const counts = new Map();
+		for (const { url, count } of rows) {
+			counts.set(url, (counts.get(url) ?? 0) + count);
+		}
 
 		if (!backfillComplete) {
 			const scanned = await countActiveCommentsByUrl(ctx);
@@ -36,7 +43,8 @@ export const listUrls = query({
 
 		return Array.from(counts.entries())
 			.map(([url, count]) => ({ url, count }))
-			.sort((a, b) => b.count - a.count);
+			.sort((a, b) => b.count - a.count)
+			.slice(0, URL_LIMIT);
 	}
 });
 

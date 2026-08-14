@@ -50,10 +50,12 @@
 	let likeError = $state('');
 	let likeErrorTimer = null;
 	let particles = $state([]);
+	let heartsTimer = null;
 	let particleId = 0;
 
 	onDestroy(() => {
 		if (likeErrorTimer) clearTimeout(likeErrorTimer);
+		if (heartsTimer) clearTimeout(heartsTimer);
 	});
 
 	// New page: abandon any intent from the previous page and trust its server
@@ -114,9 +116,11 @@
 			};
 		});
 		particles = [...particles, ...batch];
-		setTimeout(() => {
+		if (heartsTimer) clearTimeout(heartsTimer);
+		heartsTimer = setTimeout(() => {
 			const ids = new Set(batch.map((p) => p.id));
 			particles = particles.filter((p) => !ids.has(p.id));
+			heartsTimer = null;
 		}, 900);
 	}
 

@@ -255,12 +255,14 @@
 						bind:value={editText}
 						rows="3"
 						maxlength={MAX_COMMENT_LENGTH}
+						aria-label="Edit comment"
 						class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
 					></textarea>
 					<input
 						bind:value={editPassword}
 						type="password"
 						placeholder="Your comment password"
+						aria-label="Your comment password"
 						autocomplete="off"
 						class="mt-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
@@ -301,6 +303,7 @@
 						bind:value={deletePassword}
 						type="password"
 						placeholder="Your comment password"
+						aria-label="Your comment password"
 						autocomplete="off"
 						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-red-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
@@ -348,6 +351,7 @@
 						bind:value={replyUsername}
 						type="text"
 						placeholder="Name (optional)"
+						aria-label="Name (optional)"
 						maxlength="32"
 						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
 					/>
@@ -355,6 +359,7 @@
 						<textarea
 							bind:value={replyText}
 							placeholder="Reply… (max {MAX_COMMENT_LENGTH} characters)"
+							aria-label="Reply"
 							maxlength={MAX_COMMENT_LENGTH}
 							rows="2"
 							class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
@@ -369,6 +374,7 @@
 						bind:value={replyPassword}
 						type="password"
 						placeholder="Password (save this to edit later)"
+						aria-label="Password"
 						autocomplete="off"
 						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
 					/>

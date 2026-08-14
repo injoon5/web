@@ -66,7 +66,16 @@ export function keywordsFor(extra = []) {
  * BlogPosting schema for a `/blog/[slug]` page.
  * @param {{ title: string, description?: string, date?: string, url: string, image?: string, lang?: string, keywords?: string[], section?: string }} p
  */
-export function blogPostingSchema({ title, description, date, url, image, lang, keywords, section }) {
+export function blogPostingSchema({
+	title,
+	description,
+	date,
+	url,
+	image,
+	lang,
+	keywords,
+	section
+}) {
 	return compact({
 		'@context': 'https://schema.org',
 		'@type': 'BlogPosting',

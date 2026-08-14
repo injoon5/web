@@ -1,8 +1,8 @@
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import { convex } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin.js';
-import { editCommentSchema, deleteCommentSchema } from '$lib/server/validation.js';
+import { editCommentSchema, deleteCommentSchema, parseConvexId } from '$lib/server/validation.js';
 import { requestIpHash } from '$lib/server/ip.js';
 import { runConvex, parseBody } from '$lib/server/api.js';
 import { ADMIN_SECRET } from '$env/static/private';
@@ -11,12 +11,14 @@ import { ADMIN_SECRET } from '$env/static/private';
 export const PATCH = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
 	const admin = verifyAdminSecret(request);
+	const commentId = parseConvexId(params.id);
+	if (!commentId) throw error(400, 'Invalid comment id');
 	const { text, password } = await parseBody(request, editCommentSchema);
 
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.editComment, {
-				commentId: /** @type {import('$convex/_generated/dataModel').Id<'comments'>} */ (params.id),
+				commentId,
 				text,
 				password: admin ? '' : password,
 				ipHash,
@@ -35,12 +37,14 @@ export const PATCH = async ({ params, request }) => {
 /** @type {import('./$types').RequestHandler} */
 export const DELETE = async ({ params, request }) => {
 	const ipHash = requestIpHash(request);
+	const commentId = parseConvexId(params.id);
+	if (!commentId) throw error(400, 'Invalid comment id');
 	const { password } = await parseBody(request, deleteCommentSchema);
 
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.softDeleteComment, {
-				commentId: /** @type {import('$convex/_generated/dataModel').Id<'comments'>} */ (params.id),
+				commentId,
 				password,
 				ipHash
 			}),

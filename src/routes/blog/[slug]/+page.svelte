@@ -227,7 +227,9 @@
 	{#each currentMeta?.tags ?? [] as tag (tag)}
 		<meta property="article:tag" content={tag} />
 	{/each}
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(postSchema)}
+	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(crumbs)}
 	{#each data.availableLangs as l (l)}
 		<link

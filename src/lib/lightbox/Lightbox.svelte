@@ -82,7 +82,6 @@
 	let dismissing = $state(false);
 
 	let rootEl = $state(null);
-	let viewportEl = $state(null);
 	/** This open flew in, so the stage's own entrance stays off for all of it. */
 	let flew = $state(false);
 	/** A flight home is running, so the stage's exit stays off for it. */
@@ -1459,7 +1458,6 @@
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<div
-			bind:this={viewportEl}
 			class="lb-viewport"
 			onpointerdown={onPointerDown}
 			onclick={onViewportClick}

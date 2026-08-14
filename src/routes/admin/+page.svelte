@@ -79,6 +79,13 @@
 			showError(res.message ?? (res.networkError ? 'Something went wrong.' : 'Failed to unban.'));
 		}
 	}
+
+	function onTabsKeydown(e) {
+		if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+		e.preventDefault();
+		tab = e.key === 'ArrowRight' ? 'bans' : 'comments';
+		document.getElementById(`tab-${tab}`)?.focus();
+	}
 </script>
 
 <svelte:head>
@@ -108,6 +115,7 @@
 						type="password"
 						name="password"
 						placeholder="Password"
+						aria-label="Password"
 						autocomplete="current-password"
 						class="mb-3 w-full rounded-lg border border-neutral-300 bg-neutral-50 px-3 py-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 					/>
@@ -152,9 +160,17 @@
 		</div>
 
 		<div
+			role="tablist"
+			aria-label="Dashboard sections"
 			class="mb-6 flex gap-1 rounded-xl border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-800 dark:bg-neutral-900"
 		>
 			<button
+				role="tab"
+				id="tab-comments"
+				aria-selected={tab === 'comments'}
+				aria-controls="dashboard-panel"
+				tabindex={tab === 'comments' ? 0 : -1}
+				onkeydown={onTabsKeydown}
 				onclick={() => (tab = 'comments')}
 				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab ===
 				'comments'
@@ -164,6 +180,12 @@
 				Comments
 			</button>
 			<button
+				role="tab"
+				id="tab-bans"
+				aria-selected={tab === 'bans'}
+				aria-controls="dashboard-panel"
+				tabindex={tab === 'bans' ? 0 : -1}
+				onkeydown={onTabsKeydown}
 				onclick={() => (tab = 'bans')}
 				class="flex-1 rounded-lg py-1.5 text-sm font-medium transition-all duration-150 {tab ===
 				'bans'
@@ -174,103 +196,107 @@
 			</button>
 		</div>
 
-		{#if tab === 'comments'}
-			{#if view === 'urls'}
-				{#if urlsQuery.error}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-						Could not load posts.
-					</div>
-				{:else if urlsQuery.isLoading}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-						Loading…
-					</div>
-				{:else if urlList.length === 0}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-						No comments yet.
-					</div>
-				{:else}
-					<div class="space-y-2">
-						{#each urlList as item (item.url)}
-							<button
-								onclick={() => selectUrl(item.url)}
-								class="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900"
-							>
-								<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300"
-									>{item.url}</span
-								>
-								<span
-									class="tabular ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
-								>
-									{item.count}
-								</span>
-							</button>
-						{/each}
-					</div>
-				{/if}
-			{:else}
-				<div class="mb-5 flex items-center gap-3">
-					<button
-						onclick={goBack}
-						class="flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
-					>
-						← All posts
-					</button>
-					<span class="truncate font-mono text-sm text-neutral-500">{selectedUrl}</span>
-				</div>
-
-				{#if commentsQuery.error}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-						Could not load comments.
-					</div>
-				{:else if commentsQuery.isLoading}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-						Loading…
-					</div>
-				{:else if commentTree.length === 0}
-					<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-						No comments for this post.
-					</div>
-				{:else}
-					<div class="space-y-4">
-						{#each commentTree as comment (comment.id)}
-							<AdminCommentNode {comment} {activeFormId} {setActiveForm} onError={showError} />
-						{/each}
-					</div>
-				{/if}
-			{/if}
-		{:else if bansQuery.error}
-			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-				Could not load bans.
-			</div>
-		{:else if bansQuery.isLoading}
-			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
-		{:else if bans.length === 0}
-			<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
-				No active bans.
-			</div>
-		{:else}
-			<div class="space-y-2">
-				{#each bans as ban (ban.id)}
-					<div
-						class="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-950"
-					>
-						<div>
-							<p class="font-mono text-sm">{ban.ipHash.slice(0, 24)}…</p>
-							{#if ban.reason}
-								<p class="mt-0.5 text-xs text-neutral-500">{ban.reason}</p>
-							{/if}
-							<p class="tabular mt-0.5 text-xs text-neutral-400">{formatDateTime(ban.createdAt)}</p>
+		<div role="tabpanel" id="dashboard-panel" aria-label={tab === 'comments' ? 'Comments' : 'Bans'}>
+			{#if tab === 'comments'}
+				{#if view === 'urls'}
+					{#if urlsQuery.error}
+						<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+							Could not load posts.
 						</div>
+					{:else if urlsQuery.isLoading}
+						<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+							Loading…
+						</div>
+					{:else if urlList.length === 0}
+						<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+							No comments yet.
+						</div>
+					{:else}
+						<div class="space-y-2">
+							{#each urlList as item (item.url)}
+								<button
+									onclick={() => selectUrl(item.url)}
+									class="flex w-full items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-950 dark:hover:bg-neutral-900"
+								>
+									<span class="font-mono text-sm text-neutral-700 dark:text-neutral-300"
+										>{item.url}</span
+									>
+									<span
+										class="tabular ml-4 shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+									>
+										{item.count}
+									</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				{:else}
+					<div class="mb-5 flex items-center gap-3">
 						<button
-							onclick={() => unban(ban.id)}
-							class="ml-4 shrink-0 rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
+							onclick={goBack}
+							class="flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900"
 						>
-							Unban
+							← All posts
 						</button>
+						<span class="truncate font-mono text-sm text-neutral-500">{selectedUrl}</span>
 					</div>
-				{/each}
-			</div>
-		{/if}
+
+					{#if commentsQuery.error}
+						<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+							Could not load comments.
+						</div>
+					{:else if commentsQuery.isLoading}
+						<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+							Loading…
+						</div>
+					{:else if commentTree.length === 0}
+						<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+							No comments for this post.
+						</div>
+					{:else}
+						<div class="space-y-4">
+							{#each commentTree as comment (comment.id)}
+								<AdminCommentNode {comment} {activeFormId} {setActiveForm} onError={showError} />
+							{/each}
+						</div>
+					{/if}
+				{/if}
+			{:else if bansQuery.error}
+				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+					Could not load bans.
+				</div>
+			{:else if bansQuery.isLoading}
+				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">Loading…</div>
+			{:else if bans.length === 0}
+				<div class="py-16 text-center text-sm text-neutral-400 dark:text-neutral-500">
+					No active bans.
+				</div>
+			{:else}
+				<div class="space-y-2">
+					{#each bans as ban (ban.id)}
+						<div
+							class="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-950"
+						>
+							<div>
+								<p class="font-mono text-sm">{ban.ipHash.slice(0, 24)}…</p>
+								{#if ban.reason}
+									<p class="mt-0.5 text-xs text-neutral-500">{ban.reason}</p>
+								{/if}
+								<p class="tabular mt-0.5 text-xs text-neutral-400">
+									{formatDateTime(ban.createdAt)}
+								</p>
+							</div>
+							<button
+								onclick={() => unban(ban.id)}
+								class="ml-4 shrink-0 rounded-lg border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-100 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800"
+							>
+								Unban
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	{/if}
 </div>
 

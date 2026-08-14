@@ -210,6 +210,7 @@
 			bind:value={username}
 			type="text"
 			placeholder={`Name (optional — defaults to ${fallbackHandle})`}
+			aria-label="Name (optional)"
 			maxlength="32"
 			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 		/>
@@ -217,6 +218,7 @@
 			<textarea
 				bind:value={commentText}
 				placeholder="Say something… (max {MAX_COMMENT_LENGTH} characters)"
+				aria-label="Comment"
 				maxlength={MAX_COMMENT_LENGTH}
 				rows="3"
 				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
@@ -230,6 +232,7 @@
 				bind:value={password}
 				type="password"
 				placeholder="Password (save this to edit your comment later)"
+				aria-label="Password"
 				autocomplete="off"
 				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
 			/>

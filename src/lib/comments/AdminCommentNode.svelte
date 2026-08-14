@@ -156,6 +156,7 @@
 						bind:value={replyText}
 						rows="3"
 						placeholder="Write an admin reply… (leave empty to clear)"
+						aria-label="Admin reply"
 						class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					></textarea>
 					<div class="flex justify-end">
@@ -176,6 +177,7 @@
 						bind:value={banReason}
 						type="text"
 						placeholder="Reason (optional)"
+						aria-label="Ban reason"
 						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-amber-400 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
 					<div class="flex justify-end">
