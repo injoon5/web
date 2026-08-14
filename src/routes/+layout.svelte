@@ -3,6 +3,7 @@
 	import NavBar from '$lib/nav/NavBar.svelte';
 	import DialsMount from '$lib/dev/DialsMount.svelte';
 	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { page } from '$app/state';
 	import { setupConvex } from 'convex-svelte';
@@ -68,7 +69,9 @@
 	});
 
 	onDestroy(() => {
-		cancelAnimationFrame(scrollRaf);
+		// onDestroy is the one lifecycle hook that also runs during SSR/prerender,
+		// where cancelAnimationFrame is undefined — guard it to the browser.
+		if (browser) cancelAnimationFrame(scrollRaf);
 		cleanupTheme?.();
 	});
 </script>
