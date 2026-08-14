@@ -1,7 +1,10 @@
 <script>
 	import { page } from '$app/state';
 	import { onDestroy } from 'svelte';
+	import { flip } from 'svelte/animate';
+	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
+	import { motion } from '$lib/reduced-motion.svelte.js';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { usePaginatedQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
@@ -170,6 +173,16 @@
 
 	const commentTree = $derived(listReady ? buildTree(query.results ?? []) : []);
 
+	// Threads are server-ranked by score, so a vote can move a comment up or down
+	// the list. FLIP slides it there from where it was instead of snapping — the
+	// duration eases with the distance travelled so a small nudge stays quick.
+	// A reduced-motion visitor gets the reorder with no travel.
+	const flipParams = $derived(
+		motion.reduced
+			? { duration: 0 }
+			: { duration: (d) => Math.min(520, 200 + Math.sqrt(d) * 22), easing: cubicOut }
+	);
+
 	// Trust per-visitor vote state once ipHash is loaded and this page's list is fresh.
 	const voteKnown = $derived(listReady && !!ipHash);
 	const canVote = $derived(voteKnown);
@@ -300,7 +313,7 @@
 		{/each}
 	{:else if commentTree.length > 0}
 		{#each commentTree as comment (comment.id)}
-			<div class="mb-4">
+			<div class="mb-4" animate:flip={flipParams}>
 				<CommentNode
 					{comment}
 					{activeFormId}
