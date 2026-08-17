@@ -16,6 +16,20 @@
 			crossorigin
 		/>
 
+		<!-- The full subset sheet (112KB, 118 CJK/symbol faces) is loaded off the
+		     critical path — the base face is inlined in app.css, so first paint
+		     never blocks on it. `media=print` fetches at low priority, then flips to
+		     `all` once it lands; the <noscript> copy keeps the faces for JS-off. -->
+		<link
+			rel="stylesheet"
+			href="/fonts/interlude/interlude-variable-dynamic-subset.css"
+			media="print"
+			onload="this.media = 'all'"
+		/>
+		<noscript>
+			<link rel="stylesheet" href="/fonts/interlude/interlude-variable-dynamic-subset.css" />
+		</noscript>
+
 		<script>
 			(() => {
 				const root = document.documentElement;

@@ -86,6 +86,13 @@
 
 	<meta property="og:type" content="website" />
 	<meta property="og:url" content="https://www.injoon5.com/" />
+
+	<!-- The Now-Listening covers (Last.fm's Fastly CDN) and Photos (photos.injoon5.com)
+	     only load after their Convex feeds resolve client-side. Warming DNS/TCP/TLS to
+	     those origins during that round-trip lets the images paint the moment their
+	     URLs arrive. No `crossorigin` — the <img>s are plain, non-CORS fetches. -->
+	<link rel="preconnect" href="https://lastfm.freetls.fastly.net" />
+	<link rel="preconnect" href="https://photos.injoon5.com" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(homeSchema())}
 </svelte:head>
@@ -329,6 +336,7 @@
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
 						<img
 							loading="lazy"
+							decoding="async"
 							src={track.image}
 							alt={track.name || 'Album cover'}
 							class="absolute inset-0 h-full w-full object-cover"
@@ -391,6 +399,7 @@
 					>
 						<img
 							loading="lazy"
+							decoding="async"
 							src={photo.image}
 							alt={photo.title || 'Photo'}
 							class="absolute inset-0 h-full w-full object-cover transition-[filter] duration-100 group-hover:brightness-70"
