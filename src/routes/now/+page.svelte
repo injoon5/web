@@ -4,11 +4,20 @@
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	import { apiFetch } from '$lib/api-client.js';
 
-	const { data } = $props();
-
 	const nowQuery = useQuery(api.now.get, () => ({}));
+
+	// The page is prerendered, so the admin check can't ride in server data. Ask
+	// the server whether this browser holds a valid admin credential and reveal
+	// the Edit affordance only for the owner. Non-blocking: content renders from
+	// the prerendered shell + Convex subscription regardless.
+	let isAdmin = $state(false);
+	onMount(async () => {
+		const res = await apiFetch('/api/admin/whoami');
+		if (res.ok) isAdmin = res.data.isAdmin === true;
+	});
 
 	let editing = $state(false);
 	let editContent = $state('');
@@ -156,7 +165,7 @@
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -- admin-authored markdown -->
 				{@html html}
 			</div>
-		{:else if data.isAdmin}
+		{:else if isAdmin}
 			<p class="text-base text-neutral-400 dark:text-neutral-600">
 				Nothing here yet. Click Edit to write something.
 			</p>
@@ -165,7 +174,7 @@
 		{/if}
 	</div>
 
-	{#if data.isAdmin}
+	{#if isAdmin}
 		<div class="flex items-center gap-3">
 			{#if !editing}
 				<button

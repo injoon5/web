@@ -5,6 +5,17 @@
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
+		<!-- The LCP on every page is text, so the base font subset is the critical
+		     dependency. Preloading it starts the woff2 download alongside HTML parsing
+		     rather than after app.css parses and its @import chain resolves. -->
+		<link
+			rel="preload"
+			as="font"
+			type="font/woff2"
+			href="/fonts/interlude/woff2-dynamic-subset/InterludeVariable.subset.base.woff2"
+			crossorigin
+		/>
+
 		<script>
 			(() => {
 				const root = document.documentElement;
