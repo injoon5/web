@@ -4,7 +4,7 @@
 	import { articleSettings, articleStyle } from '$lib/article/settings.svelte.js';
 	import { formatDate } from '$lib/format.js';
 	import SeriesList from '$lib/ui/SeriesList.svelte';
-	import CommentsSection from '$lib/comments/CommentsSection.svelte';
+	import LazyComments from '$lib/comments/LazyComments.svelte';
 	import LikeButton from '$lib/likes/LikeButton.svelte';
 	import { page } from '$app/state';
 	import Lightbox from '$lib/lightbox/Lightbox.svelte';
@@ -368,7 +368,7 @@
 		</div>
 
 		<div class="my-10">
-			<CommentsSection />
+			<LazyComments />
 		</div>
 	</article>
 </div>

@@ -232,8 +232,13 @@
 		     line box's centre on its own cap band's centre at any size. So the
 		     wordmark's caps and the links' caps land on one axis, 3px off a shared
 		     baseline, which is the trade being made deliberately. -->
+		<!-- Eagerly prefetch the code chunks for the primary destinations (home and
+		     every nav item) right after load, so a click never waits on the route JS.
+		     Data preload stays `hover` (the body default) — /now and /health data hit
+		     the server/Convex and shouldn't fetch for every link on every page. -->
 		<nav
 			bind:clientHeight={rowHeight}
+			data-sveltekit-preload-code="eager"
 			class="nav-row mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-12"
 		>
 			<a

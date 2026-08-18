@@ -1,14 +1,35 @@
 <script>
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
-	import { marked } from 'marked';
-	import DOMPurify from 'dompurify';
-	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	import { apiFetch } from '$lib/api-client.js';
 
-	const { data } = $props();
-
 	const nowQuery = useQuery(api.now.get, () => ({}));
+
+	// marked + DOMPurify are ~72KB and only ever run in the browser (the page is
+	// prerendered and the content streams in over Convex), so they are pulled in
+	// off the initial bundle rather than shipped to every visitor up front. They
+	// load in parallel with the subscription opening; `renderer` gates rendering
+	// until both the libraries and the content are ready, so the shimmer covers
+	// exactly the same gap it always did.
+	/** @type {{ marked: typeof import('marked').marked, DOMPurify: typeof import('dompurify').default } | null} */
+	let renderer = $state(null);
+
+	// The page is prerendered, so the admin check can't ride in server data. Ask
+	// the server whether this browser holds a valid admin credential and reveal
+	// the Edit affordance only for the owner. Non-blocking: content renders from
+	// the prerendered shell + Convex subscription regardless.
+	let isAdmin = $state(false);
+	onMount(async () => {
+		const [{ marked }, { default: DOMPurify }] = await Promise.all([
+			import('marked'),
+			import('dompurify')
+		]);
+		renderer = { marked, DOMPurify };
+
+		const res = await apiFetch('/api/admin/whoami');
+		if (res.ok) isAdmin = res.data.isAdmin === true;
+	});
 
 	let editing = $state(false);
 	let editContent = $state('');
@@ -20,13 +41,17 @@
 	const updatedAt = $derived(doc?.updatedAt ? new Date(doc.updatedAt) : null);
 	// The content is admin-authored, but sanitize the rendered markdown anyway as
 	// defense-in-depth (a compromised admin token shouldn't yield stored XSS).
-	// DOMPurify needs a DOM, so only run it in the browser; during SSR the Convex
-	// subscription hasn't resolved yet, so `content` is empty regardless.
 	const html = $derived.by(() => {
-		if (!content) return '';
-		const rendered = /** @type {string} */ (marked.parse(content, { gfm: true, breaks: false }));
-		return browser ? DOMPurify.sanitize(rendered) : rendered;
+		if (!content || !renderer) return '';
+		const rendered = /** @type {string} */ (
+			renderer.marked.parse(content, { gfm: true, breaks: false })
+		);
+		return renderer.DOMPurify.sanitize(rendered);
 	});
+
+	// There is content to show but the renderer hasn't arrived yet — keep the
+	// skeleton up rather than briefly flashing the "nothing here yet" branch.
+	const rendering = $derived(!!content && !renderer);
 
 	/** @type {Array<{ unit: Intl.RelativeTimeFormatUnit, secs: number }>} */
 	const RELATIVE_UNITS = [
@@ -124,7 +149,7 @@
 	{/if}
 
 	<div class="my-12">
-		{#if nowQuery.isLoading}
+		{#if nowQuery.isLoading || rendering}
 			<div class="space-y-3">
 				{#each [75, 55, 90, 40, 70, 50] as w, i (i)}
 					<div class="shimmer h-4 rounded" style="width: {w}%"></div>
@@ -156,7 +181,7 @@
 				<!-- eslint-disable-next-line svelte/no-at-html-tags -- admin-authored markdown -->
 				{@html html}
 			</div>
-		{:else if data.isAdmin}
+		{:else if isAdmin}
 			<p class="text-base text-neutral-400 dark:text-neutral-600">
 				Nothing here yet. Click Edit to write something.
 			</p>
@@ -165,7 +190,7 @@
 		{/if}
 	</div>
 
-	{#if data.isAdmin}
+	{#if isAdmin}
 		<div class="flex items-center gap-3">
 			{#if !editing}
 				<button

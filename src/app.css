@@ -1,10 +1,29 @@
-@import url('/fonts/interlude/interlude-variable-dynamic-subset.css');
 @import 'tailwindcss';
 
 @plugin '@tailwindcss/typography';
 
 /* Class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* The base (Latin + punctuation) subset is the only Interlude face the English
+   UI ever renders in — the dynamic sheet has 118 more faces but none cover
+   Hangul, so Korean text falls to the system font regardless. Inlining base
+   here keeps it resident: first paint no longer waits on the 112KB subset sheet
+   reached through a render-blocking @import. app.html loads that full sheet off
+   the critical path so the rare CJK-ideograph/symbol faces stay available. */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/woff2-dynamic-subset/InterludeVariable.subset.base.woff2)
+		format('woff2');
+	unicode-range:
+		U+0020-007E, U+2190-2199, U+21A9-21AA, U+21B0-21B1, U+21B3-21B5, U+21BA-21BB, U+21D0, U+21D2,
+		U+21D4, U+21DE-21DF, U+21E4-21E5, U+21E7, U+21EA, U+3000-3003, U+3005-3006, U+3008-3011,
+		U+3014-301F, U+303B, U+FF01-FF60;
+}
 
 @theme {
 	--font-*: initial;

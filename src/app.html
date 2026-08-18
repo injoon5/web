@@ -5,6 +5,31 @@
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 
+		<!-- The LCP on every page is text, so the base font subset is the critical
+		     dependency. Preloading it starts the woff2 download alongside HTML parsing
+		     rather than after app.css parses and its @import chain resolves. -->
+		<link
+			rel="preload"
+			as="font"
+			type="font/woff2"
+			href="/fonts/interlude/woff2-dynamic-subset/InterludeVariable.subset.base.woff2"
+			crossorigin
+		/>
+
+		<!-- The full subset sheet (112KB, 118 CJK/symbol faces) is loaded off the
+		     critical path — the base face is inlined in app.css, so first paint
+		     never blocks on it. `media=print` fetches at low priority, then flips to
+		     `all` once it lands; the <noscript> copy keeps the faces for JS-off. -->
+		<link
+			rel="stylesheet"
+			href="/fonts/interlude/interlude-variable-dynamic-subset.css"
+			media="print"
+			onload="this.media = 'all'"
+		/>
+		<noscript>
+			<link rel="stylesheet" href="/fonts/interlude/interlude-variable-dynamic-subset.css" />
+		</noscript>
+
 		<script>
 			(() => {
 				const root = document.documentElement;

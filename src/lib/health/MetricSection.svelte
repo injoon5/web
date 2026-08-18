@@ -1,5 +1,5 @@
 <script>
-	import MetricChart from '$lib/health/MetricChart.svelte';
+	import { onMount } from 'svelte';
 	import { chartSettings } from '$lib/health/settings.svelte.js';
 	import {
 		formatDay,
@@ -9,6 +9,17 @@
 		lastFilledIndex,
 		valueAt
 	} from '$lib/health/metrics.js';
+
+	// layerchart + d3 are the heaviest thing on this route. Loading MetricChart
+	// through a dynamic import keeps them out of the page's initial hydration
+	// bundle: the heading, number and date lines hydrate first, then the chart
+	// chunk arrives and draws into the height already reserved below. The charts
+	// were never server-rendered (the grid lives inside a streamed {#await}), so
+	// deferring the component costs no SSR content.
+	let MetricChart = $state(null);
+	onMount(async () => {
+		MetricChart = (await import('$lib/health/MetricChart.svelte')).default;
+	});
 
 	/**
 	 * The number is the headline, the chart is the footnote. Scrubbing any chart
@@ -61,7 +72,7 @@
 		class="health-plot-box mt-4 w-full"
 		style="--chart-h: {chartSettings.height}px; --chart-h-sm: {chartSettings.heightSm}px"
 	>
-		{#if hasData}
+		{#if hasData && MetricChart}
 			<MetricChart
 				{values}
 				{active}
