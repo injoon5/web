@@ -10,9 +10,12 @@ import MetricSection from './MetricSection.svelte';
 // Warm the lazy chart once up front: layerchart is heavy enough that a cold
 // first import inside a single test races waitFor's default timeout. Loading it
 // here means every test's own onMount import resolves from cache immediately.
+// The generous timeout is headroom for the one-time layerchart transform, which
+// slows under full-suite CPU contention (it comfortably beats the default 10s
+// when this file runs alone).
 beforeAll(async () => {
 	await import('./MetricChart.svelte');
-});
+}, 60000);
 
 const DAY = 86400000;
 const START = Date.parse('2026-07-27T00:00:00.000Z');

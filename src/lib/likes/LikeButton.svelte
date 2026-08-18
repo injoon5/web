@@ -1,6 +1,7 @@
 <script>
 	import { page } from '$app/state';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
+	import NumberFlow from '@number-flow/svelte';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '$convex/_generated/api';
 	import Heart from '@lucide/svelte/icons/heart';
@@ -8,17 +9,6 @@
 
 	const ipHash = $derived(page.data.ipHash ?? '');
 	const path = $derived(page.url.pathname);
-
-	// The like count is pure animation polish, and it stays behind a skeleton until
-	// the Convex subscription answers — so @number-flow/svelte is fetched on idle
-	// rather than shipped in the article's initial JS. It has almost always landed
-	// by the time the count appears; until then the count renders as plain text.
-	let NumberFlow = $state(null);
-	onMount(() => {
-		const load = () => import('@number-flow/svelte').then((m) => (NumberFlow = m.default));
-		if ('requestIdleCallback' in window) requestIdleCallback(load);
-		else load();
-	});
 
 	const query = useQuery(
 		api.likes.get,
@@ -201,11 +191,7 @@
 		<span
 			class="tabular mr-2 inline-flex items-baseline text-lg text-neutral-900 dark:text-neutral-100"
 		>
-			{#if NumberFlow}
-				<NumberFlow value={likeCount} trend={0} />
-			{:else}
-				{likeCount}
-			{/if}
+			<NumberFlow value={likeCount} trend={0} />
 			<span class="ml-1">like{likeCount !== 1 ? 's' : ''}</span>
 		</span>
 	{/if}

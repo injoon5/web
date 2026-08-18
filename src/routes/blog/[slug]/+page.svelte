@@ -10,6 +10,7 @@
 	import Lightbox from '$lib/lightbox/Lightbox.svelte';
 	import { lightboxAction } from '$lib/lightbox/store.svelte.js';
 	import Languages from '@lucide/svelte/icons/languages';
+	import NumberFlow from '@number-flow/svelte';
 	import { autoHeight } from '$lib/actions/auto-height.js';
 	import LanguageSwitcher from '$lib/ui/LanguageSwitcher.svelte';
 	import StableLangStack from '$lib/ui/StableLangStack.svelte';
@@ -48,16 +49,6 @@
 	let lang = $state(initialLang);
 	let displayLang = $state(initialLang);
 
-	// @number-flow/svelte is ~52KB and only earns its keep animating the reading
-	// time across a language switch — a single-language post never switches. Keep
-	// it out of the initial article bundle: the number renders as plain text, and
-	// the animated component is fetched on idle for multi-language posts (ready
-	// before the reader reaches the switcher) or on the first switch as a backstop.
-	let NumberFlow = $state(null);
-	function loadNumberFlow() {
-		if (!NumberFlow) import('@number-flow/svelte').then((m) => (NumberFlow = m.default));
-	}
-
 	function persistLang(l) {
 		try {
 			localStorage.setItem('preferred-lang', l);
@@ -87,11 +78,6 @@
 			}
 		}
 		if (lang !== (data.availableLangs[0] ?? 'ko') || data.prefLang) persistLang(lang);
-		// Only bilingual posts can ever switch, so only they prefetch the counter.
-		if (data.availableLangs.length > 1) {
-			if ('requestIdleCallback' in window) requestIdleCallback(loadNumberFlow);
-			else loadNumberFlow();
-		}
 		await tick();
 		// Enable animations only after the restored language and the positioned
 		// pill have actually painted. A single tick isn't a reliable barrier:
@@ -103,7 +89,6 @@
 		if (l === lang) return;
 		lang = l;
 		persistLang(l);
-		loadNumberFlow();
 		advanceDisplay();
 	}
 
@@ -309,11 +294,7 @@
 						     whole tabular digit of dead space next to the shorter one (7 ko / 10 en).
 						     NumberFlow animates its own width across the swap. -->
 						<span class="shrink-0 leading-none">
-							{#if NumberFlow}
-								<NumberFlow value={readingMinutes} />
-							{:else}
-								{readingMinutes}
-							{/if}
+							<NumberFlow value={readingMinutes} />
 						</span>
 						<!-- The unit's gap is a no-break space: each label is its own grid item, and a
 						     plain leading space is dropped at the start of its line box (measured 0px,
