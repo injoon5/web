@@ -12,6 +12,30 @@
 			"permanent": true
 		}
 	],
+	"rewrites": [
+		{
+			"source": "/",
+			"has": [
+				{
+					"type": "header",
+					"key": "accept",
+					"value": ".*text/markdown.*"
+				}
+			],
+			"destination": "/api/markdown?path=/"
+		},
+		{
+			"source": "/:path((?!api/|_app/|images/|videos/).*)",
+			"has": [
+				{
+					"type": "header",
+					"key": "accept",
+					"value": ".*text/markdown.*"
+				}
+			],
+			"destination": "/api/markdown?path=/:path"
+		}
+	],
 	"headers": [
 		{
 			"source": "/.well-known/webfinger",
