@@ -885,6 +885,76 @@ moving is read where the page is:
   entirely behind the bar. It cannot simply be measured, because the browser
   scrolls to a deep link while the document is still parsing. `NavBar`
   re-publishes the row's measured height once it has one.
+- **The status bar is not ours to paint.** Safari 26 ignores `theme-color`
+  outright, and in a tab the page is not laid out under the bar either —
+  `env(safe-area-inset-top)` is 0 and `innerHeight` is 714 against a 874pt
+  screen — so no pixel of this site can reach it. What it does instead is read
+  the `background-color` of a fixed or sticky element at the top of the viewport
+  and fill the bar with that. `.nav-shell` is the candidate and it is
+  transparent, so there is nothing to read and the bar is glass over whatever
+  page content is beneath it: on a dark article that reads as a slab, which is
+  the seam above the frosted header.
+
+  Measured on an iPhone 16 Pro with `static/safari-bar-probe.html`, which is the
+  only reason any of this is written down — every account of the scan online
+  disagrees with the others, and two of them are wrong:
+  - an opaque `background-color` on the candidate paints the bar that colour
+    flat, and a semi-transparent one plus a `backdrop-filter` paints it as that
+    material over the content, which is the look this header wants;
+  - **an `opacity: 0` element is not read**, so there is no invisible element
+    that can hand Safari the tint — a 4px sliver doing exactly that was tried
+    and does nothing;
+  - with no candidate at all the bar is the page, blurred.
+
+  **`.nav-edge` is what answers it, and the header's ramp is what makes that
+  possible.** The material is a gradient now — the page's own colour, solid at
+  the top edge and gone at the bottom — so the colour the bar needs is a colour
+  the header already has. `.nav-edge` is 4px of it, `position: fixed` at
+  `top: 0`, over the scan's threshold and invisible by construction: the pixels
+  directly beneath it are the same colour, at the top of the page and scrolled.
+  It is never faded and never animated, because the value that counts is the one
+  there at first paint. The shell stays transparent — a colour on it would paint
+  the whole row and there would be no ramp to speak of.
+
+  The `theme-color` metas in `app.html` are still what Chrome's toolbar reads.
+
+- **The header's material is a ramp, not a pane**, and both halves of it are
+  built to be even. Four masked `backdrop-filter` passes, each band starting
+  exactly at the midpoint of the one below it — 18% apart, 36% wide — so the
+  number of passes over any point climbs 1, 2, 3, 4 in equal measure; a
+  `backdrop-filter` takes in its earlier siblings, so they compound. Bands that
+  abut show their seams and bands that overlap unevenly read as a ramp with a
+  lump in it. They stop at 90%, because above that the scrim is near-solid and a
+  blur under an opaque colour is work nobody sees.
+
+  Over them, one scrim of the page colour: **a smoothstep sampled at eight even
+  intervals, which is symmetric** — every pair either side of the middle sums to
+  1 — and flat at both ends. The flat ends are the point. A straight alpha ramp
+  gives way at the very top edge, where the article shows through the pixels
+  that are supposed to match the status bar, and it ends in a visible line at
+  the bottom. There is no hairline: the header has no bottom edge to draw.
+
+  It all hangs off `.nav-surface`, which keeps the opacity ramp and the growth,
+  and every stop is a percentage — so opening the disclosure lengthens the ramp
+  rather than sliding it down, ends pinned and the curve spread over the taller
+  header. The one thing a ramp cannot do is hold a row of links at its own
+  transparent end, so `.nav-panel` is a flat tint **under** the scrim at
+  `0.8 × --nav-surface-menu`. Compositing the gradient over it is the ramp lerped
+  into that floor — 1 at the top, floor at the far end, same shape between — which
+  is what keeps the fade running the full height of the open header instead of
+  collapsing into its top quarter. Putting the tint over the scrim instead just
+  flattens it.
+
+- **`--nav-safe-top` reserves the bar's band inside the row, for the cases where
+  the page really is laid out under it** — a home-screen web app, and anything
+  else where `env(safe-area-inset-top)` is not 0. It is added to the row's
+  `padding-block-start`, not to the shell, which would put the band outside
+  `.nav-surface`'s box and stop the blur short of the top of the screen. `--nav-h`
+  is that reserve plus the row, so `scroll-padding-top` and the hero's timeline
+  inset both clear the taller bar; `--nav-name-travel` takes the reserve back
+  out, because the band moves the header's bottom edge and the wordmark's resting
+  position by the same amount and the handover is the difference. In a Safari tab
+  it resolves to 0px and every one of these is the number it always was.
 - **The surface is a scroll-driven animation, not a scroll listener.** A
   `scroll(root block)` timeline carries `--nav-surface-scroll` from 0 to 1 over
   `--nav-surface-range`. The listener is installed only where
