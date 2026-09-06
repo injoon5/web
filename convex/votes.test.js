@@ -17,11 +17,18 @@ import schema from './schema.js';
 
 const modules = import.meta.glob('./**/*.js');
 
+// The credential every public write carries — see `assertBackend` in
+// convex/lib/auth.js. `vote` below is the door the SvelteKit route uses.
+const BACKEND = 'test-backend-write-secret';
+
 function setup() {
+	process.env.BACKEND_WRITE_SECRET = BACKEND;
 	const t = convexTest(schema, modules);
 	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
 	return t;
 }
+
+const vote = (t, args) => t.mutation(api.comments.vote, { backendSecret: BACKEND, ...args });
 
 const URL = '/blog/test';
 
@@ -72,7 +79,7 @@ describe('vote', () => {
 		const t = setup();
 		const id = await seedComment(t);
 
-		const result = await t.mutation(api.comments.vote, {
+		const result = await vote(t, {
 			commentId: id,
 			voteType: 'up',
 			ipHash: 'visitor'
@@ -87,8 +94,8 @@ describe('vote', () => {
 		const id = await seedComment(t);
 		const args = { commentId: id, voteType: 'up', ipHash: 'visitor' };
 
-		await t.mutation(api.comments.vote, args);
-		const result = await t.mutation(api.comments.vote, args);
+		await vote(t, args);
+		const result = await vote(t, args);
 
 		expect(result).toMatchObject({ upvotes: 0, downvotes: 0, myVote: null });
 		expect(await storedCounts(t, id)).toEqual(await trueCounts(t, id));
@@ -98,8 +105,8 @@ describe('vote', () => {
 		const t = setup();
 		const id = await seedComment(t);
 
-		await t.mutation(api.comments.vote, { commentId: id, voteType: 'up', ipHash: 'visitor' });
-		const result = await t.mutation(api.comments.vote, {
+		await vote(t, { commentId: id, voteType: 'up', ipHash: 'visitor' });
+		const result = await vote(t, {
 			commentId: id,
 			voteType: 'down',
 			ipHash: 'visitor'
@@ -113,9 +120,9 @@ describe('vote', () => {
 		const t = setup();
 		const id = await seedComment(t);
 
-		await t.mutation(api.comments.vote, { commentId: id, voteType: 'up', ipHash: 'a' });
-		await t.mutation(api.comments.vote, { commentId: id, voteType: 'up', ipHash: 'b' });
-		const result = await t.mutation(api.comments.vote, {
+		await vote(t, { commentId: id, voteType: 'up', ipHash: 'a' });
+		await vote(t, { commentId: id, voteType: 'up', ipHash: 'b' });
+		const result = await vote(t, {
 			commentId: id,
 			voteType: 'down',
 			ipHash: 'c'
@@ -138,7 +145,7 @@ describe('vote', () => {
 			await ctx.db.patch('comments', id, { upvotes: 1, downvotes: 1 });
 		});
 
-		const result = await t.mutation(api.comments.vote, {
+		const result = await vote(t, {
 			commentId: id,
 			voteType: 'up',
 			ipHash: 'visitor'
@@ -172,7 +179,7 @@ describe('vote', () => {
 			await ctx.db.insert('commentVotes', { commentId: id, ipHash: 'old', voteType: 'up' });
 		});
 
-		const result = await t.mutation(api.comments.vote, {
+		const result = await vote(t, {
 			commentId: id,
 			voteType: 'up',
 			ipHash: 'visitor'
@@ -192,7 +199,7 @@ describe('vote', () => {
 			await ctx.db.patch('comments', id, { upvotes: 0, downvotes: 0 });
 		});
 
-		const result = await t.mutation(api.comments.vote, {
+		const result = await vote(t, {
 			commentId: id,
 			voteType: 'up',
 			ipHash: 'visitor'

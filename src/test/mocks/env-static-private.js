@@ -4,3 +4,4 @@
 // exercise the "secret not configured" branches.
 export const ADMIN_SECRET = 'test-admin-secret-value';
 export const IP_HASH_SECRET = 'test-ip-hash-secret';
+export const BACKEND_WRITE_SECRET = 'test-backend-write-secret';

@@ -1,5 +1,5 @@
 import { json, error } from '@sveltejs/kit';
-import { convex } from '$lib/server/convex.js';
+import { convex, backendSecret } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
 import { requestIpHash } from '$lib/server/ip.js';
 import { createCommentSchema } from '$lib/server/validation.js';
@@ -57,6 +57,7 @@ export const POST = async ({ request }) => {
 	try {
 		await convex.mutation(api.comments.checkCanCreate, {
 			ipHash,
+			backendSecret,
 			adminSecret: admin ? ADMIN_SECRET : undefined
 		});
 	} catch (err) {
@@ -73,6 +74,7 @@ export const POST = async ({ request }) => {
 				text,
 				parentId,
 				ipHash,
+				backendSecret,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
 		(comment) => json({ comment }, { status: 201 })

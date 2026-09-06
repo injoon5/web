@@ -2,6 +2,7 @@
 	"$schema": "https://turbo.build/schema.json",
 	"globalPassThroughEnv": [
 		"ADMIN_SECRET",
+		"BACKEND_WRITE_SECRET",
 		"CONVEX_DEPLOY_KEY",
 		"IP_HASH_SECRET",
 		"PUBLIC_CONVEX_URL"
@@ -60,6 +61,7 @@
 			"env": [
 				"PUBLIC_CONVEX_URL",
 				"ADMIN_SECRET",
+				"BACKEND_WRITE_SECRET",
 				"CONVEX_DEPLOY_KEY",
 				"IP_HASH_SECRET",
 				"VERCEL_ENV"

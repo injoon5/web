@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { convex } from '$lib/server/convex.js';
+import { convex, backendSecret } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
 import { requestIpHash } from '$lib/server/ip.js';
 import { voteSchema, parseConvexId } from '$lib/server/validation.js';
@@ -20,6 +20,7 @@ export const POST = async ({ params, request }) => {
 			commentId,
 			voteType,
 			ipHash,
+			backendSecret,
 			adminSecret: admin ? ADMIN_SECRET : undefined
 		})
 	);

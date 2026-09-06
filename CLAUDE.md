@@ -133,6 +133,42 @@ migration files.
 - Convex mutations take an optional `adminSecret`; when valid it bypasses rate
   limits and per-IP checks.
 
+### Public writes only go through SvelteKit (`BACKEND_WRITE_SECRET`)
+
+Every public write takes `ipHash` and treats it as the caller's identity — the
+ban check and all four rate limits are keyed on it. It is only an identity
+because `hashIp` computed it from the request with a pepper the browser does not
+have. But the mutations themselves are a **public** Convex API, reachable at the
+same deployment URL the realtime subscriptions already use: without a second
+credential, a visitor could call `comments.create`, `comments.vote` or
+`likes.setLike` straight over the wire with a hash of their own choosing, roll it
+whenever a ban or a limit caught up, and skip `isValidPageUrl` on the way.
+
+So `assertBackend` in `convex/lib/auth.js` runs **first** in every one of them —
+`checkCanCreate`, `create`, `vote`, `setLike`, `editComment`,
+`softDeleteComment` — and `backendSecret` is a required argument, not an optional
+one. `src/lib/server/convex.js` is the single place it is read, beside the client
+that carries it; that module is under `$lib/server`, so SvelteKit will not let it
+into a client bundle, and the value belongs in no `load` return and no response
+body.
+
+- **It is not `ADMIN_SECRET` and does not accept it.** This says only "the
+  request came through the front door"; admin rights waive the ban check and
+  every limiter. One credential leaking must not buy the other, so
+  `/api/admin/comments/[id]?soft=1` sends **both**.
+- **Reads stay open.** `comments.list`, `likes.get`, `now.get` and the feed
+  queries are what the browser subscribes to over the websocket — gating them
+  would mean giving the browser the secret, which is the whole thing being
+  avoided.
+- **Unset fails closed**, with a `console.error` naming the fix: a deployment
+  that was never given the secret refuses every public write.
+- **Set it in the Convex env first, and set the same value on Vercel.** The build
+  command is `npx convex deploy --cmd '… build'`, so the functions go live before
+  the site that calls them does — commenting and liking are refused for the
+  length of that build if the two values do not already agree. `convex deploy`
+  ships code, not env vars: `npx convex env set BACKEND_WRITE_SECRET … --prod` is
+  its own step.
+
 ### Two admin credentials, because the dashboard subscribes for itself
 
 The dashboard reads Convex over the websocket (see Realtime Queries), so the
@@ -169,8 +205,11 @@ where the real secret stays.
 ## Rate Limiting
 
 Inside Convex (`convex/rateLimits.js`), keyed on `ipHash`, so limits survive
-SvelteKit cold starts and apply to direct Convex mutations too. Admin requests
-with a valid `adminSecret` bypass everything. A rejected limiter throws;
+SvelteKit cold starts and are enforced in the transaction that does the write
+rather than in front of it. The hash they key on is trustworthy because
+`assertBackend` refuses any write that did not come through SvelteKit — see
+Public writes above. Admin requests with a valid `adminSecret` bypass
+everything. A rejected limiter throws;
 `convexErrorToResponse` in `src/lib/server/api.js` maps that to a 429 with
 `Retry-After`.
 
@@ -973,14 +1012,15 @@ half.
 
 ## Environment Variables
 
-| Variable            | Used in                                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `PUBLIC_CONVEX_URL` | Convex client — browser (root layout) and server-side HTTP client                                              |
-| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                                           |
-| `IP_HASH_SECRET`    | HMAC for `hashIp`. Must be in `turbo.json` `build.env`                                                         |
-| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Sets `PUBLIC_CONVEX_URL` automatically                                               |
-| `HEALTH_API_KEY`    | Apple Health ingest — the Shortcut's bearer token. Convex-side only                                            |
-| `CONVEX_SITE_URL`   | Optional override. Convex HTTP actions live on the `.site` twin of `PUBLIC_CONVEX_URL`, derived automatically. |
+| Variable               | Used in                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_CONVEX_URL`    | Convex client — browser (root layout) and server-side HTTP client                                              |
+| `ADMIN_SECRET`         | Admin auth (header + cookie + Convex bypass) — must match Convex env                                           |
+| `BACKEND_WRITE_SECRET` | Proves a public Convex write came through SvelteKit — must match Convex env. In `turbo.json` `build.env`       |
+| `IP_HASH_SECRET`       | HMAC for `hashIp`. Must be in `turbo.json` `build.env`                                                         |
+| `CONVEX_DEPLOY_KEY`    | Build-time only (Vercel). Sets `PUBLIC_CONVEX_URL` automatically                                               |
+| `HEALTH_API_KEY`       | Apple Health ingest — the Shortcut's bearer token. Convex-side only                                            |
+| `CONVEX_SITE_URL`      | Optional override. Convex HTTP actions live on the `.site` twin of `PUBLIC_CONVEX_URL`, derived automatically. |
 
 `LAST_FM_PUBLIC_API_KEY` is Convex-only — the feed cron reads it inside the
 deployment, so it never reaches SvelteKit or Vercel.

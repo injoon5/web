@@ -1,5 +1,5 @@
 import { json, error } from '@sveltejs/kit';
-import { convex } from '$lib/server/convex.js';
+import { convex, backendSecret } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
 import { verifyAdminSecret } from '$lib/server/admin.js';
 import { editCommentSchema, deleteCommentSchema, parseConvexId } from '$lib/server/validation.js';
@@ -22,6 +22,7 @@ export const PATCH = async ({ params, request }) => {
 				text,
 				password: admin ? '' : password,
 				ipHash,
+				backendSecret,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
 		(updated) => json({ comment: updated })
@@ -46,7 +47,8 @@ export const DELETE = async ({ params, request }) => {
 			convex.action(api.commentActions.softDeleteComment, {
 				commentId,
 				password,
-				ipHash
+				ipHash,
+				backendSecret
 			}),
 		() => json({ success: true })
 	);

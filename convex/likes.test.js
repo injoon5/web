@@ -20,11 +20,18 @@ const modules = import.meta.glob('./**/*.js');
 const URL = '/blog/test';
 const IP = 'visitor';
 
+// The credential every public write carries — see `assertBackend` in
+// convex/lib/auth.js. `setLike` below is the door the SvelteKit route uses.
+const BACKEND = 'test-backend-write-secret';
+
 function setup() {
+	process.env.BACKEND_WRITE_SECRET = BACKEND;
 	const t = convexTest(schema, modules);
 	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
 	return t;
 }
+
+const setLike = (t, args) => t.mutation(api.likes.setLike, { backendSecret: BACKEND, ...args });
 
 /** Mark the like-count backfill done, so reads trust the denormalized row. */
 async function completeBackfill(t) {
@@ -59,7 +66,7 @@ describe('setLike', () => {
 	it('records a like and reports it without re-reading', async () => {
 		const t = setup();
 
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
+		const result = await setLike(t, { url: URL, ipHash: IP, liked: true });
 
 		expect(result).toEqual({ count: 1, liked: true });
 		expect(await rowCount(t)).toBe(1);
@@ -68,10 +75,10 @@ describe('setLike', () => {
 
 	it('is a no-op when the desired state already holds', async () => {
 		const t = setup();
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
+		await setLike(t, { url: URL, ipHash: IP, liked: true });
 
 		// The optimistic client re-sends its intent; this must not stack.
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
+		const result = await setLike(t, { url: URL, ipHash: IP, liked: true });
 
 		expect(result).toEqual({ count: 1, liked: true });
 		expect(await storedCount(t)).toBe(1);
@@ -79,9 +86,9 @@ describe('setLike', () => {
 
 	it('toggles off and takes the counter with it', async () => {
 		const t = setup();
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
+		await setLike(t, { url: URL, ipHash: IP, liked: true });
 
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: false });
+		const result = await setLike(t, { url: URL, ipHash: IP, liked: false });
 
 		expect(result).toEqual({ count: 0, liked: false });
 		expect(await rowCount(t)).toBe(0);
@@ -91,11 +98,11 @@ describe('setLike', () => {
 	it('falls back to a toggle when no desired state is sent', async () => {
 		const t = setup();
 
-		expect(await t.mutation(api.likes.setLike, { url: URL, ipHash: IP })).toEqual({
+		expect(await setLike(t, { url: URL, ipHash: IP })).toEqual({
 			count: 1,
 			liked: true
 		});
-		expect(await t.mutation(api.likes.setLike, { url: URL, ipHash: IP })).toEqual({
+		expect(await setLike(t, { url: URL, ipHash: IP })).toEqual({
 			count: 0,
 			liked: false
 		});
@@ -103,8 +110,8 @@ describe('setLike', () => {
 
 	it('counts each visitor once', async () => {
 		const t = setup();
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: 'a', liked: true });
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: 'b', liked: true });
+		await setLike(t, { url: URL, ipHash: 'a', liked: true });
+		const result = await setLike(t, { url: URL, ipHash: 'b', liked: true });
 
 		expect(result.count).toBe(2);
 		expect(await storedCount(t)).toBe(2);
@@ -119,7 +126,7 @@ describe('setLike', () => {
 		});
 
 		// Already liked, so the only work is retiring the duplicate.
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
+		const result = await setLike(t, { url: URL, ipHash: IP, liked: true });
 
 		expect(result).toEqual({ count: 1, liked: true });
 		expect(await rowCount(t)).toBe(1);
@@ -130,8 +137,8 @@ describe('setLike', () => {
 		const t = setup();
 		await completeBackfill(t);
 
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: 'a', liked: true });
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: 'b', liked: true });
+		await setLike(t, { url: URL, ipHash: 'a', liked: true });
+		const result = await setLike(t, { url: URL, ipHash: 'b', liked: true });
 
 		// Same answer either way — which is the point of keeping them in step.
 		expect(result.count).toBe(2);
@@ -145,26 +152,45 @@ describe('setLike', () => {
 			await ctx.db.insert('bannedIps', { ipHash: IP, reason: 'spam' });
 		});
 
-		await expect(
-			t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true })
-		).rejects.toThrow(/Banned/);
+		await expect(setLike(t, { url: URL, ipHash: IP, liked: true })).rejects.toThrow(/Banned/);
 	});
 });
 
 describe('get', () => {
 	it('reports the count and whether this visitor is in it', async () => {
 		const t = setup();
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: 'someone-else', liked: true });
+		await setLike(t, { url: URL, ipHash: 'someone-else', liked: true });
 
 		expect(await t.query(api.likes.get, { url: URL, ipHash: IP })).toEqual({
 			count: 1,
 			liked: false
 		});
 
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
+		await setLike(t, { url: URL, ipHash: IP, liked: true });
 		expect(await t.query(api.likes.get, { url: URL, ipHash: IP })).toEqual({
 			count: 2,
 			liked: true
 		});
+	});
+});
+
+describe('the server credential', () => {
+	// Same boundary as comments: `ipHash` decides the ban check and the limiter,
+	// and it only means anything because SvelteKit computed it. See
+	// `assertBackend` in convex/lib/auth.js.
+	it('refuses a like that did not come through the server', async () => {
+		const t = setup();
+
+		await expect(
+			t.mutation(api.likes.setLike, {
+				url: URL,
+				ipHash: IP,
+				liked: true,
+				backendSecret: 'guessed'
+			})
+		).rejects.toThrow(/Unauthorized/);
+
+		expect(await rowCount(t)).toBe(0);
+		expect(await storedCount(t)).toBe(0);
 	});
 });

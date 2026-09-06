@@ -1,7 +1,7 @@
 import { ConvexError, v } from 'convex/values';
 import { mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
-import { isAdmin } from './lib/auth.js';
+import { assertBackend, isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
 import { adjustLikeCount, readLikeCount } from './lib/likeCounts.js';
 
@@ -27,9 +27,12 @@ export const setLike = mutation({
 		ipHash: v.string(),
 		// Desired state. Omitted falls back to a toggle so older clients keep working.
 		liked: v.optional(v.boolean()),
+		backendSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		await assertBackend(args.backendSecret);
+
 		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {

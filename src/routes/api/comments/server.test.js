@@ -6,7 +6,8 @@ vi.mock('$lib/server/convex.js', () => ({
 	convex: {
 		query: vi.fn().mockResolvedValue([]),
 		mutation: vi.fn().mockResolvedValue({ _id: 'c1' })
-	}
+	},
+	backendSecret: 'test-backend-write-secret'
 }));
 
 // Every URL is a real page here; `valid-urls` builds its set from the content
@@ -20,7 +21,7 @@ vi.mock('bcryptjs', () => ({
 import { ConvexError } from 'convex/values';
 import { getFunctionName } from 'convex/server';
 import bcrypt from 'bcryptjs';
-import { convex } from '$lib/server/convex.js';
+import { convex, backendSecret } from '$lib/server/convex.js';
 import { POST } from './+server.js';
 
 function postRequest(body = {}) {
@@ -61,6 +62,19 @@ describe('POST /api/comments', () => {
 		const gateOrder = convex.mutation.mock.invocationCallOrder[0];
 		const hashOrder = bcrypt.hash.mock.invocationCallOrder[0];
 		expect(gateOrder).toBeLessThan(hashOrder);
+	});
+
+	// The Convex mutations trust `ipHash` as the caller's identity, so they only
+	// accept it from this server — see `assertBackend` in convex/lib/auth.js. Both
+	// calls have to carry the credential, including the gate: it consumes nothing,
+	// but it does read the ban list and the limiter on the hash it was handed.
+	it('sends the server credential on the gate and the write alike', async () => {
+		await POST({ request: postRequest() });
+
+		for (const [, args] of convex.mutation.mock.calls) {
+			expect(args.backendSecret).toBe(backendSecret);
+		}
+		expect(convex.mutation).toHaveBeenCalledTimes(2);
 	});
 
 	it.each([

@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { ConvexError, v } from 'convex/values';
 import { action } from './_generated/server.js';
 import { internal } from './_generated/api.js';
-import { isAdmin } from './lib/auth.js';
+import { assertBackend, isAdmin } from './lib/auth.js';
 
 /** Rate limit + password for non-admin callers. */
 async function authorizeOwner(ctx, { commentId, password, ipHash, adminSecret }) {
@@ -34,9 +34,11 @@ export const editComment = action({
 		text: v.string(),
 		password: v.string(),
 		ipHash: v.string(),
+		backendSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		await assertBackend(args.backendSecret);
 		await authorizeOwner(ctx, args);
 
 		return await ctx.runMutation(internal.comments.applyEdit, {
@@ -51,9 +53,11 @@ export const softDeleteComment = action({
 		commentId: v.id('comments'),
 		password: v.optional(v.string()),
 		ipHash: v.string(),
+		backendSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		await assertBackend(args.backendSecret);
 		await authorizeOwner(ctx, args);
 
 		await ctx.runMutation(internal.comments.softDelete, {

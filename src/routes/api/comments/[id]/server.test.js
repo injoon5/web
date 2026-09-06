@@ -7,11 +7,12 @@ vi.mock('$lib/server/convex.js', () => ({
 	convex: {
 		action: vi.fn().mockResolvedValue(undefined),
 		mutation: vi.fn().mockResolvedValue(undefined)
-	}
+	},
+	backendSecret: 'test-backend-write-secret'
 }));
 
 import { getFunctionName } from 'convex/server';
-import { convex } from '$lib/server/convex.js';
+import { convex, backendSecret } from '$lib/server/convex.js';
 import { createAdminSessionToken } from '$lib/server/admin.js';
 import { ADMIN_SECRET } from '$env/static/private';
 import { DELETE } from './+server.js';
@@ -45,7 +46,7 @@ describe('DELETE /api/comments/[id]', () => {
 		expect(calledAction()).toContain('softDeleteComment');
 		expect(convex.action).toHaveBeenCalledWith(
 			expect.anything(),
-			expect.objectContaining({ commentId: 'c1', password: 'pw12' })
+			expect.objectContaining({ commentId: 'c1', password: 'pw12', backendSecret })
 		);
 		expect(convex.mutation).not.toHaveBeenCalled();
 	});

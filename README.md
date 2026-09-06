@@ -39,6 +39,7 @@ npm run dev
 | ------------------------ | ------------------------------------------------------------------- |
 | `PUBLIC_CONVEX_URL`      | Convex client, browser and server. Set by `npx convex dev`.         |
 | `ADMIN_SECRET`           | Admin auth. Must match the same variable in the Convex env.         |
+| `BACKEND_WRITE_SECRET`   | Lets a public Convex write through. Must match the Convex env.      |
 | `IP_HASH_SECRET`         | HMAC key for hashing visitor IPs.                                   |
 | `CONVEX_DEPLOY_KEY`      | Build-time only, on Vercel.                                         |
 | `HEALTH_API_KEY`         | Convex-side only — the bearer token the Health Shortcut posts with. |

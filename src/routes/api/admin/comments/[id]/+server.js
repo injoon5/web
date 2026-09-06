@@ -1,5 +1,5 @@
 import { json, error } from '@sveltejs/kit';
-import { convex } from '$lib/server/convex.js';
+import { convex, backendSecret } from '$lib/server/convex.js';
 import { api } from '$convex/_generated/api';
 import { requireAdmin } from '$lib/server/admin.js';
 import { replySchema, parseConvexId } from '$lib/server/validation.js';
@@ -19,6 +19,9 @@ export const DELETE = async ({ params, request, url }) => {
 				convex.action(api.commentActions.softDeleteComment, {
 					commentId,
 					ipHash: '',
+					// Admin rights waive the ban and the rate limit; they do not stand in
+					// for the credential that says the call came through this server.
+					backendSecret,
 					adminSecret: ADMIN_SECRET
 				}),
 			() => json({ success: true })

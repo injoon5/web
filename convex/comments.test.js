@@ -13,13 +13,23 @@ import schema from './schema.js';
 
 const modules = import.meta.glob('./**/*.js');
 
+// Every public write carries the credential that says it came through the
+// SvelteKit server — see `assertBackend` in convex/lib/auth.js. It is set here
+// rather than mocked so the cases below go through the same door the site does.
+const BACKEND = 'test-backend-write-secret';
+
 function setup() {
+	process.env.BACKEND_WRITE_SECRET = BACKEND;
 	const t = convexTest(schema, modules);
 	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
 	return t;
 }
 
 const IP = 'ip-hash-1';
+
+/** The pre-hash gate, called the way the route calls it. */
+const gate = (t, args) =>
+	t.mutation(api.comments.checkCanCreate, { backendSecret: BACKEND, ...args });
 
 /** The `comment` limiter: 10 tokens per minute. */
 const COMMENT_CAPACITY = 10;
@@ -31,6 +41,7 @@ function newComment(overrides = {}) {
 		passwordHash: '$2a$10$notarealhash',
 		text: 'hello',
 		ipHash: IP,
+		backendSecret: BACKEND,
 		...overrides
 	};
 }
@@ -38,7 +49,7 @@ function newComment(overrides = {}) {
 describe('checkCanCreate', () => {
 	it('passes for an ordinary visitor', async () => {
 		const t = setup();
-		await expect(t.mutation(api.comments.checkCanCreate, { ipHash: IP })).resolves.toBeNull();
+		await expect(gate(t, { ipHash: IP })).resolves.toBeNull();
 	});
 
 	it('rejects a banned IP', async () => {
@@ -47,7 +58,7 @@ describe('checkCanCreate', () => {
 			await ctx.db.insert('bannedIps', { ipHash: IP, reason: 'spam' });
 		});
 
-		await expect(t.mutation(api.comments.checkCanCreate, { ipHash: IP })).rejects.toThrow(/Banned/);
+		await expect(gate(t, { ipHash: IP })).rejects.toThrow(/Banned/);
 	});
 
 	it('consumes no budget — the create mutation stays the only spender', async () => {
@@ -56,7 +67,7 @@ describe('checkCanCreate', () => {
 		// Far more gate calls than the bucket holds. If `check` consumed, the
 		// creates below would start failing.
 		for (let i = 0; i < COMMENT_CAPACITY * 3; i++) {
-			await t.mutation(api.comments.checkCanCreate, { ipHash: IP });
+			await gate(t, { ipHash: IP });
 		}
 
 		for (let i = 0; i < COMMENT_CAPACITY; i++) {
@@ -70,9 +81,7 @@ describe('checkCanCreate', () => {
 			await t.mutation(api.comments.create, newComment({ text: `comment ${i}` }));
 		}
 
-		await expect(t.mutation(api.comments.checkCanCreate, { ipHash: IP })).rejects.toThrow(
-			/RateLimited/
-		);
+		await expect(gate(t, { ipHash: IP })).rejects.toThrow(/RateLimited/);
 		// And the real mutation agrees, so the gate is not rejecting on its own terms.
 		await expect(t.mutation(api.comments.create, newComment())).rejects.toThrow(/RateLimited/);
 	});
@@ -87,9 +96,7 @@ describe('checkCanCreate', () => {
 			await t.mutation(api.comments.create, newComment({ ipHash: 'someone-else' }));
 		}
 
-		await expect(
-			t.mutation(api.comments.checkCanCreate, { ipHash: IP, adminSecret: 'test-admin-secret' })
-		).resolves.toBeNull();
+		await expect(gate(t, { ipHash: IP, adminSecret: 'test-admin-secret' })).resolves.toBeNull();
 	});
 });
 
@@ -191,5 +198,68 @@ describe('list', () => {
 		const list = await listPage(t);
 		expect(list.page.map((c) => c.text)).toEqual(['high', 'low']);
 		expect(list.isDone).toBe(true);
+	});
+});
+
+/**
+ * The write boundary. `ipHash` is the caller's whole identity here — bans and
+ * rate limits are keyed on it — and it is only trustworthy because SvelteKit
+ * computed it from the request. These mutations are a public Convex API, so
+ * without a server credential a visitor could call them straight at the
+ * deployment URL the browser already holds, pick any hash, and roll it the
+ * moment a ban or a limit caught up. See `assertBackend` in convex/lib/auth.js.
+ */
+describe('the server credential', () => {
+	it('refuses a create that did not come through the server', async () => {
+		const t = setup();
+
+		await expect(
+			t.mutation(api.comments.create, newComment({ backendSecret: 'guessed' }))
+		).rejects.toThrow(/Unauthorized/);
+
+		// And nothing was written on the way to being refused.
+		const stored = await t.run((ctx) => ctx.db.query('comments').collect());
+		expect(stored).toHaveLength(0);
+	});
+
+	it('refuses a vote and a gate call the same way', async () => {
+		const t = setup();
+		const comment = await t.mutation(api.comments.create, newComment());
+
+		await expect(
+			t.mutation(api.comments.vote, {
+				commentId: comment.id,
+				voteType: 'up',
+				ipHash: IP,
+				backendSecret: 'guessed'
+			})
+		).rejects.toThrow(/Unauthorized/);
+
+		await expect(gate(t, { ipHash: IP, backendSecret: 'guessed' })).rejects.toThrow(/Unauthorized/);
+	});
+
+	// ADMIN_SECRET is the master key: it waives the ban check and every rate
+	// limit. Letting it stand in here would mean one leaked value buys both, and
+	// the two credentials exist precisely so it does not.
+	it('is not satisfied by ADMIN_SECRET', async () => {
+		const t = setup();
+		process.env.ADMIN_SECRET = 'test-admin-secret';
+
+		await expect(
+			t.mutation(
+				api.comments.create,
+				newComment({ backendSecret: 'test-admin-secret', adminSecret: 'test-admin-secret' })
+			)
+		).rejects.toThrow(/Unauthorized/);
+	});
+
+	// A deployment that has not been given the secret refuses every public write
+	// rather than waving them through, which is the direction a misconfiguration
+	// has to fail in.
+	it('refuses everything when the deployment has no secret set', async () => {
+		const t = setup();
+		delete process.env.BACKEND_WRITE_SECRET;
+
+		await expect(t.mutation(api.comments.create, newComment())).rejects.toThrow(/Unauthorized/);
 	});
 });

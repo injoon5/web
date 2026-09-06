@@ -3,7 +3,7 @@ import { ConvexError, v } from 'convex/values';
 import { internal } from './_generated/api.js';
 import { internalMutation, mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
-import { assertAdmin, isAdmin } from './lib/auth.js';
+import { assertAdmin, assertBackend, isAdmin } from './lib/auth.js';
 import { isBanned } from './lib/bans.js';
 import { publicComment } from './lib/serialize.js';
 import {
@@ -40,8 +40,14 @@ async function consumeRateLimit(ctx, name, ipHash) {
  * outlive its window with no write to invalidate it.
  */
 export const checkCanCreate = mutation({
-	args: { ipHash: v.string(), adminSecret: v.optional(v.string()) },
-	handler: async (ctx, { ipHash, adminSecret }) => {
+	args: {
+		ipHash: v.string(),
+		backendSecret: v.string(),
+		adminSecret: v.optional(v.string())
+	},
+	handler: async (ctx, { ipHash, backendSecret, adminSecret }) => {
+		await assertBackend(backendSecret);
+
 		if (await isAdmin(adminSecret)) return;
 
 		if (await isBanned(ctx, ipHash)) {
@@ -168,9 +174,14 @@ export const create = mutation({
 		text: v.string(),
 		parentId: v.optional(v.id('comments')),
 		ipHash: v.string(),
+		backendSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		// `ipHash` is only an identity because SvelteKit computed it. Prove the
+		// call came from there before anything reads or writes on its word.
+		await assertBackend(args.backendSecret);
+
 		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {
@@ -247,9 +258,12 @@ export const vote = mutation({
 		commentId: v.id('comments'),
 		voteType: v.union(v.literal('up'), v.literal('down')),
 		ipHash: v.string(),
+		backendSecret: v.string(),
 		adminSecret: v.optional(v.string())
 	},
 	handler: async (ctx, args) => {
+		await assertBackend(args.backendSecret);
+
 		const admin = await isAdmin(args.adminSecret);
 
 		if (await isBanned(ctx, args.ipHash)) {
