@@ -1,12 +1,12 @@
 import { error } from '@sveltejs/kit';
-import { convex } from '$lib/server/convex.js';
-import { api } from '$convex/_generated/api';
-import { requestIpHash } from '$lib/server/ip.js';
-import { likeSchema } from '$lib/server/validation.js';
-import { verifyAdminSecret } from '$lib/server/admin.js';
-import { isValidPageUrl } from '$lib/server/valid-urls.js';
-import { runConvex, parseBody } from '$lib/server/api.js';
-import { ADMIN_SECRET } from '$env/static/private';
+import { convex } from '#lib/server/convex.js';
+import { api } from '#convex/_generated/api.js';
+import { requestIpHash } from '#lib/server/ip.js';
+import { likeSchema } from '#lib/server/validation.js';
+import { verifyAdminSecret } from '#lib/server/admin.js';
+import { isValidPageUrl } from '#lib/server/valid-urls.js';
+import { runConvex, parseBody } from '#lib/server/api.js';
+import { ADMIN_SECRET } from '$app/env/private';
 
 /** @type {import('./$types').RequestHandler} */
 export const GET = async ({ url, request }) => {

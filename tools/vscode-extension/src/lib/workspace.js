@@ -27,7 +27,7 @@ function getConfig(resource) {
 		altTextPlaceholder: raw.get('altTextPlaceholder', true),
 		videoComponent: raw.get('videoComponent', {
 			name: 'LazyVideo',
-			path: '$lib/ui/LazyVideo.svelte'
+			path: '#lib/ui/LazyVideo.svelte'
 		}),
 		statusBar: raw.get('statusBar', true),
 		diagnostics: {

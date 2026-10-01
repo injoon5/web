@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 // One subscription for the whole app. The eight hand-rolled copies this replaces
 // mostly read the query once on mount, so they never noticed the OS setting

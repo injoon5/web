@@ -1,7 +1,12 @@
+import adapter from '@sveltejs/adapter-vercel';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { mdsvex } from 'mdsvex';
 import { execSync } from 'node:child_process';
+
+import mdsvexConfig from './mdsvex.config.js';
 
 function gitInfo() {
 	try {
@@ -15,7 +20,7 @@ function gitInfo() {
 }
 
 const { sha, isoDate } = gitInfo();
-// Expose to client via SvelteKit's $env/static/public. PUBLIC_* prefix is required.
+// Read at build time and inlined by src/env.js (`static: true`).
 process.env.PUBLIC_GIT_COMMIT = sha;
 process.env.PUBLIC_GIT_COMMIT_DATE = isoDate;
 
@@ -49,5 +54,22 @@ export default defineConfig({
 	// Tailwind runs as a Vite plugin rather than through PostCSS: Vite's own
 	// postcss-import pass resolves `@import 'tailwindcss'` as a file path and
 	// fails before `@tailwindcss/postcss` ever sees it.
-	plugins: [tailwindcss(), sveltekit()]
+	plugins: [
+		tailwindcss(),
+		sveltekit({
+			extensions: ['.svelte', '.md'],
+			// remark-math 3 in mdsvex.config.js doesn't fit mdsvex's plugin types. That
+			// went unnoticed while this call lived in svelte.config.js, which is unchecked.
+			preprocess: [vitePreprocess(), mdsvex(mdsvexConfig as Parameters<typeof mdsvex>[0])],
+			onwarn(warning, handler) {
+				const mdA11y =
+					warning.filename?.endsWith('.md') &&
+					(warning.code === 'a11y_no_noninteractive_tabindex' ||
+						warning.code === 'a11y_img_redundant_alt');
+				if (mdA11y) return;
+				handler(warning);
+			},
+			adapter: adapter()
+		})
+	]
 });

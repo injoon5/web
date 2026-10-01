@@ -13,7 +13,7 @@ keywords:
 ---
 
 <script>
-	import LazyVideo from '$lib/ui/LazyVideo.svelte';
+	import LazyVideo from '#lib/ui/LazyVideo.svelte';
 </script>
 
 ## Why a watch app

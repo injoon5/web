@@ -3,7 +3,7 @@
 export const prerender = false;
 
 import { error } from '@sveltejs/kit';
-import { resolveBilingualEntry, bilingualPageData, slugFromPath } from '$lib/content/bilingual.js';
+import { resolveBilingualEntry, bilingualPageData, slugFromPath } from '#lib/content/bilingual.js';
 
 const enModules = import.meta.glob('/src/content/blog/en/*.md');
 const koModules = import.meta.glob('/src/content/blog/ko/*.md');

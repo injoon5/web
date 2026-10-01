@@ -1,4 +1,4 @@
-import { error, json } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { ConvexError } from 'convex/values';
 
 /**
@@ -107,7 +107,7 @@ function defaultMessage(kind) {
  * Wraps a Convex call, returning either the resolved JSON response or
  * throwing/returning the mapped error response.
  */
-export async function runConvex(fn, build = (data) => json(data)) {
+export async function runConvex(fn, build = (data) => Response.json(data)) {
 	try {
 		const result = await fn();
 		return build(result);

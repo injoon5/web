@@ -3,7 +3,7 @@
  * pure, so the score and chart arithmetic is testable without a DOM.
  */
 
-import { PUBLIC_METRICS, PUBLIC_RANGES, shiftDateKey } from '$convex/lib/health.js';
+import { PUBLIC_METRICS, PUBLIC_RANGES, shiftDateKey } from '#convex/lib/health.js';
 
 /**
  * How each metric reads, and the daily target it is scored against. The key list

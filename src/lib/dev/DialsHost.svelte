@@ -1,7 +1,7 @@
 <script>
 	import { DialRoot } from 'dialkit/svelte';
 	import 'dialkit/styles.css';
-	import { readDialsOpen, writeDialsOpen } from '$lib/dev/dials-open.js';
+	import { readDialsOpen, writeDialsOpen } from '#lib/dev/dials-open.js';
 
 	/**
 	 * The one `<DialRoot />` for the whole site, and nothing else.

@@ -4,7 +4,7 @@
 	 * status and the raw message — the same 404 the rest of the site handles
 	 * properly, rendered as if by a different site.
 	 */
-	import ErrorPage from '$lib/error/ErrorPage.svelte';
+	import ErrorPage from '#lib/error/ErrorPage.svelte';
 </script>
 
 <ErrorPage />

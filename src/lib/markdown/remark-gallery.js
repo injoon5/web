@@ -19,7 +19,7 @@
 
 import { addComponentImport } from './splice-import.js';
 
-const GALLERY = { name: 'Gallery', path: '$lib/lightbox/Gallery.svelte' };
+const GALLERY = { name: 'Gallery', path: '#lib/lightbox/Gallery.svelte' };
 
 const FENCE_OPEN = /^:::\s*gallery\s*$/;
 const FENCE_CLOSE = /^:::\s*$/;

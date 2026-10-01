@@ -48,12 +48,12 @@ describe('requestIpHash', () => {
 describe('when IP_HASH_SECRET is not configured', () => {
 	afterEach(() => {
 		vi.resetModules();
-		vi.doUnmock('$env/static/private');
+		vi.doUnmock('$app/env/private');
 	});
 
 	it('hashIp throws', async () => {
 		vi.resetModules();
-		vi.doMock('$env/static/private', () => ({ ADMIN_SECRET: 'x', IP_HASH_SECRET: '' }));
+		vi.doMock('$app/env/private', () => ({ ADMIN_SECRET: 'x', IP_HASH_SECRET: '' }));
 		const mod = await import('./ip');
 		expect(() => mod.hashIp('1.2.3.4')).toThrow(/IP_HASH_SECRET/);
 	});

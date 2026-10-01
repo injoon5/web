@@ -4,10 +4,10 @@
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { motion } from '$lib/reduced-motion.svelte.js';
+	import { motion } from '#lib/reduced-motion.svelte.js';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { usePaginatedQuery } from 'convex-svelte';
-	import { api } from '$convex/_generated/api';
+	import { api } from '#convex/_generated/api.js';
 	import CommentNode from './CommentNode.svelte';
 	import { buildTree } from './build-tree.js';
 	import {
@@ -16,7 +16,7 @@
 		CHAR_THRESHOLD,
 		MIN_PASSWORD_LENGTH
 	} from './constants.js';
-	import { apiFetch } from '$lib/api-client.js';
+	import { apiFetch } from '#lib/api-client.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);

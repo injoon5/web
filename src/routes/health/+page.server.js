@@ -1,7 +1,7 @@
-import { convex } from '$lib/server/convex.js';
-import { api } from '$convex/_generated/api';
-import { DEFAULT_RANGE } from '$lib/health/metrics.js';
-import { dateKey, shiftDateKey } from '$convex/lib/health.js';
+import { convex } from '#lib/server/convex.js';
+import { api } from '#convex/_generated/api.js';
+import { DEFAULT_RANGE } from '#lib/health/metrics.js';
+import { dateKey, shiftDateKey } from '#convex/lib/health.js';
 
 export const prerender = false;
 

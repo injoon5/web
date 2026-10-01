@@ -1,8 +1,8 @@
 <script>
-	import HealthDialsMount from '$lib/health/HealthDialsMount.svelte';
-	import MetricSection from '$lib/health/MetricSection.svelte';
-	import RangePicker from '$lib/health/RangePicker.svelte';
-	import ScoreDial from '$lib/health/ScoreDial.svelte';
+	import HealthDialsMount from '#lib/health/HealthDialsMount.svelte';
+	import MetricSection from '#lib/health/MetricSection.svelte';
+	import RangePicker from '#lib/health/RangePicker.svelte';
+	import ScoreDial from '#lib/health/ScoreDial.svelte';
 	import {
 		DEFAULT_RANGE,
 		PAGE_METRICS,
@@ -14,11 +14,11 @@
 		latestIndex,
 		rangeStartDate,
 		trimToLatest
-	} from '$lib/health/metrics.js';
+	} from '#lib/health/metrics.js';
 
-	import { chartSettings } from '$lib/health/settings.svelte.js';
+	import { chartSettings } from '#lib/health/settings.svelte.js';
 	import { useQuery } from 'convex-svelte';
-	import { api } from '$convex/_generated/api';
+	import { api } from '#convex/_generated/api.js';
 
 	const DESCRIPTION = 'Steps, movement and energy, straight off an Apple Watch.';
 

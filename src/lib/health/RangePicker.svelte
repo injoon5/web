@@ -1,5 +1,5 @@
 <script>
-	import { motion } from '$lib/reduced-motion.svelte.js';
+	import { motion } from '#lib/reduced-motion.svelte.js';
 	import { Spring } from 'svelte/motion';
 
 	/**

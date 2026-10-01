@@ -6,7 +6,7 @@
 
 	$effect(() => {
 		if (!__DIALS__) return;
-		import('$lib/error/ErrorDials.svelte').then((module) => {
+		import('#lib/error/ErrorDials.svelte').then((module) => {
 			Panel = module.default;
 		});
 	});

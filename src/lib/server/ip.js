@@ -1,6 +1,6 @@
 // @ts-check
 import { createHmac } from 'crypto';
-import { IP_HASH_SECRET } from '$env/static/private';
+import { IP_HASH_SECRET } from '$app/env/private';
 
 /**
  * @param {Request} request

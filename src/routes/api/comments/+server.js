@@ -1,12 +1,12 @@
-import { json, error } from '@sveltejs/kit';
-import { convex } from '$lib/server/convex.js';
-import { api } from '$convex/_generated/api';
-import { requestIpHash } from '$lib/server/ip.js';
-import { createCommentSchema } from '$lib/server/validation.js';
-import { verifyAdminSecret } from '$lib/server/admin.js';
-import { isValidPageUrl } from '$lib/server/valid-urls.js';
-import { runConvex, parseBody, handleConvexErr } from '$lib/server/api.js';
-import { ADMIN_SECRET } from '$env/static/private';
+import { error } from '@sveltejs/kit';
+import { convex } from '#lib/server/convex.js';
+import { api } from '#convex/_generated/api.js';
+import { requestIpHash } from '#lib/server/ip.js';
+import { createCommentSchema } from '#lib/server/validation.js';
+import { verifyAdminSecret } from '#lib/server/admin.js';
+import { isValidPageUrl } from '#lib/server/valid-urls.js';
+import { runConvex, parseBody, handleConvexErr } from '#lib/server/api.js';
+import { ADMIN_SECRET } from '$app/env/private';
 import bcrypt from 'bcryptjs';
 
 const MAX_PAGE = 50;
@@ -31,7 +31,11 @@ export const GET = async ({ url, request }) => {
 				paginationOpts: { numItems, cursor }
 			}),
 		(result) =>
-			json({ comments: result.page, continueCursor: result.continueCursor, isDone: result.isDone })
+			Response.json({
+				comments: result.page,
+				continueCursor: result.continueCursor,
+				isDone: result.isDone
+			})
 	);
 };
 
@@ -75,6 +79,6 @@ export const POST = async ({ request }) => {
 				ipHash,
 				adminSecret: admin ? ADMIN_SECRET : undefined
 			}),
-		(comment) => json({ comment }, { status: 201 })
+		(comment) => Response.json({ comment }, { status: 201 })
 	);
 };

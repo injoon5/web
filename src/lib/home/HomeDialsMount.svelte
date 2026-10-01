@@ -6,7 +6,7 @@
 
 	$effect(() => {
 		if (!__DIALS__) return;
-		import('$lib/home/HomeDials.svelte').then((module) => {
+		import('#lib/home/HomeDials.svelte').then((module) => {
 			Panel = module.default;
 		});
 	});

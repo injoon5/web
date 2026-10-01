@@ -8,7 +8,7 @@
 	import Self from './CommentNode.svelte';
 	import StrayParentGhost from './StrayParentGhost.svelte';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
-	import { apiFetch } from '$lib/api-client.js';
+	import { apiFetch } from '#lib/api-client.js';
 
 	let {
 		comment,

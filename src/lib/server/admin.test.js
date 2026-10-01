@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createHmac } from 'crypto';
-import { ADMIN_SECRET } from '$env/static/private';
+import { ADMIN_SECRET } from '$app/env/private';
 import {
 	secretsMatch,
 	createAdminSessionToken,
@@ -141,12 +141,12 @@ describe('requireAdmin', () => {
 describe('when ADMIN_SECRET is not configured', () => {
 	afterEach(() => {
 		vi.resetModules();
-		vi.doUnmock('$env/static/private');
+		vi.doUnmock('$app/env/private');
 	});
 
 	it('secretsMatch returns false and createAdminSessionToken throws', async () => {
 		vi.resetModules();
-		vi.doMock('$env/static/private', () => ({ ADMIN_SECRET: '', IP_HASH_SECRET: 'x' }));
+		vi.doMock('$app/env/private', () => ({ ADMIN_SECRET: '', IP_HASH_SECRET: 'x' }));
 		const mod = await import('./admin');
 		expect(mod.secretsMatch('anything')).toBe(false);
 		expect(() => mod.createAdminSessionToken()).toThrow();

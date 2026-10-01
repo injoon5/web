@@ -1,4 +1,4 @@
-import { building } from '$app/environment';
+import { building } from '$app/env';
 import { requestIpHash } from './ip';
 
 /**

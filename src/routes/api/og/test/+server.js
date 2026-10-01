@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { OG_FIXTURES, OG_FIXTURE_IDS } from '$lib/og/fixtures.js';
+import { OG_FIXTURES, OG_FIXTURE_IDS } from '#lib/og/fixtures.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url }) {

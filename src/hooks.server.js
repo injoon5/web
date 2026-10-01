@@ -1,9 +1,9 @@
-import { building } from '$app/environment';
+import { building } from '$app/env';
 
 // Resolve the %lang% placeholder in app.html. Only blog/project detail pages are
 // bilingual (Korean default); the rest of the site is English chrome. The client
 // reconciles this with the actually-shown language after hydration.
-/** @type {import('@sveltejs/kit').Handle} */
+/** @type {import('@sveltejs/kit/hooks').Handle} */
 export const handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
 	const isContent = pathname.startsWith('/blog/') || pathname.startsWith('/projects/');

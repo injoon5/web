@@ -9,6 +9,11 @@
   Security-relevant modules (`src/lib/server/*`) carry `// @ts-check`, which
   `npm run check` enforces.
 - **`.js` modules are kebab-case; `.svelte` components are PascalCase.**
+- **Imports go through `#lib/*` and `#convex/*`, with the file extension.**
+  They are package.json subpath imports (SvelteKit 3 dropped `$lib` and
+  deprecated `config.alias`), so `'#convex/_generated/api.js'`, not
+  `'$convex/_generated/api'`. Markdown posts and the VS Code extension's
+  inserted imports follow the same rule.
 - After `npm install`, delete `pnpm-lock.yaml` if it appears — it goes stale and
   causes `ERR_PNPM_OUTDATED_LOCKFILE`.
 
@@ -20,7 +25,7 @@ A SvelteKit personal site: a blog, a projects section, `/now`, a `/health` page
 fed by Apple Health, and a comment system with voting, admin replies, IP bans
 and rate limiting.
 
-**Stack:** SvelteKit · Convex (database + functions + realtime) · bcryptjs ·
+**Stack:** SvelteKit 3 · Convex (database + functions + realtime) · bcryptjs ·
 Zod. Rate limiting lives inside Convex via `@convex-dev/rate-limiter`, not
 Upstash. There is no SQL database — all persistence is Convex tables.
 
@@ -33,6 +38,7 @@ src/
   app.css                  # Tokens, base layer, feature keyframes
   app.d.ts                 # Ambient declarations (__DIALS__, App namespace)
   app.html                 # Owns the dark/light class on <html> (pre-hydration)
+  env.js                   # Declares every env var → $app/env/public, $app/env/private
   hooks.server.js          # Resolves the %lang% placeholder in app.html
   content/                 # Markdown, outside the router
     blog/{en,ko}/*.md
@@ -984,6 +990,13 @@ half.
 
 `LAST_FM_PUBLIC_API_KEY` is Convex-only — the feed cron reads it inside the
 deployment, so it never reaches SvelteKit or Vercel.
+
+**SvelteKit only sees what `src/env.js` declares.** Each entry is `public` or
+not (`$app/env/public` vs `$app/env/private`) and `static` or not (inlined at
+build time vs read at startup). All five are `static`. `PUBLIC_GIT_COMMIT` and
+`PUBLIC_GIT_COMMIT_DATE` are written onto `process.env` by `vite.config.ts`, so
+they exist at build time and nowhere else — read at startup they would be empty
+on every SSR page.
 
 ---
 

@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { chartSettings } from '$lib/health/settings.svelte.js';
+	import { chartSettings } from '#lib/health/settings.svelte.js';
 	import {
 		formatDay,
 		formatPointLabel,
@@ -8,7 +8,7 @@
 		isFilled,
 		lastFilledIndex,
 		valueAt
-	} from '$lib/health/metrics.js';
+	} from '#lib/health/metrics.js';
 
 	// layerchart + d3 are the heaviest thing on this route. Loading MetricChart
 	// through a dynamic import keeps them out of the page's initial hydration
@@ -18,7 +18,7 @@
 	// deferring the component costs no SSR content.
 	let MetricChart = $state(null);
 	onMount(async () => {
-		MetricChart = (await import('$lib/health/MetricChart.svelte')).default;
+		MetricChart = (await import('#lib/health/MetricChart.svelte')).default;
 	});
 
 	/**

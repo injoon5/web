@@ -20,7 +20,7 @@ describe('remarkLazyVideo', () => {
 		expect(players(tree)).toEqual([
 			'<LazyVideo src={"/videos/projects/watch.mp4"} label={"Play the demo"} />'
 		]);
-		expect(scripts(tree)[0]).toContain("import LazyVideo from '$lib/ui/LazyVideo.svelte';");
+		expect(scripts(tree)[0]).toContain("import LazyVideo from '#lib/ui/LazyVideo.svelte';");
 	});
 
 	it('turns a lone link to a video into a player too', () => {
@@ -48,7 +48,7 @@ describe('remarkLazyVideo', () => {
 
 	it('keeps an import the author wrote themselves', () => {
 		const tree = run(
-			"<script>\n\timport LazyVideo from '$lib/ui/LazyVideo.svelte';\n</script>\n\n![Demo](/videos/a.mp4)\n"
+			"<script>\n\timport LazyVideo from '#lib/ui/LazyVideo.svelte';\n</script>\n\n![Demo](/videos/a.mp4)\n"
 		);
 		expect(scripts(tree)[0].match(/import LazyVideo/g)).toHaveLength(1);
 	});

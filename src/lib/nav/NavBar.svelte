@@ -2,10 +2,10 @@
 	import { page } from '$app/state';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { heroName } from '$lib/nav/hero.svelte.js';
+	import { heroName } from '#lib/nav/hero.svelte.js';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import NavDialsMount from '$lib/nav/NavDialsMount.svelte';
-	import { navSettings, navStyle } from '$lib/nav/settings.svelte.js';
+	import NavDialsMount from '#lib/nav/NavDialsMount.svelte';
+	import { navSettings, navStyle } from '#lib/nav/settings.svelte.js';
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);

@@ -1,25 +1,25 @@
 <script>
-	import { motion } from '$lib/reduced-motion.svelte.js';
-	import ArticleDialsMount from '$lib/article/ArticleDialsMount.svelte';
-	import { articleSettings, articleStyle } from '$lib/article/settings.svelte.js';
-	import { formatDate } from '$lib/format.js';
-	import SeriesList from '$lib/ui/SeriesList.svelte';
-	import LazyComments from '$lib/comments/LazyComments.svelte';
-	import LikeButton from '$lib/likes/LikeButton.svelte';
+	import { motion } from '#lib/reduced-motion.svelte.js';
+	import ArticleDialsMount from '#lib/article/ArticleDialsMount.svelte';
+	import { articleSettings, articleStyle } from '#lib/article/settings.svelte.js';
+	import { formatDate } from '#lib/format.js';
+	import SeriesList from '#lib/ui/SeriesList.svelte';
+	import LazyComments from '#lib/comments/LazyComments.svelte';
+	import LikeButton from '#lib/likes/LikeButton.svelte';
 	import { page } from '$app/state';
-	import Lightbox from '$lib/lightbox/Lightbox.svelte';
-	import { lightboxAction } from '$lib/lightbox/store.svelte.js';
+	import Lightbox from '#lib/lightbox/Lightbox.svelte';
+	import { lightboxAction } from '#lib/lightbox/store.svelte.js';
 	import Languages from '@lucide/svelte/icons/languages';
 	import NumberFlow from '@number-flow/svelte';
-	import { autoHeight } from '$lib/actions/auto-height.js';
-	import LanguageSwitcher from '$lib/ui/LanguageSwitcher.svelte';
-	import StableLangStack from '$lib/ui/StableLangStack.svelte';
+	import { autoHeight } from '#lib/actions/auto-height.js';
+	import LanguageSwitcher from '#lib/ui/LanguageSwitcher.svelte';
+	import StableLangStack from '#lib/ui/StableLangStack.svelte';
 	import {
 		blogPostingSchema,
 		breadcrumbSchema,
 		keywordsFor,
 		jsonLdScript
-	} from '$lib/seo/jsonld.js';
+	} from '#lib/seo/jsonld.js';
 
 	import { onMount, tick, untrack } from 'svelte';
 	import { fly, blur } from 'svelte/transition';

@@ -21,7 +21,7 @@
 			([entry]) => {
 				if (!entry.isIntersecting) return;
 				io.disconnect();
-				import('$lib/comments/CommentsSection.svelte').then((m) => (Comments = m.default));
+				import('#lib/comments/CommentsSection.svelte').then((m) => (Comments = m.default));
 			},
 			{ rootMargin: '400px' }
 		);

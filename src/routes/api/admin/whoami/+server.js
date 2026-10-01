@@ -1,5 +1,4 @@
-import { json } from '@sveltejs/kit';
-import { verifyAdminSecret } from '$lib/server/admin.js';
+import { verifyAdminSecret } from '#lib/server/admin.js';
 
 /**
  * Reports whether the caller holds a valid admin credential (header or the
@@ -10,5 +9,5 @@ import { verifyAdminSecret } from '$lib/server/admin.js';
  * @type {import('./$types').RequestHandler}
  */
 export const GET = ({ request }) => {
-	return json({ isAdmin: verifyAdminSecret(request) });
+	return Response.json({ isAdmin: verifyAdminSecret(request) });
 };

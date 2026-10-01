@@ -5,18 +5,21 @@ import { fileURLToPath } from 'node:url';
 
 const r = (p) => fileURLToPath(new URL(p, import.meta.url));
 
-// SvelteKit's `$env`/`$app`/`$lib`/`$convex` specifiers (and a couple of
-// browser-only deps) are aliased to lightweight stubs so modules and components
-// can be imported directly, without spinning up the full SvelteKit/Vite plugin.
-const sharedAlias = {
-	'$env/static/private': r('./src/test/mocks/env-static-private.js'),
-	'$app/state': r('./src/test/mocks/app-state.svelte.js'),
-	'$app/environment': r('./src/test/mocks/app-environment.js'),
-	'web-haptics/svelte': r('./src/test/mocks/web-haptics.js'),
-	'@number-flow/svelte': r('./src/test/mocks/NumberFlow.svelte'),
-	$lib: r('./src/lib'),
-	$convex: r('./convex')
-};
+// SvelteKit's `$app` modules (and a couple of browser-only deps) are aliased
+// to lightweight stubs so modules and components can be imported directly,
+// without spinning up the full SvelteKit/Vite plugin. `#lib` and `#convex`
+// need no entry: they are package.json subpath imports, which Vite resolves
+// on its own.
+//
+// Anchored, because a string alias also matches as a path prefix — `$app/env`
+// would otherwise swallow `$app/env/private`.
+const sharedAlias = [
+	{ find: /^\$app\/env\/private$/, replacement: r('./src/test/mocks/app-env-private.js') },
+	{ find: /^\$app\/env$/, replacement: r('./src/test/mocks/app-env.js') },
+	{ find: /^\$app\/state$/, replacement: r('./src/test/mocks/app-state.svelte.js') },
+	{ find: /^web-haptics\/svelte$/, replacement: r('./src/test/mocks/web-haptics.js') },
+	{ find: /^@number-flow\/svelte$/, replacement: r('./src/test/mocks/NumberFlow.svelte') }
+];
 
 export default defineConfig({
 	// Mirrors `vite.config.ts`. Tests exercise the shipped path, so the /health

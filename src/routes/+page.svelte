@@ -1,14 +1,14 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { useQuery } from 'convex-svelte';
-	import { api } from '$convex/_generated/api';
-	import { heroName } from '$lib/nav/hero.svelte.js';
-	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '$lib/actions/marquee.js';
-	import TechStack from '$lib/techstack/TechStack.svelte';
-	import HomeDialsMount from '$lib/home/HomeDialsMount.svelte';
-	import { homeSettings, homeStyle } from '$lib/home/settings.svelte.js';
-	import { techstack } from '$lib/techstack/data.js';
-	import { homeSchema, jsonLdScript } from '$lib/seo/jsonld.js';
+	import { api } from '#convex/_generated/api.js';
+	import { heroName } from '#lib/nav/hero.svelte.js';
+	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '#lib/actions/marquee.js';
+	import TechStack from '#lib/techstack/TechStack.svelte';
+	import HomeDialsMount from '#lib/home/HomeDialsMount.svelte';
+	import { homeSettings, homeStyle } from '#lib/home/settings.svelte.js';
+	import { techstack } from '#lib/techstack/data.js';
+	import { homeSchema, jsonLdScript } from '#lib/seo/jsonld.js';
 
 	const { data } = $props();
 

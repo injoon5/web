@@ -1,8 +1,8 @@
 export const prerender = true;
 
 import { create } from 'xmlbuilder2';
-import { blogEnMeta, blogKoMeta } from '$lib/server/content-modules.js';
-import { slugFromPath } from '$lib/content/bilingual.js';
+import { blogEnMeta, blogKoMeta } from '#lib/server/content-modules.js';
+import { slugFromPath } from '#lib/content/bilingual.js';
 
 const SITE_URL = 'https://www.injoon5.com';
 
