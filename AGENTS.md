@@ -41,9 +41,9 @@ project's hard rules. This file covers only how to run things.
 ### Gotchas
 
 - **Missing env reads like a Convex auth failure and isn't.**
-  `$env/static/private` is inlined by Vite at build time, so an absent
-  `ADMIN_SECRET` fails the build with "not exported by
-  virtual:env/static/private". Check `.env` exists before chasing credentials.
+  `src/env.js` declares `ADMIN_SECRET` and `IP_HASH_SECRET` as `static`, so
+  they are inlined at build time and an absent one fails the build with
+  "Value is missing". Check `.env` exists before chasing credentials.
   `.claude/hooks/session-start.sh` copies `.env.example` to `.env` on session
   start, and those placeholders are enough for `test`, `lint`, `check` and
   `build`. Only live data needs a real deployment.

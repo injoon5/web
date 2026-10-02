@@ -1,5 +1,5 @@
 <script>
-	import { motion } from '$lib/reduced-motion.svelte.js';
+	import { motion } from '#lib/reduced-motion.svelte.js';
 	import { tick, onMount } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 

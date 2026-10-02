@@ -3,9 +3,8 @@
 // exists for anything outside the app that wants the feed as JSON.
 export const prerender = true;
 
-import { json } from '@sveltejs/kit';
-import { publishedPosts, CONTENT_CACHE_CONTROL } from '$lib/server/content.js';
+import { publishedPosts, CONTENT_CACHE_CONTROL } from '#lib/server/content.js';
 
 export async function GET() {
-	return json(publishedPosts(), { headers: { 'Cache-Control': CONTENT_CACHE_CONTROL } });
+	return Response.json(publishedPosts(), { headers: { 'Cache-Control': CONTENT_CACHE_CONTROL } });
 }

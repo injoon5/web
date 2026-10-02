@@ -1,7 +1,7 @@
 // @ts-check
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { error } from '@sveltejs/kit';
-import { ADMIN_SECRET } from '$env/static/private';
+import { ADMIN_SECRET } from '$app/env/private';
 
 /** Must stay in sync with convex/lib/secrets.js (Convex V8 crypto.subtle). */
 

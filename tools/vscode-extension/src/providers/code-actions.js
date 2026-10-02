@@ -205,11 +205,11 @@ class ContentCodeActionProvider {
 		const name = document.getText(diagnostic.range);
 		const known = {
 			[info.config.videoComponent?.name ?? 'LazyVideo']:
-				info.config.videoComponent?.path ?? '$lib/ui/LazyVideo.svelte',
-			Gallery: '$lib/lightbox/Gallery.svelte'
+				info.config.videoComponent?.path ?? '#lib/ui/LazyVideo.svelte',
+			Gallery: '#lib/lightbox/Gallery.svelte'
 		};
 
-		const importPath = known[name] ?? `$lib/ui/${name}.svelte`;
+		const importPath = known[name] ?? `#lib/ui/${name}.svelte`;
 		const edit = componentImportEdit(document.getText(), { name, path: importPath });
 		if (!edit) return [];
 

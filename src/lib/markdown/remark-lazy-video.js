@@ -24,7 +24,7 @@
 
 import { addComponentImport } from './splice-import.js';
 
-const LAZY_VIDEO = { name: 'LazyVideo', path: '$lib/ui/LazyVideo.svelte' };
+const LAZY_VIDEO = { name: 'LazyVideo', path: '#lib/ui/LazyVideo.svelte' };
 
 /** Container formats a `<video>` element can actually play. */
 const VIDEO_FILE = /\.(mp4|m4v|webm|mov|ogv)(?:[?#].*)?$/i;

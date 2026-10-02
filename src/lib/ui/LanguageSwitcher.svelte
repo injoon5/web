@@ -12,7 +12,7 @@
 	let { availableLangs = [], lang = 'ko', mounted = false, onselect = () => {} } = $props();
 
 	/** @type {Record<string, HTMLButtonElement>} */
-	let langButtons = {};
+	let langButtons = $state({});
 	let pillStyle = $state('');
 	let clipStyle = $state('');
 

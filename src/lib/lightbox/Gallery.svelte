@@ -11,8 +11,8 @@
 	image, which is what puts the same stepper on the lightbox's own chrome.
 -->
 <script>
-	import { motion } from '$lib/reduced-motion.svelte.js';
-	import Stepper from '$lib/pasito/Stepper.svelte';
+	import { motion } from '#lib/reduced-motion.svelte.js';
+	import Stepper from '#lib/pasito/Stepper.svelte';
 	import { trackImages } from './image-cache.js';
 
 	let {

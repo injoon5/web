@@ -2,11 +2,11 @@
 	import { enhance } from '$app/forms';
 	import { onDestroy } from 'svelte';
 	import { useQuery } from 'convex-svelte';
-	import { api } from '$convex/_generated/api';
-	import AdminCommentNode from '$lib/comments/AdminCommentNode.svelte';
-	import { buildTree } from '$lib/comments/build-tree.js';
-	import { apiFetch } from '$lib/api-client.js';
-	import { formatDateTime } from '$lib/format.js';
+	import { api } from '#convex/_generated/api.js';
+	import AdminCommentNode from '#lib/comments/AdminCommentNode.svelte';
+	import { buildTree } from '#lib/comments/build-tree.js';
+	import { apiFetch } from '#lib/api-client.js';
+	import { formatDateTime } from '#lib/format.js';
 
 	let { data, form } = $props();
 

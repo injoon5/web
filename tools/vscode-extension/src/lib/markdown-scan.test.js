@@ -13,7 +13,7 @@ const post = [
 	'---',
 	'',
 	'<script>',
-	"\timport LazyVideo from '$lib/ui/LazyVideo.svelte';",
+	"\timport LazyVideo from '#lib/ui/LazyVideo.svelte';",
 	'</script>',
 	'',
 	'## Airport',

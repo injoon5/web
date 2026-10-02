@@ -6,8 +6,8 @@ import {
 	blogKoMeta,
 	projectEnMeta,
 	projectKoMeta
-} from '$lib/server/content-modules.js';
-import { SITE_URL, sitemapEntries } from '$lib/server/sitemap.js';
+} from '#lib/server/content-modules.js';
+import { SITE_URL, sitemapEntries } from '#lib/server/sitemap.js';
 
 export const GET = async () => {
 	const entries = sitemapEntries({ blogEnMeta, blogKoMeta, projectEnMeta, projectKoMeta });

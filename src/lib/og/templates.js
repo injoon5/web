@@ -9,7 +9,7 @@
  * gentler tracking (especially Hangul), and higher contrast.
  */
 
-import { formatDateLong } from '$lib/format.js';
+import { formatDateLong } from '#lib/format.js';
 
 export const WIDTH = 1200;
 export const HEIGHT = 630;

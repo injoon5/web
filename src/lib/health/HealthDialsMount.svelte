@@ -6,7 +6,7 @@
 
 	$effect(() => {
 		if (!__DIALS__) return;
-		import('$lib/health/HealthDials.svelte').then((module) => {
+		import('#lib/health/HealthDials.svelte').then((module) => {
 			Dials = module.default;
 		});
 	});

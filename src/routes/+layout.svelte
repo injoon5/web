@@ -1,21 +1,20 @@
 <script>
 	import '../app.css';
-	import NavBar from '$lib/nav/NavBar.svelte';
-	import DialsMount from '$lib/dev/DialsMount.svelte';
+	import NavBar from '#lib/nav/NavBar.svelte';
+	import DialsMount from '#lib/dev/DialsMount.svelte';
 	import { onMount, onDestroy } from 'svelte';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { createWebHaptics } from 'web-haptics/svelte';
 	import { page } from '$app/state';
 	import { setupConvex } from 'convex-svelte';
-	import { PUBLIC_CONVEX_URL } from '$env/static/public';
-	import { theme } from '$lib/theme.svelte.js';
-	import { env as publicEnv } from '$env/dynamic/public';
+	import { PUBLIC_CONVEX_URL, PUBLIC_GIT_COMMIT, PUBLIC_GIT_COMMIT_DATE } from '$app/env/public';
+	import { theme } from '#lib/theme.svelte.js';
 
 	const { children } = $props();
 
-	const commit = publicEnv.PUBLIC_GIT_COMMIT ?? '';
+	const commit = PUBLIC_GIT_COMMIT;
 	const commitDate = (() => {
-		const raw = publicEnv.PUBLIC_GIT_COMMIT_DATE;
+		const raw = PUBLIC_GIT_COMMIT_DATE;
 		if (!raw) return '';
 		try {
 			return new Intl.DateTimeFormat('en', {

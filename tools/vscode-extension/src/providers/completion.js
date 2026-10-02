@@ -311,7 +311,7 @@ class ContentCompletionProvider {
 		const components = [
 			{
 				name: context.config.videoComponent?.name ?? 'LazyVideo',
-				path: context.config.videoComponent?.path ?? '$lib/ui/LazyVideo.svelte',
+				path: context.config.videoComponent?.path ?? '#lib/ui/LazyVideo.svelte',
 				body: '<${1:LazyVideo} src="${2:/videos/}" label="${3:Play demo video}" />'
 			}
 		];

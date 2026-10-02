@@ -1,5 +1,5 @@
 <script>
-	import { scoreLabel, scoreTone } from '$lib/health/metrics.js';
+	import { scoreLabel, scoreTone } from '#lib/health/metrics.js';
 
 	/**
 	 * One number for the day, next to the page title.

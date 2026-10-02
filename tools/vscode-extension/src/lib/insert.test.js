@@ -10,7 +10,7 @@ const {
 	galleryFence
 } = require('./insert');
 
-const component = { name: 'LazyVideo', path: '$lib/ui/LazyVideo.svelte' };
+const component = { name: 'LazyVideo', path: '#lib/ui/LazyVideo.svelte' };
 
 test('one image is one figure', () => {
 	const snippet = buildMediaSnippet([{ media: 'image', url: '/images/uploads/trip/gate.jpeg' }]);
@@ -64,7 +64,7 @@ test('the import goes into the instance script that is already there', () => {
 
 	assert.match(
 		next,
-		/<script>\n\timport LazyVideo from '\$lib\/ui\/LazyVideo\.svelte';\n\timport A/
+		/<script>\n\timport LazyVideo from '#lib\/ui\/LazyVideo\.svelte';\n\timport A/
 	);
 });
 
@@ -78,7 +78,7 @@ test('with no script block, one is opened under the frontmatter', () => {
 });
 
 test('an import already present is not added twice', () => {
-	const text = "<script>\n\timport LazyVideo from '$lib/ui/LazyVideo.svelte';\n</script>\n";
+	const text = "<script>\n\timport LazyVideo from '#lib/ui/LazyVideo.svelte';\n</script>\n";
 	assert.equal(componentImportEdit(text, component), null);
 });
 

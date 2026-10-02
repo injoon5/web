@@ -1,5 +1,5 @@
 <script>
-	import { motion } from '$lib/reduced-motion.svelte.js';
+	import { motion } from '#lib/reduced-motion.svelte.js';
 	import { page } from '$app/state';
 	import { blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';

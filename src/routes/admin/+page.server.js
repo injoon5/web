@@ -1,15 +1,15 @@
 import { redirect, fail } from '@sveltejs/kit';
-import { dev } from '$app/environment';
-import { ADMIN_SECRET } from '$env/static/private';
-import { convex } from '$lib/server/convex.js';
-import { api } from '$convex/_generated/api';
+import { dev } from '$app/env';
+import { ADMIN_SECRET } from '$app/env/private';
+import { convex } from '#lib/server/convex.js';
+import { api } from '#convex/_generated/api.js';
 import {
 	createAdminSessionToken,
 	secretsMatch,
 	sessionTokenExpiry,
 	verifyAdminSessionToken,
 	SESSION_MAX_AGE_MS
-} from '$lib/server/admin.js';
+} from '#lib/server/admin.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export const load = async ({ cookies }) => {

@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 // The inline script in app.html owns the `dark`/`light` classes on <html> — it
 // has to, since it runs before hydration and is what prevents a flash of the

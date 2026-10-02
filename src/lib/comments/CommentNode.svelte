@@ -1,5 +1,5 @@
 <script>
-	import NumberFlow from '@number-flow/svelte';
+	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import Pencil from '@lucide/svelte/icons/pencil';
@@ -8,7 +8,7 @@
 	import Self from './CommentNode.svelte';
 	import StrayParentGhost from './StrayParentGhost.svelte';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
-	import { apiFetch } from '$lib/api-client.js';
+	import { apiFetch } from '#lib/api-client.js';
 
 	let {
 		comment,

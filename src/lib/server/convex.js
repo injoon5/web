@@ -1,5 +1,5 @@
 import { ConvexHttpClient } from 'convex/browser';
-import { PUBLIC_CONVEX_URL } from '$env/static/public';
+import { PUBLIC_CONVEX_URL } from '$app/env/public';
 
 if (!PUBLIC_CONVEX_URL) {
 	throw new Error('PUBLIC_CONVEX_URL is not set. Run `npx convex dev` to provision a deployment.');

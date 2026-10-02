@@ -2,7 +2,7 @@
 
 /**
  * The canonical origin. This module runs in the browser, so it can't reach into
- * `$lib/server/*` — the value is a public constant and lives here directly.
+ * `#lib/server/*` — the value is a public constant and lives here directly.
  */
 const SITE_URL = 'https://www.injoon5.com';
 

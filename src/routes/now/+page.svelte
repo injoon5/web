@@ -1,8 +1,8 @@
 <script>
 	import { useQuery } from 'convex-svelte';
-	import { api } from '$convex/_generated/api';
+	import { api } from '#convex/_generated/api.js';
 	import { onMount } from 'svelte';
-	import { apiFetch } from '$lib/api-client.js';
+	import { apiFetch } from '#lib/api-client.js';
 
 	const nowQuery = useQuery(api.now.get, () => ({}));
 

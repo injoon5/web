@@ -1,9 +1,9 @@
 // @ts-check
-import { slugFromPath } from '$lib/content/bilingual.js';
+import { slugFromPath } from '#lib/content/bilingual.js';
 import { blogEnMeta, blogKoMeta, projectEnMeta, projectKoMeta } from './content-modules.js';
 
-/** @typedef {import('$lib/types').Post} Post */
-/** @typedef {import('$lib/types').Project} Project */
+/** @typedef {import('#lib/types.js').Post} Post */
+/** @typedef {import('#lib/types.js').Project} Project */
 /** @typedef {Record<string, unknown>} Metadata */
 
 export const CONTENT_CACHE_CONTROL =

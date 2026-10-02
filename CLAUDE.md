@@ -9,8 +9,36 @@
   Security-relevant modules (`src/lib/server/*`) carry `// @ts-check`, which
   `npm run check` enforces.
 - **`.js` modules are kebab-case; `.svelte` components are PascalCase.**
+- **A hydration mismatch is a 500 page.** SvelteKit 3 hydrates inside a root
+  error boundary, so Svelte's `HYDRATION_ERROR` no longer falls back to a silent
+  client re-render — it reaches `handleError` and the page swaps to `+error`.
+  Server and client must render identical markup; that is why
+  `#lib/ui/NumberFlow.svelte` replaces `@number-flow/svelte`. After a change to
+  an SSR'd page, load it in a browser, not just over `curl`.
+- **Imports go through `#lib/*` and `#convex/*`, with the file extension.**
+  They are package.json subpath imports (SvelteKit 3 dropped `$lib` and
+  deprecated `config.alias`), so `'#convex/_generated/api.js'`, not
+  `'$convex/_generated/api'`. Markdown posts and the VS Code extension's
+  inserted imports follow the same rule.
 - After `npm install`, delete `pnpm-lock.yaml` if it appears — it goes stale and
   causes `ERR_PNPM_OUTDATED_LOCKFILE`.
+
+### Dependencies held back on purpose
+
+`npm outdated` lists these; each is pinned for a reason that a blind bump breaks.
+
+- **`typescript` ~6.0** — SvelteKit 3, `svelte-check` and `typescript-eslint`
+  all cap their peer at 6.x (`typescript-eslint` at <6.1).
+- **`remark-math` 3** — mdsvex 0.12 bundles the pre-micromark `remark-parse`, and
+  remark-math 4+ is a micromark extension it cannot load.
+- **`satori` ~0.32** — 0.33 shapes text with HarfBuzz, whose `hb.wasm` is read
+  off disk at import time and is not traced into the Vercel function, so every
+  OG image 500s in production while working locally. Check
+  `.vercel/output/functions/**/node_modules/harfbuzzjs/hb.wasm` exists before
+  moving past it.
+- **`overrides.runed`** — reached through `convex-svelte` and `layerchart`, and
+  still declares an optional peer on SvelteKit 2. Drop the override once a
+  release accepts 3.
 
 ---
 
@@ -20,7 +48,7 @@ A SvelteKit personal site: a blog, a projects section, `/now`, a `/health` page
 fed by Apple Health, and a comment system with voting, admin replies, IP bans
 and rate limiting.
 
-**Stack:** SvelteKit · Convex (database + functions + realtime) · bcryptjs ·
+**Stack:** SvelteKit 3 · Convex (database + functions + realtime) · bcryptjs ·
 Zod. Rate limiting lives inside Convex via `@convex-dev/rate-limiter`, not
 Upstash. There is no SQL database — all persistence is Convex tables.
 
@@ -33,6 +61,7 @@ src/
   app.css                  # Tokens, base layer, feature keyframes
   app.d.ts                 # Ambient declarations (__DIALS__, App namespace)
   app.html                 # Owns the dark/light class on <html> (pre-hydration)
+  env.js                   # Declares every env var → $app/env/public, $app/env/private
   hooks.server.js          # Resolves the %lang% placeholder in app.html
   content/                 # Markdown, outside the router
     blog/{en,ko}/*.md
@@ -64,7 +93,8 @@ src/
     server/                # admin, api, content, content-modules, content-page,
                            # convex, ip, valid-urls, validation
     techstack/             # TechStack + data
-    ui/                    # LanguageSwitcher, LazyVideo, SeriesList, StableLangStack
+    ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList,
+                           # StableLangStack
   routes/
     +page.server.js        # Home (prerendered) — reads the lists directly
     blog/, projects/       # Listing (prerendered) + [slug] (SSR)
@@ -984,6 +1014,13 @@ half.
 
 `LAST_FM_PUBLIC_API_KEY` is Convex-only — the feed cron reads it inside the
 deployment, so it never reaches SvelteKit or Vercel.
+
+**SvelteKit only sees what `src/env.js` declares.** Each entry is `public` or
+not (`$app/env/public` vs `$app/env/private`) and `static` or not (inlined at
+build time vs read at startup). All five are `static`. `PUBLIC_GIT_COMMIT` and
+`PUBLIC_GIT_COMMIT_DATE` are written onto `process.env` by `vite.config.ts`, so
+they exist at build time and nowhere else — read at startup they would be empty
+on every SSR page.
 
 ---
 

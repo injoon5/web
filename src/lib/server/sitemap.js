@@ -1,5 +1,5 @@
 // @ts-check
-import { slugFromPath } from '$lib/content/bilingual.js';
+import { slugFromPath } from '#lib/content/bilingual.js';
 
 /** The canonical origin. Kept in one place so the sitemap and RSS agree. */
 export const SITE_URL = 'https://www.injoon5.com';

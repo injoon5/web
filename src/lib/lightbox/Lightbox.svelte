@@ -1,7 +1,7 @@
 <script>
-	import { motion } from '$lib/reduced-motion.svelte.js';
+	import { motion } from '#lib/reduced-motion.svelte.js';
 	import { lightboxStore, MAX_LIGHTBOX_HEIGHT, normalizeLightboxValue } from './store.svelte.js';
-	import Stepper from '$lib/pasito/Stepper.svelte';
+	import Stepper from '#lib/pasito/Stepper.svelte';
 	import { springEasing, springOr } from './spring.js';
 	import {
 		clampPanTo,

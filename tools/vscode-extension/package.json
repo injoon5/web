@@ -219,7 +219,7 @@
 					"type": "object",
 					"default": {
 						"name": "LazyVideo",
-						"path": "$lib/ui/LazyVideo.svelte"
+						"path": "#lib/ui/LazyVideo.svelte"
 					},
 					"description": "Component inserted for a dropped video. Its import is spliced into the file's instance <script> block."
 				},

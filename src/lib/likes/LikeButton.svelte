@@ -1,11 +1,11 @@
 <script>
 	import { page } from '$app/state';
 	import { onDestroy } from 'svelte';
-	import NumberFlow from '@number-flow/svelte';
+	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import { useQuery } from 'convex-svelte';
-	import { api } from '$convex/_generated/api';
+	import { api } from '#convex/_generated/api.js';
 	import Heart from '@lucide/svelte/icons/heart';
-	import { apiFetch } from '$lib/api-client.js';
+	import { apiFetch } from '#lib/api-client.js';
 
 	const ipHash = $derived(page.data.ipHash ?? '');
 	const path = $derived(page.url.pathname);

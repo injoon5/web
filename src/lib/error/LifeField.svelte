@@ -1,7 +1,7 @@
 <script>
-	import { motion } from '$lib/reduced-motion.svelte.js';
+	import { motion } from '#lib/reduced-motion.svelte.js';
 	import { onMount } from 'svelte';
-	import { theme } from '$lib/theme.svelte.js';
+	import { theme } from '#lib/theme.svelte.js';
 	import { lifeSettings } from './settings.svelte.js';
 	import { gridsEqual, seedField, step } from './life.js';
 	import { stampText, waitForFont } from './glyph.js';

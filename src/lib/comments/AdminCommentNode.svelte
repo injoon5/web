@@ -3,7 +3,7 @@
 	import StrayParentGhost from './StrayParentGhost.svelte';
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
-	import { apiFetch } from '$lib/api-client.js';
+	import { apiFetch } from '#lib/api-client.js';
 
 	// No `onChange`: the dashboard subscribes to `admin.listForUrl`, so every
 	// write here comes back down the websocket on its own.
