@@ -10,7 +10,7 @@
 	import Lightbox from '#lib/lightbox/Lightbox.svelte';
 	import { lightboxAction } from '#lib/lightbox/store.svelte.js';
 	import Languages from '@lucide/svelte/icons/languages';
-	import NumberFlow from '@number-flow/svelte';
+	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import { autoHeight } from '#lib/actions/auto-height.js';
 	import LanguageSwitcher from '#lib/ui/LanguageSwitcher.svelte';
 	import StableLangStack from '#lib/ui/StableLangStack.svelte';

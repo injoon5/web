@@ -18,7 +18,7 @@ const sharedAlias = [
 	{ find: /^\$app\/env$/, replacement: r('./src/test/mocks/app-env.js') },
 	{ find: /^\$app\/state$/, replacement: r('./src/test/mocks/app-state.svelte.js') },
 	{ find: /^web-haptics\/svelte$/, replacement: r('./src/test/mocks/web-haptics.js') },
-	{ find: /^@number-flow\/svelte$/, replacement: r('./src/test/mocks/NumberFlow.svelte') }
+	{ find: /^#lib\/ui\/NumberFlow\.svelte$/, replacement: r('./src/test/mocks/NumberFlow.svelte') }
 ];
 
 export default defineConfig({

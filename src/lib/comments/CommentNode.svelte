@@ -1,5 +1,5 @@
 <script>
-	import NumberFlow from '@number-flow/svelte';
+	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import Pencil from '@lucide/svelte/icons/pencil';
