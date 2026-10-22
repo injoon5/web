@@ -9,20 +9,16 @@ import oembedTransformer from '@remark-embedder/transformer-oembed';
 // import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
-import { createHighlighter } from './src/lib/markdown/pretty-code-highlighter.js';
+import { highlight } from './src/lib/markdown/code-highlighter.js';
 import { remarkReadingTime } from './src/lib/markdown/remark-reading-time.js';
 import { remarkGallery } from './src/lib/markdown/remark-gallery.js';
 import { remarkImageSize } from './src/lib/markdown/remark-image-size.js';
 import { remarkLazyVideo } from './src/lib/markdown/remark-lazy-video.js';
-import { rehypeStripCodeTabindex } from './src/lib/markdown/rehype-strip-code-tabindex.js';
 
 const config = {
 	extensions: ['.md'],
 	highlight: {
-		highlighter: createHighlighter({
-			// keepBackground: false,
-			theme: 'github-dark'
-		})
+		highlighter: highlight
 	},
 	smartypants: {
 		dashes: 'oldschool'
@@ -56,8 +52,7 @@ const config = {
 		rehypeSlug,
 		rehypeFigure,
 		[rehypeExternalLinks, { target: ['_blank'], rel: ['noopener noreferrer'] }],
-		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }],
-		rehypeStripCodeTabindex
+		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }]
 	]
 };
 

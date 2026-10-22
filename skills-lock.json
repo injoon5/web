@@ -223,6 +223,12 @@
       "skillPath": "skills/emil-design-eng/SKILL.md",
       "computedHash": "8bdf9e4e6de7a4969147bf4828a4ad2c5aacd9fba4b690b250a85e0467ca387d"
     },
+    "highlights": {
+      "source": "pierrecomputer/pierre",
+      "sourceType": "github",
+      "skillPath": "skills/highlights/SKILL.md",
+      "computedHash": "fb5032db3ccd3212682cce4855810735b0de407bf9a5f24af202115c813a9e1d"
+    },
     "make-interfaces-feel-better": {
       "source": "jakubkrehel/make-interfaces-feel-better",
       "sourceType": "github",

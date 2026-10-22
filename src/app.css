@@ -636,85 +636,90 @@ img[data-img-pending] {
 	@apply min-w-0;
 }
 
-/* Fenced blocks — bounded width + scroll wide content inside */
-:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure]) {
+/* Fenced blocks, from `#lib/markdown/code-highlighter.js`.
+   Every token carries both themes as `--code-light` / `--code-dark`; the `.dark`
+   class app.html sets picks one, so SSR and the client agree on the markup and a
+   theme switch repaints without re-highlighting. The surface is ours rather
+   than the theme's: Pierre's own backgrounds are the page's own white and
+   neutral-950, and a block needs to read as a block. */
+:is(.prose, .prose-post) :where(figure[data-code-figure]) {
+	@apply w-full max-w-full min-w-0;
+}
+
+/* The pre scrolls, not the figure, so the box and the highlight band run the
+   whole width and the caption stays put underneath. */
+:is(.prose, .prose-post) :where(figure[data-code-figure] pre) {
+	@apply m-0 w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-lg border border-neutral-200 bg-neutral-50 px-0 py-3.5 text-[0.85em] leading-[1.7] dark:border-neutral-800 dark:bg-neutral-900;
+	color: var(--code-light);
+}
+
+:is(.prose, .prose-post) :where(figure[data-code-figure] pre > code) {
+	@apply grid w-max min-w-full;
+}
+
+:is(.prose, .prose-post) :where(figure[data-code-figure] [data-line]) {
+	@apply px-4;
+}
+
+:is(.prose, .prose-post) :where(figure[data-code-figure] [data-line] > span) {
+	color: var(--code-light);
+	font-style: var(--code-light-font-style, normal);
+	font-weight: var(--code-light-font-weight, normal);
+}
+
+.dark :is(.prose, .prose-post) :where(figure[data-code-figure] pre) {
+	color: var(--code-dark);
+}
+
+.dark :is(.prose, .prose-post) :where(figure[data-code-figure] [data-line] > span) {
+	color: var(--code-dark);
+	font-style: var(--code-dark-font-style, normal);
+	font-weight: var(--code-dark-font-weight, normal);
+}
+
+/* Plain ``` fences outside a post (marked on /now) */
+:is(.prose, .prose-post) :where(pre):not(:where(figure[data-code-figure] pre)) {
 	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
 }
 
-:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure] pre) {
-	@apply w-max max-w-none min-w-full;
-}
-
-/* Plain ``` fences if not wrapped in a figure */
-:is(.prose, .prose-post) :where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre)) {
-	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
-}
-
-:is(.prose, .prose-post)
-	:where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre))
-	> :where(code) {
+:is(.prose, .prose-post) :where(pre):not(:where(figure[data-code-figure] pre)) > :where(code) {
 	@apply block w-max min-w-full;
 }
 
-.prose code[data-line-numbers] {
+/* `showLineNumbers` */
+:is(.prose, .prose-post) code[data-line-numbers] {
 	counter-reset: line;
 }
 
-.prose code[data-line-numbers] > span[data-line]::before {
+:is(.prose, .prose-post) code[data-line-numbers] > [data-line]::before {
 	counter-increment: line;
 	content: counter(line);
 	display: inline-block;
 	width: 0.5rem;
 	margin-right: 1.25rem;
 	text-align: right;
-	color: var(--color-neutral-500);
+	@apply text-neutral-400 dark:text-neutral-600;
 }
 
-.dark .prose code[data-line-numbers] > span[data-line]::before {
-	color: var(--color-neutral-400);
-}
-
-.prose code[data-line-numbers-max-digits='2'] > span[data-line]::before {
+:is(.prose, .prose-post) code[data-line-numbers-max-digits='2'] > [data-line]::before {
 	width: 1rem;
 }
-.prose code[data-line-numbers-max-digits='3'] > span[data-line]::before {
+:is(.prose, .prose-post) code[data-line-numbers-max-digits='3'] > [data-line]::before {
 	width: 1.5rem;
 }
 
-/* Theme switching visibility */
-.light .prose pre[data-theme='dark'],
-.light .prose code[data-theme='dark'],
-.dark .prose pre[data-theme='light'],
-.dark .prose code[data-theme='light'],
-.light :is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title][data-theme='dark'],
-.dark :is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title][data-theme='light'] {
-	display: none;
+/* `{1,3-5}`. An inset shadow rather than a border, so the marked line's text
+   sits exactly where its neighbours' does. */
+:is(.prose, .prose-post) [data-highlighted-line] {
+	@apply bg-neutral-200/60 shadow-[inset_2px_0_0_var(--color-neutral-400)] dark:bg-neutral-800/70 dark:shadow-[inset_2px_0_0_var(--color-neutral-500)];
 }
 
-/* Line highlight (v4 alpha syntax) */
-.prose code span[data-highlighted-line] {
-	@apply border-y-0 border-l-2 border-blue-400 border-transparent bg-indigo-400/10 pl-[calc(0.5rem-2px)] md:pl-[calc(1rem-2px)] dark:border-blue-500 dark:bg-neutral-700;
+/* `title="…"` — a tab sitting on the block it names. */
+:is(.prose, .prose-post) [data-code-title] {
+	@apply rounded-t-lg border border-b-0 border-neutral-200 bg-neutral-100 px-4 py-2 font-mono text-xs text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400;
 }
-
-/* Word highlight */
-.prose span[data-highlighted-chars] {
-	@apply bg-teal-400/25;
-}
-.prose span[data-highlighted-chars][data-chars-id='y'] {
-	@apply bg-yellow-400/25;
-}
-.prose span[data-highlighted-chars][data-chars-id='b'] {
-	@apply bg-sky-400/25;
-}
-
-/* Code block title. rehype-pretty-code emits a <figcaption> here, not a <div> —
-   these rules matched nothing until the selector was corrected, so a titled
-   block rendered its filename as bare prose above the code. */
-:is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title] {
-	@apply rounded-t-lg border-b border-neutral-700 bg-neutral-800 px-5 py-3 font-mono text-sm font-bold text-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
-}
-:is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title] + pre {
-	@apply mt-0 rounded-t-none;
+:is(.prose, .prose-post) [data-code-title] + pre {
+	@apply rounded-t-none;
 }
 
 /* Inline code (blog uses .prose-post; /now uses .prose) */

@@ -85,8 +85,7 @@ src/
     likes/LikeButton.svelte
     markdown/              # remark-gallery, remark-image-size, image-size,
                            # remark-lazy-video, splice-import, remark-reading-time,
-                           # reading-time, rehype-strip-code-tabindex,
-                           # pretty-code-highlighter
+                           # reading-time, code-highlighter
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
@@ -709,6 +708,25 @@ video's image node into a photo strip.
 
 The label is the title, then the alt text or the link text; with none of them the
 prop is left off so the component's own default applies.
+
+---
+
+## Code Blocks (`src/lib/markdown/code-highlighter.js`)
+
+Fences are highlighted at build time by `@pierre/highlights` (synchronous, Wasm
+lexers), so nothing ships to the browser or the Vercel function. Fence meta:
+`{1,3-5}` highlights lines, `title="…"` adds a tab, `caption="…"` a
+`<figcaption>`, `showLineNumbers` numbers it.
+
+- **Both themes are in the markup.** Every token carries `--code-light` and
+  `--code-dark` (Pierre light/dark), and `app.css` picks one off the `.dark`
+  class. Do not switch to an inline default colour: the server cannot know the
+  theme, and a client re-render would be a hydration mismatch.
+- **Highlights has no language detection.** An unknown label falls back to
+  `plain` rather than throwing, and its lexers classify some tokens differently
+  from TextMate grammars.
+- **The `<pre>` scrolls, not the figure**, so the box and the highlight band span
+  the full width and the caption stays put.
 
 ---
 

@@ -38,4 +38,5 @@
 	}
 </script>
 
+<!-- eslint-disable-next-line svelte/no-at-html-tags -- number-flow's own markup for a number -->
 <number-flow {@attach sync}>{@html markup}</number-flow>
