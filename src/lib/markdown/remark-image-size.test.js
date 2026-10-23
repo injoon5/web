@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import { remarkImageSize } from './remark-image-size.js';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { remarkImageSize, sizeOfLocalImage } from './remark-image-size.js';
 import { remarkGallery } from './remark-gallery.js';
 
 const ROOT = 'static';
@@ -73,5 +76,26 @@ describe('remarkImageSize', () => {
 			expect(slide.width).toBeGreaterThan(0);
 			expect(slide.height).toBeGreaterThan(0);
 		}
+	});
+});
+
+describe('sizeOfLocalImage', () => {
+	it('reads past the head when a JPEG frame header sits deep in the file', () => {
+		// Four 64KB APP2 segments (an ICC profile's worth) before the frame header,
+		// so the first 128KB alone cannot answer.
+		const app2 = Buffer.alloc(0xffff + 2);
+		app2.writeUInt16BE(0xffe2, 0);
+		app2.writeUInt16BE(0xffff, 2);
+		const sof = Buffer.from([
+			0xff, 0xc0, 0, 17, 8, 0, 0, 0, 0, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1
+		]);
+		sof.writeUInt16BE(321, 5);
+		sof.writeUInt16BE(654, 7);
+		const file = Buffer.concat([Buffer.from([0xff, 0xd8]), app2, app2, app2, app2, sof]);
+		expect(file.length).toBeGreaterThan(128 * 1024);
+
+		const root = mkdtempSync(path.join(tmpdir(), 'image-size-'));
+		writeFileSync(path.join(root, 'deep.jpg'), file);
+		expect(sizeOfLocalImage('/deep.jpg', root)).toEqual({ width: 654, height: 321 });
 	});
 });

@@ -22,12 +22,41 @@
  * consumes so a gallery slide can reserve its box too.
  */
 
-import { readFileSync } from 'node:fs';
+import { closeSync, fstatSync, openSync, readFileSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { imageSize } from './image-size.js';
 
 /** Resolved path -> size, or null for one already found unreadable. */
 const cache = new Map();
+
+/**
+ * Enough for every header in `static/`: the size sits in the first few dozen
+ * bytes of a PNG, GIF or WebP, and a JPEG's frame header follows its EXIF and
+ * ICC segments, which can run to tens of KB.
+ */
+const HEAD_BYTES = 128 * 1024;
+
+/**
+ * The header alone, then the whole file only if the header ran past it. The
+ * photos here are up to 10MB, and reading each one in full was most of what
+ * this plugin cost a cold build.
+ *
+ * @param {string} file
+ * @returns {{ width: number, height: number } | null}
+ */
+function sizeOfFile(file) {
+	const fd = openSync(file, 'r');
+	try {
+		const total = fstatSync(fd).size;
+		const head = Buffer.alloc(Math.min(HEAD_BYTES, total));
+		readSync(fd, head, 0, head.length, 0);
+		const size = imageSize(head);
+		if (size || head.length === total) return size;
+	} finally {
+		closeSync(fd);
+	}
+	return imageSize(readFileSync(file));
+}
 
 /**
  * Only root-relative URLs into the static directory. A remote image is somebody
@@ -36,7 +65,7 @@ const cache = new Map();
  * @param {string} url
  * @param {string} root
  */
-function resolveLocal(url, root) {
+export function resolveLocal(url, root) {
 	if (!url || !url.startsWith('/') || url.startsWith('//')) return null;
 	const clean = url.split(/[?#]/)[0];
 	const file = path.join(root, decodeURIComponent(clean));
@@ -56,7 +85,7 @@ export function sizeOfLocalImage(url, root) {
 	if (cache.has(file)) return cache.get(file);
 	let size = null;
 	try {
-		size = imageSize(readFileSync(file));
+		size = sizeOfFile(file);
 	} catch {
 		// Not there, or not readable. The image keeps whatever it had.
 	}

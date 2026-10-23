@@ -2,10 +2,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeKatexSvelte from 'rehype-katex-svelte';
 import rehypeSlug from 'rehype-slug';
 import remarkMath from 'remark-math';
-import remarkGfm from 'remark-gfm';
 import remarkGemoji from 'remark-gemoji';
-import remarkEmbedder from '@remark-embedder/core';
-import oembedTransformer from '@remark-embedder/transformer-oembed';
 // import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
@@ -15,6 +12,7 @@ import { remarkGallery } from './src/lib/markdown/remark-gallery.js';
 import { remarkImageSize } from './src/lib/markdown/remark-image-size.js';
 import { remarkLazyVideo } from './src/lib/markdown/remark-lazy-video.js';
 import { remarkCodeTheme } from './src/lib/markdown/remark-code-theme.js';
+import { remarkYouTube } from './src/lib/markdown/remark-youtube.js';
 
 const config = {
 	extensions: ['.md'],
@@ -36,18 +34,11 @@ const config = {
 		// Any plugin order works: mdsvex highlights after every remark plugin.
 		remarkCodeTheme,
 		remarkMath,
-		remarkGfm,
+		// GFM (tables, task lists, autolinks, strikethrough) is built into the
+		// parser mdsvex 0.12 bundles; remark-gfm 4 is a micromark extension that
+		// parser cannot load, and changed nothing in any post.
 		remarkGemoji,
-		[
-			remarkEmbedder.default,
-			{
-				transformers: [oembedTransformer.default],
-				handleError: ({ error, url }) => {
-					console.error(`Failed to embed ${url}:`, error);
-					return `<a href="${url}">${url}</a>`;
-				}
-			}
-		]
+		remarkYouTube
 		// [enhancedImage, { attributes: { loading: 'lazy', fetchpriority: 'low' } }]
 	],
 	rehypePlugins: [
