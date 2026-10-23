@@ -9,6 +9,7 @@
 		"build-image-cache": "node scripts/optimize-images.mjs",
 		"apply-optimized-images": "node scripts/apply-optimized-images.mjs",
 		"fingerprint-images": "node scripts/fingerprint-images.mjs",
+		"code-theme": "node scripts/code-theme.mjs",
 		"optimize-images": "turbo run build-image-cache apply-optimized-images",
 		"deploy": "bash scripts/deploy.sh",
 		"preview": "vite preview",

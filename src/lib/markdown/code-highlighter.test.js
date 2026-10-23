@@ -23,10 +23,22 @@ describe('parseMeta', () => {
 });
 
 describe('highlight', () => {
-	it('emits one line per source line, both themes on every token', () => {
+	it('emits one line per source line, each token a palette class', () => {
 		const html = highlight('const a = 1;\nlet b = 2;', 'ts', null);
 		expect(lines(html)).toHaveLength(2);
-		expect(html).toMatch(/<span style="--code-dark:#[0-9a-f]+;--code-light:#[0-9a-f]+">const /);
+		expect(html).toMatch(/<span class="t\d+">const <\/span>/);
+		expect(html).not.toContain('style=');
+	});
+
+	it('merges adjacent tokens of one colour and leaves the foreground bare', () => {
+		const html = highlight('a b c', null, null);
+		expect(html).toContain('<span data-line="">a b c</span>');
+	});
+
+	it('makes the scroller focusable, and tells Svelte that is deliberate', () => {
+		expect(highlight('x', 'ts', null)).toContain(
+			'<!-- svelte-ignore a11y_no_noninteractive_tabindex --><pre data-language="ts" tabindex="0">'
+		);
 	});
 
 	it('marks highlighted lines and numbers them', () => {
@@ -39,15 +51,17 @@ describe('highlight', () => {
 		expect(html).toContain('data-line-numbers="" data-line-numbers-max-digits="1"');
 	});
 
-	it('keeps a blank line from collapsing, and drops the trailing newline', () => {
+	it('gives a blank line its own newline, so it copies back exactly, and drops the trailing one', () => {
 		const html = highlight('a\n\nb\n', 'js', null);
 		expect(lines(html)).toHaveLength(3);
-		expect(html).toContain('<span data-line=""> </span>');
+		expect(html).toContain('<span data-line="">\n</span>');
 	});
 
 	it('frames the block with a title and a caption', () => {
 		const html = highlight('x', 'ts', 'title="a.ts" caption="Note"');
-		expect(html).toMatch(/^<figure data-code-figure=""><div data-code-title="">a\.ts<\/div><pre/);
+		expect(html).toMatch(
+			/^<figure data-code-figure=""><div data-code-title="">a\.ts<\/div><!-- svelte-ignore \w+ --><pre/
+		);
 		expect(html).toMatch(/<figcaption data-code-caption="">Note<\/figcaption><\/figure>$/);
 	});
 

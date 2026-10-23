@@ -637,11 +637,12 @@ img[data-img-pending] {
 }
 
 /* Fenced blocks, from `#lib/markdown/code-highlighter.js`.
-   Every token carries both themes as `--code-light` / `--code-dark`; the `.dark`
-   class app.html sets picks one, so SSR and the client agree on the markup and a
-   theme switch repaints without re-highlighting. The surface is ours rather
-   than the theme's: Pierre's own backgrounds are the page's own white and
-   neutral-950, and a block needs to read as a block. */
+   Each token carries one `var(--code-*)`; `code-theme.css` (imported by the
+   posts that have code) defines the palette for both themes off the `.dark`
+   class app.html sets, so SSR and the client agree on the markup and a theme
+   switch repaints without re-highlighting. The surface is ours rather than the
+   theme's: Pierre's own backgrounds are the page's own white and neutral-950,
+   and a block needs to read as a block. */
 :is(.prose, .prose-post) :where(figure[data-code-figure]) {
 	@apply w-full max-w-full min-w-0;
 }
@@ -650,7 +651,8 @@ img[data-img-pending] {
    whole width and the caption stays put underneath. */
 :is(.prose, .prose-post) :where(figure[data-code-figure] pre) {
 	@apply m-0 w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-lg border border-neutral-200 bg-neutral-50 px-0 py-3.5 text-[0.85em] leading-[1.7] dark:border-neutral-800 dark:bg-neutral-900;
-	color: var(--code-light);
+	@apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:focus-visible:outline-neutral-500;
+	color: var(--code-foreground);
 }
 
 :is(.prose, .prose-post) :where(figure[data-code-figure] pre > code) {
@@ -659,22 +661,6 @@ img[data-img-pending] {
 
 :is(.prose, .prose-post) :where(figure[data-code-figure] [data-line]) {
 	@apply px-4;
-}
-
-:is(.prose, .prose-post) :where(figure[data-code-figure] [data-line] > span) {
-	color: var(--code-light);
-	font-style: var(--code-light-font-style, normal);
-	font-weight: var(--code-light-font-weight, normal);
-}
-
-.dark :is(.prose, .prose-post) :where(figure[data-code-figure] pre) {
-	color: var(--code-dark);
-}
-
-.dark :is(.prose, .prose-post) :where(figure[data-code-figure] [data-line] > span) {
-	color: var(--code-dark);
-	font-style: var(--code-dark-font-style, normal);
-	font-weight: var(--code-dark-font-weight, normal);
 }
 
 /* Plain ``` fences outside a post (marked on /now) */

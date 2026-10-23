@@ -6,9 +6,10 @@
  * performs this exact splice for its own layout import, which is what makes it
  * safe to do: the file is Svelte source by the time the compiler sees it.
  *
- * Shared by `remarkGallery` and `remarkLazyVideo` — the second one to want it is
- * what made it worth having in one place, since the interesting part is the
- * regexp and both getting it wrong the same way is the failure mode.
+ * Shared by `remarkGallery`, `remarkLazyVideo` and `remarkCodeTheme` — the
+ * second one to want it is what made it worth having in one place, since the
+ * interesting part is the regexp and all of them getting it wrong the same way
+ * is the failure mode.
  */
 
 /** `<script>` / `<script lang="ts">`, but not `<script module>` or `context="module"`. */
@@ -19,7 +20,25 @@ const INSTANCE_SCRIPT = /^<script(?![^>]*\bmodule\b)[^>]*>/;
  * @param {{ name: string, path: string }} component
  */
 export function addComponentImport(tree, { name, path }) {
-	const statement = `import ${name} from '${path}';`;
+	addImport(tree, `import ${name} from '${path}';`, path);
+}
+
+/**
+ * A side-effect import — a stylesheet the compiled file needs.
+ *
+ * @param {any} tree mdast root
+ * @param {string} path
+ */
+export function addSideEffectImport(tree, path) {
+	addImport(tree, `import '${path}';`, path);
+}
+
+/**
+ * @param {any} tree mdast root
+ * @param {string} statement
+ * @param {string} path
+ */
+function addImport(tree, statement, path) {
 	const at = tree.children.findIndex(
 		(node) => node.type === 'html' && INSTANCE_SCRIPT.test(node.value.trimStart())
 	);

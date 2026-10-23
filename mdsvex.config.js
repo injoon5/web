@@ -14,6 +14,7 @@ import { remarkReadingTime } from './src/lib/markdown/remark-reading-time.js';
 import { remarkGallery } from './src/lib/markdown/remark-gallery.js';
 import { remarkImageSize } from './src/lib/markdown/remark-image-size.js';
 import { remarkLazyVideo } from './src/lib/markdown/remark-lazy-video.js';
+import { remarkCodeTheme } from './src/lib/markdown/remark-code-theme.js';
 
 const config = {
 	extensions: ['.md'],
@@ -32,6 +33,8 @@ const config = {
 		// Ahead of rehype, so rehype-figure never sees the images it consumes and
 		// the gallery keeps its own caption instead of getting four <figure>s.
 		remarkGallery,
+		// Any plugin order works: mdsvex highlights after every remark plugin.
+		remarkCodeTheme,
 		remarkMath,
 		remarkGfm,
 		remarkGemoji,
