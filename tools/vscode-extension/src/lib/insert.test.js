@@ -30,12 +30,28 @@ test('several images go on consecutive lines, which is what makes a gallery', ()
 	assert.equal(snippet.includes('\n\n'), false);
 });
 
-test('a video is the component, not an image', () => {
+test('a video is written as markdown, which the build turns into a measured player', () => {
 	const snippet = buildMediaSnippet([{ media: 'video', url: '/videos/projects/x/demo.mp4' }], {
 		altPlaceholder: false
 	});
 
-	assert.equal(snippet, '<LazyVideo src="/videos/projects/x/demo.mp4" label="Play demo video" />');
+	assert.equal(snippet, '![Play demo video](/videos/projects/x/demo.mp4)');
+});
+
+test('each video gets a paragraph of its own, apart from any images', () => {
+	const snippet = buildMediaSnippet(
+		[
+			{ media: 'image', url: '/images/a.png' },
+			{ media: 'video', url: '/videos/a.mp4' },
+			{ media: 'video', url: '/videos/b.mp4' }
+		],
+		{ altPlaceholder: false }
+	);
+
+	assert.equal(
+		snippet,
+		'![](/images/a.png)\n\n![Play demo video](/videos/a.mp4)\n\n![Play demo video](/videos/b.mp4)'
+	);
 });
 
 test('spaces and parentheses in a url are encoded, other scripts are not', () => {

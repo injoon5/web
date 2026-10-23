@@ -3,7 +3,7 @@
 const vscode = require('vscode');
 const path = require('node:path');
 
-const { buildMediaSnippet, componentImportEdit } = require('./insert');
+const { buildMediaSnippet } = require('./insert');
 const { fileNameFor } = require('./naming');
 const media = require('./media');
 const workspace = require('./workspace');
@@ -169,17 +169,9 @@ async function ingest(document, candidates, token) {
 
 	if (!entries.length) return null;
 
-	if (entries.some((entry) => entry.media === 'video')) {
-		const importEdit = componentImportEdit(document.getText(), config.videoComponent);
-		if (importEdit) {
-			edit.insert(document.uri, document.positionAt(importEdit.offset), importEdit.insert);
-		}
-	}
-
-	const snippet = buildMediaSnippet(entries, {
-		altPlaceholder: config.altTextPlaceholder,
-		componentName: config.videoComponent?.name ?? 'LazyVideo'
-	});
+	// A video needs no import: it is written as markdown, and the build's
+	// `remarkLazyVideo` brings the component in (see buildMediaSnippet).
+	const snippet = buildMediaSnippet(entries, { altPlaceholder: config.altTextPlaceholder });
 
 	return { snippet, edit, entries, notices };
 }

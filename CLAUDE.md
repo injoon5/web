@@ -86,7 +86,7 @@ src/
     markdown/              # remark-gallery, remark-image-size, image-size,
                            # remark-lazy-video, splice-import, remark-reading-time,
                            # reading-time, code-highlighter, code-theme,
-                           # remark-code-theme
+                           # remark-code-theme, remark-youtube, video-size
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
@@ -717,6 +717,49 @@ video's image node into a photo strip.
 The label is the title, then the alt text or the link text; with none of them the
 prop is left off so the component's own default applies.
 
+**A local MP4 is measured at build time** (`markdown/video-size.js`, which walks
+the container's box headers to the video track's `tkhd` — the `moov` alone, never
+the media data) and `width`/`height` are passed through. `LazyVideo` takes that
+shape for both the poster and the player, capped at `--prose-img-max-h` like a
+tall photo. It was a fixed 16:9, which played the 800x900 SchoolWatch recording
+cropped to its top half. Write videos in the markdown form: a hand-written
+`<LazyVideo>` is not measured, starts at 16:9 and corrects itself only once the
+file's metadata loads. The authoring extension's drop writes the markdown form.
+
+---
+
+## YouTube in Markdown (`src/lib/markdown/remark-youtube.js`)
+
+A top-level paragraph that is nothing but a YouTube link becomes a
+`loading="lazy"` iframe on `youtube-nocookie.com`, built locally.
+`[Title](https://youtu.be/…)` names the frame for screen readers; a bare URL gets
+YouTube's own default title.
+
+It replaced `@remark-embedder` + its oEmbed transformer, which fetched
+oembed.com's provider list and each video's oEmbed on every build — two thirds
+of the pipeline's plugin time, a network dependency for predictable markup, and
+an eager iframe that loaded YouTube's player with the page.
+
+---
+
+## The mdsvex Pipeline
+
+mdsvex 0.12 parses with its own bundled, pre-micromark `remark-parse`, which
+decides what a plugin can do:
+
+- **GFM is built in** — tables, task lists, strikethrough, autolinks.
+  `remark-gfm` 4 is a micromark extension that parser cannot load; it was in the
+  config and changed nothing in any post, so it is gone. The same applies to any
+  micromark-era remark plugin: compile a post with and without it before trusting
+  it.
+- **Footnotes do not work**: `[^1]` parses as a reference link. No post uses one.
+- **Math renders but is unstyled**: `remark-math` 3 and `rehype-katex-svelte`
+  produce KaTeX markup, and no KaTeX stylesheet is loaded. No post uses math.
+
+Image sizes are read from the first 128KB of each file (`sizeOfFile` in
+`remark-image-size.js`), with the whole file as a fallback; reading the photos
+in full was most of that plugin's cost on a cold build.
+
 ---
 
 ## Code Blocks (`src/lib/markdown/code-highlighter.js`)
@@ -1020,6 +1063,9 @@ half.
 - **Several images at once land on consecutive lines with no blank line
   between them**, which is exactly what `remark-gallery` reads as a group. The
   drop produces a `<Gallery />` for the same reason a hand-typed run does.
+- **A video lands as `![label](/videos/x.mp4)` in a paragraph of its own**, not
+  as a hand-written `<LazyVideo>`, so `remarkLazyVideo` measures it and brings in
+  the import.
 - **The copy is a `WorkspaceEdit.createFile`, not an `fs` write**, so the link
   and the file are one undo.
 - **Only formats a browser cannot render are transcoded** (HEIC, TIFF).

@@ -2,7 +2,18 @@
 	import { tick } from 'svelte';
 	import Play from '@lucide/svelte/icons/play';
 
-	let { src, label = 'Play demo video' } = $props();
+	/* `width`/`height` are the clip's own, measured from its headers at build
+	   time by `remarkLazyVideo`. The frame takes that shape before anything
+	   loads — it was a fixed 16:9, which played an 800x900 watch recording
+	   cropped to its top half. */
+	let { src, label = 'Play demo video', width, height } = $props();
+
+	/* A clip the build could not measure (a WebM, a remote file) starts at 16:9
+	   and takes its real shape from the file once it has one. */
+	/** @type {{ width: number, height: number } | null} */
+	let natural = $state(null);
+	const w = $derived(width ?? natural?.width ?? 16);
+	const h = $derived(height ?? natural?.height ?? 9);
 
 	/* The skin's controls live in its shadow root, and the packaged skin ships
 	   no rule for the `hidden`/`data-*` state the button components expose. So
@@ -70,8 +81,12 @@
 </script>
 
 <div class="not-prose my-8">
+	<!-- Capped at the article's image height, so a tall clip narrows instead of
+	     running past the screen: the same rule a tall photo follows. -->
 	<div
-		class="relative overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
+		class="relative mx-auto overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
+		style:aspect-ratio="{w} / {h}"
+		style:width="min(100%, calc(var(--prose-img-max-h, 70vh) * {w} / {h}))"
 	>
 		{#if loaded}
 			<!-- <video-player> holds the state every component reads and is
@@ -80,7 +95,7 @@
 			     above already clips at `rounded-lg`, so that is turned off rather
 			     than nested inside a tighter radius. -->
 			<video-player>
-				<video-skin bind:this={skin} class="aspect-video w-full" style="--media-border-radius: 0">
+				<video-skin bind:this={skin} class="block h-full w-full" style="--media-border-radius: 0">
 					<!-- The skin draws the controls, so the media element carries
 					     none of its own unless the definitions failed to load.
 
@@ -88,13 +103,24 @@
 					     track, which is what had the captions button reporting
 					     itself available on clips that carry no subtitles. -->
 					<!-- svelte-ignore a11y_media_has_caption -->
-					<video bind:this={video} {src} class="bg-black" controls={native} playsinline></video>
+					<video
+						bind:this={video}
+						{src}
+						class="h-full w-full bg-black object-contain"
+						controls={native}
+						playsinline
+						onloadedmetadata={() => {
+							if (video?.videoWidth && video.videoHeight) {
+								natural = { width: video.videoWidth, height: video.videoHeight };
+							}
+						}}
+					></video>
 				</video-skin>
 			</video-player>
 		{:else}
 			<button
 				type="button"
-				class="group flex aspect-video w-full flex-col items-center justify-center gap-3 bg-neutral-950/95 text-white transition-colors hover:bg-neutral-900"
+				class="group flex h-full w-full flex-col items-center justify-center gap-3 bg-neutral-950/95 text-white transition-colors hover:bg-neutral-900"
 				aria-label={label}
 				onclick={play}
 			>

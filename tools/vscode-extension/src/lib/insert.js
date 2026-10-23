@@ -10,6 +10,12 @@ const { scanMarkdown } = require('./markdown-scan');
  * one paragraph in mdast, so dropping four screenshots produces a `<Gallery />`
  * and dropping one produces a figure. The escape hatch is the same as it is for
  * a human author — put a blank line in.
+ *
+ * A video is written the same way, `![label](/videos/x.mp4)`, but always in a
+ * paragraph of its own: that is what `remarkLazyVideo` turns into a player, and
+ * the build measures the clip and imports the component itself. Writing the
+ * component out by hand skipped the measuring, so a portrait clip got a 16:9
+ * poster.
  */
 
 /** @param {string} value */
@@ -37,12 +43,11 @@ function encodeUrl(url) {
 
 /**
  * @param {MediaEntry[]} entries
- * @param {{ altPlaceholder?: boolean, componentName?: string }} [options]
+ * @param {{ altPlaceholder?: boolean }} [options]
  * @returns {string}  a snippet body, with tab stops when placeholders are on
  */
 function buildMediaSnippet(entries, options = {}) {
 	const placeholder = options.altPlaceholder !== false;
-	const component = options.componentName ?? 'LazyVideo';
 
 	let stop = 0;
 	const images = [];
@@ -57,7 +62,7 @@ function buildMediaSnippet(entries, options = {}) {
 				: placeholder
 					? `\${${(stop += 1)}:Play demo video}`
 					: 'Play demo video';
-			videos.push(`<${component} src="${url}" label="${label}" />`);
+			videos.push(`![${label}](${url})`);
 			continue;
 		}
 

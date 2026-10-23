@@ -13,10 +13,6 @@ keywords:
   - watchOS 앱 개발
 ---
 
-<script>
-	import LazyVideo from '#lib/ui/LazyVideo.svelte';
-</script>
-
 ## 왜 워치 앱인가
 
 나는 거의 매일 애플 워치를 찬다. 시간표 보거나 교시 얼마 남았나 확인하려고 쉬는 시간마다 폰 꺼내는 게, 화면이 _바로_ 손목에 있는데도 좀 바보 같았다.
@@ -25,7 +21,7 @@ keywords:
 
 ## 데모
 
-<LazyVideo src="/videos/projects/schoolwatch.mp4" label="Play SchoolWatch demo" />
+![Play SchoolWatch demo](/videos/projects/schoolwatch.mp4)
 
 ## 앱 구조
 

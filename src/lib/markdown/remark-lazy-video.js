@@ -20,9 +20,17 @@
  * The label is the alt text or the link text, and the title attribute beats
  * both — the same order `remarkGallery` reads a caption in. With none of them
  * the component's own default is left to apply.
+ *
+ * A local MP4 is measured out of its headers and the size passed along, so the
+ * poster and the player take the clip's own shape before a byte of it loads —
+ * the frame was a fixed 16:9, which played a portrait watch recording cropped
+ * to its top half.
  */
 
+import path from 'node:path';
+import { resolveLocal } from './remark-image-size.js';
 import { addComponentImport } from './splice-import.js';
+import { sizeOfVideoFile } from './video-size.js';
 
 const LAZY_VIDEO = { name: 'LazyVideo', path: '#lib/ui/LazyVideo.svelte' };
 
@@ -65,15 +73,37 @@ function loneVideo(paragraph) {
 	return found;
 }
 
-/** @param {{ src: string, label: string }} video */
-function videoNode({ src, label }) {
+/**
+ * @param {string} src
+ * @param {string} root
+ * @returns {{ width: number, height: number } | null}
+ */
+function measure(src, root) {
+	const file = resolveLocal(src, root);
+	if (!file) return null;
+	try {
+		return sizeOfVideoFile(file);
+	} catch {
+		// Not there, or not readable: the component's 16:9 fallback applies.
+		return null;
+	}
+}
+
+/**
+ * @param {{ src: string, label: string }} video
+ * @param {{ width: number, height: number } | null} size
+ */
+function videoNode({ src, label }, size) {
 	const props = [`src={${JSON.stringify(src)}}`];
 	// No label means the component's own default, rather than an empty one.
 	if (label) props.push(`label={${JSON.stringify(label)}}`);
+	if (size) props.push(`width={${size.width}}`, `height={${size.height}}`);
 	return { type: 'html', value: `<${LAZY_VIDEO.name} ${props.join(' ')} />` };
 }
 
-export function remarkLazyVideo() {
+/** @param {{ root?: string }} [options] `root` is the directory `/`-rooted URLs resolve in */
+export function remarkLazyVideo(options = {}) {
+	const root = options.root ?? path.join(process.cwd(), 'static');
 	return function transformer(tree) {
 		let found = false;
 
@@ -82,7 +112,7 @@ export function remarkLazyVideo() {
 			const video = loneVideo(node);
 			if (!video) return node;
 			found = true;
-			return videoNode(video);
+			return videoNode(video, measure(video.src, root));
 		});
 
 		if (found) addComponentImport(tree, LAZY_VIDEO);
