@@ -68,11 +68,11 @@ src/
     projects/{en,ko}/*.md
   lib/
     api-client.js          # apiFetch — the only way components call /api
-    format.js              # formatDate / formatDateLong / formatDateTime / sliceText
+    format.js              # formatDate / formatDateLong / formatDateTime
     reduced-motion.svelte.js  # One shared prefers-reduced-motion subscription
     theme.svelte.js        # Observes the class app.html sets; never sets it
     types.d.ts             # Post / Project / Tags
-    actions/               # auto-height, in-view-once, marquee
+    actions/               # auto-height, marquee
     article/               # ArticleDials + settings
     comments/              # CommentsSection, CommentNode, AdminCommentNode, build-tree
     content/bilingual.js   # en/ko module resolution for the [slug] routes
@@ -85,12 +85,13 @@ src/
     likes/LikeButton.svelte
     markdown/              # remark-gallery, remark-image-size, image-size,
                            # remark-lazy-video, splice-import, remark-reading-time,
-                           # reading-time, code-highlighter
+                           # reading-time, code-highlighter, code-theme,
+                           # remark-code-theme
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
     server/                # admin, api, content, content-modules, content-page,
-                           # convex, ip, valid-urls, validation
+                           # convex, ip, series, valid-urls, validation
     techstack/             # TechStack + data
     ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList,
                            # StableLangStack
@@ -350,6 +351,13 @@ import.meta.glob('/src/content/blog/en/*.md', { eager: true, import: 'metadata' 
   unpublished and the RSS feed, the listing APIs and the valid-URL guard all
   quietly go empty. **This has happened once.** After a build, check
   `.svelte-kit/output/prerendered/pages/rss.xml` has `<item>` entries.
+
+**Never glob the same `.md` eagerly and lazily in one bundle.** A module
+imported both ways cannot be split, so Rollup puts every whole post in a static
+chunk. `blog/[slug]/+page.js` did this to read `metadata.series` and every
+article page loaded every post's compiled content — 48KB gzipped, drafts
+included. The series list is now `postSeries` (`server/series.js`), computed in
+the server load; the universal load keeps only the lazy glob.
 
 Listing pages read `publishedPosts()` / `publishedProjects()` directly in a
 server load. `/api/posts` and `/api/projects` still exist as public endpoints,
@@ -718,15 +726,31 @@ lexers), so nothing ships to the browser or the Vercel function. Fence meta:
 `{1,3-5}` highlights lines, `title="…"` adds a tab, `caption="…"` a
 `<figcaption>`, `showLineNumbers` numbers it.
 
-- **Both themes are in the markup.** Every token carries `--code-light` and
-  `--code-dark` (Pierre light/dark), and `app.css` picks one off the `.dark`
-  class. Do not switch to an inline default colour: the server cannot know the
-  theme, and a client re-render would be a hydration mismatch.
+- **A token is a class, the palette is a stylesheet.** Highlights names each
+  token's category (`var(--code-keyword)`); `code-theme.js` maps every distinct
+  light/dark colour pair to a short class (`t0`…`t22`), and the generated
+  `code-theme.css` defines each under the `.dark` class. That halved the markup,
+  which ships twice — in the HTML and in the post's compiled JS. Do not switch
+  to an inline default colour: the server cannot know the theme, and a client
+  re-render would be a hydration mismatch.
+- **`code-theme.css` is generated and checked in.** `npm run code-theme` after
+  bumping `@pierre/highlights`; `code-theme.test.js` fails until you do, because
+  the highlighter derives the same classes at build time.
+- **Only posts with code load it.** `remarkCodeTheme` splices
+  `import '#lib/markdown/code-theme.css'` into those posts, through
+  `splice-import.js` like the gallery's component import.
 - **Highlights has no language detection.** An unknown label falls back to
   `plain` rather than throwing, and its lexers classify some tokens differently
   from TextMate grammars.
 - **The `<pre>` scrolls, not the figure**, so the box and the highlight band span
-  the full width and the caption stays put.
+  the full width and the caption stays put. It carries `tabindex="0"` (Safari
+  does not make a scroller focusable on its own) behind a `svelte-ignore`: the
+  output is inlined as Svelte template source, not `{@html}`, so Svelte's a11y
+  checks see it.
+- **A blank line is a line containing `\n`.** The lines are grid items, so the
+  newlines between them are not what a copy carries: an empty item copies as
+  nothing (blank lines vanish) and a space copies as trailing whitespace.
+  Checked against the real clipboard.
 
 ---
 
@@ -1043,16 +1067,6 @@ on every SSR page.
 ---
 
 ## Convex
-
-This project uses [Convex](https://convex.dev) as its backend.
-
-When working on Convex code, **always read `convex/_generated/ai/guidelines.md`
-first** for important guidelines on how to correctly use Convex APIs and
-patterns. The file contains rules that override what you may have learned about
-Convex from training data.
-
-Convex agent skills for common tasks can be installed by running
-`npx convex ai-files install`.
 
 <!-- convex-ai-start -->
 

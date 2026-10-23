@@ -73,6 +73,7 @@
 		"convex": "^1.47.0",
 		"convex-svelte": "^0.15.1",
 		"d3-scale": "^4.0.2",
+		"d3-shape": "^3.2.0",
 		"dialkit": "^2.0.2",
 		"dompurify": "^3.4.17",
 		"layerchart": "^2.8.1",
