@@ -32,9 +32,16 @@
 - **`remark-math` 3** — mdsvex 0.12 bundles the pre-micromark `remark-parse`, and
   remark-math 4+ is a micromark extension it cannot load.
 - **`remark-footnotes` 2** — the same parser, the same reason: 3+ is micromark.
-- **`katex` ~0.16** — declared only so `katex/dist/katex.min.css` resolves, and
-  held at the version `rehype-katex-svelte` renders with: the sheet has to match
-  the markup.
+- **`katex` and `overrides["rehype-katex-svelte"].katex`** — `katex` is declared
+  so `katex/dist/katex.min.css` resolves, and the override makes
+  `rehype-katex-svelte` (which caps it at `^0.16`) render with that same copy:
+  the sheet has to match the markup, and 0.18.2 is the first release clear of
+  GHSA-238p-pmpm-9mq7. 0.19 renamed KaTeX's own classes (`base` →
+  `katex-base`); one copy is what keeps the two halves agreeing. Drop the
+  override once `rehype-katex-svelte` accepts the declared version.
+- **`overrides["@tailwindcss/typography"]["postcss-selector-parser"]`** —
+  typography pins 6.0.10, below the fix for GHSA-rj75-hqrm-r3gf, and npm's own
+  "fix" is a downgrade of typography. 7.x produced a byte-identical stylesheet.
 - **`satori` ~0.32** — 0.33 shapes text with HarfBuzz, whose `hb.wasm` is read
   off disk at import time and is not traced into the Vercel function, so every
   OG image 500s in production while working locally. Check
@@ -91,7 +98,7 @@ src/
                            # remark-lazy-video, splice-import, remark-reading-time,
                            # reading-time, code-highlighter, code-theme,
                            # remark-stylesheets, remark-youtube, video-size,
-                           # rehype-footnotes
+                           # rehype-footnotes, KatexFonts
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
@@ -768,8 +775,11 @@ decides what a plugin can do:
 - **Math** is `remark-math` 3 + `rehype-katex-svelte`. KaTeX's markup is
   meaningless without its own sheet, which nothing loaded until
   `remarkStylesheets` began importing it into the posts that have math. KaTeX's
-  fonts are `font-display: block`: wait for `document.fonts.ready` before
-  screenshotting, or every glyph is blank.
+  fonts are `font-display: block`, so a formula is blank until they land;
+  `KatexFonts.svelte`, spliced into the same posts, preloads the Main and
+  Math-Italic faces so they are fetched with the sheet rather than after layout.
+  `swap` would be worse — fallback metrics make fractions and scripts jump.
+  Wait for the fonts before screenshotting, or every glyph is blank.
 - `gfm-test.md` (unpublished) exercises every one of these; flip its
   `published` locally to look.
 

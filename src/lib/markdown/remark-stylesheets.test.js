@@ -25,10 +25,18 @@ describe('remarkStylesheets', () => {
 		expect(script.value).not.toContain('katex');
 	});
 
-	it('imports KaTeX into a post with math', () => {
-		const [script] = scripts(run('Text\n', [fakeMath]));
+	it('imports KaTeX into a post with math, and preloads its fonts', () => {
+		const tree = run('Text\n', [fakeMath]);
+		const [script] = scripts(tree);
 		expect(script.value).toContain("import 'katex/dist/katex.min.css';");
+		expect(script.value).toContain("import KatexFonts from '#lib/markdown/KatexFonts.svelte';");
 		expect(script.value).not.toContain('code-theme');
+		expect(tree.children.some((n) => n.type === 'html' && n.value === '<KatexFonts />')).toBe(true);
+	});
+
+	it('preloads no fonts for a post without math', () => {
+		const tree = run('Text\n\n```js\nx\n```\n');
+		expect(JSON.stringify(tree)).not.toContain('KatexFonts');
 	});
 
 	it('finds a code block nested in a list', () => {
