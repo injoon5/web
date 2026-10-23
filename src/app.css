@@ -708,6 +708,85 @@ img[data-img-pending] {
 	@apply rounded-t-none;
 }
 
+/* Footnotes, from `#lib/markdown/rehype-footnotes.js`: a quiet numbered list
+   under a hairline at the end of the post. The heading is there for a screen
+   reader — the markers are described by it — and the rule says the rest. */
+:is(.prose, .prose-post) sup:has(> a[data-footnote-ref]) {
+	/* No line height of its own, or every line with a marker sits taller. */
+	@apply text-[0.72em] leading-none;
+}
+
+:is(.prose, .prose-post) a[data-footnote-ref] {
+	@apply rounded-sm px-[0.1em] font-medium text-neutral-500 tabular-nums no-underline decoration-transparent transition-colors hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-neutral-400 dark:text-neutral-400 dark:hover:text-neutral-100;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] {
+	@apply mt-16 border-t border-neutral-200 pt-6 text-[0.875em] leading-relaxed text-neutral-600 dark:border-neutral-800 dark:text-neutral-400;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] > .footnotes-label {
+	@apply sr-only;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] ol {
+	@apply my-0 pl-5;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] li {
+	@apply my-2 rounded-md pl-1;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] li::marker {
+	@apply text-neutral-400 tabular-nums dark:text-neutral-500;
+}
+
+/* A link in a note keeps the note's voice rather than the article's. */
+:is(.prose, .prose-post) section[data-footnotes] a:not(.footnote-backref) {
+	@apply font-normal text-inherit;
+}
+
+/* The prose palette sets paragraph colour outright; a note keeps the muted one. */
+:is(.prose, .prose-post) section[data-footnotes] p {
+	@apply my-1 text-inherit;
+	line-height: inherit;
+}
+
+:is(.prose, .prose-post) a.footnote-backref {
+	@apply ml-0.5 text-neutral-400 no-underline decoration-transparent transition-colors hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100;
+}
+
+:is(.prose, .prose-post) a.footnote-backref > sup {
+	@apply text-[0.7em];
+}
+
+/* Where a jump lands, briefly marked: the note on the way down, the marker on
+   the way back. Colour only — nothing moves. */
+:is(.prose, .prose-post) section[data-footnotes] li:target,
+:is(.prose, .prose-post) sup:target > a[data-footnote-ref] {
+	animation: footnote-target 1.6s ease-out;
+}
+
+@keyframes footnote-target {
+	from {
+		background-color: var(--footnote-target, var(--color-neutral-200));
+	}
+}
+
+.dark {
+	--footnote-target: var(--color-neutral-800);
+}
+
+/* Math, from `remark-math` + `rehype-katex-svelte`; `remarkStylesheets` imports
+   KaTeX's sheet into the posts that have any. A display equation wider than the
+   column scrolls inside itself rather than pushing the article sideways. */
+:is(.prose, .prose-post) .math-display {
+	@apply my-6 overflow-x-auto overflow-y-hidden overscroll-x-contain;
+}
+
+:is(.prose, .prose-post) .math-display > .katex-display {
+	@apply my-0 py-1;
+}
+
 /* Inline code (blog uses .prose-post; /now uses .prose) */
 :is(.prose, .prose-post) :not(pre) > code::before,
 :is(.prose, .prose-post) :not(pre) > code::after {

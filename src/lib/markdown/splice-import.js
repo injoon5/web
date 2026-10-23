@@ -6,7 +6,7 @@
  * performs this exact splice for its own layout import, which is what makes it
  * safe to do: the file is Svelte source by the time the compiler sees it.
  *
- * Shared by `remarkGallery`, `remarkLazyVideo` and `remarkCodeTheme` — the
+ * Shared by `remarkGallery`, `remarkLazyVideo` and `remarkStylesheets` — the
  * second one to want it is what made it worth having in one place, since the
  * interesting part is the regexp and all of them getting it wrong the same way
  * is the failure mode.

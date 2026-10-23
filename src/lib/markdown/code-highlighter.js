@@ -10,7 +10,7 @@ import { CODE_VAR_PREFIX, FOREGROUND, TOKEN_CLASS } from './code-theme.js';
  * `code-theme.css` defines under both themes off the `.dark` class `app.html`
  * sets. Switching theme repaints without re-highlighting, SSR stays identical,
  * and a token costs a few bytes rather than a colour per theme.
- * `remarkCodeTheme` imports the palette.
+ * `remarkStylesheets` imports the palette.
  *
  * The fence meta that the posts use is parsed here: `{1,3-5}` highlights lines,
  * `title="…"` and `caption="…"` frame the block, `showLineNumbers` numbers it.

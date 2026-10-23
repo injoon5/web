@@ -31,6 +31,10 @@
   all cap their peer at 6.x (`typescript-eslint` at <6.1).
 - **`remark-math` 3** — mdsvex 0.12 bundles the pre-micromark `remark-parse`, and
   remark-math 4+ is a micromark extension it cannot load.
+- **`remark-footnotes` 2** — the same parser, the same reason: 3+ is micromark.
+- **`katex` ~0.16** — declared only so `katex/dist/katex.min.css` resolves, and
+  held at the version `rehype-katex-svelte` renders with: the sheet has to match
+  the markup.
 - **`satori` ~0.32** — 0.33 shapes text with HarfBuzz, whose `hb.wasm` is read
   off disk at import time and is not traced into the Vercel function, so every
   OG image 500s in production while working locally. Check
@@ -86,7 +90,8 @@ src/
     markdown/              # remark-gallery, remark-image-size, image-size,
                            # remark-lazy-video, splice-import, remark-reading-time,
                            # reading-time, code-highlighter, code-theme,
-                           # remark-code-theme, remark-youtube, video-size
+                           # remark-stylesheets, remark-youtube, video-size,
+                           # rehype-footnotes
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
@@ -752,9 +757,21 @@ decides what a plugin can do:
   config and changed nothing in any post, so it is gone. The same applies to any
   micromark-era remark plugin: compile a post with and without it before trusting
   it.
-- **Footnotes do not work**: `[^1]` parses as a reference link. No post uses one.
-- **Math renders but is unstyled**: `remark-math` 3 and `rehype-katex-svelte`
-  produce KaTeX markup, and no KaTeX stylesheet is loaded. No post uses math.
+- **Footnotes** come from `remark-footnotes` 2 (3+ is micromark), and mdsvex's
+  own mdast-to-hast writes their markup. `rehype-footnotes.js` then finishes it,
+  running last: markers numbered in reading order rather than showing the label,
+  a unique id per citation (`fnref-1`, `fnref-1-2`) with a back link to each, a
+  `<section>` labelled by a visually hidden heading in the post's language, and
+  `↩︎` with the text presentation selector, which iOS otherwise draws as an
+  emoji. `app.css` sets them under a hairline at the end of the post and marks
+  the note or marker a jump lands on.
+- **Math** is `remark-math` 3 + `rehype-katex-svelte`. KaTeX's markup is
+  meaningless without its own sheet, which nothing loaded until
+  `remarkStylesheets` began importing it into the posts that have math. KaTeX's
+  fonts are `font-display: block`: wait for `document.fonts.ready` before
+  screenshotting, or every glyph is blank.
+- `gfm-test.md` (unpublished) exercises every one of these; flip its
+  `published` locally to look.
 
 Image sizes are read from the first 128KB of each file (`sizeOfFile` in
 `remark-image-size.js`), with the whole file as a fallback; reading the photos
@@ -779,7 +796,7 @@ lexers), so nothing ships to the browser or the Vercel function. Fence meta:
 - **`code-theme.css` is generated and checked in.** `npm run code-theme` after
   bumping `@pierre/highlights`; `code-theme.test.js` fails until you do, because
   the highlighter derives the same classes at build time.
-- **Only posts with code load it.** `remarkCodeTheme` splices
+- **Only posts with code load it.** `remarkStylesheets` splices
   `import '#lib/markdown/code-theme.css'` into those posts, through
   `splice-import.js` like the gallery's component import.
 - **Highlights has no language detection.** An unknown label falls back to
