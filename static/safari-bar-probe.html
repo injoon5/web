@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<title>Safari status bar probe</title>
+		<style>
+			:root {
+				color-scheme: light dark;
+			}
+
+			html,
+			body {
+				margin: 0;
+				background: #0a0a0a;
+				color: #fff;
+				font:
+					16px/1.4 -apple-system,
+					system-ui,
+					sans-serif;
+			}
+
+			/* 300vh of hard stripes. If the page is laid out under the status bar,
+			   the stripes carry on behind the clock and there is no mistaking it. */
+			.stripes {
+				min-height: 300vh;
+				background: repeating-linear-gradient(
+					180deg,
+					#e11d48 0 24px,
+					#0a0a0a 24px 48px,
+					#22d3ee 48px 72px,
+					#0a0a0a 72px 96px
+				);
+			}
+
+			.readout {
+				position: fixed;
+				top: 45vh;
+				left: 0;
+				right: 0;
+				padding: 12px 16px;
+				background: #000c;
+				font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+				font-size: 15px;
+				line-height: 1.5;
+				white-space: pre;
+				z-index: 10;
+			}
+
+			.switcher {
+				position: fixed;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				display: flex;
+				flex-wrap: wrap;
+				gap: 6px;
+				padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+				background: #000e;
+				z-index: 10;
+			}
+
+			.switcher a {
+				flex: 1 1 30%;
+				padding: 14px 8px;
+				border-radius: 10px;
+				background: #262626;
+				color: #fff;
+				text-align: center;
+				text-decoration: none;
+				font-size: 15px;
+			}
+
+			.switcher a[aria-current='page'] {
+				background: #e11d48;
+			}
+
+			/* Each variant is one candidate for whatever Safari scans for at the top
+			   of the viewport. Red, because a tint is either there or it is not. */
+			.bar {
+				position: sticky;
+				top: 0;
+				height: 56px;
+				display: flex;
+				align-items: center;
+				padding: 0 16px;
+				font-weight: 600;
+				z-index: 5;
+			}
+
+			body[data-v='1'] .bar {
+				background: #e11d48;
+			}
+
+			body[data-v='2'] .bar {
+				background: #e11d48;
+				opacity: 0;
+			}
+
+			body[data-v='3'] .bar {
+				background: transparent;
+				position: sticky;
+			}
+			body[data-v='3'] .bar .child {
+				position: absolute;
+				inset: 0;
+				background: #e11d48;
+				z-index: -1;
+			}
+
+			body[data-v='4'] .bar {
+				background: rgb(225 29 72 / 0.5);
+				-webkit-backdrop-filter: blur(12px);
+				backdrop-filter: blur(12px);
+			}
+
+			body[data-v='5'] .bar {
+				background: transparent;
+			}
+			body[data-v='5'] .sliver {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 4px;
+				background: rgb(225 29 72 / 0.7);
+				-webkit-backdrop-filter: blur(12px);
+				backdrop-filter: blur(12px);
+				opacity: 0;
+				pointer-events: none;
+			}
+
+			/* Starts transparent and is given the tint three seconds in. If the bar
+			   turns red on its own, Safari re-reads the candidate after load and a
+			   tint that ramps with scroll can drive it; if it never does, only a
+			   value that is there at first paint counts. */
+			body[data-v='6'] .bar {
+				background: transparent;
+				-webkit-backdrop-filter: blur(12px);
+				backdrop-filter: blur(12px);
+				transition: background 400ms linear;
+			}
+			body[data-v='6'].late .bar {
+				background: rgb(225 29 72 / 0.5);
+			}
+
+			body[data-v='0'] .bar,
+			body[data-v='0'] .sliver,
+			body[data-v='1'] .sliver,
+			body[data-v='2'] .sliver,
+			body[data-v='3'] .sliver,
+			body[data-v='4'] .sliver,
+			body[data-v='6'] .sliver {
+				display: none;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="sliver" aria-hidden="true"></div>
+
+		<div class="bar"><span class="child"></span>sticky bar — variant <span id="vn"></span></div>
+
+		<div class="stripes"></div>
+
+		<div class="readout" id="readout"></div>
+
+		<nav class="switcher" id="switcher"></nav>
+
+		<script>
+			const variants = [
+				['0', 'none'],
+				['1', 'solid'],
+				['2', 'opacity 0'],
+				['3', 'abs child'],
+				['4', '50% + blur'],
+				['5', 'sliver'],
+				['6', 'tint after 3s']
+			];
+			const v = new URLSearchParams(location.search).get('v') ?? '0';
+			document.body.dataset.v = v;
+			document.getElementById('vn').textContent = v;
+
+			document.getElementById('switcher').innerHTML = variants
+				.map(
+					([id, label]) =>
+						`<a href="?v=${id}"${id === v ? ' aria-current="page"' : ''}>${id}. ${label}</a>`
+				)
+				.join('');
+
+			if (v === '6') setTimeout(() => document.body.classList.add('late'), 3000);
+
+			// env() is only readable through a property that uses it.
+			const probe = document.createElement('div');
+			probe.style.cssText =
+				'position:fixed;top:0;left:0;width:0;padding-top:env(safe-area-inset-top,0px)';
+			document.body.append(probe);
+			const inset = getComputedStyle(probe).paddingTop;
+
+			document.getElementById('readout').textContent = [
+				`variant        ${v}`,
+				`safe-area-top  ${inset}`,
+				`innerHeight    ${window.innerHeight}`,
+				`clientHeight   ${document.documentElement.clientHeight}`,
+				`visualViewport ${window.visualViewport ? Math.round(window.visualViewport.height) : '-'}`,
+				`screen.height  ${screen.height}`,
+				`dpr            ${devicePixelRatio}`,
+				`standalone     ${navigator.standalone ?? matchMedia('(display-mode: standalone)').matches}`
+			].join('\n');
+		</script>
+	</body>
+</html>
