@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
+	fileSize,
 	isLoaded,
 	noteImage,
 	resetImageCache,
@@ -131,5 +132,41 @@ describe('trackImage', () => {
 		expect(isLoaded('https://example.com/h.jpg')).toBe(true);
 		expect(isLoaded('https://example.com/i.jpg')).toBe(true);
 		expect(() => trackImages(null)).not.toThrow();
+	});
+});
+
+describe('fileSize', () => {
+	/** What a browser reports for a srcset image: the chosen file, density-corrected. */
+	function chosen(currentSrc, natural) {
+		const el = document.createElement('img');
+		el.setAttribute('src', '/a.png');
+		el.setAttribute('srcset', '/a.w640.k.webp 640w, /a.w1280.k.webp 1280w, /a.png 2400w');
+		Object.defineProperty(el, 'currentSrc', { value: new URL(currentSrc, location.href).href });
+		Object.defineProperty(el, 'naturalWidth', { value: natural.width });
+		Object.defineProperty(el, 'naturalHeight', { value: natural.height });
+		return el;
+	}
+
+	it("reads the chosen candidate's width, not the density-corrected natural size", () => {
+		// 1280w drawn against `sizes: 700px` reports a natural width of 700.
+		expect(fileSize(chosen('/a.w1280.k.webp', { width: 700, height: 467 }))).toEqual({
+			width: 1280,
+			height: 854
+		});
+	});
+
+	it('is the natural size for an image with no srcset', () => {
+		const el = img({ loaded: { width: 800, height: 600 } });
+		expect(fileSize(el)).toEqual({ width: 800, height: 600 });
+	});
+
+	it('records that size for the URL the browser fetched', () => {
+		const el = chosen('/a.w640.k.webp', { width: 350, height: 233 });
+		Object.defineProperty(el, 'complete', { value: true });
+		noteImage(el);
+		expect(sizeOf(new URL('/a.w640.k.webp', location.href).href)).toEqual({
+			width: 640,
+			height: 426
+		});
 	});
 });

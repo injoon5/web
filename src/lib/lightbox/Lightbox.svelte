@@ -14,7 +14,7 @@
 		rubber as rubberBand,
 		settleSpec
 	} from './geometry.js';
-	import { noteImage } from './image-cache.js';
+	import { fileSize, noteImage } from './image-cache.js';
 	import { createVelocityTracker } from './velocity.js';
 	import { createModalHost, focusablesIn } from './modal.js';
 	import {
@@ -484,8 +484,25 @@
 		item.loaded = true;
 		item.ready = true;
 		if (item.naturalWidth) return;
-		item.naturalWidth = el.naturalWidth;
-		item.naturalHeight = el.naturalHeight;
+		const size = fileSize(el);
+		item.naturalWidth = size.width;
+		item.naturalHeight = size.height;
+	}
+
+	/**
+	 * Which copy of a photo to fetch: as wide as the box it fills, and once it is
+	 * zoomed, as wide as the deepest zoom — the browser keeps showing the copy it
+	 * has until the sharper one has arrived, so raising this mid-zoom swaps
+	 * detail in rather than flashing.
+	 *
+	 * @param {any} item
+	 * @param {{ w: number } | null} f
+	 * @param {boolean} isCurrent
+	 */
+	function sizesFor(item, f, isCurrent) {
+		if (!item.srcset) return undefined;
+		if (!f) return '100vw';
+		return `${Math.round(f.w * (isCurrent && scale > 1 ? MAX_SCALE : 1))}px`;
 	}
 
 	/** A URL inside `url("...")`. Only quotes and backslashes can break out. */
@@ -1493,6 +1510,8 @@
 									-->
 									<img
 										src={item.src}
+										srcset={item.srcset}
+										sizes={sizesFor(item, f, i === index)}
 										alt={item.alt ?? ''}
 										class="lb-img"
 										class:pending={!item.ready && !f}

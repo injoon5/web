@@ -98,7 +98,8 @@ src/
                            # remark-lazy-video, splice-import, remark-reading-time,
                            # reading-time, code-highlighter, code-theme,
                            # remark-stylesheets, remark-youtube, video-size,
-                           # rehype-footnotes, KatexFonts
+                           # rehype-footnotes, KatexFonts, image-variants,
+                           # image-sizes
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
@@ -406,6 +407,17 @@ Per-image opt-outs on the `<img>`: `data-no-lightbox` excludes it,
 `data-lightbox-src` points at a larger file, `data-lightbox-caption` overrides
 the alt text. The source comes from the `src` attribute, not `currentSrc` —
 on a `srcset` image that is whatever the browser picked for the _thumbnail_.
+
+**A `srcset` travels with the image.** The lightbox's `<img>` carries the
+article's `srcset` against its own `sizes` — the full-screen box's width, and
+the box times `MAX_SCALE` once zoomed — so it fetches a screen's worth, never
+the original, and zooming swaps a sharper copy in (the browser keeps the
+current one on screen until the new one has decoded). The article's copy is
+still the `poster` painted underneath while that loads. **`naturalWidth` is not
+the file's width on a `srcset` image**: `w` descriptors make it the file divided
+by its density against `sizes`. Item sizes come from the build's
+`width`/`height`, and `fileSize()` (`image-cache.js`) reads the chosen
+candidate's descriptor wherever a file's real size is wanted.
 
 ### It opens as the same photo, not a new one
 
@@ -855,6 +867,37 @@ slides get the same numbers, carried on the node's `data.imageSize`.
   `--img-max-h` instead of restating the arithmetic.
 - An image with no `--img-w` makes all of it invalid at computed-value time,
   which is `unset`: exactly the layout it had before.
+
+### Smaller copies, chosen by the browser
+
+`npm run optimize-images` (on Vercel, before `build`) also writes WebP copies of
+every image under `static/images` — 640/960/1280/1920 below the photo's own
+width, plus a full-size WebP when it beats the optimized original — into the
+mirror beside it, and `apply-optimized-images` puts them in `static/`
+(gitignored: `*.w960.<key>.webp`). `.cache/image-variants.json` maps each
+`/images/...` URL to its candidates; `remarkImageSize` turns that into a
+`srcset`, and `remarkGallery` hands it to the slide. Measured on `us-camp`: 12.9MB
+of images at 1440@2x became 4.5MB; the Sirius screenshots went from 9.6MB to
+0.4MB, with the text still sharp.
+
+- **The key in the name is a hash of the source and the settings.** `/images` is
+  served `immutable` for a year, so a new photo or a new quality has to be a new
+  URL. `image-variants.js` is a turbo input of `build-image-cache` for the same
+  reason.
+- **No manifest, or a candidate missing from disk, means no `srcset`** — a dev
+  server that never ran the image step serves exactly what it did before.
+- **`sizes` is `auto` first** (`image-sizes.js`): every article image is lazy, so
+  the browser uses the width it laid the image out at — the height cap makes a
+  tall photo far narrower than the column. The fallback is the column measured at
+  each breakpoint of the post page; re-measure it if that layout changes.
+- **A `srcset` image keeps the placeholder's box after it loads**
+  (`img[srcset][style*='--img-w']` in `app.css`). Its `w` descriptors make the
+  browser size it from `sizes`, which upscaled a 530px photo to the 699px
+  column, and `sizes="auto"` gives it size containment at 300x150 the moment
+  `width` is `auto`. The build's box is the one that does not depend on the
+  pixels. A gallery slide re-applies it with its own height cap.
+- `image-variants.js` hashes, so it is Node-only; anything the browser loads
+  takes `sizes` from `image-sizes.js`.
 
 ### The lightbox does not download it again
 

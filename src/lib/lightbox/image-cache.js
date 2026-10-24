@@ -40,6 +40,39 @@ function isPainted(el) {
 }
 
 /**
+ * The pixel size of the file an `<img>` decoded.
+ *
+ * Not `naturalWidth` once there is a `srcset`: a `w` descriptor makes the
+ * browser report the file divided by its density against `sizes` — roughly the
+ * width it is drawn at — which is what layout wants and nothing else does. The
+ * chosen candidate's own descriptor is the file's width; the decoded aspect
+ * ratio gives the height.
+ *
+ * @param {HTMLImageElement} el
+ * @returns {{ width: number, height: number }}
+ */
+export function fileSize(el) {
+	const natural = { width: el.naturalWidth, height: el.naturalHeight };
+	const srcset = el.getAttribute?.('srcset');
+	if (!srcset || !el.currentSrc || !natural.width) return natural;
+	for (const candidate of srcset.split(/,\s+/)) {
+		const [url, descriptor] = candidate.trim().split(/\s+/);
+		const w = Number.parseInt(descriptor ?? '', 10);
+		if (!url || !w || !descriptor?.endsWith('w')) continue;
+		let href;
+		try {
+			href = new URL(url, el.baseURI).href;
+		} catch {
+			continue;
+		}
+		if (href === el.currentSrc) {
+			return { width: w, height: Math.round((w * natural.height) / natural.width) };
+		}
+	}
+	return natural;
+}
+
+/**
  * Record what an `<img>` finished loading. Safe to call on every `load` event
  * and on elements that turn out not to have loaded at all.
  *
@@ -52,7 +85,7 @@ export function noteImage(el) {
 	// no `srcset` the two are the same string.
 	const src = el.currentSrc || el.src;
 	if (!src) return;
-	sizes.set(src, { width: el.naturalWidth, height: el.naturalHeight });
+	sizes.set(src, fileSize(el));
 
 	// Re-insert so a photo being looked at now outlives one from further up.
 	retained.delete(src);

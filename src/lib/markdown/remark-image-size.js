@@ -22,9 +22,11 @@
  * consumes so a gallery slide can reserve its box too.
  */
 
-import { closeSync, fstatSync, openSync, readFileSync, readSync } from 'node:fs';
+import { closeSync, existsSync, fstatSync, openSync, readFileSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { imageSize } from './image-size.js';
+import { ARTICLE_SIZES } from './image-sizes.js';
+import { VARIANTS_MANIFEST, srcsetOf } from './image-variants.js';
 
 /** Resolved path -> size, or null for one already found unreadable. */
 const cache = new Map();
@@ -93,6 +95,40 @@ export function sizeOfLocalImage(url, root) {
 	return size;
 }
 
+/**
+ * The responsive copies the image step recorded, or an empty record when it has
+ * not run here — a dev server, a test — which leaves every image as it was.
+ *
+ * @param {string} file
+ * @returns {Record<string, import('./image-variants.js').VariantEntry>}
+ */
+function readVariants(file) {
+	try {
+		return JSON.parse(readFileSync(file, 'utf8'));
+	} catch {
+		return {};
+	}
+}
+
+/**
+ * A `srcset` for `url`, only if every file it names is actually in `root`: a
+ * manifest can outlive the copies (a dev checkout that ran the step once), and
+ * a candidate that 404s is a broken image the browser may well pick.
+ *
+ * @param {string} url
+ * @param {string} root
+ * @param {Record<string, import('./image-variants.js').VariantEntry>} variants
+ */
+function srcsetFor(url, root, variants) {
+	const entry = variants[decodeURIComponent(url.split(/[?#]/)[0])];
+	if (!entry?.candidates?.length) return null;
+	const present = entry.candidates.every((c) => {
+		const file = resolveLocal(c.url, root);
+		return file && existsSync(file);
+	});
+	return present ? srcsetOf(entry) : null;
+}
+
 /** @param {any} node @param {(image: any) => void} fn */
 function visitImages(node, fn) {
 	if (!node || typeof node !== 'object') return;
@@ -101,19 +137,24 @@ function visitImages(node, fn) {
 }
 
 /**
- * @param {{ root?: string }} [options] `root` is the directory `/`-rooted image
- *   URLs resolve against — SvelteKit's `static/`.
+ * @param {{ root?: string, variants?: Record<string, import('./image-variants.js').VariantEntry> }} [options]
+ *   `root` is the directory `/`-rooted image URLs resolve against — SvelteKit's
+ *   `static/`. `variants` defaults to the image step's manifest.
  */
 export function remarkImageSize(options = {}) {
 	const root = options.root ?? path.join(process.cwd(), 'static');
+	const variants = options.variants ?? readVariants(path.join(process.cwd(), VARIANTS_MANIFEST));
 
 	return function transformer(tree) {
 		visitImages(tree, (node) => {
 			const size = sizeOfLocalImage(node.url, root);
 			if (!size) return;
+			const srcset = srcsetFor(node.url, root, variants);
 			node.data ??= {};
-			// Read back by `remarkGallery` for the images it turns into slides.
+			// Read back by `remarkGallery` for the images it turns into slides,
+			// which size their own `sizes` off the strip's height.
 			node.data.imageSize = size;
+			if (srcset) node.data.imageSrcset = srcset;
 			node.data.hProperties = {
 				...node.data.hProperties,
 				width: size.width,
@@ -130,7 +171,10 @@ export function remarkImageSize(options = {}) {
 				// Cleared by the first `load`. Server-rendered rather than added on
 				// hydration, so the placeholder is there in the first paint — which is
 				// the only paint it exists for.
-				'data-img-pending': 'true'
+				'data-img-pending': 'true',
+				// `src` stays the original: it is the image's identity for the
+				// lightbox and the cache, and what a browser without `srcset` gets.
+				...(srcset ? { srcset, sizes: ARTICLE_SIZES } : {})
 			};
 		});
 	};

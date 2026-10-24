@@ -241,7 +241,14 @@
    placeholder is then the same box as the photo by construction, at the same
    size and in the same place, with nothing to keep in step as the article's
    `max-width` and `max-height` rules scale it. */
-img[data-img-pending] {
+img[data-img-pending],
+/* …and kept after it has landed, for an image offered as a `srcset`. Its
+   `w` descriptors make the browser size it from `sizes` rather than from the
+   file — a 530px photo against a 699px column drew at 699, upscaled — and
+   `sizes="auto"` gives it size containment at 300x150 the moment `width` is
+   `auto`. Both need a box that does not come from the pixels; this one is the
+   placeholder's, so the photo lands where the placeholder was and stays. */
+img[srcset][style*='--img-w'] {
 	/* The box, computed to be the one the photo will land in.
 
 	   It cannot simply be left to `width`/`height`: the article sizes images with
@@ -269,7 +276,9 @@ img[data-img-pending] {
 	);
 	width: var(--img-pending-w);
 	height: auto;
+}
 
+img[data-img-pending] {
 	background-color: var(--color-neutral-100);
 	background-image: linear-gradient(
 		90deg,

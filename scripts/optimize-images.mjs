@@ -13,6 +13,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import sharp from 'sharp';
+import {
+	VARIANTS_MANIFEST,
+	VARIANT_QUALITY,
+	variantKey,
+	variantPath,
+	variantWidths
+} from '../src/lib/markdown/image-variants.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -21,6 +28,10 @@ const ROOT = path.resolve(__dirname, '..');
 const CACHE_DIR = path.join(ROOT, '.cache');
 const MANIFEST_PATH = path.join(CACHE_DIR, 'image-optimize.json');
 const FINGERPRINT_PATH = path.join(CACHE_DIR, 'source-fingerprints.json');
+const VARIANTS_PATH = path.join(ROOT, VARIANTS_MANIFEST);
+
+/** Animated GIFs stay as they are; everything else gets smaller copies. */
+const VARIANT_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const MIRROR_DIR = path.join(CACHE_DIR, 'image-mirror');
 
 /** Max width for blog/photo assets (2x typical content column). */
@@ -189,6 +200,112 @@ async function optimizeFile(rel, inputHash, sourceBuf) {
 	return { rel, skipped: false, saved };
 }
 
+/**
+ * The display size of the optimized original: rotated as the browser will draw
+ * it, and capped the way `optimizeFile` caps it.
+ *
+ * @param {Buffer} sourceBuf
+ */
+async function displaySize(sourceBuf) {
+	const meta = await sharp(sourceBuf).metadata();
+	const width = meta.autoOrient?.width ?? meta.width ?? 0;
+	const height = meta.autoOrient?.height ?? meta.height ?? 0;
+	const scale = Math.min(1, MAX_WIDTH / width, MAX_HEIGHT / height);
+	return { width: Math.round(width * scale), height: Math.round(height * scale) };
+}
+
+/**
+ * Smaller WebP copies of one image, for its `srcset` — see
+ * `src/lib/markdown/image-variants.js`. Written into the mirror beside the
+ * optimized original, so the same cache restores both and the same apply step
+ * puts both in `static/`.
+ *
+ * A full-size WebP is kept only when it beats the optimized original; when it
+ * does not, the original is the top candidate itself.
+ *
+ * @param {string} rel
+ * @param {string} inputHash
+ * @param {Buffer} sourceBuf
+ * @returns {Promise<{ written: number }>}
+ */
+async function buildVariants(rel, inputHash, sourceBuf) {
+	const entry = manifest[rel];
+	if (!entry) return { written: 0 };
+	// Article images only: nothing outside `static/images` is ever given a
+	// srcset. A list left from before that rule would name files nobody writes.
+	if (!rel.startsWith('static/images/') || !VARIANT_EXT.has(path.extname(rel).toLowerCase())) {
+		delete entry.variants;
+		return { written: 0 };
+	}
+
+	const settings = `${VARIANT_QUALITY}`;
+	if (!force && entry.variantInput === inputHash && entry.variantSettings === settings) {
+		const files = (entry.variants ?? []).map((v) => mirrorPath(v.file));
+		const present = await Promise.all(
+			files.map((f) =>
+				stat(f).then(
+					() => true,
+					() => false
+				)
+			)
+		);
+		if (present.every(Boolean)) return { written: 0 };
+	}
+
+	const { width, height } = await displaySize(sourceBuf);
+	const original = await stat(mirrorPath(rel)).then(
+		(s) => s.size,
+		() => Infinity
+	);
+	/** @type {{ w: number, h: number, file: string }[]} */
+	const variants = [];
+	for (const w of [...variantWidths(width), width]) {
+		const out = await sharp(sourceBuf, { failOn: 'none' })
+			.rotate()
+			.resize({ width: w, withoutEnlargement: true })
+			.webp({ quality: VARIANT_QUALITY, effort: 5, smartSubsample: true })
+			.toBuffer();
+		if (w === width && out.length >= original) continue;
+		const file = variantPath(rel, w, variantKey(inputHash, w));
+		if (!dryRun) {
+			await mkdir(path.dirname(mirrorPath(file)), { recursive: true });
+			await writeFile(mirrorPath(file), out);
+		}
+		variants.push({ w, h: Math.round((height * w) / width), file });
+	}
+
+	Object.assign(entry, {
+		variantInput: inputHash,
+		variantSettings: settings,
+		width,
+		height,
+		variants
+	});
+	if (verbose) console.log(`variants: ${rel} ${variants.map((v) => v.w).join(', ') || 'none'}`);
+	return { written: variants.length };
+}
+
+/**
+ * What the markdown build reads: each image's site URL, its size, and the
+ * candidates for its `srcset`, smallest first.
+ */
+async function saveVariantsManifest() {
+	if (dryRun) return;
+	/** @type {Record<string, { width: number, height: number, candidates: { url: string, w: number }[] }>} */
+	const out = {};
+	for (const [rel, entry] of Object.entries(manifest)) {
+		if (!entry.variants?.length || !rel.startsWith('static/images/')) continue;
+		const url = (file) => `/${path.relative('static', file).split(path.sep).join('/')}`;
+		const candidates = entry.variants.map((v) => ({ url: url(v.file), w: v.w }));
+		if (!entry.variants.some((v) => v.w === entry.width)) {
+			candidates.push({ url: url(rel), w: entry.width });
+		}
+		out[url(rel)] = { width: entry.width, height: entry.height, candidates };
+	}
+	await mkdir(path.dirname(VARIANTS_PATH), { recursive: true });
+	await writeFile(VARIANTS_PATH, JSON.stringify(out, null, 2));
+}
+
 function formatBytes(n) {
 	if (n < 1024) return `${n} B`;
 	if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -223,6 +340,7 @@ async function main() {
 	let totalSaved = 0;
 	let optimized = 0;
 	let skipped = 0;
+	let copies = 0;
 
 	for (const [rel, inputHash] of Object.entries(files)) {
 		try {
@@ -231,6 +349,7 @@ async function main() {
 			if (result.skipped) skipped += 1;
 			else optimized += 1;
 			totalSaved += result.saved;
+			copies += (await buildVariants(rel, inputHash, sourceBuf)).written;
 		} catch (err) {
 			console.error(`failed: ${rel}`, err instanceof Error ? err.message : err);
 			process.exitCode = 1;
@@ -238,10 +357,11 @@ async function main() {
 	}
 
 	await saveManifest();
+	await saveVariantsManifest();
 
 	const mode = dryRun ? ' (dry run)' : '';
 	console.log(
-		`\nImage optimize${mode}: ${optimized} updated, ${skipped} skipped, saved ${formatBytes(totalSaved)}`
+		`\nImage optimize${mode}: ${optimized} updated, ${skipped} skipped, saved ${formatBytes(totalSaved)}, ${copies} responsive copies written`
 	);
 }
 

@@ -667,6 +667,32 @@ describe('lightboxAction', () => {
 		destroy();
 	});
 
+	it('carries the srcset, and sizes a srcset image by the build, not by the copy it loaded', () => {
+		const { node, destroy } = mount(
+			'<img src="/a.png" srcset="/a.w640.k.webp 640w, /a.png 2400w" width="2400" height="1600" alt="A">'
+		);
+		const img = node.querySelector('img');
+		// The 640 copy drawn at 350px wide reports 350x233.
+		size(img, 350, 233);
+		img.click();
+
+		const [item] = lightboxStore.value.items;
+		expect(item.srcset).toBe('/a.w640.k.webp 640w, /a.png 2400w');
+		expect(item).toMatchObject({ naturalWidth: 2400, naturalHeight: 1600 });
+		destroy();
+	});
+
+	it('drops the srcset when data-lightbox-src points at another file', () => {
+		const { node, destroy } = mount(
+			'<img src="/a.png" srcset="/a.w640.k.webp 640w" data-lightbox-src="/big.png" width="800" height="600" alt="A">'
+		);
+		const img = node.querySelector('img');
+		size(img);
+		img.click();
+		expect(lightboxStore.value.items[0].srcset).toBeUndefined();
+		destroy();
+	});
+
 	it('carries the element each image came from, so the lightbox can fly back to it', () => {
 		const { node, destroy } = mount(
 			'<div data-lightbox-group><img src="/a.png" alt="A"><img src="/b.png" alt="B"></div>'
