@@ -31,6 +31,17 @@
   all cap their peer at 6.x (`typescript-eslint` at <6.1).
 - **`remark-math` 3** — mdsvex 0.12 bundles the pre-micromark `remark-parse`, and
   remark-math 4+ is a micromark extension it cannot load.
+- **`remark-footnotes` 2** — the same parser, the same reason: 3+ is micromark.
+- **`katex` and `overrides["rehype-katex-svelte"].katex`** — `katex` is declared
+  so `katex/dist/katex.min.css` resolves, and the override makes
+  `rehype-katex-svelte` (which caps it at `^0.16`) render with that same copy:
+  the sheet has to match the markup, and 0.18.2 is the first release clear of
+  GHSA-238p-pmpm-9mq7. 0.19 renamed KaTeX's own classes (`base` →
+  `katex-base`); one copy is what keeps the two halves agreeing. Drop the
+  override once `rehype-katex-svelte` accepts the declared version.
+- **`overrides["@tailwindcss/typography"]["postcss-selector-parser"]`** —
+  typography pins 6.0.10, below the fix for GHSA-rj75-hqrm-r3gf, and npm's own
+  "fix" is a downgrade of typography. 7.x produced a byte-identical stylesheet.
 - **`satori` ~0.32** — 0.33 shapes text with HarfBuzz, whose `hb.wasm` is read
   off disk at import time and is not traced into the Vercel function, so every
   OG image 500s in production while working locally. Check
@@ -68,11 +79,11 @@ src/
     projects/{en,ko}/*.md
   lib/
     api-client.js          # apiFetch — the only way components call /api
-    format.js              # formatDate / formatDateLong / formatDateTime / sliceText
+    format.js              # formatDate / formatDateLong / formatDateTime
     reduced-motion.svelte.js  # One shared prefers-reduced-motion subscription
     theme.svelte.js        # Observes the class app.html sets; never sets it
     types.d.ts             # Post / Project / Tags
-    actions/               # auto-height, in-view-once, marquee
+    actions/               # auto-height, marquee
     article/               # ArticleDials + settings
     comments/              # CommentsSection, CommentNode, AdminCommentNode, build-tree
     content/bilingual.js   # en/ko module resolution for the [slug] routes
@@ -85,13 +96,15 @@ src/
     likes/LikeButton.svelte
     markdown/              # remark-gallery, remark-image-size, image-size,
                            # remark-lazy-video, splice-import, remark-reading-time,
-                           # reading-time, rehype-strip-code-tabindex,
-                           # pretty-code-highlighter
+                           # reading-time, code-highlighter, code-theme,
+                           # remark-stylesheets, remark-youtube, video-size,
+                           # rehype-footnotes, KatexFonts, image-variants,
+                           # image-sizes
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
     server/                # admin, api, content, content-modules, content-page,
-                           # convex, ip, valid-urls, validation
+                           # convex, ip, series, valid-urls, validation
     techstack/             # TechStack + data
     ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList,
                            # StableLangStack
@@ -352,6 +365,13 @@ import.meta.glob('/src/content/blog/en/*.md', { eager: true, import: 'metadata' 
   quietly go empty. **This has happened once.** After a build, check
   `.svelte-kit/output/prerendered/pages/rss.xml` has `<item>` entries.
 
+**Never glob the same `.md` eagerly and lazily in one bundle.** A module
+imported both ways cannot be split, so Rollup puts every whole post in a static
+chunk. `blog/[slug]/+page.js` did this to read `metadata.series` and every
+article page loaded every post's compiled content — 48KB gzipped, drafts
+included. The series list is now `postSeries` (`server/series.js`), computed in
+the server load; the universal load keeps only the lazy glob.
+
 Listing pages read `publishedPosts()` / `publishedProjects()` directly in a
 server load. `/api/posts` and `/api/projects` still exist as public endpoints,
 but are no longer how the site's own pages get the list.
@@ -387,6 +407,17 @@ Per-image opt-outs on the `<img>`: `data-no-lightbox` excludes it,
 `data-lightbox-src` points at a larger file, `data-lightbox-caption` overrides
 the alt text. The source comes from the `src` attribute, not `currentSrc` —
 on a `srcset` image that is whatever the browser picked for the _thumbnail_.
+
+**A `srcset` travels with the image.** The lightbox's `<img>` carries the
+article's `srcset` against its own `sizes` — the full-screen box's width, and
+the box times `MAX_SCALE` once zoomed — so it fetches a screen's worth, never
+the original, and zooming swaps a sharper copy in (the browser keeps the
+current one on screen until the new one has decoded). The article's copy is
+still the `poster` painted underneath while that loads. **`naturalWidth` is not
+the file's width on a `srcset` image**: `w` descriptors make it the file divided
+by its density against `sizes`. Item sizes come from the build's
+`width`/`height`, and `fileSize()` (`image-cache.js`) reads the chosen
+candidate's descriptor wherever a file's real size is wanted.
 
 ### It opens as the same photo, not a new one
 
@@ -710,6 +741,99 @@ video's image node into a photo strip.
 The label is the title, then the alt text or the link text; with none of them the
 prop is left off so the component's own default applies.
 
+**A local MP4 is measured at build time** (`markdown/video-size.js`, which walks
+the container's box headers to the video track's `tkhd` — the `moov` alone, never
+the media data) and `width`/`height` are passed through. `LazyVideo` takes that
+shape for both the poster and the player, capped at `--prose-img-max-h` like a
+tall photo. It was a fixed 16:9, which played the 800x900 SchoolWatch recording
+cropped to its top half. Write videos in the markdown form: a hand-written
+`<LazyVideo>` is not measured, starts at 16:9 and corrects itself only once the
+file's metadata loads. The authoring extension's drop writes the markdown form.
+
+---
+
+## YouTube in Markdown (`src/lib/markdown/remark-youtube.js`)
+
+A top-level paragraph that is nothing but a YouTube link becomes a
+`loading="lazy"` iframe on `youtube-nocookie.com`, built locally.
+`[Title](https://youtu.be/…)` names the frame for screen readers; a bare URL gets
+YouTube's own default title.
+
+It replaced `@remark-embedder` + its oEmbed transformer, which fetched
+oembed.com's provider list and each video's oEmbed on every build — two thirds
+of the pipeline's plugin time, a network dependency for predictable markup, and
+an eager iframe that loaded YouTube's player with the page.
+
+---
+
+## The mdsvex Pipeline
+
+mdsvex 0.12 parses with its own bundled, pre-micromark `remark-parse`, which
+decides what a plugin can do:
+
+- **GFM is built in** — tables, task lists, strikethrough, autolinks.
+  `remark-gfm` 4 is a micromark extension that parser cannot load; it was in the
+  config and changed nothing in any post, so it is gone. The same applies to any
+  micromark-era remark plugin: compile a post with and without it before trusting
+  it.
+- **Footnotes** come from `remark-footnotes` 2 (3+ is micromark), and mdsvex's
+  own mdast-to-hast writes their markup. `rehype-footnotes.js` then finishes it,
+  running last: markers numbered in reading order rather than showing the label,
+  a unique id per citation (`fnref-1`, `fnref-1-2`) with a back link to each, a
+  `<section>` labelled by a visually hidden heading in the post's language, and
+  `↩︎` with the text presentation selector, which iOS otherwise draws as an
+  emoji. `app.css` sets them under a hairline at the end of the post and marks
+  the note or marker a jump lands on.
+- **Math** is `remark-math` 3 + `rehype-katex-svelte`. KaTeX's markup is
+  meaningless without its own sheet, which nothing loaded until
+  `remarkStylesheets` began importing it into the posts that have math. KaTeX's
+  fonts are `font-display: block`, so a formula is blank until they land;
+  `KatexFonts.svelte`, spliced into the same posts, preloads the Main and
+  Math-Italic faces so they are fetched with the sheet rather than after layout.
+  `swap` would be worse — fallback metrics make fractions and scripts jump.
+  Wait for the fonts before screenshotting, or every glyph is blank.
+- `gfm-test.md` (unpublished) exercises every one of these; flip its
+  `published` locally to look.
+
+Image sizes are read from the first 128KB of each file (`sizeOfFile` in
+`remark-image-size.js`), with the whole file as a fallback; reading the photos
+in full was most of that plugin's cost on a cold build.
+
+---
+
+## Code Blocks (`src/lib/markdown/code-highlighter.js`)
+
+Fences are highlighted at build time by `@pierre/highlights` (synchronous, Wasm
+lexers), so nothing ships to the browser or the Vercel function. Fence meta:
+`{1,3-5}` highlights lines, `title="…"` adds a tab, `caption="…"` a
+`<figcaption>`, `showLineNumbers` numbers it.
+
+- **A token is a class, the palette is a stylesheet.** Highlights names each
+  token's category (`var(--code-keyword)`); `code-theme.js` maps every distinct
+  light/dark colour pair to a short class (`t0`…`t22`), and the generated
+  `code-theme.css` defines each under the `.dark` class. That halved the markup,
+  which ships twice — in the HTML and in the post's compiled JS. Do not switch
+  to an inline default colour: the server cannot know the theme, and a client
+  re-render would be a hydration mismatch.
+- **`code-theme.css` is generated and checked in.** `npm run code-theme` after
+  bumping `@pierre/highlights`; `code-theme.test.js` fails until you do, because
+  the highlighter derives the same classes at build time.
+- **Only posts with code load it.** `remarkStylesheets` splices
+  `import '#lib/markdown/code-theme.css'` into those posts, through
+  `splice-import.js` like the gallery's component import.
+- **Highlights has no language detection.** An unknown label falls back to
+  `plain` rather than throwing, and its lexers classify some tokens differently
+  from TextMate grammars.
+- **The `<pre>` scrolls, not the figure**, so the box and the highlight band span
+  the full width and the caption stays put. It carries `tabindex="0"` (Safari
+  does not make a scroller focusable on its own) behind a `svelte-ignore`: the
+  output is inlined as Svelte template source, not `{@html}`, so Svelte's a11y
+  checks see it.
+- **A blank line is a line containing `\n`.** The lines are grid items, so the
+  newlines between them are not what a copy carries: an empty item copies as
+  nothing (blank lines vanish) and a space copies as trailing whitespace.
+  Checked against the real clipboard.
+
 ---
 
 ## Images: the box, and loading them once
@@ -743,6 +867,37 @@ slides get the same numbers, carried on the node's `data.imageSize`.
   `--img-max-h` instead of restating the arithmetic.
 - An image with no `--img-w` makes all of it invalid at computed-value time,
   which is `unset`: exactly the layout it had before.
+
+### Smaller copies, chosen by the browser
+
+`npm run optimize-images` (on Vercel, before `build`) also writes WebP copies of
+every image under `static/images` — 640/960/1280/1920 below the photo's own
+width, plus a full-size WebP when it beats the optimized original — into the
+mirror beside it, and `apply-optimized-images` puts them in `static/`
+(gitignored: `*.w960.<key>.webp`). `.cache/image-variants.json` maps each
+`/images/...` URL to its candidates; `remarkImageSize` turns that into a
+`srcset`, and `remarkGallery` hands it to the slide. Measured on `us-camp`: 12.9MB
+of images at 1440@2x became 4.5MB; the Sirius screenshots went from 9.6MB to
+0.4MB, with the text still sharp.
+
+- **The key in the name is a hash of the source and the settings.** `/images` is
+  served `immutable` for a year, so a new photo or a new quality has to be a new
+  URL. `image-variants.js` is a turbo input of `build-image-cache` for the same
+  reason.
+- **No manifest, or a candidate missing from disk, means no `srcset`** — a dev
+  server that never ran the image step serves exactly what it did before.
+- **`sizes` is `auto` first** (`image-sizes.js`): every article image is lazy, so
+  the browser uses the width it laid the image out at — the height cap makes a
+  tall photo far narrower than the column. The fallback is the column measured at
+  each breakpoint of the post page; re-measure it if that layout changes.
+- **A `srcset` image keeps the placeholder's box after it loads**
+  (`img[srcset][style*='--img-w']` in `app.css`). Its `w` descriptors make the
+  browser size it from `sizes`, which upscaled a 530px photo to the 699px
+  column, and `sizes="auto"` gives it size containment at 300x150 the moment
+  `width` is `auto`. The build's box is the one that does not depend on the
+  pixels. A gallery slide re-applies it with its own height cap.
+- `image-variants.js` hashes, so it is Node-only; anything the browser loads
+  takes `sizes` from `image-sizes.js`.
 
 ### The lightbox does not download it again
 
@@ -978,6 +1133,9 @@ half.
 - **Several images at once land on consecutive lines with no blank line
   between them**, which is exactly what `remark-gallery` reads as a group. The
   drop produces a `<Gallery />` for the same reason a hand-typed run does.
+- **A video lands as `![label](/videos/x.mp4)` in a paragraph of its own**, not
+  as a hand-written `<LazyVideo>`, so `remarkLazyVideo` measures it and brings in
+  the import.
 - **The copy is a `WorkspaceEdit.createFile`, not an `fs` write**, so the link
   and the file are one undo.
 - **Only formats a browser cannot render are transcoded** (HEIC, TIFF).
@@ -1025,16 +1183,6 @@ on every SSR page.
 ---
 
 ## Convex
-
-This project uses [Convex](https://convex.dev) as its backend.
-
-When working on Convex code, **always read `convex/_generated/ai/guidelines.md`
-first** for important guidelines on how to correctly use Convex APIs and
-patterns. The file contains rules that override what you may have learned about
-Convex from training data.
-
-Convex agent skills for common tasks can be installed by running
-`npx convex ai-files install`.
 
 <!-- convex-ai-start -->
 

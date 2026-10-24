@@ -29,11 +29,14 @@ function toImage(node) {
 	// `remarkImageSize` ran first and measured the file. A slide that knows the
 	// aspect ratio can hold the photo's box open before a byte of it arrives.
 	const size = node.data?.imageSize;
+	const srcset = node.data?.imageSrcset;
 	return {
 		src: node.url,
 		alt: node.alt ?? '',
 		...(node.title ? { title: node.title } : {}),
-		...(size ? { width: size.width, height: size.height } : {})
+		...(size ? { width: size.width, height: size.height } : {}),
+		// The strip works out `sizes` itself, from its height and this image's shape.
+		...(srcset ? { srcset } : {})
 	};
 }
 

@@ -71,7 +71,7 @@ That was enough for now. We went home.
 
 ---
 
-https://www.youtube.com/watch?v=FpIRgBNSDcs
+[LG AI 청소년 캠프 서울대학교 1박 2일 캠프 현장](https://www.youtube.com/watch?v=FpIRgBNSDcs)
 
 ## 10-Week Project
 
@@ -160,7 +160,7 @@ That was the end of a three-month journey.
 
 ---
 
-https://www.youtube.com/watch?v=8cuL98yA3og
+[LG AI 청소년 캠프 최종 발표 및 수료식 현장](https://www.youtube.com/watch?v=8cuL98yA3og)
 
 ## Thoughts
 

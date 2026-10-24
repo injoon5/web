@@ -12,10 +12,6 @@ keywords:
   - watchOS app development
 ---
 
-<script>
-	import LazyVideo from '#lib/ui/LazyVideo.svelte';
-</script>
-
 ## Why a watch app
 
 I wear an Apple Watch most days. Pulling out my phone between classes to check the timetable or see how much time was left in the period felt dumb when the screen was _right there_ on my wrist.
@@ -24,7 +20,7 @@ I wear an Apple Watch most days. Pulling out my phone between classes to check t
 
 ## Demo
 
-<LazyVideo src="/videos/projects/schoolwatch.mp4" label="Play SchoolWatch demo" />
+![Play SchoolWatch demo](/videos/projects/schoolwatch.mp4)
 
 ## App structure
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Copy optimized image mirrors from .cache/ onto static/ for the build.
+ * Copy optimized image mirrors from .cache/ onto static/ for the build, with
+ * each image's responsive copies beside it (`*.w960.<key>.webp`, gitignored).
  * Always runs after build-image-cache (even on turbo cache hit).
  */
 
@@ -44,6 +45,7 @@ async function main() {
 	const files = fingerprint.files ?? {};
 	let applied = 0;
 	let missing = 0;
+	let copies = 0;
 
 	for (const rel of Object.keys(files)) {
 		const mirror = path.join(MIRROR_DIR, rel);
@@ -63,12 +65,27 @@ async function main() {
 			missing += 1;
 			console.warn(`warn: missing mirror for ${rel}`);
 		}
+
+		for (const variant of manifest[rel].variants ?? []) {
+			try {
+				await copyFileEnsuringDir(
+					path.join(MIRROR_DIR, variant.file),
+					path.join(ROOT, variant.file)
+				);
+				copies += 1;
+			} catch {
+				missing += 1;
+				console.warn(`warn: missing responsive copy ${variant.file}`);
+			}
+		}
 	}
 
 	// Ensure static dir exists even if there are zero images.
 	await mkdir(STATIC_DIR, { recursive: true });
 
-	console.log(`Applied ${applied} optimized images to static/ (${missing} missing)`);
+	console.log(
+		`Applied ${applied} optimized images and ${copies} responsive copies to static/ (${missing} missing)`
+	);
 	if (missing > 0) process.exitCode = 1;
 }
 

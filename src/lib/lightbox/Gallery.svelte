@@ -14,6 +14,29 @@
 	import { motion } from '#lib/reduced-motion.svelte.js';
 	import Stepper from '#lib/pasito/Stepper.svelte';
 	import { trackImages } from './image-cache.js';
+	import { COLUMN_SIZES } from '#lib/markdown/image-sizes.js';
+
+	const DEFAULT_HEIGHT = 'clamp(220px, 52vw, 460px)';
+
+	/**
+	 * How wide a slide's photo is drawn, for the browser to choose a copy by.
+	 * `auto` (every slide is lazy) has the browser read the laid-out box, which
+	 * the build's placeholder already sizes exactly. Without it: the strip's
+	 * height times the photo's shape, through the same clamp as the height —
+	 * 220px until 52vw passes it at 424px, 460px from 885px — and never wider
+	 * than the column. A custom height is a box this cannot see into, so it
+	 * falls back to the column.
+	 *
+	 * @param {{ width?: number, height?: number }} image
+	 */
+	function sizesFor(image) {
+		if (height !== DEFAULT_HEIGHT || !image.width || !image.height) {
+			return `auto, ${COLUMN_SIZES}`;
+		}
+		const r = image.width / image.height;
+		const px = (h) => `${Math.round(Math.min(699, h * r))}px`;
+		return `auto, (min-width: 885px) ${px(460)}, (min-width: 424px) calc(52vw * ${r.toFixed(3)}), ${px(220)}`;
+	}
 
 	let {
 		/**
@@ -22,7 +45,10 @@
 		 * a slide hold the photo's exact box — and so its placeholder — before any
 		 * of it has arrived.
 		 *
-		 * @type {Array<{ src: string, alt?: string, title?: string, width?: number, height?: number }>}
+		 * `srcset` lists the build's smaller copies of the file (see
+		 * `#lib/markdown/image-variants.js`); the strip supplies the `sizes`.
+		 *
+		 * @type {Array<{ src: string, alt?: string, title?: string, width?: number, height?: number, srcset?: string }>}
 		 */
 		images = [],
 		/**
@@ -31,7 +57,7 @@
 		 * and it is a prop so a hand-written gallery of short images doesn't have
 		 * to sit in a tall box.
 		 */
-		height = 'clamp(220px, 52vw, 460px)',
+		height = DEFAULT_HEIGHT,
 		class: className = ''
 	} = $props();
 
@@ -191,6 +217,8 @@
 					     its caption for its alt text, which is a different job. -->
 					<img
 						src={image.src}
+						srcset={image.srcset}
+						sizes={image.srcset ? sizesFor(image) : undefined}
 						alt={image.alt ?? ''}
 						data-lightbox-caption={image.title || undefined}
 						width={image.width || undefined}
@@ -385,7 +413,8 @@
 	   the browser has not fetched is 0x0 whatever its attributes say. The width
 	   itself comes from `app.css`, computed against the `--img-max-h` set above,
 	   so the arithmetic is not written out a second time to drift from. */
-	.gallery-slide img[data-img-pending] {
+	.gallery-slide img[data-img-pending],
+	.gallery-slide img[srcset][style*='--img-w'] {
 		width: var(--img-pending-w);
 		height: auto;
 	}

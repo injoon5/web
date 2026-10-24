@@ -163,3 +163,27 @@ Watch it here:
 https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
 Isn't it great!?
+
+## 수식
+
+Euler's identity, $e^{i\pi} + 1 = 0$, sits inline with the text. A display equation is centred on its own line:
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+
+And one wider than a phone, which scrolls inside itself:
+
+$$
+\sum_{n=1}^{\infty} \frac{1}{n^2} = \frac{\pi^2}{6} \approx 1.6449340668482264364724151666460251892189499012067984377355582293700074704032008738336289006197587053
+$$
+
+## 각주
+
+Footnotes number themselves in reading order[^first], whatever their labels are[^a-label]. A note cited twice[^first] gets a way back to each citation.
+
+[^first]: The first note, with a [link](https://example.com) in it.
+
+[^a-label]: A note can run to more than one paragraph.
+
+    Indent the next one by four spaces to keep it in the note.

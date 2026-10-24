@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
-import { remarkImageSize } from './remark-image-size.js';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { remarkImageSize, sizeOfLocalImage } from './remark-image-size.js';
 import { remarkGallery } from './remark-gallery.js';
 
 const ROOT = 'static';
@@ -73,5 +76,83 @@ describe('remarkImageSize', () => {
 			expect(slide.width).toBeGreaterThan(0);
 			expect(slide.height).toBeGreaterThan(0);
 		}
+	});
+});
+
+describe('sizeOfLocalImage', () => {
+	it('reads past the head when a JPEG frame header sits deep in the file', () => {
+		// Four 64KB APP2 segments (an ICC profile's worth) before the frame header,
+		// so the first 128KB alone cannot answer.
+		const app2 = Buffer.alloc(0xffff + 2);
+		app2.writeUInt16BE(0xffe2, 0);
+		app2.writeUInt16BE(0xffff, 2);
+		const sof = Buffer.from([
+			0xff, 0xc0, 0, 17, 8, 0, 0, 0, 0, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1
+		]);
+		sof.writeUInt16BE(321, 5);
+		sof.writeUInt16BE(654, 7);
+		const file = Buffer.concat([Buffer.from([0xff, 0xd8]), app2, app2, app2, app2, sof]);
+		expect(file.length).toBeGreaterThan(128 * 1024);
+
+		const root = mkdtempSync(path.join(tmpdir(), 'image-size-'));
+		writeFileSync(path.join(root, 'deep.jpg'), file);
+		expect(sizeOfLocalImage('/deep.jpg', root)).toEqual({ width: 654, height: 321 });
+	});
+});
+
+describe('remarkImageSize with responsive copies', () => {
+	const PNG = Buffer.from(
+		'89504e470d0a1a0a0000000d4948445200000a000000064008060000000000000000',
+		'hex'
+	);
+
+	/** A static root holding `photo.png` (2560x1600) and the copies named in `variants`. */
+	function rootWith(files) {
+		const root = mkdtempSync(path.join(tmpdir(), 'variants-'));
+		mkdirSync(path.join(root, 'images'), { recursive: true });
+		writeFileSync(path.join(root, 'images/photo.png'), PNG);
+		for (const f of files) writeFileSync(path.join(root, f), 'webp');
+		return root;
+	}
+
+	const variants = {
+		'/images/photo.png': {
+			width: 2560,
+			height: 1600,
+			candidates: [
+				{ url: '/images/photo.w640.k1.webp', w: 640 },
+				{ url: '/images/photo.w2560.k2.webp', w: 2560 }
+			]
+		}
+	};
+
+	it('offers the copies, with the article column as sizes, and keeps src the original', () => {
+		const root = rootWith(['images/photo.w640.k1.webp', 'images/photo.w2560.k2.webp']);
+		const tree = run('![A](/images/photo.png)\n', [[remarkImageSize, { root, variants }]]);
+		const props = images(tree)[0].data.hProperties;
+		expect(props.srcset).toBe('/images/photo.w640.k1.webp 640w, /images/photo.w2560.k2.webp 2560w');
+		expect(props.sizes).toMatch(/699px/);
+		expect(images(tree)[0].url).toBe('/images/photo.png');
+		expect(props.width).toBe(2560);
+	});
+
+	it('offers nothing when a copy is missing from disk, rather than a broken candidate', () => {
+		const root = rootWith(['images/photo.w640.k1.webp']);
+		const tree = run('![A](/images/photo.png)\n', [[remarkImageSize, { root, variants }]]);
+		expect(images(tree)[0].data.hProperties.srcset).toBeUndefined();
+		expect(images(tree)[0].data.hProperties.width).toBe(2560);
+	});
+
+	it('hands the srcset to a gallery slide', () => {
+		const root = rootWith(['images/photo.w640.k1.webp', 'images/photo.w2560.k2.webp']);
+		const tree = run('![A](/images/photo.png)\n![B](/images/photo.png)\n', [
+			[remarkImageSize, { root, variants }],
+			remarkGallery
+		]);
+		const tag = tree.children.find(
+			(n) => n.type === 'html' && n.value.startsWith('<Gallery')
+		)?.value;
+		const payload = JSON.parse(tag.slice(tag.indexOf('{') + 1, tag.lastIndexOf('}')));
+		expect(payload[0].srcset).toContain('640w');
 	});
 });

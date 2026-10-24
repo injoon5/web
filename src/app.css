@@ -241,7 +241,14 @@
    placeholder is then the same box as the photo by construction, at the same
    size and in the same place, with nothing to keep in step as the article's
    `max-width` and `max-height` rules scale it. */
-img[data-img-pending] {
+img[data-img-pending],
+/* …and kept after it has landed, for an image offered as a `srcset`. Its
+   `w` descriptors make the browser size it from `sizes` rather than from the
+   file — a 530px photo against a 699px column drew at 699, upscaled — and
+   `sizes="auto"` gives it size containment at 300x150 the moment `width` is
+   `auto`. Both need a box that does not come from the pixels; this one is the
+   placeholder's, so the photo lands where the placeholder was and stays. */
+img[srcset][style*='--img-w'] {
 	/* The box, computed to be the one the photo will land in.
 
 	   It cannot simply be left to `width`/`height`: the article sizes images with
@@ -269,7 +276,9 @@ img[data-img-pending] {
 	);
 	width: var(--img-pending-w);
 	height: auto;
+}
 
+img[data-img-pending] {
 	background-color: var(--color-neutral-100);
 	background-image: linear-gradient(
 		90deg,
@@ -636,85 +645,155 @@ img[data-img-pending] {
 	@apply min-w-0;
 }
 
-/* Fenced blocks — bounded width + scroll wide content inside */
-:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure]) {
+/* Fenced blocks, from `#lib/markdown/code-highlighter.js`.
+   Each token carries one `var(--code-*)`; `code-theme.css` (imported by the
+   posts that have code) defines the palette for both themes off the `.dark`
+   class app.html sets, so SSR and the client agree on the markup and a theme
+   switch repaints without re-highlighting. The surface is ours rather than the
+   theme's: Pierre's own backgrounds are the page's own white and neutral-950,
+   and a block needs to read as a block. */
+:is(.prose, .prose-post) :where(figure[data-code-figure]) {
+	@apply w-full max-w-full min-w-0;
+}
+
+/* The pre scrolls, not the figure, so the box and the highlight band run the
+   whole width and the caption stays put underneath. */
+:is(.prose, .prose-post) :where(figure[data-code-figure] pre) {
+	@apply m-0 w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-lg border border-neutral-200 bg-neutral-50 px-0 py-3.5 text-[0.85em] leading-[1.7] dark:border-neutral-800 dark:bg-neutral-900;
+	@apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 dark:focus-visible:outline-neutral-500;
+	color: var(--code-foreground);
+}
+
+:is(.prose, .prose-post) :where(figure[data-code-figure] pre > code) {
+	@apply grid w-max min-w-full;
+}
+
+:is(.prose, .prose-post) :where(figure[data-code-figure] [data-line]) {
+	@apply px-4;
+}
+
+/* Plain ``` fences outside a post (marked on /now) */
+:is(.prose, .prose-post) :where(pre):not(:where(figure[data-code-figure] pre)) {
 	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
 }
 
-:is(.prose, .prose-post) :where(figure[data-rehype-pretty-code-figure] pre) {
-	@apply w-max max-w-none min-w-full;
-}
-
-/* Plain ``` fences if not wrapped in a figure */
-:is(.prose, .prose-post) :where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre)) {
-	@apply w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain;
-}
-
-:is(.prose, .prose-post)
-	:where(pre):not(:where(figure[data-rehype-pretty-code-figure] pre))
-	> :where(code) {
+:is(.prose, .prose-post) :where(pre):not(:where(figure[data-code-figure] pre)) > :where(code) {
 	@apply block w-max min-w-full;
 }
 
-.prose code[data-line-numbers] {
+/* `showLineNumbers` */
+:is(.prose, .prose-post) code[data-line-numbers] {
 	counter-reset: line;
 }
 
-.prose code[data-line-numbers] > span[data-line]::before {
+:is(.prose, .prose-post) code[data-line-numbers] > [data-line]::before {
 	counter-increment: line;
 	content: counter(line);
 	display: inline-block;
 	width: 0.5rem;
 	margin-right: 1.25rem;
 	text-align: right;
-	color: var(--color-neutral-500);
+	@apply text-neutral-400 dark:text-neutral-600;
 }
 
-.dark .prose code[data-line-numbers] > span[data-line]::before {
-	color: var(--color-neutral-400);
-}
-
-.prose code[data-line-numbers-max-digits='2'] > span[data-line]::before {
+:is(.prose, .prose-post) code[data-line-numbers-max-digits='2'] > [data-line]::before {
 	width: 1rem;
 }
-.prose code[data-line-numbers-max-digits='3'] > span[data-line]::before {
+:is(.prose, .prose-post) code[data-line-numbers-max-digits='3'] > [data-line]::before {
 	width: 1.5rem;
 }
 
-/* Theme switching visibility */
-.light .prose pre[data-theme='dark'],
-.light .prose code[data-theme='dark'],
-.dark .prose pre[data-theme='light'],
-.dark .prose code[data-theme='light'],
-.light :is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title][data-theme='dark'],
-.dark :is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title][data-theme='light'] {
-	display: none;
+/* `{1,3-5}`. An inset shadow rather than a border, so the marked line's text
+   sits exactly where its neighbours' does. */
+:is(.prose, .prose-post) [data-highlighted-line] {
+	@apply bg-neutral-200/60 shadow-[inset_2px_0_0_var(--color-neutral-400)] dark:bg-neutral-800/70 dark:shadow-[inset_2px_0_0_var(--color-neutral-500)];
 }
 
-/* Line highlight (v4 alpha syntax) */
-.prose code span[data-highlighted-line] {
-	@apply border-y-0 border-l-2 border-blue-400 border-transparent bg-indigo-400/10 pl-[calc(0.5rem-2px)] md:pl-[calc(1rem-2px)] dark:border-blue-500 dark:bg-neutral-700;
+/* `title="…"` — a tab sitting on the block it names. */
+:is(.prose, .prose-post) [data-code-title] {
+	@apply rounded-t-lg border border-b-0 border-neutral-200 bg-neutral-100 px-4 py-2 font-mono text-xs text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400;
+}
+:is(.prose, .prose-post) [data-code-title] + pre {
+	@apply rounded-t-none;
 }
 
-/* Word highlight */
-.prose span[data-highlighted-chars] {
-	@apply bg-teal-400/25;
-}
-.prose span[data-highlighted-chars][data-chars-id='y'] {
-	@apply bg-yellow-400/25;
-}
-.prose span[data-highlighted-chars][data-chars-id='b'] {
-	@apply bg-sky-400/25;
+/* Footnotes, from `#lib/markdown/rehype-footnotes.js`: a quiet numbered list
+   under a hairline at the end of the post. The heading is there for a screen
+   reader — the markers are described by it — and the rule says the rest. */
+:is(.prose, .prose-post) sup:has(> a[data-footnote-ref]) {
+	/* No line height of its own, or every line with a marker sits taller. */
+	@apply text-[0.72em] leading-none;
 }
 
-/* Code block title. rehype-pretty-code emits a <figcaption> here, not a <div> —
-   these rules matched nothing until the selector was corrected, so a titled
-   block rendered its filename as bare prose above the code. */
-:is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title] {
-	@apply rounded-t-lg border-b border-neutral-700 bg-neutral-800 px-5 py-3 font-mono text-sm font-bold text-neutral-200 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200;
+:is(.prose, .prose-post) a[data-footnote-ref] {
+	@apply rounded-sm px-[0.1em] font-medium text-neutral-500 tabular-nums no-underline decoration-transparent transition-colors hover:text-neutral-900 focus-visible:outline-2 focus-visible:outline-neutral-400 dark:text-neutral-400 dark:hover:text-neutral-100;
 }
-:is(.prose, .prose-post) figcaption[data-rehype-pretty-code-title] + pre {
-	@apply mt-0 rounded-t-none;
+
+:is(.prose, .prose-post) section[data-footnotes] {
+	@apply mt-16 border-t border-neutral-200 pt-6 text-[0.875em] leading-relaxed text-neutral-600 dark:border-neutral-800 dark:text-neutral-400;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] > .footnotes-label {
+	@apply sr-only;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] ol {
+	@apply my-0 pl-5;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] li {
+	@apply my-2 rounded-md pl-1;
+}
+
+:is(.prose, .prose-post) section[data-footnotes] li::marker {
+	@apply text-neutral-400 tabular-nums dark:text-neutral-500;
+}
+
+/* A link in a note keeps the note's voice rather than the article's. */
+:is(.prose, .prose-post) section[data-footnotes] a:not(.footnote-backref) {
+	@apply font-normal text-inherit;
+}
+
+/* The prose palette sets paragraph colour outright; a note keeps the muted one. */
+:is(.prose, .prose-post) section[data-footnotes] p {
+	@apply my-1 text-inherit;
+	line-height: inherit;
+}
+
+:is(.prose, .prose-post) a.footnote-backref {
+	@apply ml-0.5 text-neutral-400 no-underline decoration-transparent transition-colors hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-100;
+}
+
+:is(.prose, .prose-post) a.footnote-backref > sup {
+	@apply text-[0.7em];
+}
+
+/* Where a jump lands, briefly marked: the note on the way down, the marker on
+   the way back. Colour only — nothing moves. */
+:is(.prose, .prose-post) section[data-footnotes] li:target,
+:is(.prose, .prose-post) sup:target > a[data-footnote-ref] {
+	animation: footnote-target 1.6s ease-out;
+}
+
+@keyframes footnote-target {
+	from {
+		background-color: var(--footnote-target, var(--color-neutral-200));
+	}
+}
+
+.dark {
+	--footnote-target: var(--color-neutral-800);
+}
+
+/* Math, from `remark-math` + `rehype-katex-svelte`; `remarkStylesheets` imports
+   KaTeX's sheet into the posts that have any. A display equation wider than the
+   column scrolls inside itself rather than pushing the article sideways. */
+:is(.prose, .prose-post) .math-display {
+	@apply my-6 overflow-x-auto overflow-y-hidden overscroll-x-contain;
+}
+
+:is(.prose, .prose-post) .math-display > .katex-display {
+	@apply my-0 py-1;
 }
 
 /* Inline code (blog uses .prose-post; /now uses .prose) */

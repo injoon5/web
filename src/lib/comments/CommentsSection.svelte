@@ -234,8 +234,10 @@
 	}
 </script>
 
+<!-- `id="comments"` belongs to LazyComments' wrapper, the deep-link target that
+     loads this thread; the heading repeating it put the id on the page twice. -->
 <div>
-	<h3 class="mb-4 text-2xl font-semibold tracking-tight" id="comments">Comments</h3>
+	<h3 class="mb-4 text-2xl font-semibold tracking-tight" id="comments-heading">Comments</h3>
 
 	<!-- Main comment form -->
 	<div class="mt-2 space-y-2">

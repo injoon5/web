@@ -2,27 +2,24 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypeKatexSvelte from 'rehype-katex-svelte';
 import rehypeSlug from 'rehype-slug';
 import remarkMath from 'remark-math';
-import remarkGfm from 'remark-gfm';
+import remarkFootnotes from 'remark-footnotes';
 import remarkGemoji from 'remark-gemoji';
-import remarkEmbedder from '@remark-embedder/core';
-import oembedTransformer from '@remark-embedder/transformer-oembed';
 // import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
-import { createHighlighter } from './src/lib/markdown/pretty-code-highlighter.js';
+import { highlight } from './src/lib/markdown/code-highlighter.js';
 import { remarkReadingTime } from './src/lib/markdown/remark-reading-time.js';
 import { remarkGallery } from './src/lib/markdown/remark-gallery.js';
 import { remarkImageSize } from './src/lib/markdown/remark-image-size.js';
 import { remarkLazyVideo } from './src/lib/markdown/remark-lazy-video.js';
-import { rehypeStripCodeTabindex } from './src/lib/markdown/rehype-strip-code-tabindex.js';
+import { remarkStylesheets } from './src/lib/markdown/remark-stylesheets.js';
+import { remarkYouTube } from './src/lib/markdown/remark-youtube.js';
+import { rehypeFootnotes } from './src/lib/markdown/rehype-footnotes.js';
 
 const config = {
 	extensions: ['.md'],
 	highlight: {
-		highlighter: createHighlighter({
-			// keepBackground: false,
-			theme: 'github-dark'
-		})
+		highlighter: highlight
 	},
 	smartypants: {
 		dashes: 'oldschool'
@@ -36,19 +33,16 @@ const config = {
 		// Ahead of rehype, so rehype-figure never sees the images it consumes and
 		// the gallery keeps its own caption instead of getting four <figure>s.
 		remarkGallery,
+		// Any plugin order works: mdsvex highlights after every remark plugin, and
+		// the math tokenizers have already produced their nodes at parse time.
+		remarkStylesheets,
 		remarkMath,
-		remarkGfm,
+		remarkFootnotes,
+		// GFM (tables, task lists, autolinks, strikethrough) is built into the
+		// parser mdsvex 0.12 bundles; remark-gfm 4 is a micromark extension that
+		// parser cannot load, and changed nothing in any post.
 		remarkGemoji,
-		[
-			remarkEmbedder.default,
-			{
-				transformers: [oembedTransformer.default],
-				handleError: ({ error, url }) => {
-					console.error(`Failed to embed ${url}:`, error);
-					return `<a href="${url}">${url}</a>`;
-				}
-			}
-		]
+		remarkYouTube
 		// [enhancedImage, { attributes: { loading: 'lazy', fetchpriority: 'low' } }]
 	],
 	rehypePlugins: [
@@ -57,7 +51,8 @@ const config = {
 		rehypeFigure,
 		[rehypeExternalLinks, { target: ['_blank'], rel: ['noopener noreferrer'] }],
 		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }],
-		rehypeStripCodeTabindex
+		// Last, so the autolinker never puts a `#` on the footnotes' hidden heading.
+		rehypeFootnotes
 	]
 };
 

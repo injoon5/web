@@ -12,3 +12,5 @@ vite.config.ts.timestamp-*
 .convex
 .cache
 .turbo
+# Responsive copies, written into static/ by `apply-optimized-images` at build.
+/static/**/*.w[0-9]*.*.webp

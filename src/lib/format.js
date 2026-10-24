@@ -40,13 +40,3 @@ export function formatDateLong(date) {
 export function formatDateTime(date) {
 	return new Date(date).toLocaleString();
 }
-
-/**
- * @param {string | undefined | null} description
- * @param {number} limit
- */
-export function sliceText(description, limit) {
-	if (!description) return '';
-	const words = description.split(' ');
-	return words.length <= limit ? description : words.slice(0, limit).join(' ') + '...';
-}

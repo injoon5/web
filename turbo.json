@@ -21,8 +21,17 @@
 		},
 		"build-image-cache": {
 			"dependsOn": ["fingerprint-images"],
-			"inputs": [".cache/source-fingerprints.json", "scripts/optimize-images.mjs"],
-			"outputs": [".cache/image-optimize.json", ".cache/image-mirror/**"],
+			"inputs": [
+				".cache/source-fingerprints.json",
+				"scripts/optimize-images.mjs",
+				// Names and widths of the responsive copies; a change there is a re-encode.
+				"src/lib/markdown/image-variants.js"
+			],
+			"outputs": [
+				".cache/image-optimize.json",
+				".cache/image-variants.json",
+				".cache/image-mirror/**"
+			],
 			"env": [
 				"IMAGE_MAX_WIDTH",
 				"IMAGE_MAX_HEIGHT",

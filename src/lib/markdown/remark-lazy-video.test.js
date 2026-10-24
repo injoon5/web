@@ -23,6 +23,13 @@ describe('remarkLazyVideo', () => {
 		expect(scripts(tree)[0]).toContain("import LazyVideo from '#lib/ui/LazyVideo.svelte';");
 	});
 
+	it("passes a local clip's own size, so the frame takes its shape before it loads", () => {
+		const tree = run('![Play the demo](/videos/projects/schoolwatch.mp4)\n');
+		expect(players(tree)).toEqual([
+			'<LazyVideo src={"/videos/projects/schoolwatch.mp4"} label={"Play the demo"} width={800} height={900} />'
+		]);
+	});
+
 	it('turns a lone link to a video into a player too', () => {
 		const tree = run('[Watch it](/videos/projects/watch.webm)\n');
 		expect(players(tree)).toEqual([

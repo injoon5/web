@@ -76,6 +76,12 @@ function attrSize(img) {
  * @returns {{ width: number, height: number } | null}
  */
 function elementSize(img) {
+	// With a `srcset`, `naturalWidth` is the copy the article chose, scaled to the
+	// box it is drawn in — the build's numbers are the photo's own.
+	if (img.getAttribute?.('srcset')) {
+		const built = attrSize(img);
+		if (built) return built;
+	}
 	if (img.naturalWidth > 0) return { width: img.naturalWidth, height: img.naturalHeight };
 	return sizeOf(img.getAttribute?.('src') ? img.src : img.currentSrc) ?? attrSize(img);
 }
@@ -110,6 +116,11 @@ function toItem(img) {
 
 	return {
 		src,
+		// The build's smaller copies of the same photo. The lightbox offers them
+		// against its own full-screen box, so it fetches a screen's worth rather
+		// than the original; `data-lightbox-src` means a different file, which has
+		// no copies.
+		srcset: (ownSrc && img.getAttribute?.('srcset')) || undefined,
 		// A caption may be worth more than the alt text, and the two are not the
 		// same job — `data-lightbox-caption` says the visible one out loud.
 		alt: img.dataset?.lightboxCaption ?? img.alt,

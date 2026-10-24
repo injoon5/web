@@ -74,7 +74,7 @@ _항상 관련 기술만 엄청 찾아서 배우고, 실제로는 활용할 아�
 
 ---
 
-https://www.youtube.com/watch?v=FpIRgBNSDcs
+[LG AI 청소년 캠프 서울대학교 1박 2일 캠프 현장](https://www.youtube.com/watch?v=FpIRgBNSDcs)
 
 ## 10주간 프로젝트 진행
 
@@ -167,7 +167,7 @@ https://www.youtube.com/watch?v=FpIRgBNSDcs
 
 ---
 
-https://www.youtube.com/watch?v=8cuL98yA3og
+[LG AI 청소년 캠프 최종 발표 및 수료식 현장](https://www.youtube.com/watch?v=8cuL98yA3og)
 
 ## 후기
 
