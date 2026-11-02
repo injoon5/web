@@ -1116,7 +1116,9 @@ Interlude (Inter + Pretendard) is served as three tiers, all one
 | -------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | core     | `static/fonts/interlude/interlude-core.<hash>.woff2`   | ASCII, nbsp © · – — ‘ ’ “ ”, ← → ↩, and the Latin-1 / Ext-A letters that shared upstream's files with that punctuation | preloaded from `app.html`, every page |
 | extended | `interlude-extended.<hash>.woff2`                      | … × ° ± ¥ − ⚠ and the rest of Latin-1 that never shared a file with the core                                           | only by a page that draws one of them |
-| tail     | `woff2-dynamic-subset/*.woff2` (upstream's, untouched) | CJK, kana, compatibility jamo, rarer symbols — anything a comment might contain                                        | the async subset sheet, per character |
+| hangul   | `hangul/NN.<hash>.woff2` (from interlude-ui **1.3**)   | 11 files of the syllables the site's own text uses (header, post chrome, titles, descriptions, bodies, in that order)  | per character; listings prefetch them |
+| hangul   | the same directory                                     | every other syllable, in frequency tiers (`scripts/fonts/hangul-frequency.txt`), and the compatibility jamo            | the async subset sheet, per character |
+| tail     | `woff2-dynamic-subset/*.woff2` (upstream's, untouched) | CJK, kana, archaic jamo, rarer symbols — anything a comment might contain                                              | the async subset sheet, per character |
 
 The two `@font-face` rules live between the `@generated interlude` markers in
 `app.css`, the preload between the markers in `app.html`. **Generated — rerun
@@ -1160,6 +1162,32 @@ that true, each of which looked like a free saving and was not:
 - Only 29 of Latin Extended-A's 128 letters were ever covered (upstream took its
   ranges from Pretendard JP); Č Ł Ş Ž render in the system font, today as before.
   `--full-latin-ext-a` changes that.
+
+### Korean
+
+Upstream 1.2.1's subset CSS never declared the Hangul block, so Korean rendered
+in the system font beside Inter until this. Hangul now comes from **1.3**, whose
+strokes were rebalanced against the Latin: vertical stems run 0.97–1.01 of
+Inter's at 400–600 (1.2.1: 0.90–0.94). Same UPM, vertical metrics and advances,
+so it sits beside the 1.2.1 Latin without moving a line; measured on every
+Korean page, line boxes are unchanged.
+
+- **Upstream's own 1.3 subsets are unusable here**: 56 files of 200 syllables
+  in Unicode order, ~94KB each — a post touches nearly all of them. The site's
+  syllables are sliced by who draws them, so `/blog` needs 22KB of Hangul and a
+  post ~240KB, shared by every Korean page.
+- **`FontPrefetch.svelte`** on the three listings prefetches those files and
+  the extended file at idle, after `load`. With production cache headers a post
+  opened from the home page makes no Hangul request. Skipped on Save-Data, 2G,
+  and for a `preferred-lang=en` visitor.
+- **`:lang(ko)` sets `word-break: keep-all`.** Korean is spaced by word; CSS's
+  default broke 685 lines mid-word across the posts. Scoped by `lang` because
+  Chinese and Japanese have no spaces. Listing records carry `lang` (from
+  `resolvePublished`) so Korean titles on English pages get it too.
+- **Not reachable with split files:** in one Interlude file, `( ) [ ] : - @ ~`
+  beside Hangul take CJK-height `.case` forms. A browser shapes each file
+  separately, so here they stay at Latin height — under 1px at body sizes,
+  about 2px at 40px.
 
 Known difference: CJK punctuation and fullwidth forms moved from the old base
 file to the tail, so ASCII `( ) [ ] - : @ ~ …` next to `「」〈〉：` no longer

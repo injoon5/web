@@ -37,6 +37,190 @@
 	src: url(/fonts/interlude/interlude-extended.ab395323e2.woff2) format('woff2');
 	unicode-range: U+00A5, U+00A8, U+00AF-00B1, U+00B4, U+00D7, U+2026, U+2212, U+26A0;
 }
+/* Hangul from interlude-ui 1.3.0: the syllables the site itself draws. */
+/* Hangul 0 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/00.ce154ba3fc.woff2) format('woff2');
+	unicode-range: U+C624, U+C778, U+C900;
+}
+/* Hangul 1 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/01.c158ed7334.woff2) format('woff2');
+	unicode-range:
+		U+AC00-AC01, U+AC1C, U+AD6D, U+ADF8, U+AE00, U+AE30, U+B0B4, U+B2C8, U+B2E4, U+B3C4, U+B3CC,
+		U+B418, U+B85C, U+B958, U+BB38, U+BC1B-BC1C, U+BC88, U+BCF8, U+BD80, U+BD84, U+BE14, U+C218,
+		U+C2B5, U+C544, U+C5B4, U+C5C8, U+C5D0, U+C5ED, U+C6A9, U+C6C0, U+C73C, U+C740, U+C744, U+C758,
+		U+C774, U+C77C-C77D, U+C788, U+C790, U+C81D, U+C8FC, U+D2B8, U+D504, U+D55C;
+}
+/* Hangul 2 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/02.75256639fa.woff2) format('woff2');
+	unicode-range:
+		U+AC24, U+ACC4, U+ACE0, U+ACFC, U+AD50, U+AD6C, U+AE08, U+B098, U+B144, U+B17C, U+B294, U+B4E0,
+		U+B4E3-B4E4, U+B77C, U+B7C9, U+B7EC, U+B808, U+B860, U+B984, U+B9CC, U+BA54, U+BBAC, U+BBF8,
+		U+BC29, U+BC95, U+C0AC, U+C11D, U+C139, U+C158, U+C18C, U+C2DC, U+C2F6, U+C545, U+C571, U+C591,
+		U+C5F0, U+C6F9, U+C704, U+C74C, U+C9C0, U+CC38, U+CCAB, U+CCAD, U+CE74, U+CEA0, U+CF54, U+D074,
+		U+D0DC, U+D130, U+D1A0, U+D1B5, U+D45C, U+D544, U+D559, U+D6C4;
+}
+/* Hangul 3 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/03.85a921ce6f.woff2) format('woff2');
+	unicode-range:
+		U+AC04, U+AC19, U+AC70, U+AC8C, U+ACF5, U+AD00, U+ADDC, U+AE09, U+AE4C, U+AED8, U+B0A0, U+B0A8,
+		U+B2E8, U+B300, U+B313, U+B354, U+B370, U+B41C, U+B450, U+B4DC, U+B514, U+B530, U+B54C, U+B791,
+		U+B7A8, U+B828, U+B85D, U+B8E8, U+B97C, U+B9AC-B9AD, U+B9B0, U+B9C8, U+BA85, U+BAA8-BAA9,
+		U+BB34, U+BC14, U+BC18, U+BC31, U+BC84, U+BCC0, U+BCF4, U+BE0C, U+C0B0, U+C11C, U+C124, U+C131,
+		U+C138, U+C18D, U+C2A4, U+C2E0, U+C2E4, U+C4F0, U+C560, U+C57C-C57D, U+C5B8, U+C5C6, U+C5EC,
+		U+C601, U+C694, U+C6B0, U+C6B4, U+C6B8, U+C6CC, U+C6D0, U+C6D4, U+C720, U+C784-C785, U+C791,
+		U+C7A5, U+C7AC, U+C800-C801, U+C815, U+C81C, U+C88B, U+C911, U+C9C1, U+C9C4, U+CC98, U+CDE8,
+		U+CEE4, U+D06C, U+D0C0, U+D0DD, U+D310, U+D398, U+D50C, U+D558, U+D568, U+D574, U+D588-D589,
+		U+D604, U+D655, U+D658, U+D68C;
+}
+/* Hangul 4 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/04.d201601305.woff2) format('woff2');
+	unicode-range:
+		U+ACF3, U+AECF, U+AF2D, U+AFD4, U+B2D0, U+B4EF, U+B744, U+B7A9, U+B7F4, U+B864, U+BBA4, U+BC38,
+		U+BD05, U+BD24, U+C190, U+C288, U+C2B9, U+C558, U+C5D4, U+C721, U+C820, U+C92C, U+C9E7, U+CC0D,
+		U+CEF4, U+CF00, U+CF58, U+D14D, U+D2BC, U+D305, U+D4E8, U+D5A5, U+D78C;
+}
+/* Hangul 5 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/05.a1e3c0cd55.woff2) format('woff2');
+	unicode-range:
+		U+AC08, U+AC10, U+AC74, U+AC78, U+AC83, U+ACB0, U+ACBD, U+ADFC, U+AE34, U+AFB8, U+B09C, U+B0E5,
+		U+B108, U+B124, U+B178, U+B208, U+B274, U+B2A5, U+B3C8, U+B3D9, U+B420, U+B458, U+B4A4, U+B4F1,
+		U+B610, U+B780, U+B798, U+B7F0, U+B807, U+B824-B825, U+B8CC, U+B974, U+B978, U+B9B4, U+B9BD,
+		U+B9C1, U+B9C9, U+B9DE, U+B9E4, U+BA74, U+BA87, U+BABB, U+BB3C, U+BC30, U+BCC4, U+BD88, U+BD99,
+		U+BE44, U+C0C1, U+C0C8-C0C9, U+C0DD, U+C120, U+C219, U+C21C, U+C2DD, U+C2EC, U+C368, U+C548,
+		U+C54A, U+C54C, U+C5C5, U+C600, U+C608, U+C628, U+C62C, U+C640, U+C654, U+C798, U+C804, U+C810,
+		U+C838, U+C84C, U+C870, U+C880, U+C885, U+C904, U+C9DC, U+CABD, U+CC28, U+CCB4, U+CD08, U+CD5C,
+		U+CD94, U+CD9C, U+CE58, U+D0A4, U+D14C, U+D30C, U+D328, U+D3B8, U+D3C9, U+D3EC, U+D3F0, U+D560,
+		U+D638, U+D654, U+D65C, U+D788;
+}
+/* Hangul 6 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/06.0c776f1a2a.woff2) format('woff2');
+	unicode-range:
+		U+AC14-AC15, U+AC1D, U+AC80, U+ACA0, U+ACA8-ACA9, U+ACAC, U+ACE1, U+AD81, U+AD8C, U+AE38,
+		U+B05D, U+B0AC, U+B1A8, U+B204, U+B290, U+B298, U+B2D8, U+B2EC, U+B2F4-B2F5, U+B2F9, U+B355,
+		U+B358, U+B3C5, U+B410, U+B454, U+B529, U+B5BB, U+B611, U+B728, U+B72C, U+B78C, U+B79C,
+		U+B7FC-B7FD, U+B838, U+B9BC, U+B9CE, U+B9D0, U+BA38, U+BA3C, U+BA70, U+BB50, U+BB54, U+BBFC,
+		U+BC00, U+BC15-BC16, U+BC24, U+BC94, U+BCBD, U+BCFC, U+BE68, U+C0B4, U+C26C, U+C2AC, U+C2B7,
+		U+C2F1, U+C4F8, U+C55E, U+C5B5, U+C5BC, U+C5C4, U+C5C7, U+C5F4, U+C644, U+C65C, U+C678, U+C7A1,
+		U+C808, U+C811, U+C9C8, U+C9D1, U+CB49, U+CC3D-CC3E, U+CC45, U+CC9C, U+CD95, U+CDA9, U+CE5C,
+		U+CE68, U+D070, U+D07C, U+D22C, U+D29C, U+D2B9, U+D2F0, U+D480, U+D488, U+D53C, U+D569, U+D56D,
+		U+D575, U+D5E4, U+D615, U+D648, U+D750;
+}
+/* Hangul 7 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/07.165b1bd675.woff2) format('woff2');
+	unicode-range:
+		U+314B, U+AC31, U+ACE4, U+AD70, U+AD74, U+ADC0, U+AE40, U+AE68, U+AEBC, U+AF64, U+AFC8, U+B00C,
+		U+B07C, U+B0B8, U+B118, U+B140, U+B180, U+B2A6, U+B2CC, U+B378, U+B3FC, U+B4DD, U+B5A0, U+B5A4,
+		U+B5A8, U+B77D, U+B790, U+B799, U+B80C, U+B82C, U+B9DB, U+B9DD, U+B9E5, U+B9E8, U+BA39, U+BAB0,
+		U+BC0D, U+BC0F, U+BC8C, U+BCA0, U+BCF5, U+BD07, U+BD10, U+BD81, U+BE4C, U+BE60, U+BF51, U+BFCC,
+		U+C0AD, U+C0BC, U+C154, U+C194, U+C1FC, U+C220, U+C4F4, U+C528, U+C52C, U+C625, U+C695, U+C6C3,
+		U+C751, U+C871, U+C874, U+C988, U+C990, U+C998, U+C99D, U+C9DD, U+C9F8, U+CBE4, U+CC29, U+CC2C,
+		U+CC44, U+CCA9, U+CE20-CE21, U+CE35, U+CE90, U+CEE8, U+CEEC, U+CFE0, U+D0B9, U+D134, U+D138,
+		U+D15C, U+D1A1, U+D2C0, U+D300, U+D37C, U+D3F4, U+D551, U+D5C8, U+D5D8, U+D600, U+D611, U+D63C,
+		U+D68D, U+D6A8, U+D734, U+D798;
+}
+/* Hangul 8 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/08.bbadc61e3a.woff2) format('woff2');
+	unicode-range:
+		U+AC11-AC12, U+ACE8, U+AD04, U+AD11, U+AD1C, U+AD49, U+ADE0, U+AE01, U+AE4A, U+AEF4, U+AFBC,
+		U+B010, U+B044, U+B04C, U+B0AE, U+B0C8, U+B110, U+B137, U+B192, U+B364, U+B531, U+B78D, U+B800,
+		U+B835, U+B839, U+B86D, U+B8EC, U+B959, U+B960, U+B9BF, U+B9E1, U+BA4B, U+BA58, U+BB3B, U+BB58,
+		U+BC0B, U+BC25, U+BCA4, U+BCBC, U+BCD1, U+BDF0, U+BE7C, U+BED0, U+C058, U+C0D8, U+C13C, U+C148,
+		U+C14B, U+C168, U+C1A1, U+C27D, U+C2EB, U+C2ED, U+C2F8, U+C2FC, U+C313, U+C37C, U+C529, U+C53D,
+		U+C568, U+C5BB, U+C606, U+C62E, U+C655, U+C6E0, U+C6E8, U+C775, U+C794, U+C7A0, U+C7A4, U+C82F,
+		U+C881, U+C88C, U+C9D5, U+C9F0, U+CA4C, U+CC2E, U+CCE4, U+CD1D, U+CD2C, U+CE59, U+CE69, U+CEF7,
+		U+CF30, U+CF5C, U+D004, U+D0A8, U+D0D0-D0D1, U+D0E0, U+D150, U+D280, U+D614, U+D640, U+D669,
+		U+D6E8, U+D765, U+D76C, U+D770;
+}
+/* Hangul 9 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/09.bd11c348c8.woff2) format('woff2');
+	unicode-range:
+		U+AC71, U+AC81, U+ACAA, U+ACBC, U+ACE7, U+AD34, U+AE50, U+AE54, U+AF2C, U+AF34, U+B048, U+B054,
+		U+B08C, U+B099, U+B0BC, U+B0D0, U+B113, U+B123, U+B141, U+B193, U+B2C9, U+B2E5, U+B2ED, U+B4EC,
+		U+B550, U+B6F0, U+B784, U+B7AB, U+B7B5, U+B7ED, U+B809, U+B840, U+B86F, U+B8E1, U+B8F8-B8F9,
+		U+B9F9, U+BA40, U+BAB8, U+BBF9, U+BBFF, U+BC11, U+BCA8, U+BD04, U+BE48, U+BE5B, U+C05C, U+C0B6,
+		U+C0F5, U+C0F7, U+C12D, U+C2A8, U+C2B4, U+C30D, U+C500, U+C549, U+C554-C555, U+C559, U+C598,
+		U+C5C9, U+C5FC-C5FD, U+C67C, U+C6C5, U+C728, U+C878, U+C8C4, U+C90C, U+C918, U+C9D0, U+CC0C,
+		U+CCA8, U+CCD0, U+CDB0, U+CE60, U+CE6D, U+CE78, U+CE7C, U+CE94, U+CE98, U+CF1C, U+D0AC, U+D0C4,
+		U+D0C8, U+D0D5, U+D154, U+D314, U+D329, U+D32C, U+D39C, U+D3D0, U+D3FC, U+D478, U+D48D, U+D508,
+		U+D5CC, U+D639, U+D6C8, U+D761;
+}
+/* Hangul 10 */
+@font-face {
+	font-family: 'Interlude Variable';
+	font-style: normal;
+	font-display: swap;
+	font-weight: 100 900;
+	font-stretch: 75% 125%;
+	src: url(/fonts/interlude/hangul/10.bd667911e6.woff2) format('woff2');
+	unicode-range:
+		U+AC20, U+AC77, U+AC9F, U+ACFD, U+AD75, U+AD88, U+ADA4, U+AF3C, U+AF42, U+B014, U+B04A, U+B053,
+		U+B080, U+B0AF, U+B214-B215, U+B258, U+B284, U+B2FF, U+B35F, U+B36E, U+B371, U+B4E6, U+B4ED,
+		U+B515, U+B525, U+B527, U+B584, U+B5BC, U+B6F4, U+B729, U+B7AC, U+B86C, U+B96D, U+BA71, U+BB36,
+		U+BB47, U+BC0C, U+BED4, U+BF55, U+C068, U+C0C0, U+C0C5, U+C0CC, U+C0DC, U+C123, U+C12F, U+C149,
+		U+C22B, U+C27C, U+C300, U+C308, U+C36C, U+C3DC, U+C5B9, U+C634, U+C6EC, U+C705, U+C9DA, U+C9E0,
+		U+CB64, U+CC57, U+CF24, U+CF8C, U+CFFC, U+D034, U+D03C, U+D0D4, U+D0ED, U+D140, U+D17C, U+D295,
+		U+D3B4, U+D514, U+D5F7, U+D6CC, U+D759;
+}
 /* @generated interlude:end */
 
 @theme {
@@ -137,6 +321,17 @@
 
 	::selection {
 		background-color: rgba(120, 120, 120, 0.25);
+	}
+
+	/* Korean is spaced by word and wraps at those spaces. CSS's default treats
+	   every Hangul syllable as a break opportunity, so a line could end in the
+	   middle of a word — `카메` / `라를`. Scoped to `lang` rather than set on
+	   everything: Chinese and Japanese have no spaces, and keep-all would leave
+	   a comment in either nowhere to wrap. `break-word` still splits a single
+	   word wider than its box instead of letting it overflow. */
+	:lang(ko) {
+		word-break: keep-all;
+		overflow-wrap: break-word;
 	}
 }
 

@@ -19,7 +19,11 @@ What it writes
   Interlude character in Latin-1, the covered part of Latin Extended-A, and the
   site's own source (… × ° − ⚠ …). Behind `unicode-range`, so it only downloads
   on a page that draws one of its characters.
-- The two `@font-face` rules, between the markers in `src/app.css`.
+- `static/fonts/interlude/hangul/NN.<hash>.woff2` — Hangul from interlude-ui
+  1.3 (see "Hangul" below): first the syllables the site's own text uses,
+  declared in app.css, then every other syllable in frequency tiers, declared
+  in the subset sheet.
+- The `@font-face` rules, between the markers in `src/app.css`.
 - `static/fonts/interlude/interlude-variable-dynamic-subset.css` — the long
   tail: upstream's own subset files, untouched, with each `unicode-range` cut
   down to the characters that file still draws (CJK, kana, compatibility jamo, rarer symbols).
@@ -44,7 +48,10 @@ When to rerun
   `font-variant-*` other than tabular figures — the two files have no width
   axis and carry only the features in FEATURES. (`interlude.test.js` checks
   the stylesheets for these too.)
-- Interlude is upgraded (UPSTREAM_VERSION / UPSTREAM_INTEGRITY).
+- Interlude is upgraded (UPSTREAM_VERSION / HANGUL_VERSION).
+- Optional: after publishing Korean text with syllables the site has not used
+  before. They render either way, from a frequency tier; rerunning folds them
+  into the site's own chunks, which listing pages prefetch.
 """
 
 from __future__ import annotations
@@ -82,10 +89,30 @@ MANIFEST = ROOT / 'src' / 'lib' / 'fonts' / 'interlude.json'
 URL_PREFIX = '/fonts/interlude'
 
 UPSTREAM_VERSION = '1.2.1'
-UPSTREAM_TARBALL = f'https://registry.npmjs.org/interlude-ui/-/interlude-ui-{UPSTREAM_VERSION}.tgz'
 UPSTREAM_INTEGRITY = (
 	'sha512-YOeyCkw1SO284rDY0Oeq7lt7SRnrZSt/yXGUNk7+TpV6XHe7QqoP1ePqiQGN1MVlD9Nmhxmyz+zsIcyiOyHPkg=='
 )
+
+# Hangul comes from a later release: 1.3 rebalanced all 11,172 syllables
+# against the Latin at every weight. Measured, its vertical strokes run 0.97–1.01
+# of Inter's `l` at 400–600 where 1.2.1's run 0.90–0.94, and a paragraph's ink
+# lands within 6% of Latin's at every weight the site uses. Same UPM, vertical
+# metrics, advances and outlines' extents as 1.2.1 — only the stroke weight moved
+# — so it sits beside the 1.2.1 Latin without moving a line.
+HANGUL_VERSION = '1.3.0'
+HANGUL_INTEGRITY = (
+	'sha512-1oj2w1XbiBiHszctPOvLCdwnAQ30/S9R9E0qwcc8dhf522gJxMa413Ox54gyxF21eAORuzOpG+jTRXE3ANIZug=='
+)
+HANGUL_DIR = FONT_DIR / 'hangul'
+HANGUL_FREQUENCY = Path(__file__).with_name('hangul-frequency.txt')
+HANGUL_SYLLABLES = range(0xAC00, 0xD7A4)
+HANGUL_COMPAT_JAMO = range(0x3131, 0x318F)
+# Rendered on every page: the header's Korean name.
+HANGUL_CHROME_SOURCES = ['src/routes/+layout.svelte', 'src/lib/nav']
+# Never drawn with the web font: OG images use their own .woff files, JSON-LD
+# is not rendered.
+HANGUL_IGNORED_SOURCES = ['src/lib/og', 'src/lib/seo']
+HANGUL_CHUNK = 100
 
 FAMILY = 'Interlude Variable'
 
@@ -161,15 +188,16 @@ def log(*a):
 # Upstream
 
 
-def fetch_upstream() -> dict[str, bytes]:
+def fetch_upstream(version=UPSTREAM_VERSION, integrity=UPSTREAM_INTEGRITY) -> dict[str, bytes]:
 	CACHE.mkdir(parents=True, exist_ok=True)
-	tgz = CACHE / f'interlude-ui-{UPSTREAM_VERSION}.tgz'
+	tgz = CACHE / f'interlude-ui-{version}.tgz'
 	if not tgz.exists():
-		log(f'fetching {UPSTREAM_TARBALL}')
-		with urllib.request.urlopen(UPSTREAM_TARBALL) as r:
+		url = f'https://registry.npmjs.org/interlude-ui/-/interlude-ui-{version}.tgz'
+		log(f'fetching {url}')
+		with urllib.request.urlopen(url) as r:
 			tgz.write_bytes(r.read())
 	data = tgz.read_bytes()
-	algo, want = UPSTREAM_INTEGRITY.split('-', 1)
+	algo, want = integrity.split('-', 1)
 	got = base64.b64encode(hashlib.new(algo, data).digest()).decode()
 	if got != want:
 		tgz.unlink()
@@ -289,7 +317,7 @@ def is_cjk(cp):
 
 
 def subset_font(full: bytes, cps) -> TTFont:
-	font = TTFont(io.BytesIO(full))
+	font = TTFont(io.BytesIO(full), lazy=True)
 	opt = subset.Options()
 	opt.layout_features = FEATURES
 	opt.glyph_names = False
@@ -303,8 +331,8 @@ def subset_font(full: bytes, cps) -> TTFont:
 	# MVAR is in the full font but in none of upstream's subset files, so it
 	# has never reached a browser: it varies the underline and x-height metrics
 	# by weight, which would move `text-underline-offset: auto` links.
-	# STAT is for font menus.
-	opt.drop_tables += ['MVAR', 'STAT']
+	# STAT is for font menus; BASE (1.3 only) for baselines nothing here reads.
+	opt.drop_tables += ['MVAR', 'STAT', 'BASE']
 	s = subset.Subsetter(opt)
 	s.populate(unicodes=cps)
 	s.subset(font)
@@ -557,6 +585,15 @@ def isolate_layout(font: TTFont, groups: dict[str, set[str]]):
 	return dict(stats)
 
 
+def to_ttf(data: bytes) -> bytes:
+	"""Decompress once: every subset below reads the same upstream font."""
+	font = TTFont(io.BytesIO(data))
+	font.flavor = None
+	buf = io.BytesIO()
+	font.save(buf)
+	return buf.getvalue()
+
+
 def to_woff2(font: TTFont) -> bytes:
 	# Upstream's own timestamp, so a rerun on the same input writes the same
 	# bytes — and the same hashed filename.
@@ -582,6 +619,152 @@ def sanitize(data: bytes, label: str):
 	tmp.unlink()
 	if r.returncode != 0:
 		raise SystemExit(f'{label}: rejected by OTS (what Chrome and Firefox run on every web font):\n{r.stderr}')
+
+
+# --------------------------------------------------------------------------
+# Hangul
+#
+# Upstream 1.2.1's subset CSS never declared the Hangul block, so Korean has
+# always rendered in the system font — Apple SD Gothic Neo, Malgun Gothic or
+# Noto beside Inter, which is the mismatch Interlude exists to fix. 1.3's own
+# subsets slice the block in Unicode order, 200 syllables to a ~94KB file, so a
+# Korean post touches nearly all 56 of them.
+#
+# Here the syllables are sliced by who needs them. The site's own text comes
+# first, in the order a visitor meets it — the header (every page), the post
+# chrome, titles (every listing), descriptions (the home page), then post
+# bodies by how many posts use the syllable — and every other syllable follows
+# in frequency tiers, so a comment pulls only the tier its rarer syllables are
+# in. The site's chunks are declared in app.css; the tiers wait in the subset
+# sheet with the rest of the long tail.
+
+
+def hangul_usage():
+	# Syllables, and the compatibility jamo posts use on their own (ㅋㅋ).
+	syllable = lambda text: {
+		ord(c) for c in text if ord(c) in HANGUL_SYLLABLES or ord(c) in HANGUL_COMPAT_JAMO
+	}
+	chrome, ui, titles, descriptions = set(), set(), set(), set()
+	body = defaultdict(int)
+	for path in sorted((ROOT / 'src').rglob('*')):
+		rel = path.relative_to(ROOT).as_posix()
+		if not path.is_file() or path.suffix not in ('.md', '.svelte', '.js', '.html'):
+			continue
+		if '.test.' in path.name or rel.startswith('src/test/'):
+			continue
+		if any(rel.startswith(p) for p in HANGUL_IGNORED_SOURCES):
+			continue
+		text = strip_comments(path.read_text('utf8'), path.suffix)
+		if rel.startswith('src/content/'):
+			front, rest = '', text
+			if text.startswith('---'):
+				_, front, rest = text.split('---', 2)
+			for line in front.splitlines():
+				key = line.split(':', 1)[0].strip()
+				if key in ('title', 'series'):
+					titles |= syllable(line)
+				elif key == 'description':
+					descriptions |= syllable(line)
+			for cp in syllable(rest):
+				body[cp] += 1
+		elif any(rel.startswith(p) for p in HANGUL_CHROME_SOURCES):
+			chrome |= syllable(text)
+		else:
+			ui |= syllable(text)
+	return chrome, ui, titles, descriptions, body
+
+
+def hangul_chunks():
+	"""[(kind, codepoints)] — kind `site` is declared in app.css, `tail` in the subset sheet."""
+	tiers = [
+		[ord(c) for c in line]
+		for line in HANGUL_FREQUENCY.read_text('utf8').splitlines()
+		if line and not line.startswith('#')
+	]
+	rank = {cp: i for i, tier in enumerate(tiers) for cp in tier}
+	if set(rank) != set(HANGUL_SYLLABLES):
+		raise SystemExit(f'{HANGUL_FREQUENCY.name} does not hold every Hangul syllable exactly once')
+	chrome, ui, titles, descriptions, body = hangul_usage()
+	taken, chunks = set(), []
+
+	def add(cps, key, size=None):
+		cps = sorted(set(cps) - taken, key=key)
+		size = size or len(cps)
+		for i in range(0, len(cps), size):
+			chunks.append(('site', set(cps[i : i + size])))
+		taken.update(cps)
+
+	by_rank = lambda cp: (rank.get(cp, len(tiers)), cp)
+	add(chrome, by_rank)
+	add(ui, by_rank)
+	add(titles, by_rank, HANGUL_CHUNK)
+	add(descriptions, by_rank, HANGUL_CHUNK)
+	add(body, lambda cp: (-body[cp], rank.get(cp, len(tiers)), cp), HANGUL_CHUNK)
+	# A tier the site has already mostly emptied joins the next one rather than
+	# ship as a file of a dozen glyphs.
+	pending = set()
+	for tier in tiers:
+		pending |= set(tier) - taken
+		if len(pending) >= 40:
+			chunks.append(('tail', pending))
+			taken |= pending
+			pending = set()
+	if pending:
+		chunks.append(('tail', pending))
+	chunks.append(('tail', set(HANGUL_COMPAT_JAMO) - taken))
+	return chunks
+
+
+def same_outline(a, b, tol=1e-3):
+	"""Equal to a thousandth of a font unit.
+
+	1.3's Hangul comes out of HarfBuzz up to 1e-4 units away from the whole font
+	once the wdth tuples are gone: the same deltas, summed in a different order
+	in floating point. A thousandth of a unit is a twenty-millionth of a pixel at
+	16px. (The 1.2.1 Latin is compared exactly, and is exact.)
+	"""
+	if a is None or b is None or a[0] != b[0] or len(a[1]) != len(b[1]):
+		return a == b
+	for (op1, pts1), (op2, pts2) in zip(a[1], b[1]):
+		if op1 != op2 or len(pts1) != len(pts2):
+			return False
+		for p, q in zip(pts1, pts2):
+			if abs(p[0] - q[0]) > tol or abs(p[1] - q[1]) > tol:
+				return False
+	return True
+
+
+def verify_hangul(full: bytes, built: list[tuple[str, set[int], bytes]]):
+	"""Each chunk draws and shapes its syllables exactly as the whole 1.3 font does."""
+	sh = Shaper()
+	of = {cp: i for i, (_, cps, _) in enumerate(built) for cp in cps}
+	problems = []
+	site = {cp for kind, cps, _ in built if kind == 'site' for cp in cps}
+	sample = sorted(site | {cp for cp in of if cp % 7 == 0})
+	for w, o in [(400, 14), (500, 20), (600, 32), (900, 14), (300, 32)]:
+		whole = sh.font('hangul-full', full, (w, o))
+		for cp in sample:
+			i = of[cp]
+			if not same_outline(sh.outline(sh.font(f'hangul-{i}', built[i][2], (w, o)), cp), sh.outline(whole, cp)):
+				problems.append(f'outline U+{cp:04X} at wght {w} opsz {o}')
+	runs = sorted(
+		{
+			run
+			for path in (ROOT / 'src' / 'content').rglob('*.md')
+			for run in re.findall(r'[\uac00-\ud7a3\u3131-\u318e]+', path.read_text('utf8'))
+		}
+	)
+	for inst in [(400, 14), (600, 24)]:
+		for run in runs:
+			a = sh.shape(run, lambda c: 'all', lambda g, i: sh.font('hangul-full', full, i), inst, {})
+			b = sh.shape(run, lambda c: of[c], lambda g, i: sh.font(f'hangul-{g}', built[g][2], i), inst, {})
+			if a != b:
+				problems.append(f'shaping {run!r} at {inst}')
+	log(f'  hangul: {len(sample)} syllables x 5 instances, {len(runs)} Korean runs from the content')
+	if problems:
+		for p in problems[:20]:
+			log('  DIFF', p)
+		raise SystemExit(f'{len(problems)} Hangul differences from interlude-ui {HANGUL_VERSION}')
 
 
 # --------------------------------------------------------------------------
@@ -724,6 +907,11 @@ http://scripts.sil.org/OFL
 */
 '''
 
+HANGUL_TAIL_NOTE = f'''/* Hangul from interlude-ui {HANGUL_VERSION}, built by the same script: every
+   syllable the site's own text does not use, in frequency tiers, and the
+   compatibility jamo. */
+'''
+
 TAIL_NOTE = f'''/* Generated by scripts/fonts/build-interlude.py from interlude-ui@{UPSTREAM_VERSION}.
    Upstream's own subset files, unchanged. Each range is cut to the characters
    that file still draws; the rest are in the core and extended files declared
@@ -763,7 +951,7 @@ def main():
 	args = ap.parse_args()
 
 	files = fetch_upstream()
-	full = files['woff2/InterludeVariable.woff2']
+	full = to_ttf(files['woff2/InterludeVariable.woff2'])
 	faces, drawn_by = legacy_faces(files)
 	full_cmap = set(TTFont(io.BytesIO(full)).getBestCmap())
 
@@ -831,6 +1019,27 @@ def main():
 		else:
 			log('  identical')
 
+	# ---- Hangul, from the later release
+	log(f'building Hangul from interlude-ui {HANGUL_VERSION}…')
+	hangul_full = to_ttf(fetch_upstream(HANGUL_VERSION, HANGUL_INTEGRITY)['woff2/InterludeVariable.woff2'])
+	hangul = []
+	hangul_cmap = set(TTFont(io.BytesIO(hangul_full), lazy=True).getBestCmap())
+	for kind, cps in hangul_chunks():
+		cps &= hangul_cmap
+		data = to_woff2(subset_font(hangul_full, cps))
+		sanitize(data, 'hangul')
+		drawn = set(TTFont(io.BytesIO(data)).getBestCmap())
+		if drawn != cps:
+			raise SystemExit(f'a Hangul chunk draws {format_ranges(drawn ^ cps)} unexpectedly')
+		hangul.append((kind, cps, data))
+	site_bytes = sum(len(d) for k, _, d in hangul if k == 'site')
+	log(
+		f'hangul: {len(hangul)} files, {sum(len(d) for _, _, d in hangul)} bytes; '
+		f'the site\'s own text is {sum(1 for k, *_ in hangul if k == "site")} of them, {site_bytes} bytes'
+	)
+	if not args.no_verify:
+		verify_hangul(hangul_full, hangul)
+
 	# ---- write fonts
 	names = {}
 	for old in FONT_DIR.glob('interlude-*.woff2'):
@@ -840,8 +1049,22 @@ def main():
 		names[name] = f'interlude-{name}.{h}.woff2'
 		(FONT_DIR / names[name]).write_bytes(data)
 
+	HANGUL_DIR.mkdir(parents=True, exist_ok=True)
+	for old in HANGUL_DIR.glob('*.woff2'):
+		old.unlink()
+	hangul_css = {'site': [], 'tail': []}
+	hangul_urls = []
+	for i, (kind, cps, data) in enumerate(hangul):
+		fname = f'{i:02d}.{hashlib.sha256(data).hexdigest()[:10]}.woff2'
+		(HANGUL_DIR / fname).write_bytes(data)
+		url = f'{URL_PREFIX}/hangul/{fname}'
+		hangul_urls.append(url)
+		hangul_css[kind].append(face_css(url, cps, f'Hangul {i}'))
+
 	# ---- long tail: upstream's files, ranges cut to what they still draw
-	taken = core | extended
+	# Only the jamo 1.3 still has leave upstream's file: it dropped 41 archaic
+	# ones (U+3165–318E) that 1.2.1 draws.
+	taken = core | extended | {cp for _, cps, _ in hangul for cp in cps}
 	tail_css, tail_files = [], {}
 	for name, _ranges, _cmap in faces:
 		cps = {cp for cp, n in drawn_by.items() if n == name} - taken
@@ -856,7 +1079,10 @@ def main():
 			old.unlink()
 	for fname, data in tail_files.items():
 		(TAIL_DIR / fname).write_bytes(data)
-	TAIL_CSS.write_text(LICENSE_HEADER + TAIL_NOTE + ''.join(tail_css), 'utf8')
+	TAIL_CSS.write_text(
+		LICENSE_HEADER + TAIL_NOTE + ''.join(tail_css) + HANGUL_TAIL_NOTE + ''.join(hangul_css['tail']),
+		'utf8',
+	)
 
 	# ---- app.css, app.html
 	css = (
@@ -867,6 +1093,8 @@ def main():
 			extended,
 			'Extended: only fetched by a page that draws one of these.',
 		)
+		+ f'/* Hangul from interlude-ui {HANGUL_VERSION}: the syllables the site itself draws. */\n'
+		+ ''.join(hangul_css['site'])
 	)
 	replace_between(APP_CSS, '/* @generated interlude:start */', '/* @generated interlude:end */', css)
 	replace_between(
@@ -890,6 +1118,16 @@ def main():
 				# Characters Interlude draws only from the long tail. The test fails
 				# when the site's source starts using one outside CJK.
 				'tail': format_ranges(cp for cp in set(drawn_by) - taken if not is_cjk(cp)),
+				'hangul': {
+					'upstream': f'interlude-ui@{HANGUL_VERSION}',
+					'files': len(hangul),
+					'bytes': sum(len(d) for _, _, d in hangul),
+					'site': [
+						{'url': url, 'bytes': len(d), 'characters': len(c)}
+						for url, (k, c, d) in zip(hangul_urls, hangul)
+						if k == 'site'
+					],
+				},
 			},
 			indent='\t',
 		)

@@ -9,6 +9,7 @@
 	import { homeSettings, homeStyle } from '#lib/home/settings.svelte.js';
 	import { techstack } from '#lib/techstack/data.js';
 	import { homeSchema, jsonLdScript } from '#lib/seo/jsonld.js';
+	import FontPrefetch from '#lib/fonts/FontPrefetch.svelte';
 
 	const { data } = $props();
 
@@ -97,6 +98,8 @@
 	{@html jsonLdScript(homeSchema())}
 </svelte:head>
 
+<FontPrefetch />
+
 <div
 	id="introduction"
 	class="mt-20 mb-12 grid grid-cols-3 text-base font-[450] tracking-normal sm:grid-cols-5 md:grid-cols-10 lg:grid-cols-12"
@@ -158,11 +161,13 @@
 					href="/blog/{post.slug}"
 				>
 					<h3
+						lang={post.lang}
 						class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:underline dark:text-neutral-100"
 					>
 						{post.title}
 					</h3>
 					<p
+						lang={post.lang}
 						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-sm font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||
@@ -221,11 +226,13 @@
 					href="/projects/{post.slug}"
 				>
 					<h3
+						lang={post.lang}
 						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
 					>
 						{post.title}
 					</h3>
 					<p
+						lang={post.lang}
 						class="mb-1 line-clamp-2 max-h-[2lh] min-h-[2lh] text-sm font-medium break-keep text-neutral-600 dark:text-neutral-400"
 					>
 						{post.description ||

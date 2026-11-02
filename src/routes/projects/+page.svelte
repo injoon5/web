@@ -1,4 +1,6 @@
 <script>
+	import FontPrefetch from '#lib/fonts/FontPrefetch.svelte';
+
 	let { data } = $props();
 </script>
 
@@ -20,6 +22,8 @@
 	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=projects" />
 	<meta property="og:url" content="https://www.injoon5.com/projects" />
 </svelte:head>
+
+<FontPrefetch />
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
 	<h1
@@ -43,6 +47,7 @@
 				>
 					<span class="flex min-w-0 items-center gap-2">
 						<span
+							lang={project.lang}
 							class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline sm:text-base dark:text-neutral-100 dark:group-hover:text-neutral-400"
 						>
 							{project.title}

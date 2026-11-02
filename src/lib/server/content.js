@@ -35,13 +35,19 @@ export function resolvePublished(enPaths, koPaths) {
 
 	/** @type {Record<string, Metadata>} */
 	const bySlug = {};
-	for (const paths of [enPaths, koPaths]) {
+	for (const [paths, lang] of /** @type {const} */ ([
+		[enPaths, 'en'],
+		[koPaths, 'ko']
+	])) {
 		for (const path in paths) {
 			const metadata = /** @type {Metadata | undefined} */ (paths[path]);
 			const slug = slugFromPath(path);
 			if (metadata && slug) {
+				// `lang` is the language the listing shows this item in, so the title
+				// can say so: Korean wraps by word (`:lang(ko)` in app.css) and is read
+				// with a Korean voice.
 				/** @type {Metadata} */
-				const item = { ...metadata, slug, hasEn: enSlugs.has(slug) };
+				const item = { ...metadata, slug, lang, hasEn: enSlugs.has(slug) };
 				if (item.published === true) bySlug[slug] = item;
 			}
 		}
