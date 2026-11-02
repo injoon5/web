@@ -1,0 +1,4 @@
+fonttools==4.68.0
+brotli==1.1.0
+uharfbuzz==0.57.0
+opentype-sanitizer==9.2.0

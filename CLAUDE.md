@@ -89,6 +89,7 @@ src/
     content/bilingual.js   # en/ko module resolution for the [slug] routes
     dev/                   # DialsHost, DialsMount
     error/                 # ErrorPage, LifeField, life, glyph, settings
+    fonts/                 # interlude.json (generated manifest) + its guard test
     health/                # MetricChart, MetricSection, RangePicker, ScoreDial, metrics
     home/                  # HomeDials + settings
     lightbox/              # Lightbox, Gallery, store, geometry, spring, velocity,
@@ -1103,6 +1104,67 @@ moving is read where the page is:
 - The global `prefers-reduced-motion` rule collapses every `animation-duration`
   to 0.001ms, which would strand a progress-timeline animation at one end. Both
   `.nav-shell` and `.nav-name` re-assert `animation-duration: auto` there.
+
+---
+
+## Web Fonts (`scripts/fonts/build-interlude.py`)
+
+Interlude (Inter + Pretendard) is served as three tiers, all one
+`'Interlude Variable'` family behind `unicode-range`:
+
+| Tier     | File                                                   | Holds                                                                                                                  | Loaded                                |
+| -------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| core     | `static/fonts/interlude/interlude-core.<hash>.woff2`   | ASCII, nbsp © · – — ‘ ’ “ ”, ← → ↩, and the Latin-1 / Ext-A letters that shared upstream's files with that punctuation | preloaded from `app.html`, every page |
+| extended | `interlude-extended.<hash>.woff2`                      | … × ° ± ¥ − ⚠ and the rest of Latin-1 that never shared a file with the core                                           | only by a page that draws one of them |
+| tail     | `woff2-dynamic-subset/*.woff2` (upstream's, untouched) | CJK, kana, compatibility jamo, rarer symbols — anything a comment might contain                                        | the async subset sheet, per character |
+
+The two `@font-face` rules live between the `@generated interlude` markers in
+`app.css`, the preload between the markers in `app.html`. **Generated — rerun
+the script, do not edit them by hand.** It is run by hand, not by the build:
+
+```sh
+python3 -m venv .venv-fonts && .venv-fonts/bin/pip install -r scripts/fonts/requirements.txt
+.venv-fonts/bin/python scripts/fonts/build-interlude.py
+```
+
+Rerun when `src/lib/fonts/interlude.test.js` fails (the source started using an
+Interlude character only the tail has, or a stylesheet asked for `font-stretch`,
+`font-feature-settings`, or a numeric variant other than `tabular-nums`), or to
+upgrade Interlude.
+
+**Rendering is identical to the shipped 1.2.1 subset, and the script proves it**
+with HarfBuzz before writing: every outline and advance at 40 weight × optical
+size instances, and 123k character sequences shaped both ways. Things that make
+that true, each of which looked like a free saving and was not:
+
+- **A browser shapes each file separately.** Upstream put ASCII, “ ” – —, ’ ‘
+  and © in different files, so `T’s` never kerned. In one file HarfBuzz kerns
+  it — 2167 pairs changed. `isolate_layout` cuts every pair, contextual and
+  ligature rule down to glyphs from the same old file. And letters that _did_
+  share an old file with the core's punctuation (`é”`, `’À`, `É–`) must share
+  the core, which is why Latin-1 is mostly there: `--small-core` puts it all in
+  the extended file for 16KB less per page, and changes those 228 pairs.
+- **No `…` in the core.** Without one in the primary font Chrome builds the
+  `line-clamp` / `truncate` ellipsis from three periods. A core with `…` changed
+  every truncated title.
+- **`wdth` is dropped by deleting tuples, not by fontTools' instancer**, which
+  rounds IUP-inferred deltas to integers (renderers keep them fractional) and
+  moved 36 of 95 ASCII outlines by half a unit. `wght` is not cut at all: 300–900
+  is what the CSS reaches, but limiting it re-derives and re-rounds every delta.
+- **Every face keeps upstream's descriptors** (`100 900`, `75% 125%`). Font
+  matching groups faces by descriptors before `unicode-range`; a core declaring
+  `300 900` would be a different face, and tail characters would fall to the
+  system font.
+- **MVAR stays out** — upstream's subsets never had it, and it moves the
+  underline by weight.
+- Only 29 of Latin Extended-A's 128 letters were ever covered (upstream took its
+  ranges from Pretendard JP); Č Ł Ş Ž render in the system font, today as before.
+  `--full-latin-ext-a` changes that.
+
+Known difference: CJK punctuation and fullwidth forms moved from the old base
+file to the tail, so ASCII `( ) [ ] - : @ ~ …` next to `「」〈〉：` no longer
+takes Interlude's CJK-height case form. Keeping it would put ~120 CJK glyphs in
+the preloaded core.
 
 ---
 
