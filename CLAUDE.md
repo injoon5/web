@@ -1159,6 +1159,11 @@ that true, each of which looked like a free saving and was not:
   system font.
 - **MVAR stays out** — upstream's subsets never had it, and it moves the
   underline by weight.
+- **STAT stays in**, with the names it points to. It reads as font-menu
+  metadata, but without it Safari (CoreText, macOS and iOS) draws a variable
+  web font at the bottom of its weight axis: every weight on the site rendered
+  as 100. HarfBuzz, FreeType and DirectWrite never read it, so no Linux or
+  Windows check could see it — it was bisected on macOS WebKit.
 - Only 29 of Latin Extended-A's 128 letters were ever covered (upstream took its
   ranges from Pretendard JP); Č Ł Ş Ž render in the system font, today as before.
   `--full-latin-ext-a` changes that.

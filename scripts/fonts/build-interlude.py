@@ -331,17 +331,33 @@ def subset_font(full: bytes, cps) -> TTFont:
 	# MVAR is in the full font but in none of upstream's subset files, so it
 	# has never reached a browser: it varies the underline and x-height metrics
 	# by weight, which would move `text-underline-offset: auto` links.
-	# STAT is for font menus; BASE (1.3 only) for baselines nothing here reads.
-	opt.drop_tables += ['MVAR', 'STAT', 'BASE']
+	# BASE (1.3 only) is for baselines nothing here reads.
+	#
+	# STAT stays, though it looks like font-menu metadata. Without it Safari —
+	# CoreText, on macOS and iOS alike — draws a variable web font at the bottom
+	# of its weight axis whatever weight the page asks for: every 400 and 700 on
+	# the site came out as 100. Bisected on macOS 26 WebKit; HarfBuzz, FreeType
+	# and DirectWrite never read it, so nothing else caught it.
+	opt.drop_tables += ['MVAR', 'BASE']
 	s = subset.Subsetter(opt)
 	s.populate(unicodes=cps)
 	s.subset(font)
 	pin_width(font)
-	# Named instances and their names are for font menus.
+	# Named instances and their names are for font menus. The names STAT points
+	# at stay with it.
 	font['fvar'].instances = []
-	keep = {a.axisNameID for a in font['fvar'].axes} | set(range(256))
+	keep = {a.axisNameID for a in font['fvar'].axes} | set(range(256)) | stat_name_ids(font)
 	font['name'].names = [n for n in font['name'].names if n.nameID in keep]
 	return font
+
+
+def stat_name_ids(font: TTFont) -> set[int]:
+	stat = font['STAT'].table
+	ids = {stat.ElidedFallbackNameID} if getattr(stat, 'ElidedFallbackNameID', None) else set()
+	ids |= {a.AxisNameID for a in stat.DesignAxisRecord.Axis}
+	if stat.AxisValueArray:
+		ids |= {v.ValueNameID for v in stat.AxisValueArray.AxisValue}
+	return ids
 
 
 def match_rasterizer(font: TTFont, latin: bytes) -> TTFont:
