@@ -1184,6 +1184,12 @@ Korean page, line boxes are unchanged.
   default broke 685 lines mid-word across the posts. Scoped by `lang` because
   Chinese and Japanese have no spaces. Listing records carry `lang` (from
   `resolvePublished`) so Korean titles on English pages get it too.
+- **Hangul carries the Latin's `prep` and `gasp`** (`match_rasterizer`).
+  Windows rasterizes each file through DirectWrite, which picks grid-fitting
+  and smoothing from that file's own tables; 1.3 dropped the 7-byte `prep` the
+  1.2.1 Latin has, so a Korean word and the English beside it ran different
+  programs. Outlines are untouched, and Linux and macOS renders are
+  byte-identical with and without it.
 - **Not reachable with split files:** in one Interlude file, `( ) [ ] : - @ ~`
   beside Hangul take CJK-height `.case` forms. A browser shapes each file
   separately, so here they stay at Latin height — under 1px at body sizes,

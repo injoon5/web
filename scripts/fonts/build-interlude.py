@@ -344,6 +344,27 @@ def subset_font(full: bytes, cps) -> TTFont:
 	return font
 
 
+def match_rasterizer(font: TTFont, latin: bytes) -> TTFont:
+	"""Hand the Hangul the Latin's rasterizer settings, so the two set alike.
+
+	Windows rasterizes each file through DirectWrite, which chooses grid-fitting
+	and smoothing from the file's own `gasp` and runs its own `prep`. The 1.2.1
+	Latin carries a `prep` (dropout control) that 1.3 dropped, so a Korean word
+	and the English beside it went through two different programs. Outlines are
+	untouched; CoreText and FreeType's light hinting never read either table.
+	"""
+	ref = TTFont(io.BytesIO(latin), lazy=True)
+	for tag in ('prep', 'gasp'):
+		font[tag] = copy.deepcopy(ref[tag])
+	for field in (
+		'maxZones', 'maxTwilightPoints', 'maxStorage', 'maxFunctionDefs',
+		'maxInstructionDefs', 'maxStackElements', 'maxSizeOfInstructions',
+	):
+		setattr(font['maxp'], field, getattr(ref['maxp'], field))
+	font['head'].lowestRecPPEM = ref['head'].lowestRecPPEM
+	return font
+
+
 def pin_width(font: TTFont):
 	"""Drop the wdth axis at its default without moving a single point.
 
@@ -1026,7 +1047,7 @@ def main():
 	hangul_cmap = set(TTFont(io.BytesIO(hangul_full), lazy=True).getBestCmap())
 	for kind, cps in hangul_chunks():
 		cps &= hangul_cmap
-		data = to_woff2(subset_font(hangul_full, cps))
+		data = to_woff2(match_rasterizer(subset_font(hangul_full, cps), full))
 		sanitize(data, 'hangul')
 		drawn = set(TTFont(io.BytesIO(data)).getBestCmap())
 		if drawn != cps:
