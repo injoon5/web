@@ -1,0 +1,54 @@
+# Temporary: renders main and this branch on Windows (DirectWrite) in Chrome,
+# Edge and Firefox, for the font PR's before/after. Removed before merge.
+name: Windows font rendering
+
+on:
+  push:
+    branches: [claude/web-font-optimization-d63ror]
+    paths: ['.github/windows-fonts/**', '.github/workflows/windows-fonts.yml']
+
+jobs:
+  render:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build after (this branch)
+        run: |
+          Copy-Item .env.example .env
+          npm run build
+      - name: Build before (main)
+        run: |
+          $base = git merge-base HEAD origin/main
+          git worktree add ..\before $base
+          Copy-Item .env.example ..\before\.env
+          cmd /c mklink /J ..\before\node_modules node_modules
+          Set-Location ..\before
+          npm run build
+      - name: Serve both and render
+        run: |
+          npm i --no-save playwright@1.63.0
+          npx playwright install firefox
+          $after = Start-Process -PassThru -FilePath npx.cmd -ArgumentList 'vite','preview','--port','4174','--strictPort' -WorkingDirectory $PWD
+          $before = Start-Process -PassThru -FilePath npx.cmd -ArgumentList 'vite','preview','--port','4180','--strictPort' -WorkingDirectory (Resolve-Path ..\before)
+          foreach ($p in 4174, 4180) {
+            for ($i = 0; $i -lt 90; $i++) {
+              try { Invoke-WebRequest "http://localhost:$p/blog" -UseBasicParsing | Out-Null; break } catch { Start-Sleep 2 }
+            }
+          }
+          node .github/windows-fonts/render.cjs windows-render
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version | Out-File windows-render/os.txt
+          reg query "HKCU\Control Panel\Desktop" /v FontSmoothingType >> windows-render/os.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-render
+          path: windows-render
+          retention-days: 7
