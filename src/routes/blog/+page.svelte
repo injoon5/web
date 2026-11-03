@@ -1,4 +1,6 @@
 <script>
+	import FontPrefetch from '#lib/fonts/FontPrefetch.svelte';
+
 	let { data } = $props();
 
 	const groupedPosts = $derived.by(() => {
@@ -43,6 +45,8 @@
 	<meta property="og:url" content="https://www.injoon5.com/blog" />
 </svelte:head>
 
+<FontPrefetch />
+
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
 	<h1
 		class="mt-20 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-2xl dark:text-neutral-100"
@@ -60,6 +64,7 @@
 			{#if group.type === 'series'}
 				<div class="py-2">
 					<span
+						lang={group.posts[0]?.lang}
 						class="line-clamp-1 text-base font-medium tracking-wide text-neutral-500 dark:text-neutral-500"
 					>
 						{group.name}
@@ -73,6 +78,7 @@
 						>
 							<span class="flex min-w-0 items-center gap-2">
 								<span
+									lang={seriesPost.lang}
 									class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline dark:text-neutral-100 dark:group-hover:text-neutral-400"
 								>
 									{seriesPost.title}
@@ -101,6 +107,7 @@
 					>
 						<span class="flex min-w-0 items-center gap-2">
 							<span
+								lang={group.post.lang}
 								class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:text-neutral-600 group-hover:underline dark:text-neutral-100 dark:group-hover:text-neutral-400"
 							>
 								{group.post.title}

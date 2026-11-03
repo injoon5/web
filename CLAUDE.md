@@ -89,6 +89,7 @@ src/
     content/bilingual.js   # en/ko module resolution for the [slug] routes
     dev/                   # DialsHost, DialsMount
     error/                 # ErrorPage, LifeField, life, glyph, settings
+    fonts/                 # interlude.json (generated manifest) + its guard test
     health/                # MetricChart, MetricSection, RangePicker, ScoreDial, metrics
     home/                  # HomeDials + settings
     lightbox/              # Lightbox, Gallery, store, geometry, spring, velocity,
@@ -1103,6 +1104,106 @@ moving is read where the page is:
 - The global `prefers-reduced-motion` rule collapses every `animation-duration`
   to 0.001ms, which would strand a progress-timeline animation at one end. Both
   `.nav-shell` and `.nav-name` re-assert `animation-duration: auto` there.
+
+---
+
+## Web Fonts (`scripts/fonts/build-interlude.py`)
+
+Interlude (Inter + Pretendard) is served as three tiers, all one
+`'Interlude Variable'` family behind `unicode-range`:
+
+| Tier     | File                                                   | Holds                                                                                                                  | Loaded                                |
+| -------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| core     | `static/fonts/interlude/interlude-core.<hash>.woff2`   | ASCII, nbsp © · – — ‘ ’ “ ”, ← → ↩, and the Latin-1 / Ext-A letters that shared upstream's files with that punctuation | preloaded from `app.html`, every page |
+| extended | `interlude-extended.<hash>.woff2`                      | … × ° ± ¥ − ⚠ and the rest of Latin-1 that never shared a file with the core                                           | only by a page that draws one of them |
+| hangul   | `hangul/NN.<hash>.woff2` (from interlude-ui **1.3**)   | 11 files of the syllables the site's own text uses (header, post chrome, titles, descriptions, bodies, in that order)  | per character; listings prefetch them |
+| hangul   | the same directory                                     | every other syllable, in frequency tiers (`scripts/fonts/hangul-frequency.txt`), and the compatibility jamo            | the async subset sheet, per character |
+| tail     | `woff2-dynamic-subset/*.woff2` (upstream's, untouched) | CJK, kana, archaic jamo, rarer symbols — anything a comment might contain                                              | the async subset sheet, per character |
+
+The two `@font-face` rules live between the `@generated interlude` markers in
+`app.css`, the preload between the markers in `app.html`. **Generated — rerun
+the script, do not edit them by hand.** It is run by hand, not by the build:
+
+```sh
+python3 -m venv .venv-fonts && .venv-fonts/bin/pip install -r scripts/fonts/requirements.txt
+.venv-fonts/bin/python scripts/fonts/build-interlude.py
+```
+
+Rerun when `src/lib/fonts/interlude.test.js` fails (the source started using an
+Interlude character only the tail has, or a stylesheet asked for `font-stretch`,
+`font-feature-settings`, or a numeric variant other than `tabular-nums`), or to
+upgrade Interlude.
+
+**Rendering is identical to the shipped 1.2.1 subset, and the script proves it**
+with HarfBuzz before writing: every outline and advance at 40 weight × optical
+size instances, and 123k character sequences shaped both ways. Things that make
+that true, each of which looked like a free saving and was not:
+
+- **A browser shapes each file separately.** Upstream put ASCII, “ ” – —, ’ ‘
+  and © in different files, so `T’s` never kerned. In one file HarfBuzz kerns
+  it — 2167 pairs changed. `isolate_layout` cuts every pair, contextual and
+  ligature rule down to glyphs from the same old file. And letters that _did_
+  share an old file with the core's punctuation (`é”`, `’À`, `É–`) must share
+  the core, which is why Latin-1 is mostly there: `--small-core` puts it all in
+  the extended file for 16KB less per page, and changes those 228 pairs.
+- **No `…` in the core.** Without one in the primary font Chrome builds the
+  `line-clamp` / `truncate` ellipsis from three periods. A core with `…` changed
+  every truncated title.
+- **`wdth` is dropped by deleting tuples, not by fontTools' instancer**, which
+  rounds IUP-inferred deltas to integers (renderers keep them fractional) and
+  moved 36 of 95 ASCII outlines by half a unit. `wght` is not cut at all: 300–900
+  is what the CSS reaches, but limiting it re-derives and re-rounds every delta.
+- **Every face keeps upstream's descriptors** (`100 900`, `75% 125%`). Font
+  matching groups faces by descriptors before `unicode-range`; a core declaring
+  `300 900` would be a different face, and tail characters would fall to the
+  system font.
+- **MVAR stays out** — upstream's subsets never had it, and it moves the
+  underline by weight.
+- **STAT stays in**, with the names it points to. It reads as font-menu
+  metadata, but without it Safari (CoreText, macOS and iOS) draws a variable
+  web font at the bottom of its weight axis: every weight on the site rendered
+  as 100. HarfBuzz, FreeType and DirectWrite never read it, so no Linux or
+  Windows check could see it — it was bisected on macOS WebKit.
+- Only 29 of Latin Extended-A's 128 letters were ever covered (upstream took its
+  ranges from Pretendard JP); Č Ł Ş Ž render in the system font, today as before.
+  `--full-latin-ext-a` changes that.
+
+### Korean
+
+Upstream 1.2.1's subset CSS never declared the Hangul block, so Korean rendered
+in the system font beside Inter until this. Hangul now comes from **1.3**, whose
+strokes were rebalanced against the Latin: vertical stems run 0.97–1.01 of
+Inter's at 400–600 (1.2.1: 0.90–0.94). Same UPM, vertical metrics and advances,
+so it sits beside the 1.2.1 Latin without moving a line; measured on every
+Korean page, line boxes are unchanged.
+
+- **Upstream's own 1.3 subsets are unusable here**: 56 files of 200 syllables
+  in Unicode order, ~94KB each — a post touches nearly all of them. The site's
+  syllables are sliced by who draws them, so `/blog` needs 22KB of Hangul and a
+  post ~240KB, shared by every Korean page.
+- **`FontPrefetch.svelte`** on the three listings prefetches those files and
+  the extended file at idle, after `load`. With production cache headers a post
+  opened from the home page makes no Hangul request. Skipped on Save-Data, 2G,
+  and for a `preferred-lang=en` visitor.
+- **`:lang(ko)` sets `word-break: keep-all`.** Korean is spaced by word; CSS's
+  default broke 685 lines mid-word across the posts. Scoped by `lang` because
+  Chinese and Japanese have no spaces. Listing records carry `lang` (from
+  `resolvePublished`) so Korean titles on English pages get it too.
+- **Hangul carries the Latin's `prep` and `gasp`** (`match_rasterizer`).
+  Windows rasterizes each file through DirectWrite, which picks grid-fitting
+  and smoothing from that file's own tables; 1.3 dropped the 7-byte `prep` the
+  1.2.1 Latin has, so a Korean word and the English beside it ran different
+  programs. Outlines are untouched, and Linux and macOS renders are
+  byte-identical with and without it.
+- **Not reachable with split files:** in one Interlude file, `( ) [ ] : - @ ~`
+  beside Hangul take CJK-height `.case` forms. A browser shapes each file
+  separately, so here they stay at Latin height — under 1px at body sizes,
+  about 2px at 40px.
+
+Known difference: CJK punctuation and fullwidth forms moved from the old base
+file to the tail, so ASCII `( ) [ ] - : @ ~ …` next to `「」〈〉：` no longer
+takes Interlude's CJK-height case form. Keeping it would put ~120 CJK glyphs in
+the preloaded core.
 
 ---
 

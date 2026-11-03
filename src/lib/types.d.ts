@@ -11,6 +11,7 @@ export type Post = {
 	coverimage: string;
 	tags: TagsList[];
 	published: boolean;
+	lang?: 'en' | 'ko';
 	hasEn?: boolean;
 	series?: string;
 	keywords?: string[];
@@ -24,6 +25,7 @@ export type Project = {
 	tags: TagsList[];
 	coverimage: string;
 	published: boolean;
+	lang?: 'en' | 'ko';
 	hasEn?: boolean;
 	keywords?: string[];
 };
