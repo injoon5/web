@@ -104,8 +104,9 @@ src/
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
-    server/                # admin, api, content, content-modules, content-page,
-                           # convex, ip, series, valid-urls, validation
+    server/                # admin, api, content, content-modules, convex, ip,
+                           # series, valid-urls, validation
+    visitor.svelte.js      # ipHash + language preference, without a server load
     techstack/             # TechStack + data
     ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList,
                            # StableLangStack
@@ -155,9 +156,26 @@ skip them at the index rather than filtering in JS.
 
 `createdAt` is Convex's built-in `_creationTime`.
 
-**`ipHash` is served by `src/lib/server/content-page.js`** on the SSR `[slug]`
-routes. Do NOT move it into a root layout load: the root pages are prerendered,
-which would bake the build machine's hash into the static payload.
+**`ipHash` is served by `GET /api/visitor`** and held in `#lib/visitor.svelte.js`.
+Do NOT move it into a load that is prerendered: that would bake the build
+machine's hash into the static payload.
+
+**The `[slug]` routes have no server load, and must not get one back.** A server
+load means every client-side navigation to a post waits on a `__data.json` round
+trip to the function (`iad1`, over a second cold) before its content chunks can
+even be requested. What it used to return comes from elsewhere:
+
+- `prefLang` — the browser reads `?lang=` and the `preferred-lang` cookie itself.
+  Only the server render asks `/api/visitor`, in-process.
+- `ipHash` — fetched once per browser session, never awaited by a load; the like
+  count does not need it. On a landing, hydration answers that fetch from the
+  response the server render inlined, so it costs no request.
+- the series list — `/api/series`, every post's list keyed by slug. Live, not
+  prerendered: SvelteKit answers a server-side fetch of a prerendered path with a
+  real HTTP request back out to the site.
+
+The listings carry `data-sveltekit-preload-code="viewport"` so the article route's
+JS is already there on click, leaving one round trip (the post's own chunks).
 
 Schema changes: edit `convex/schema.js` and run `npx convex dev`. There are no
 migration files.
@@ -234,6 +252,8 @@ with a valid `adminSecret` bypass everything. A rejected limiter throws;
 | GET    | `/api/likes?url=`         | —        | Count + whether current IP liked              |
 | POST   | `/api/likes`              | —        | Toggle like                                   |
 | POST   | `/api/now`                | admin    | Update `/now` content                         |
+| GET    | `/api/visitor`            | —        | `{ ipHash, lang }` for this visitor, no-store |
+| GET    | `/api/series`             | —        | Every post's series list, keyed by slug       |
 
 ### Admin (`x-admin-secret`)
 

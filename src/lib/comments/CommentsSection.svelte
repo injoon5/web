@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/state';
+	import { visitor } from '#lib/visitor.svelte.js';
 	import { onDestroy } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
@@ -56,7 +57,7 @@
 	}
 	const fallbackHandle = makeHandle();
 
-	const ipHash = $derived(page.data.ipHash ?? '');
+	const ipHash = $derived(visitor.ipHash);
 	const path = $derived(page.url.pathname);
 
 	// Reactive comments query — live updates across tabs, newest threads first.

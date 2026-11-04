@@ -6,6 +6,7 @@ vi.mock('convex-svelte', () => ({ usePaginatedQuery: vi.fn() }));
 
 import { usePaginatedQuery } from 'convex-svelte';
 import { setPage } from '$app/state';
+import { visitor } from '#lib/visitor.svelte.js';
 import { createReactivePaginatedQuery } from '../../test/mocks/reactive-query.svelte.js';
 import { COMMENTS_PAGE_SIZE } from './constants.js';
 import CommentsSection from './CommentsSection.svelte';
@@ -42,6 +43,7 @@ function mockQuery(overrides = {}) {
 
 beforeEach(() => {
 	setPage();
+	visitor.ipHash = 'test-ip-hash';
 	mockQuery();
 	vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
 });

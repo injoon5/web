@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { postSeries } from './series.js';
+import { postSeries, allPostSeries } from './series.js';
 
 const en = {
 	'/src/content/blog/en/a.md': { published: true, series: 'Camp', date: '2024-01-01', title: 'A' },
@@ -28,5 +28,17 @@ describe('postSeries', () => {
 	it('is empty for a post in no series, and for one that does not exist', () => {
 		expect(postSeries('lone', en, ko)).toEqual({ enSeries: [], koSeries: [] });
 		expect(postSeries('nope', en, ko)).toEqual({ enSeries: [], koSeries: [] });
+	});
+});
+
+describe('allPostSeries', () => {
+	it('keys every post in a series by slug, cut down to what the list draws', () => {
+		const all = allPostSeries(en, ko);
+		expect(Object.keys(all)).toEqual(['a', 'b', 'c', 'other']);
+		expect(all.a.enSeries).toEqual([
+			{ slug: 'b', title: 'B', date: '2024-03-01', series: 'Camp' },
+			{ slug: 'c', title: '다', date: '2024-02-01', series: 'Camp' },
+			{ slug: 'a', title: 'A', date: '2024-01-01', series: 'Camp' }
+		]);
 	});
 });

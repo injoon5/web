@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/state';
+	import { visitor } from '#lib/visitor.svelte.js';
 	import { onDestroy } from 'svelte';
 	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import { useQuery } from 'convex-svelte';
@@ -7,7 +8,7 @@
 	import Heart from '@lucide/svelte/icons/heart';
 	import { apiFetch } from '#lib/api-client.js';
 
-	const ipHash = $derived(page.data.ipHash ?? '');
+	const ipHash = $derived(visitor.ipHash);
 	const path = $derived(page.url.pathname);
 
 	const query = useQuery(

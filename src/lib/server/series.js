@@ -24,10 +24,11 @@ function publishedBySlug(metaByPath) {
  * post's own record in that language, or its other language's when it has only
  * one. Both lists are empty for a post in no series.
  *
- * Computed in the server load and not the page's universal load: that load also
- * imports the post components lazily, and a module imported both ways cannot be
- * split, so the eager metadata glob this used to read there put every post's
- * compiled component into one chunk that every article page loaded.
+ * Computed on the server (prerendered into `/api/series.json`) and not in the
+ * page's universal load: that load also imports the post components lazily, and
+ * a module imported both ways cannot be split, so the eager metadata glob this
+ * used to read there put every post's compiled component into one chunk that
+ * every article page loaded.
  *
  * @param {string} slug
  * @param {Record<string, unknown>} enPaths an eager `import: 'metadata'` glob
@@ -56,4 +57,27 @@ export function postSeries(slug, enPaths, koPaths) {
 		enSeries: matched.map(({ eMeta, kMeta }) => /** @type {Metadata} */ (eMeta ?? kMeta)),
 		koSeries: matched.map(({ eMeta, kMeta }) => /** @type {Metadata} */ (kMeta ?? eMeta))
 	};
+}
+
+/** @param {Metadata} m */
+const seriesEntry = ({ slug, title, date, series }) => ({ slug, title, date, series });
+
+/**
+ * `postSeries` for every published post that is in a series, keyed by slug and
+ * cut down to what `SeriesList` draws. A post in no series has no key.
+ *
+ * @param {Record<string, unknown>} enPaths an eager `import: 'metadata'` glob
+ * @param {Record<string, unknown>} koPaths
+ * @returns {Record<string, { enSeries: Partial<Metadata>[], koSeries: Partial<Metadata>[] }>}
+ */
+export function allPostSeries(enPaths, koPaths) {
+	const slugs = new Set([...publishedBySlug(enPaths).keys(), ...publishedBySlug(koPaths).keys()]);
+	/** @type {Record<string, { enSeries: Partial<Metadata>[], koSeries: Partial<Metadata>[] }>} */
+	const out = {};
+	for (const slug of [...slugs].sort()) {
+		const { enSeries, koSeries } = postSeries(slug, enPaths, koPaths);
+		if (enSeries.length === 0) continue;
+		out[slug] = { enSeries: enSeries.map(seriesEntry), koSeries: koSeries.map(seriesEntry) };
+	}
+	return out;
 }

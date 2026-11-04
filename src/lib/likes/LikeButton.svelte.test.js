@@ -8,11 +8,13 @@ vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
 import { setPage } from '$app/state';
+import { visitor } from '#lib/visitor.svelte.js';
 import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
 import LikeButton from './LikeButton.svelte';
 
 beforeEach(() => {
 	setPage();
+	visitor.ipHash = 'test-ip-hash';
 	useQuery.mockReturnValue({
 		data: { count: 3, liked: false },
 		isStale: false,
@@ -51,7 +53,7 @@ describe('LikeButton', () => {
 	});
 
 	it('is disabled when the visitor has no ipHash', async () => {
-		setPage({ data: { ipHash: '' } });
+		visitor.ipHash = '';
 		render(LikeButton);
 		const btn = await screen.findByRole('button', { name: 'Like' });
 		await waitFor(() => expect(btn).toBeDisabled());

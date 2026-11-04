@@ -27,14 +27,13 @@ export async function resolveBilingualEntry(enModules, koModules, enKey, koKey) 
 }
 
 /**
- * The common page-data shape both content routes return, including the
- * fields forwarded from the server load (prefLang, ipHash).
+ * The common page-data shape both content routes return.
  *
  * @param {any} en  published English module or null
  * @param {any} ko  published Korean module or null
- * @param {{ prefLang?: string | null, ipHash?: string } | undefined} serverData
+ * @param {string | null} prefLang  `?lang=`, else the `preferred-lang` cookie
  */
-export function bilingualPageData(en, ko, serverData) {
+export function bilingualPageData(en, ko, prefLang) {
 	const primary = en || ko;
 
 	return {
@@ -46,7 +45,6 @@ export function bilingualPageData(en, ko, serverData) {
 		availableLangs: [...(ko ? ['ko'] : []), ...(en ? ['en'] : [])],
 		enReadingTime: en?.metadata?.readingTime ?? null,
 		koReadingTime: ko?.metadata?.readingTime ?? null,
-		prefLang: serverData?.prefLang ?? null,
-		ipHash: serverData?.ipHash ?? ''
+		prefLang
 	};
 }

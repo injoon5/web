@@ -38,7 +38,12 @@
 		personal projects. (WIP)
 	</h2>
 
-	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
+	<!-- The article route's code is fetched as its links come into view, so a click
+	     waits only on the post's own chunks, not on the route's JS and then those. -->
+	<div
+		class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700"
+		data-sveltekit-preload-code="viewport"
+	>
 		{#each data.projects as project (project.slug)}
 			<div class="py-2">
 				<a
