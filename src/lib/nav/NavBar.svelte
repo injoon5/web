@@ -178,6 +178,22 @@
 	</noscript>
 </svelte:head>
 
+<!-- The 4px that hands Safari the colour, and the one element on this page that
+     is there for the browser's chrome rather than for the page.
+
+     Safari 26 fills its status bar with the `background-color` of a fixed or
+     sticky element at the top of the viewport. Measured on an iPhone: an opaque
+     one paints the bar that colour flat and edge to edge, and with no candidate
+     the bar is the page behind it, blurred — which on a dark article is the slab
+     this is all about. `.nav-shell` cannot be the candidate: a colour on it
+     paints the whole row, and the row is a ramp now.
+
+     So this is the top stop of that ramp, on its own, 4px of it — over the
+     threshold the scan wants, and invisible by construction, because the pixels
+     directly under it are the same colour. At the top of the page it is the page
+     colour on the page colour; scrolled, it is the scrim's own first stop. -->
+<div aria-hidden="true" class="nav-edge"></div>
+
 <!-- The header's priority order, expressed as layout rather than hoped for: type
      never shrinks on a small screen — the link set does. Below `sm` the nav is
      'projects blog ⌄' and /now + /health live one tap down; the wordmark still
@@ -213,16 +229,38 @@
 		     the top of the page, doing its work behind a fully transparent tint, and
 		     fading the element takes the filter with it — so a header sitting over
 		     nothing composites nothing. -->
-		<div
-			aria-hidden="true"
-			class="nav-surface absolute inset-0 -z-10 bg-white/70 backdrop-blur-md dark:bg-neutral-950/70"
-		></div>
-		<!-- And one hairline, which slides down to the new bottom edge as the
-		     disclosure opens instead of a second one fading in beneath it. -->
-		<div
-			aria-hidden="true"
-			class="nav-hairline absolute inset-x-0 bottom-0 h-px bg-neutral-200/70 dark:bg-neutral-800/70"
-		></div>
+		<!-- The material is a ramp rather than a pane: it is the page's own colour at
+		     the top edge and nothing at all at the bottom, with the blur deepening
+		     the same way. The header stops having a bottom — no hairline, no step —
+		     and the top is a colour rather than a translucency, which is what lets
+		     the status bar above it be the same colour and the two read as one
+		     surface running off the top of the screen. -->
+		<div aria-hidden="true" class="nav-surface absolute inset-0 -z-10">
+			<!-- Four passes, each masked to a band that starts higher than the last.
+			     A `backdrop-filter` takes everything painted beneath it, siblings
+			     included, so the passes compound: one radius at the bottom of the
+			     ramp and four of them at the top, from a step small enough that no
+			     single layer is expensive. The bands overlap by their own width, and
+			     that overlap is the whole reason it reads as a gradient rather than
+			     as four bars of increasing blur. -->
+			<div class="nav-blur" data-step="1"></div>
+			<div class="nav-blur" data-step="2"></div>
+			<div class="nav-blur" data-step="3"></div>
+			<div class="nav-blur" data-step="4"></div>
+			<!-- Over the blur, not under it: this is the colour the type sits on, and
+			     a scrim that had been through the passes above would be a blurred
+			     gradient, which is a gradient with its ends pulled in. The stops are
+			     eased — a straight alpha ramp ends visibly, in a soft edge across the
+			     page about two thirds of the way down. -->
+			<!-- Under the scrim, not over it, and that ordering is the whole of how the
+			     open disclosure stays legible without flattening the ramp. A gradient
+			     composited over a flat tint is the ramp lerped into it — floor at the
+			     far end, still 1 at the top, the same shape in between — so the links
+			     get their backing and the fade still runs the full height of the
+			     grown header instead of collapsing into its top quarter. -->
+			<div class="nav-panel"></div>
+			<div class="nav-scrim"></div>
+		</div>
 		<!-- Centred, so the name and the links hang from one middle axis rather than
 		     standing on one baseline — small links sharing a baseline with type this
 		     much larger read as sitting on the floor beside it.
@@ -410,9 +448,20 @@
 	   Tailwind class carries, so a build with the panel folded away renders
 	   exactly what the classes say. Overrides with `sm` variants are held below
 	   that breakpoint: the dial is for the phone header. */
+	/* The status bar's band is reserved inside the row, not above it. The page is
+	   laid out `viewport-fit=cover`, so the sticky shell's `top: 0` is the
+	   display's own top edge and the clock sits over whatever is in the first
+	   59px of the header — the wordmark, on every page. Padding the row down out
+	   of that band leaves the surface, which is `inset-0` of the wrapper around
+	   this row, spanning it: the material goes edge to edge and the type does not.
+
+	   The alternative — padding the shell — would have put the band *outside* the
+	   surface's box and painted the header's blur short of the top of the screen,
+	   which is the thing being fixed. */
 	.nav-row {
 		align-items: var(--nav-align, center);
-		padding-block: var(--nav-row-pad-y, 0.75rem);
+		padding-block: calc(var(--nav-row-pad-y, 0.75rem) + var(--nav-safe-top, 0px))
+			var(--nav-row-pad-y, 0.75rem);
 	}
 
 	.nav-cluster {
@@ -519,11 +568,15 @@
 	   It lands *on* the hero name, not merely in step with it. `--nav-name-travel`
 	   is the gap between them and is derived, not chosen: the inset starts the
 	   range with the hero name `--nav-h` down, the wordmark rests
-	   `(--nav-h - 2rem) / 2` from the row's top, and the difference folds to
-	   `(--nav-h + 2rem) / 2` — 44px. That same value is the range's end in px of
-	   scroll, which is what makes the rate exactly 1:1. Anything else leaves the
-	   two names a constant 12px apart, which is a double image. There is
-	   deliberately no dial for it.
+	   `--nav-safe-top + (--nav-h - --nav-safe-top - 2rem) / 2` from the top of the
+	   viewport, and the difference folds to `(--nav-h - --nav-safe-top + 2rem) / 2`
+	   — 44px on a desktop, and still 44px on a phone, because the status bar's
+	   band lengthens the header and the wordmark's rest position by exactly the
+	   same amount. That value is also the range's end in px of scroll, which is
+	   what makes the rate exactly 1:1. Anything else leaves the two names a
+	   constant gap apart, which is a double image — and taking the reserve out is
+	   not optional here: left in, the two would be 30px apart for the whole
+	   handover on every iPhone. There is deliberately no dial for it.
 
 	   `.nav-name` is the hole it rolls through, and has to be a second element:
 	   the clip must hold still while the type inside it moves.
@@ -547,7 +600,7 @@
 	}
 
 	.nav-name-roll {
-		--nav-name-travel: calc((var(--nav-h, 3.5rem) + 2rem) / 2);
+		--nav-name-travel: calc((var(--nav-h, 3.5rem) - var(--nav-safe-top, 0px) + 2rem) / 2);
 
 		opacity: 1;
 		translate: 0 0;
@@ -615,14 +668,126 @@
 	}
 
 	/* Sized by the row and stretched by however far the disclosure reaches, so one
-	   blurred pane covers the header at every point in the animation. Their
-	   presence is not transitioned here — the two properties above carry it, and a
-	   transition on top of a scroll-driven value would only make it lag. */
-	.nav-surface,
-	.nav-hairline {
+	   ramp covers the header at every point in the animation — and stretching it
+	   is what keeps the fade the height of whatever the header currently is,
+	   rather than a gradient that ends partway down an open menu. Its presence is
+	   not transitioned here — the two properties above carry it, and a transition
+	   on top of a scroll-driven value would only make it lag. */
+	.nav-surface {
 		opacity: max(var(--nav-surface-scroll), var(--nav-surface-menu));
 		bottom: calc(-1 * var(--nav-open-extra, 0px));
 		transition: bottom var(--nav-duration, 320ms) var(--nav-ease);
+	}
+
+	/* The page's own background, as the three numbers a gradient stop can be
+	   written from. `.nav-edge` is not inside the surface — it is fixed to the
+	   viewport — so both are named here rather than the value living on one of
+	   them. */
+	.nav-surface,
+	.nav-edge {
+		--nav-surface-rgb: 255 255 255;
+	}
+
+	:global(html.dark) .nav-surface,
+	:global(html.dark) .nav-edge {
+		--nav-surface-rgb: 10 10 10;
+	}
+
+	.nav-surface > * {
+		position: absolute;
+		inset: 0;
+	}
+
+	/* One radius per pass, compounding upward. 3px is chosen against the four of
+	   them: the top of the ramp lands near the 8px this header has always used,
+	   and no single layer is doing the expensive thing on its own. */
+	.nav-blur {
+		-webkit-backdrop-filter: blur(var(--nav-blur-step, 3px));
+		backdrop-filter: blur(var(--nav-blur-step, 3px));
+	}
+
+	/* Evenly stepped, and each band starts exactly at the midpoint of the one
+	   below it: 18% apart, 36% wide, so the count of passes over any given point
+	   climbs 1, 2, 3, 4 in equal measure from the bottom edge to the top. Even
+	   spacing is the whole difference between a ramp and four bars of increasing
+	   blur — bands that abut show their seams, and bands that overlap unevenly
+	   read as a ramp with a lump in it.
+
+	   Written to the top, because that is the end the ramp is anchored to: an open
+	   disclosure lengthens the box downward and the deep end stays where it is.
+	   They stop at 90% rather than 100% because the scrim is near-solid above
+	   that, and a blur under an opaque colour is work nobody sees. */
+	.nav-blur[data-step='1'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 0%, #000 36%);
+		mask-image: linear-gradient(to top, transparent 0%, #000 36%);
+	}
+
+	.nav-blur[data-step='2'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 18%, #000 54%);
+		mask-image: linear-gradient(to top, transparent 18%, #000 54%);
+	}
+
+	.nav-blur[data-step='3'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 36%, #000 72%);
+		mask-image: linear-gradient(to top, transparent 36%, #000 72%);
+	}
+
+	.nav-blur[data-step='4'] {
+		-webkit-mask-image: linear-gradient(to top, transparent 54%, #000 90%);
+		mask-image: linear-gradient(to top, transparent 54%, #000 90%);
+	}
+
+	/* A smoothstep, sampled at eight even intervals, and the reason to spend eight
+	   stops on it is that it is symmetric: every pair either side of the middle
+	   sums to 1, and the curve leaves both ends flat. That flatness is what a
+	   straight alpha ramp cannot give — it starts giving way at the very top edge,
+	   where the article then shows through the pixels that are supposed to match
+	   the status bar, and on a light page that reads as dirt under the wordmark.
+	   It ends the same way, so there is no line where the header stops.
+
+	   Every stop is a percentage of a box that is the row plus however far the
+	   disclosure currently reaches, so opening it lengthens the ramp rather than
+	   sliding it down: the ends stay pinned and the curve is spread over the
+	   taller header. That is why the stops are percentages and the growth is on
+	   the parent. */
+	.nav-scrim {
+		background-image: linear-gradient(
+			to bottom,
+			rgb(var(--nav-surface-rgb) / 1) 0%,
+			rgb(var(--nav-surface-rgb) / 0.959) 12.5%,
+			rgb(var(--nav-surface-rgb) / 0.844) 25%,
+			rgb(var(--nav-surface-rgb) / 0.684) 37.5%,
+			rgb(var(--nav-surface-rgb) / 0.5) 50%,
+			rgb(var(--nav-surface-rgb) / 0.316) 62.5%,
+			rgb(var(--nav-surface-rgb) / 0.156) 75%,
+			rgb(var(--nav-surface-rgb) / 0.041) 87.5%,
+			rgb(var(--nav-surface-rgb) / 0) 100%
+		);
+	}
+
+	/* The floor the ramp is lerped into while the disclosure is down. Its own
+	   opacity carries it, on the menu's half of the pair the surface fades on, so
+	   it eases in over the same 200ms as everything else the menu moves — and the
+	   closed header composites against nothing at all and is the ramp it has
+	   always been. */
+	.nav-panel {
+		background-color: rgb(var(--nav-surface-rgb));
+		opacity: calc(0.8 * var(--nav-surface-menu));
+	}
+
+	/* Fixed rather than sticky: it answers to the viewport, which is what the scan
+	   measures against, and it must not move with a header that is only sticky
+	   until the page is long enough. Never faded and never animated — the value
+	   Safari reads is the one that is there at first paint. */
+	.nav-edge {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 4px;
+		background-color: rgb(var(--nav-surface-rgb));
+		pointer-events: none;
+		z-index: 31;
 	}
 
 	.nav-more-row {
