@@ -16,7 +16,7 @@ keywords:
 
 I wear an Apple Watch most days. Pulling out my phone between classes to check the timetable or see how much time was left in the period felt dumb when the screen was _right there_ on my wrist.
 
-[SchoolWatch](https://github.com/injoon5/SchoolWatch) is my attempt to fix that — a watchOS app that hits the same [school API](/projects/timefor-school) as everything else, just on a 45mm display.
+[SchoolWatch](https://github.com/injoon5/SchoolWatch) is my attempt to fix that — a watchOS app that hits the same [school API](/projects/timefor-school/en) as everything else, just on a 45mm display.
 
 ## Demo
 
@@ -55,4 +55,4 @@ It also fetches `/schedule` for the current week and overlays school events (공
 
 ## Status
 
-Built in SwiftUI for watchOS, with no backend of its own — it's a pure client hitting the [TimeforSchool API](/projects/timefor-school). It's more of a personal tool than a polished App Store release, but it earned its spot on my wrist and I check it daily. Source is on GitHub if you want to poke around.
+Built in SwiftUI for watchOS, with no backend of its own — it's a pure client hitting the [TimeforSchool API](/projects/timefor-school/en). It's more of a personal tool than a polished App Store release, but it earned its spot on my wrist and I check it daily. Source is on GitHub if you want to poke around.

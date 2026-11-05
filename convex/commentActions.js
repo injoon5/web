@@ -5,9 +5,15 @@ import { ConvexError, v } from 'convex/values';
 import { action } from './_generated/server.js';
 import { internal } from './_generated/api.js';
 import { isAdmin } from './lib/auth.js';
+import { assertServerCall } from './lib/serverCall.js';
 
-/** Rate limit + password for non-admin callers. */
-async function authorizeOwner(ctx, { commentId, password, ipHash, adminSecret }) {
+/**
+ * Rate limit + password for non-admin callers. The rate limit is what stands
+ * between a comment's password and a brute force, and it is keyed on `ipHash`,
+ * so only the SvelteKit server may supply one: see lib/serverCall.js.
+ */
+async function authorizeOwner(ctx, { commentId, password, ipHash, adminSecret, serverCredential }) {
+	await assertServerCall(serverCredential);
 	if (await isAdmin(adminSecret)) return;
 
 	// One internal mutation consumes the rate-limit token and returns the auth
@@ -34,7 +40,8 @@ export const editComment = action({
 		text: v.string(),
 		password: v.string(),
 		ipHash: v.string(),
-		adminSecret: v.optional(v.string())
+		adminSecret: v.optional(v.string()),
+		serverCredential: v.string()
 	},
 	handler: async (ctx, args) => {
 		await authorizeOwner(ctx, args);
@@ -51,7 +58,8 @@ export const softDeleteComment = action({
 		commentId: v.id('comments'),
 		password: v.optional(v.string()),
 		ipHash: v.string(),
-		adminSecret: v.optional(v.string())
+		adminSecret: v.optional(v.string()),
+		serverCredential: v.string()
 	},
 	handler: async (ctx, args) => {
 		await authorizeOwner(ctx, args);

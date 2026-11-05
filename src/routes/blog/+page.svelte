@@ -1,5 +1,6 @@
 <script>
 	import FontPrefetch from '#lib/fonts/FontPrefetch.svelte';
+	import { preloadArticles } from '#lib/content/preload-articles.js';
 
 	let { data } = $props();
 
@@ -39,10 +40,10 @@
 	/>
 	<meta name="author" content="Injoon Oh (오인준)" />
 	<meta name="keywords" content="오인준, Injoon Oh, 블로그, blog, 글, writing" />
-	<meta property="og:image" content="https://www.injoon5.com/api/og?template=blog" />
+	<meta property="og:image" content="https://injoon5.com/api/og?template=blog" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=blog" />
-	<meta property="og:url" content="https://www.injoon5.com/blog" />
+	<meta name="twitter:image" content="https://injoon5.com/api/og?template=blog" />
+	<meta property="og:url" content="https://injoon5.com/blog" />
 </svelte:head>
 
 <FontPrefetch />
@@ -59,7 +60,13 @@
 		Stuff that just barely made it online. <br />Take a look at what I've done, experienced, and
 		wrote about.
 	</h2>
-	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
+	<!-- As its links come into view, an article's route code and its content are
+	     fetched, so a click renders the post without waiting on the network. -->
+	<div
+		class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700"
+		data-sveltekit-preload-code="viewport"
+		use:preloadArticles
+	>
 		{#each groupedPosts as group (group.key)}
 			{#if group.type === 'series'}
 				<div class="py-2">

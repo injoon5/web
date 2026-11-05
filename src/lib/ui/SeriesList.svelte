@@ -4,7 +4,9 @@
 	import { blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
-	let { series } = $props();
+	import { preloadArticles } from '#lib/content/preload-articles.js';
+	// `lang` is the language being read, so the next post opens in it too.
+	let { series, lang = 'ko' } = $props();
 
 	let mounted = $state(false);
 	onMount(() => {
@@ -24,6 +26,7 @@
 
 <div
 	class="rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
+	use:preloadArticles
 >
 	<div class="grid px-3 pt-2 pb-2">
 		{#key series[0].series}
@@ -43,7 +46,7 @@
 		     announced as one, and it cannot navigate. The current post is the
 		     active row, not a destination. -->
 		<a
-			href={current ? undefined : post.slug}
+			href={current ? undefined : `/blog/${post.slug}${lang === 'en' ? '/en' : ''}`}
 			aria-current={current ? 'page' : undefined}
 			class=" border-t border-neutral-200 dark:border-neutral-800 {current
 				? 'cursor-default opacity-50'

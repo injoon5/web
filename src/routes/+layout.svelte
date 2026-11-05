@@ -28,6 +28,7 @@
 	})();
 
 	setupConvex(PUBLIC_CONVEX_URL);
+	const convexOrigin = new URL(PUBLIC_CONVEX_URL).origin;
 
 	const { trigger, destroy } = createWebHaptics();
 	onDestroy(destroy);
@@ -76,8 +77,21 @@
 </script>
 
 <svelte:head>
-	<link rel="canonical" href="https://www.injoon5.com{page.url.pathname}" />
+	<!-- An article in a language it does not have (`/en` on a Korean-only post)
+	     renders its primary language, and says so here. -->
+	<link rel="canonical" href="https://injoon5.com{page.data.canonicalPath ?? page.url.pathname}" />
 	<meta property="og:site_name" content="Injoon Oh" />
+	<link
+		rel="alternate"
+		type="application/rss+xml"
+		title="Injoon Oh"
+		href="https://injoon5.com/rss.xml"
+	/>
+	<!-- The Convex client opens its websocket at hydration; resolve the host while
+	     the HTML is still parsing (from #104). Every page but the two listings
+	     subscribes to something, and readers go from those to an article. -->
+	<link rel="dns-prefetch" href={convexOrigin} />
+	<link rel="preconnect" href={convexOrigin} />
 </svelte:head>
 
 <!-- Sticky shell, blurred surface and scroll state all live inside NavBar: its

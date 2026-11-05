@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // and a live deployment; swap it for spies so we can assert which Convex
 // function the handler picked.
 vi.mock('#lib/server/convex.js', () => ({
+	serverCredential: 'server-credential',
 	convex: {
 		action: vi.fn().mockResolvedValue(undefined),
 		mutation: vi.fn().mockResolvedValue(undefined)

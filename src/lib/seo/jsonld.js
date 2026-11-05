@@ -4,7 +4,7 @@
  * The canonical origin. This module runs in the browser, so it can't reach into
  * `#lib/server/*` — the value is a public constant and lives here directly.
  */
-const SITE_URL = 'https://www.injoon5.com';
+const SITE_URL = 'https://injoon5.com';
 
 /** The author's romanised and Korean names, kept together so search for either resolves. */
 export const AUTHOR_NAME = 'Injoon Oh';

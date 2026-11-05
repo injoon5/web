@@ -38,7 +38,9 @@ export function load({ setHeaders }) {
 	// One window for everyone now the range is client state, so this is a single
 	// shared cache entry. The page is realtime after hydration, so a minute-old
 	// first paint corrects itself.
-	setHeaders({ 'cache-control': 'public, max-age=60, stale-while-revalidate=300' });
+	// `s-maxage` is what Vercel's CDN reads: with `max-age` alone every view
+	// reached the function (and Convex). The data is the same for everyone.
+	setHeaders({ 'cache-control': 'public, max-age=60, s-maxage=60, stale-while-revalidate=300' });
 
 	return {
 		endDate,

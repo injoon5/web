@@ -1,5 +1,6 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
+	import { preloadArticles } from '#lib/content/preload-articles.js';
 	import { useQuery } from 'convex-svelte';
 	import { api } from '#convex/_generated/api.js';
 	import { heroName } from '#lib/nav/hero.svelte.js';
@@ -19,10 +20,24 @@
 	let heroNameEl = $state(null);
 	let heroObserver;
 
-	// Both feeds are refreshed by a Convex cron every 5 minutes, so these are
-	// live subscriptions rather than a fetch on mount.
-	const nowQuery = useQuery(api.feeds.nowPlaying, () => ({}));
-	const photosQuery = useQuery(api.feeds.photos, () => ({}));
+	// Both feeds are refreshed by a Convex cron every 5 minutes. The ISR render
+	// (+page.server.js) bakes the latest of each into the HTML, and the live
+	// subscription takes over from there. The server render and the first client
+	// render read the same `initialData`, which is what keeps hydration exact.
+	const nowQuery = useQuery(
+		api.feeds.nowPlaying,
+		() => ({}),
+		() => ({
+			initialData: data.nowPlaying ?? undefined
+		})
+	);
+	const photosQuery = useQuery(
+		api.feeds.photos,
+		() => ({}),
+		() => ({
+			initialData: data.photos ?? undefined
+		})
+	);
 
 	const tracks = $derived(nowQuery.data?.tracks ?? []);
 	const photos = $derived(photosQuery.data?.photos ?? []);
@@ -81,17 +96,16 @@
 		name="keywords"
 		content="오인준, Injoon Oh, injoon5, 블로그, blog, projects, 개발자, developer"
 	/>
-	<meta property="og:image" content="https://www.injoon5.com/api/og?template=home" />
+	<meta property="og:image" content="https://injoon5.com/api/og?template=home" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=home" />
+	<meta name="twitter:image" content="https://injoon5.com/api/og?template=home" />
 
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://www.injoon5.com/" />
+	<meta property="og:url" content="https://injoon5.com/" />
 
 	<!-- The Now-Listening covers (Last.fm's Fastly CDN) and Photos (photos.injoon5.com)
-	     only load after their Convex feeds resolve client-side. Warming DNS/TCP/TLS to
-	     those origins during that round-trip lets the images paint the moment their
-	     URLs arrive. No `crossorigin` — the <img>s are plain, non-CORS fetches. -->
+	     are in the HTML from the ISR render, and are lazy images; warm their origins
+	     so the first ones paint without waiting on DNS and TLS. -->
 	<link rel="preconnect" href="https://lastfm.freetls.fastly.net" />
 	<link rel="preconnect" href="https://photos.injoon5.com" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
@@ -154,7 +168,11 @@
 		</div>
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div
+			class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+			data-sveltekit-preload-code="viewport"
+			use:preloadArticles
+		>
 			{#each data.posts.slice(0, 4) as post (post.slug)}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
@@ -219,7 +237,11 @@
 		</div>
 	</div>
 	<div class="col-span-10 justify-center lg:mt-0">
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+		<div
+			class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+			data-sveltekit-preload-code="viewport"
+			use:preloadArticles
+		>
 			{#each data.projects.slice(0, 4) as post (post.slug)}
 				<a
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"

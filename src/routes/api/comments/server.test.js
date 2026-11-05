@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // The route imports the real Convex HTTP client, which needs PUBLIC_CONVEX_URL
 // and a live deployment; swap it for spies so we can assert call order.
 vi.mock('#lib/server/convex.js', () => ({
+	serverCredential: 'server-credential',
 	convex: {
 		query: vi.fn().mockResolvedValue([]),
 		mutation: vi.fn().mockResolvedValue({ _id: 'c1' })
@@ -61,6 +62,10 @@ describe('POST /api/comments', () => {
 		const gateOrder = convex.mutation.mock.invocationCallOrder[0];
 		const hashOrder = bcrypt.hash.mock.invocationCallOrder[0];
 		expect(gateOrder).toBeLessThan(hashOrder);
+		// Both calls vouch for the ipHash they carry: Convex refuses them otherwise.
+		for (const [, args] of convex.mutation.mock.calls) {
+			expect(args.serverCredential).toBe('server-credential');
+		}
 	});
 
 	it.each([

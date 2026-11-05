@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { convex } from '#lib/server/convex.js';
+import { convex, serverCredential } from '#lib/server/convex.js';
 import { api } from '#convex/_generated/api.js';
 import { verifyAdminSecret } from '#lib/server/admin.js';
 import { editCommentSchema, deleteCommentSchema, parseConvexId } from '#lib/server/validation.js';
@@ -18,6 +18,7 @@ export const PATCH = async ({ params, request }) => {
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.editComment, {
+				serverCredential,
 				commentId,
 				text,
 				password: admin ? '' : password,
@@ -44,6 +45,7 @@ export const DELETE = async ({ params, request }) => {
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.softDeleteComment, {
+				serverCredential,
 				commentId,
 				password,
 				ipHash

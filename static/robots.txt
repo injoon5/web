@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.injoon5.com/sitemap.xml
+Sitemap: https://injoon5.com/sitemap.xml

@@ -498,10 +498,18 @@ img[data-img-pending] {
 	background-size: 200% 100%;
 	background-repeat: no-repeat;
 	animation: shimmer 1.6s var(--ease-out-soft) infinite;
+	/* Paused unless near the screen (`data-img-near`, set by image-cache.js): a
+	   background-position animation repaints every frame, and the lazy images
+	   far down an article stay pending for as long as the page is open. */
+	animation-play-state: paused;
 	/* The alt text would otherwise be typeset across the placeholder, and then
 	   vanish when the photo arrives. A broken image drops the attribute and gets
 	   it back. */
 	color: transparent;
+}
+
+img[data-img-pending][data-img-near] {
+	animation-play-state: running;
 }
 
 .dark img[data-img-pending] {

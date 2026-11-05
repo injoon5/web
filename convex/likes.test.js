@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 import rateLimiter from '@convex-dev/rate-limiter/test';
 import { api } from './_generated/api.js';
 import schema from './schema.js';
+import { withServerCall } from '../src/test/convex-server-call.js';
 
 const modules = import.meta.glob('./**/*.js');
 
@@ -21,7 +22,7 @@ const URL = '/blog/test';
 const IP = 'visitor';
 
 function setup() {
-	const t = convexTest(schema, modules);
+	const t = withServerCall(convexTest(schema, modules));
 	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
 	return t;
 }
@@ -166,5 +167,36 @@ describe('get', () => {
 			count: 2,
 			liked: true
 		});
+	});
+});
+
+describe("setLike is the server's to call", () => {
+	it('refuses a call without the server credential', async () => {
+		const t = convexTest(schema, modules);
+		t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
+		process.env.ADMIN_SECRET = 'test-admin-secret';
+		await expect(
+			t.mutation(api.likes.setLike, {
+				url: URL,
+				ipHash: IP,
+				liked: true,
+				serverCredential: 'guess'
+			})
+		).rejects.toThrow(/Unauthorized/);
+		expect(await rowCount(t)).toBe(0);
+	});
+
+	it('refuses everything when ADMIN_SECRET is not configured', async () => {
+		const t = convexTest(schema, modules);
+		t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
+		const saved = process.env.ADMIN_SECRET;
+		delete process.env.ADMIN_SECRET;
+		try {
+			await expect(
+				t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true, serverCredential: '' })
+			).rejects.toThrow(/Unauthorized/);
+		} finally {
+			process.env.ADMIN_SECRET = saved;
+		}
 	});
 });

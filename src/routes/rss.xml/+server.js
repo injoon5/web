@@ -4,7 +4,7 @@ import { create } from 'xmlbuilder2';
 import { blogEnMeta, blogKoMeta } from '#lib/server/content-modules.js';
 import { slugFromPath } from '#lib/content/bilingual.js';
 
-const SITE_URL = 'https://www.injoon5.com';
+const SITE_URL = 'https://injoon5.com';
 
 // Raw markdown sources for feed descriptions. The compiled modules above only
 // carry metadata + a Svelte component, so the description text comes from the
@@ -84,8 +84,9 @@ export const GET = async () => {
 		.ele('title')
 		.txt("Injoon Oh's Website")
 		.up()
+		// RSS 2.0: the channel's <link> is the site the feed describes, not the feed.
 		.ele('link')
-		.txt(`${SITE_URL}/rss.xml`)
+		.txt(SITE_URL)
 		.up()
 		.ele('description')
 		.txt('Latest blog articles')
@@ -101,6 +102,11 @@ export const GET = async () => {
 			.txt(post.title)
 			.up()
 			.ele('link')
+			.txt(`${SITE_URL}/blog/${post.slug}`)
+			.up()
+			// Readers dedupe on guid; without one, some re-show every item when
+			// any field (a description's 300 characters) changes.
+			.ele('guid', { isPermaLink: 'true' })
 			.txt(`${SITE_URL}/blog/${post.slug}`)
 			.up()
 			.ele('description')

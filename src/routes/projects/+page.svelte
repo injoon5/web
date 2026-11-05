@@ -1,5 +1,6 @@
 <script>
 	import FontPrefetch from '#lib/fonts/FontPrefetch.svelte';
+	import { preloadArticles } from '#lib/content/preload-articles.js';
 
 	let { data } = $props();
 </script>
@@ -17,10 +18,10 @@
 	/>
 	<meta name="author" content="Injoon Oh (오인준)" />
 	<meta name="keywords" content="오인준, Injoon Oh, projects, 프로젝트, 개발, portfolio" />
-	<meta property="og:image" content="https://www.injoon5.com/api/og?template=projects" />
+	<meta property="og:image" content="https://injoon5.com/api/og?template=projects" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=projects" />
-	<meta property="og:url" content="https://www.injoon5.com/projects" />
+	<meta name="twitter:image" content="https://injoon5.com/api/og?template=projects" />
+	<meta property="og:url" content="https://injoon5.com/projects" />
 </svelte:head>
 
 <FontPrefetch />
@@ -38,7 +39,13 @@
 		personal projects. (WIP)
 	</h2>
 
-	<div class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700">
+	<!-- As its links come into view, an article's route code and its content are
+	     fetched, so a click renders the post without waiting on the network. -->
+	<div
+		class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700"
+		data-sveltekit-preload-code="viewport"
+		use:preloadArticles
+	>
 		{#each data.projects as project (project.slug)}
 			<div class="py-2">
 				<a

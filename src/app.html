@@ -20,13 +20,16 @@
 
 		<!-- Upstream's subset sheet, cut down to the long tail the core and
 		     extended files do not carry (CJK, rarer symbols). `media=print` fetches
-		     it at low priority, then flips to `all` once it lands; the <noscript>
-		     copy keeps the faces for JS-off. -->
+		     it at low priority, then the script below flips it to `all` once it
+		     lands — there, not in an `onload` attribute, because the
+		     Content-Security-Policy allows exactly one inline script (by hash, in
+		     vite.config.ts) and no inline handlers. The <noscript> copy keeps the
+		     faces for JS-off. -->
 		<link
 			rel="stylesheet"
 			href="/fonts/interlude/interlude-variable-dynamic-subset.css"
 			media="print"
-			onload="this.media = 'all'"
+			data-defer-css
 		/>
 		<noscript>
 			<link rel="stylesheet" href="/fonts/interlude/interlude-variable-dynamic-subset.css" />
@@ -44,9 +47,19 @@
 
 				apply();
 				mql.addEventListener('change', apply);
+
+				for (const link of document.querySelectorAll('link[data-defer-css]')) {
+					const use = () => (link.media = 'all');
+					if (link.sheet) use();
+					else link.addEventListener('load', use, { once: true });
+				}
 			})();
 		</script>
 
+		<!-- The theme follows the system (the script above), so the browser's own UI
+		     — scrollbars, placeholder text, the canvas before CSS lands — should too.
+		     Every form control sets its own colours, so this changes nothing else. -->
+		<meta name="color-scheme" content="light dark" />
 		<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 		<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
 

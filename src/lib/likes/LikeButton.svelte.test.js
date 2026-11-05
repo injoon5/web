@@ -8,11 +8,13 @@ vi.mock('convex-svelte', () => ({ useQuery: vi.fn() }));
 
 import { useQuery } from 'convex-svelte';
 import { setPage } from '$app/state';
+import { visitor } from '#lib/visitor.svelte.js';
 import { createReactiveQuery } from '../../test/mocks/reactive-query.svelte.js';
 import LikeButton from './LikeButton.svelte';
 
 beforeEach(() => {
 	setPage();
+	visitor.ipHash = 'test-ip-hash';
 	useQuery.mockReturnValue({
 		data: { count: 3, liked: false },
 		isStale: false,
@@ -51,7 +53,7 @@ describe('LikeButton', () => {
 	});
 
 	it('is disabled when the visitor has no ipHash', async () => {
-		setPage({ data: { ipHash: '' } });
+		visitor.ipHash = '';
 		render(LikeButton);
 		const btn = await screen.findByRole('button', { name: 'Like' });
 		await waitFor(() => expect(btn).toBeDisabled());
@@ -114,5 +116,40 @@ describe('LikeButton optimistic count (realtime echo)', () => {
 		query.set({ data: { count: 7, liked: true } });
 		await tick();
 		await waitFor(() => expect(screen.getByText('7')).toBeInTheDocument());
+	});
+});
+
+describe('LikeButton and the visitor identity', () => {
+	it('keeps the count up while the subscription swaps to the arriving ipHash', async () => {
+		visitor.ipHash = '';
+		const query = createReactiveQuery({ data: { count: 5, liked: false } });
+		useQuery.mockReturnValue(query);
+
+		render(LikeButton);
+		expect(await screen.findByText('5')).toBeInTheDocument();
+
+		// The hash lands after the post rendered: the subscription re-keys and its
+		// retained result goes stale until the new one arrives.
+		visitor.ipHash = 'test-ip-hash';
+		query.set({ isStale: true });
+		await tick();
+		expect(screen.getByText('5')).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: 'Like' })).toBeDisabled();
+
+		query.set({ isStale: false, data: { count: 5, liked: true } });
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Liked' })).toBeEnabled());
+	});
+
+	it('adopts the ipHash its like was written under', async () => {
+		fetch.mockResolvedValue({
+			ok: true,
+			json: async () => ({ count: 4, liked: true, ipHash: 'new-network-hash' })
+		});
+		render(LikeButton);
+		const btn = await screen.findByRole('button', { name: 'Like' });
+		await waitFor(() => expect(btn).toBeEnabled());
+
+		await fireEvent.click(btn);
+		await waitFor(() => expect(visitor.ipHash).toBe('new-network-hash'));
 	});
 });

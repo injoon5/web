@@ -6,6 +6,7 @@ vi.mock('convex-svelte', () => ({ usePaginatedQuery: vi.fn() }));
 
 import { usePaginatedQuery } from 'convex-svelte';
 import { setPage } from '$app/state';
+import { visitor } from '#lib/visitor.svelte.js';
 import { createReactivePaginatedQuery } from '../../test/mocks/reactive-query.svelte.js';
 import { COMMENTS_PAGE_SIZE } from './constants.js';
 import CommentsSection from './CommentsSection.svelte';
@@ -42,6 +43,7 @@ function mockQuery(overrides = {}) {
 
 beforeEach(() => {
 	setPage();
+	visitor.ipHash = 'test-ip-hash';
 	mockQuery();
 	vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
 });
@@ -232,5 +234,16 @@ describe('CommentsSection voting', () => {
 				expect.objectContaining({ method: 'POST', body: JSON.stringify({ voteType: 'up' }) })
 			)
 		);
+	});
+});
+
+describe('CommentsSection and the visitor identity', () => {
+	it('does not subscribe until the visitor ipHash is known', () => {
+		visitor.ipHash = '';
+		render(CommentsSection);
+		const argsFn = usePaginatedQuery.mock.lastCall[1];
+		expect(argsFn()).toBe('skip');
+		visitor.ipHash = 'test-ip-hash';
+		expect(argsFn()).toEqual({ url: '/blog/test', ipHash: 'test-ip-hash' });
 	});
 });

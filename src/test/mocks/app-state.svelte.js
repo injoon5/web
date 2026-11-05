@@ -5,7 +5,7 @@
 
 const DEFAULT_PAGE = {
 	url: new URL('http://localhost/blog/test'),
-	data: { ipHash: 'test-ip-hash' },
+	data: {},
 	params: {},
 	route: { id: null },
 	status: 200,

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { toIsoDate, contentEntries, sitemapEntries, STATIC_PAGES } from './sitemap.js';
+import {
+	toIsoDate,
+	contentEntries,
+	sitemapEntries,
+	languageUrls,
+	STATIC_PAGES
+} from './sitemap.js';
 
 describe('toIsoDate', () => {
 	it('normalises a full frontmatter date', () => {
@@ -58,5 +64,26 @@ describe('sitemapEntries', () => {
 		expect(entries.slice(0, STATIC_PAGES.length)).toEqual(STATIC_PAGES);
 		expect(entries.map((e) => e.path)).toContain('/blog/hello');
 		expect(entries.map((e) => e.path)).toContain('/projects/thing');
+	});
+});
+
+describe('languageUrls', () => {
+	it('gives each language of a bilingual article its own URL, all cross-listed', () => {
+		const urls = languageUrls({ path: '/blog/us-camp', langs: ['ko', 'en'] });
+		expect(urls.map((u) => u.loc)).toEqual(['/blog/us-camp', '/blog/us-camp/en']);
+		for (const url of urls) {
+			expect(url.alternates).toEqual([
+				{ hreflang: 'ko', path: '/blog/us-camp' },
+				{ hreflang: 'en', path: '/blog/us-camp/en' },
+				{ hreflang: 'x-default', path: '/blog/us-camp' }
+			]);
+		}
+	});
+
+	it('leaves a single-language article and a static page alone', () => {
+		expect(languageUrls({ path: '/blog/film', langs: ['ko'] })).toEqual([
+			{ loc: '/blog/film', alternates: [] }
+		]);
+		expect(languageUrls({ path: '/now' })).toEqual([{ loc: '/now', alternates: [] }]);
 	});
 });

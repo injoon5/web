@@ -1,23 +1,10 @@
-import { building } from '$app/env';
+import { pageLang } from '#lib/server/page-lang.js';
 
-// Resolve the %lang% placeholder in app.html. Only blog/project detail pages are
-// bilingual (Korean default); the rest of the site is English chrome. The client
-// reconciles this with the actually-shown language after hydration.
+// Resolve the %lang% placeholder in app.html from the URL. Articles carry their
+// language in the path, so this is right for prerendered pages as well.
 /** @type {import('@sveltejs/kit/hooks').Handle} */
 export const handle = async ({ event, resolve }) => {
-	const { pathname } = event.url;
-	const isContent = pathname.startsWith('/blog/') || pathname.startsWith('/projects/');
-
-	let lang = 'en';
-	if (isContent) {
-		// searchParams (and cookies) are unavailable while the prerender crawler visits
-		// SSR-only routes linked from prerendered pages — default to Korean.
-		const pref = building
-			? null
-			: event.url.searchParams.get('lang') || event.cookies.get('preferred-lang');
-		lang = pref === 'en' ? 'en' : 'ko';
-	}
-
+	const lang = pageLang(event.url.pathname);
 	return await resolve(event, {
 		transformPageChunk: ({ html }) => html.replace('%lang%', lang)
 	});
