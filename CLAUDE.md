@@ -175,10 +175,11 @@ even be requested. What it used to return comes from elsewhere:
   prerendered: SvelteKit answers a server-side fetch of a prerendered path with a
   real HTTP request back out to the site.
 
-**A post renders on click without touching the network.** The listings (and
-`SeriesList`) carry `data-sveltekit-preload-code="viewport"` for the route's JS
-and `use:preloadArticles` (`#lib/content/preload-articles.js`) for the rest of
-what the load waits on: both languages' content chunks and the series lists.
+**A post renders on click without touching the network.** The listings carry
+`data-sveltekit-preload-code="viewport"` for the route's JS, and they and
+`SeriesList` carry `use:preloadArticles` (`#lib/content/preload-articles.js`)
+for the rest of what the load waits on: both languages' content chunks and the
+series lists.
 Both read the globs in `#lib/content/article-modules.js`, so they are the same
 chunks. Measured under Fast 3G: 60–90ms from click to rendered post. Only
 `/api/visitor` goes out, and nothing waits on it. Keep it that way: anything a
