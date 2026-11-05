@@ -2,9 +2,12 @@ import adapter from '@sveltejs/adapter-vercel';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
+import type { Config } from '@sveltejs/kit/vite';
 import { mdsvex } from 'mdsvex';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 import mdsvexConfig from './mdsvex.config.js';
 
@@ -40,6 +43,86 @@ const dials = process.env.VERCEL_ENV
 	? process.env.VERCEL_ENV !== 'production'
 	: process.env.NODE_ENV !== 'production';
 
+/**
+ * Content-Security-Policy, enforced. Prerendered pages carry it as a <meta> that
+ * SvelteKit puts in the head, hashing its own inline bootstrap script; rendered
+ * pages (home, /now, /health, /admin) get it as a header, with a nonce.
+ *
+ * - The one inline script of our own is app.html's theme script, allowed by its
+ *   hash, computed here from the file so an edit can never leave it stale. It
+ *   also flips the deferred font sheet to `media=all`, so there is no inline
+ *   event handler to allow.
+ * - `style-src 'unsafe-inline'`: Svelte writes `style` attributes, and
+ *   transitions and the dials add <style>. Styles cannot run script.
+ * - Every other origin is one the site actually talks to: Convex (its HTTP and
+ *   websocket origin), the analytics collector, the Now Listening and Photos
+ *   image hosts, YouTube's no-cookie embeds, Cloudflare's beacon while the
+ *   domain is proxied, and the Vercel toolbar on preview deployments.
+ */
+function contentSecurityPolicy(): Config['csp'] {
+	const appHtml = readFileSync(new URL('./src/app.html', import.meta.url), 'utf8');
+	const inline = [...appHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(
+		([, body]) => `sha256-${createHash('sha256').update(body).digest('base64')}` as const
+	);
+
+	const convexUrl =
+		process.env.PUBLIC_CONVEX_URL ??
+		loadEnv('production', process.cwd(), 'PUBLIC_').PUBLIC_CONVEX_URL ??
+		'';
+	// CSP's host-source shape: scheme, a dotted host, optional port.
+	type HostSource = `${string}://${string}.${string}`;
+	const convex: HostSource[] = ['https://*.convex.cloud', 'wss://*.convex.cloud'];
+	try {
+		const { origin, host, protocol } = new URL(convexUrl);
+		if (!host.endsWith('.convex.cloud')) {
+			convex.push(
+				origin as HostSource,
+				`${protocol === 'https:' ? 'wss' : 'ws'}://${host}` as HostSource
+			);
+		}
+	} catch {
+		// No URL at config time: the wildcard covers every hosted deployment.
+	}
+
+	const vercelLive = 'https://vercel.live';
+	return {
+		// Hashes for prerendered pages; a nonce for rendered ones, because /health
+		// streams its data and SvelteKit writes each streamed chunk as an inline
+		// script after the header has gone out — no hash could cover it. An ISR
+		// page's nonce is fixed until it regenerates: its header and HTML are
+		// cached together, so they still agree.
+		mode: 'auto',
+		directives: {
+			'default-src': ['self'],
+			'script-src': ['self', ...inline, vercelLive, 'https://static.cloudflareinsights.com'],
+			'style-src': ['self', 'unsafe-inline', vercelLive],
+			'img-src': [
+				'self',
+				'data:',
+				'blob:',
+				'https://lastfm.freetls.fastly.net',
+				'https://photos.injoon5.com',
+				vercelLive,
+				'https://vercel.com'
+			],
+			'font-src': ['self', 'data:', vercelLive],
+			'connect-src': [
+				'self',
+				...convex,
+				'https://collector.onedollarstats.com',
+				'https://cloudflareinsights.com',
+				vercelLive,
+				'wss://ws-us3.pusher.com'
+			],
+			'media-src': ['self'],
+			'frame-src': ['https://www.youtube-nocookie.com', vercelLive],
+			'object-src': ['none'],
+			'base-uri': ['self'],
+			'form-action': ['self']
+		}
+	};
+}
+
 export default defineConfig({
 	define: {
 		__DIALS__: JSON.stringify(dials)
@@ -69,7 +152,8 @@ export default defineConfig({
 				if (mdA11y) return;
 				handler(warning);
 			},
-			adapter: adapter()
+			adapter: adapter(),
+			csp: contentSecurityPolicy()
 		})
 	]
 });
