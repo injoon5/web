@@ -1,6 +1,6 @@
 <script>
 	import { page } from '$app/state';
-	import { visitor } from '#lib/visitor.svelte.js';
+	import { adoptIpHash, visitor } from '#lib/visitor.svelte.js';
 	import { onDestroy } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
@@ -63,12 +63,13 @@
 	// Reactive comments query — live updates across tabs, newest threads first.
 	// `paginationOpts` is injected by the hook; each page is whole threads, so a
 	// reply never arrives without the parent it hangs off.
+	// Skipped until the visitor's hash is known: every comment carries this
+	// visitor's vote, so a list read without it would be thrown away and read
+	// again. The section mounts near the foot of the article, by which point the
+	// hash has almost always arrived.
 	const query = usePaginatedQuery(
 		api.comments.list,
-		() => ({
-			url: path,
-			ipHash
-		}),
+		() => (ipHash ? { url: path, ipHash } : 'skip'),
 		{
 			initialNumItems: COMMENTS_PAGE_SIZE,
 			// The runtime ipHash re-subscription swaps the query args on every
@@ -136,6 +137,7 @@
 			method: 'POST',
 			body: { voteType }
 		});
+		if (res.ok) adoptIpHash(res.data.ipHash);
 		if (!res.ok) {
 			showVoteError(
 				res.message ?? (res.networkError ? 'Something went wrong.' : 'Could not register vote.')

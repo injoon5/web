@@ -24,12 +24,16 @@ export const POST = async ({ request }) => {
 
 	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
 
-	return runConvex(() =>
-		convex.mutation(api.likes.setLike, {
-			url: pageUrl,
-			ipHash,
-			liked,
-			adminSecret: admin ? ADMIN_SECRET : undefined
-		})
+	// `ipHash` rides back so the page's subscription reads under the identity
+	// this write was made with (`#lib/visitor.svelte.js` caches it per session).
+	return runConvex(
+		() =>
+			convex.mutation(api.likes.setLike, {
+				url: pageUrl,
+				ipHash,
+				liked,
+				adminSecret: admin ? ADMIN_SECRET : undefined
+			}),
+		(data) => Response.json({ ...data, ipHash })
 	);
 };

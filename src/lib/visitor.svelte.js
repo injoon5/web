@@ -22,6 +22,18 @@ export const visitor = $state({ ipHash: '' });
 let pending = null;
 
 /**
+ * Take the hash a write was actually made under. The session's cached hash
+ * goes stale when the visitor's address changes (Wi-Fi to cellular), and then
+ * the subscription reads under one identity while `/api/likes` writes under
+ * another: the heart never sees its own like come back and stays pending.
+ *
+ * @param {unknown} ipHash  `ipHash` from a write endpoint's response
+ */
+export function adoptIpHash(ipHash) {
+	if (typeof ipHash === 'string' && ipHash && ipHash !== visitor.ipHash) visitor.ipHash = ipHash;
+}
+
+/**
  * Start (once per session) the browser's `/api/visitor` request. Never awaited
  * by a load: the page renders without it.
  *

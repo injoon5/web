@@ -1,5 +1,6 @@
 <script>
 	import FontPrefetch from '#lib/fonts/FontPrefetch.svelte';
+	import { preloadArticles } from '#lib/content/preload-articles.js';
 
 	let { data } = $props();
 
@@ -59,11 +60,12 @@
 		Stuff that just barely made it online. <br />Take a look at what I've done, experienced, and
 		wrote about.
 	</h2>
-	<!-- The article route's code is fetched as its links come into view, so a click
-	     waits only on the post's own chunks, not on the route's JS and then those. -->
+	<!-- As its links come into view, an article's route code and its content are
+	     fetched, so a click renders the post without waiting on the network. -->
 	<div
 		class="my-12 grid w-full grid-cols-1 divide-y divide-neutral-200 dark:divide-neutral-700"
 		data-sveltekit-preload-code="viewport"
+		use:preloadArticles
 	>
 		{#each groupedPosts as group (group.key)}
 			{#if group.type === 'series'}

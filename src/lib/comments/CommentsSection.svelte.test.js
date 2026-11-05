@@ -236,3 +236,14 @@ describe('CommentsSection voting', () => {
 		);
 	});
 });
+
+describe('CommentsSection and the visitor identity', () => {
+	it('does not subscribe until the visitor ipHash is known', () => {
+		visitor.ipHash = '';
+		render(CommentsSection);
+		const argsFn = usePaginatedQuery.mock.lastCall[1];
+		expect(argsFn()).toBe('skip');
+		visitor.ipHash = 'test-ip-hash';
+		expect(argsFn()).toEqual({ url: '/blog/test', ipHash: 'test-ip-hash' });
+	});
+});

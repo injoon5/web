@@ -15,12 +15,15 @@ export const POST = async ({ params, request }) => {
 	if (!commentId) throw error(400, 'Invalid comment id');
 	const { voteType } = await parseBody(request, voteSchema);
 
-	return runConvex(() =>
-		convex.mutation(api.comments.vote, {
-			commentId,
-			voteType,
-			ipHash,
-			adminSecret: admin ? ADMIN_SECRET : undefined
-		})
+	// `ipHash` rides back for the same reason as /api/likes: see `adoptIpHash`.
+	return runConvex(
+		() =>
+			convex.mutation(api.comments.vote, {
+				commentId,
+				voteType,
+				ipHash,
+				adminSecret: admin ? ADMIN_SECRET : undefined
+			}),
+		(data) => Response.json({ ...data, ipHash })
 	);
 };

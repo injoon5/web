@@ -6,16 +6,14 @@ export const prerender = false;
 
 import { error } from '@sveltejs/kit';
 import { resolveBilingualEntry, bilingualPageData } from '#lib/content/bilingual.js';
+import { projectModules } from '#lib/content/article-modules.js';
 import { preferredLang } from '#lib/visitor.svelte.js';
-
-const enModules = import.meta.glob('/src/content/projects/en/*.md');
-const koModules = import.meta.glob('/src/content/projects/ko/*.md');
 
 export async function load({ params, url, fetch }) {
 	const [{ en, ko }, prefLang] = await Promise.all([
 		resolveBilingualEntry(
-			enModules,
-			koModules,
+			projectModules.en,
+			projectModules.ko,
 			`/src/content/projects/en/${params.slug}.md`,
 			`/src/content/projects/ko/${params.slug}.md`
 		),

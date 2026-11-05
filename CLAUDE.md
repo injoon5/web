@@ -86,7 +86,8 @@ src/
     actions/               # auto-height, marquee
     article/               # ArticleDials + settings
     comments/              # CommentsSection, CommentNode, AdminCommentNode, build-tree
-    content/bilingual.js   # en/ko module resolution for the [slug] routes
+    content/               # bilingual (en/ko resolution), article-modules (lazy globs),
+                           # preload-articles, series (client cache of /api/series)
     dev/                   # DialsHost, DialsMount
     error/                 # ErrorPage, LifeField, life, glyph, settings
     fonts/                 # interlude.json (generated manifest) + its guard test
@@ -174,8 +175,35 @@ even be requested. What it used to return comes from elsewhere:
   prerendered: SvelteKit answers a server-side fetch of a prerendered path with a
   real HTTP request back out to the site.
 
-The listings carry `data-sveltekit-preload-code="viewport"` so the article route's
-JS is already there on click, leaving one round trip (the post's own chunks).
+**A post renders on click without touching the network.** The listings (and
+`SeriesList`) carry `data-sveltekit-preload-code="viewport"` for the route's JS
+and `use:preloadArticles` (`#lib/content/preload-articles.js`) for the rest of
+what the load waits on: both languages' content chunks and the series lists.
+Both read the globs in `#lib/content/article-modules.js`, so they are the same
+chunks. Measured under Fast 3G: 60–90ms from click to rendered post. Only
+`/api/visitor` goes out, and nothing waits on it. Keep it that way: anything a
+load awaits has to be preloaded too, or it is back on the click's critical path.
+Not `preload-code` on `SeriesList`: the current post's row has no `href`, and
+SvelteKit's viewport observer throws `new URL('')` on it.
+
+**What arrives after the post, and how Convex sees it:**
+
+- `LikeButton` subscribes with `ipHash: ''` until the hash lands (the count is
+  the same for everyone, and that query is shared in Convex's cache), then
+  re-keys. `countReady` keeps the count on screen across that swap; only the
+  heart waits.
+- `CommentsSection` passes `'skip'` until the hash is known: every comment
+  carries this visitor's vote, so a list read without it would be read twice.
+- The hash is cached for the session, so `/api/likes` and the vote endpoint
+  return the `ipHash` they wrote under and the components `adoptIpHash` it. A
+  visitor whose address changed mid-session (Wi-Fi to cellular) otherwise
+  reads under one identity and writes under another, and the heart never sees
+  its own like come back.
+
+**Locally, aborted chunk requests are the placeholder Convex URL**, not the
+code: the Convex client's fatal parse error intermittently aborts every
+in-flight request, and a failed `import()` stays failed, so a navigation lands
+on `+error`. Build with a parseable `PUBLIC_CONVEX_URL` before measuring.
 
 Schema changes: edit `convex/schema.js` and run `npx convex dev`. There are no
 migration files.
@@ -227,6 +255,16 @@ where the real secret stays.
   `convex/adminSessions.test.js` covers the whole surface.
 
 ---
+
+## Client IP (`src/lib/server/ip.js`)
+
+The site is proxied through **Cloudflare**, so the connection Vercel sees — and
+reports as `x-real-ip` — is a Cloudflare edge, a different one from request to
+request (measured: one client, six requests, five hashes). `getClientIp` takes
+`cf-connecting-ip` **only when `x-real-ip` is inside Cloudflare's published
+ranges**; a request straight to the Vercel domain can set the header but not the
+source address. Every `ipHash` — likes, votes, bans, rate limits — hangs off
+this. If Cloudflare publishes new ranges, update the lists.
 
 ## Rate Limiting
 
@@ -390,8 +428,8 @@ import.meta.glob('/src/content/blog/en/*.md', { eager: true, import: 'metadata' 
 imported both ways cannot be split, so Rollup puts every whole post in a static
 chunk. `blog/[slug]/+page.js` did this to read `metadata.series` and every
 article page loaded every post's compiled content — 48KB gzipped, drafts
-included. The series list is now `postSeries` (`server/series.js`), computed in
-the server load; the universal load keeps only the lazy glob.
+included. The series list is now `allPostSeries` (`server/series.js`), served by
+`/api/series`; the universal load keeps only the lazy glob.
 
 Listing pages read `publishedPosts()` / `publishedProjects()` directly in a
 server load. `/api/posts` and `/api/projects` still exist as public endpoints,

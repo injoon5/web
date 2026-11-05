@@ -1,6 +1,6 @@
 <script>
 	import { page } from '$app/state';
-	import { visitor } from '#lib/visitor.svelte.js';
+	import { adoptIpHash, visitor } from '#lib/visitor.svelte.js';
 	import { onDestroy } from 'svelte';
 	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import { useQuery } from 'convex-svelte';
@@ -30,9 +30,14 @@
 		if (query.data && !query.isStale) freshPath = path;
 	});
 	const ready = $derived(!query.isStale && !!query.data && freshPath === path);
+	// The count is the same under any ipHash, so a result for this page stays
+	// good while the subscription swaps identity — which it does when the
+	// visitor's hash arrives after the post has rendered. Without this the count
+	// went back to the skeleton for that swap.
+	const countReady = $derived(!!query.data && freshPath === path);
 
 	// Authoritative server state for this page (count is global; liked is per-IP).
-	const serverCount = $derived(ready ? (query.data.count ?? 0) : 0);
+	const serverCount = $derived(countReady ? (query.data.count ?? 0) : 0);
 	const serverLiked = $derived(ready && !!ipHash ? !!query.data.liked : false);
 
 	// Optimistic intent: the liked state the user picked but the server hasn't
@@ -90,7 +95,7 @@
 	const likeCount = $derived(
 		activePending !== null ? optimisticBase + (activePending ? 1 : 0) : serverCount
 	);
-	const showCount = $derived(ready || activePending !== null);
+	const showCount = $derived(countReady || activePending !== null);
 	const interactive = $derived(ready && !!ipHash);
 
 	function showLikeError(message) {
@@ -164,6 +169,7 @@
 					);
 					break;
 				}
+				adoptIpHash(res.data.ipHash);
 				lastSent = sending;
 			}
 		} finally {

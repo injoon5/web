@@ -4,6 +4,7 @@
 	import { blur } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
+	import { preloadArticles } from '#lib/content/preload-articles.js';
 	let { series } = $props();
 
 	let mounted = $state(false);
@@ -24,6 +25,7 @@
 
 <div
 	class="rounded-xl border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900"
+	use:preloadArticles
 >
 	<div class="grid px-3 pt-2 pb-2">
 		{#key series[0].series}

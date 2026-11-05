@@ -9,11 +9,9 @@ export const prerender = false;
 import { error } from '@sveltejs/kit';
 import { browser } from '$app/env';
 import { resolveBilingualEntry, bilingualPageData } from '#lib/content/bilingual.js';
+import { blogModules } from '#lib/content/article-modules.js';
 import { seriesMap } from '#lib/content/series.js';
 import { preferredLang } from '#lib/visitor.svelte.js';
-
-const enModules = import.meta.glob('/src/content/blog/en/*.md');
-const koModules = import.meta.glob('/src/content/blog/ko/*.md');
 
 export async function load({ params, url, fetch }) {
 	// In the browser the series list is started alongside the post (it is one
@@ -22,8 +20,8 @@ export async function load({ params, url, fetch }) {
 
 	const [{ en: enPost, ko: koPost }, prefLang] = await Promise.all([
 		resolveBilingualEntry(
-			enModules,
-			koModules,
+			blogModules.en,
+			blogModules.ko,
 			`/src/content/blog/en/${params.slug}.md`,
 			`/src/content/blog/ko/${params.slug}.md`
 		),
