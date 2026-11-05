@@ -139,16 +139,55 @@ export function trackImage(img) {
 	// 0x0 nothing that only makes the alt text disappear.
 	if (img.getAttribute('width') && img.getAttribute('height')) {
 		img.setAttribute('data-img-pending', 'true');
+		nearViewport()?.observe(img);
 	}
 	img.addEventListener('load', () => settle(img), { once: true });
 	// A broken image keeps its alt text rather than a placeholder that never ends.
-	img.addEventListener('error', () => img.removeAttribute('data-img-pending'), { once: true });
+	img.addEventListener(
+		'error',
+		() => {
+			img.removeAttribute('data-img-pending');
+			nearViewport()?.unobserve(img);
+		},
+		{ once: true }
+	);
 }
 
 /** @param {HTMLImageElement} img */
 function settle(img) {
 	noteImage(img);
 	img.removeAttribute('data-img-pending');
+	nearViewport()?.unobserve(img);
+}
+
+/**
+ * Which placeholders are near enough to the screen to shimmer.
+ *
+ * The shimmer animates `background-position`, which the compositor cannot run,
+ * so every running one is a style recalc and a repaint per frame. A lazy image
+ * far down the article is not even requested, so it stays pending — and
+ * shimmered — for as long as the page is open: measured on us-camp, 50 of them
+ * at once, 9.5s of style and paint work under Lighthouse's mobile throttling.
+ * `app.css` pauses the animation unless `data-img-near` is set, which this sets
+ * within a screen of the viewport.
+ *
+ * @type {IntersectionObserver | null | undefined}
+ */
+let observer;
+function nearViewport() {
+	if (observer !== undefined) return observer;
+	observer =
+		typeof IntersectionObserver === 'undefined'
+			? null
+			: new IntersectionObserver(
+					(entries) => {
+						for (const { target, isIntersecting } of entries) {
+							target.toggleAttribute('data-img-near', isIntersecting);
+						}
+					},
+					{ rootMargin: '100% 0px' }
+				);
+	return observer;
 }
 
 /** @param {ParentNode | null | undefined} root */
