@@ -26,7 +26,9 @@ const VALUES = {
 				name: 'Track One',
 				artist: 'Artist',
 				url: 'https://example.com/1',
-				image: 'https://lastfm.freetls.fastly.net/i/u/174s/a.png',
+				// The host Last.fm really serves covers from: a CSP that lists the
+				// wrong one blocked every cover, and this run could not see it.
+				image: 'https://lastfm-img.freetls.fastly.net/i/u/174s/a.jpg',
 				nowPlaying: true,
 				playedAt: null
 			}

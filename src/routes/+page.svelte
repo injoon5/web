@@ -106,7 +106,7 @@
 	<!-- The Now-Listening covers (Last.fm's Fastly CDN) and Photos (photos.injoon5.com)
 	     are in the HTML from the ISR render, and are lazy images; warm their origins
 	     so the first ones paint without waiting on DNS and TLS. -->
-	<link rel="preconnect" href="https://lastfm.freetls.fastly.net" />
+	<link rel="preconnect" href="https://lastfm-img.freetls.fastly.net" />
 	<link rel="preconnect" href="https://photos.injoon5.com" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(homeSchema())}

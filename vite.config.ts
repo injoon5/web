@@ -54,10 +54,10 @@ const dials = process.env.VERCEL_ENV
  *   event handler to allow.
  * - `style-src 'unsafe-inline'`: Svelte writes `style` attributes, and
  *   transitions and the dials add <style>. Styles cannot run script.
- * - Every other origin is one the site actually talks to: Convex (its HTTP and
- *   websocket origin), the analytics collector, the Now Listening and Photos
- *   image hosts, YouTube's no-cookie embeds, Cloudflare's beacon while the
- *   domain is proxied, and the Vercel toolbar on preview deployments.
+ * - Images may come from any https host (see img-src). Every other origin is
+ *   one the site actually talks to: Convex (its HTTP and websocket origin),
+ *   the analytics collector, YouTube's no-cookie embeds, Cloudflare's beacon
+ *   while the domain is proxied, and the Vercel toolbar on preview deployments.
  */
 function contentSecurityPolicy(): Config['csp'] {
 	const appHtml = readFileSync(new URL('./src/app.html', import.meta.url), 'utf8');
@@ -96,15 +96,10 @@ function contentSecurityPolicy(): Config['csp'] {
 			'default-src': ['self'],
 			'script-src': ['self', ...inline, vercelLive, 'https://static.cloudflareinsights.com'],
 			'style-src': ['self', 'unsafe-inline', vercelLive],
-			'img-src': [
-				'self',
-				'data:',
-				'blob:',
-				'https://lastfm.freetls.fastly.net',
-				'https://photos.injoon5.com',
-				vercelLive,
-				'https://vercel.com'
-			],
+			// Any https image: an image cannot run script, and a host list broke
+			// Now Listening the moment it was enforced — Last.fm serves covers from
+			// lastfm-img.freetls.fastly.net, and /now or a post may embed anything.
+			'img-src': ['self', 'data:', 'blob:', 'https:'],
 			'font-src': ['self', 'data:', vercelLive],
 			'connect-src': [
 				'self',
