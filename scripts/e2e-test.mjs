@@ -50,7 +50,10 @@ const preview = spawn('npx', ['vite', 'preview', '--port', String(PREVIEW_PORT),
 	detached: true
 });
 
-let failures = 1;
+// If the checks throw, the finally block still tears the servers down and the
+// error exits non-zero on its own.
+/** @type {number} */
+let failures;
 try {
 	for (let i = 0; i < 60; i++) {
 		const up = await fetch(origin).then(
