@@ -131,6 +131,15 @@ Tests are co-located (`*.test.js`, `*.svelte.test.js`). `vitest.config.ts`
 defines three projects: `unit` (node), `convex` (edge-runtime), `component`
 (jsdom).
 
+**`npm run test:e2e`** (`scripts/e2e-test.mjs`) checks a production build in
+Chromium: it builds against a fake Convex HTTP API (`scripts/e2e/fake-convex.mjs`),
+serves it with `vite preview`, and fails on any sitemap URL that errors or
+hydrates badly, an article a click cannot open, a broken language switch,
+lightbox or comments mount, a CSP violation, or an `ipHash`-keyed write that
+reaches Convex without the server credential. Not part of `npm test` — it builds
+the site. Run it after anything that touches routing, loads, hydration, the CSP
+or the API routes. `--no-build` reuses a build made against the fake.
+
 ---
 
 ## Convex Schema (`convex/schema.js`)
@@ -321,15 +330,34 @@ with a valid `adminSecret` bypass everything. A rejected limiter throws;
 `Retry-After`.
 
 **Only the SvelteKit server may say whose `ipHash` it is.** `likes.setLike`,
-`comments.create`, `comments.vote` and `comments.checkCanCreate` are public
-Convex functions (the URL ships in the client bundle) that key bans, limits and
-like dedup on the hash they are handed, so each requires `serverCredential`:
+`comments.create`, `comments.vote`, `comments.checkCanCreate` and the comment
+owner actions (`commentActions.editComment`, `softDeleteComment`) are public
+Convex functions (the URL ships in the client bundle) that key bans, limits,
+like dedup and the password-attempt limit on the hash they are handed, so each
+requires `serverCredential`:
 HMAC-SHA256 of `convex-server-call` under `ADMIN_SECRET`, derived by
 `src/lib/server/convex.js` (Node crypto) and `convex/lib/serverCall.js` (Web
 Crypto). `src/lib/server/convex.test.js` pins the two to the same string. It is
 not `ADMIN_SECRET` and bypasses nothing. Convex tests reach these through
 `withServerCall` (`src/test/convex-server-call.js`). Any new public function
 that trusts an `ipHash` argument needs the same.
+
+## Content-Security-Policy (`vite.config.ts`)
+
+Enforced, through SvelteKit's `csp` config in `mode: 'auto'`: prerendered pages
+carry it as a `<meta>` with SvelteKit's inline bootstrap hashed, rendered pages
+(home, `/now`, `/health`, `/admin`) as a header with a nonce. **Not `'hash'`
+mode:** `/health` streams, and SvelteKit writes each streamed chunk as an inline
+script after the header has gone out.
+
+- **The only inline script of our own is `app.html`'s theme script**, allowed by
+  a hash computed from the file at build time. Do not add another inline script
+  or an inline event handler (`onload=` …) to `app.html` — put it in that one.
+  It flips the deferred font sheet (`link[data-defer-css]`) to `media=all` for
+  exactly this reason.
+- **A new origin needs a line in the directives**: an image host, an embed, an
+  API the browser calls. `npm run test:e2e` fails on any violation it meets.
+- `style-src` keeps `'unsafe-inline'` — Svelte writes `style` attributes.
 
 ---
 
@@ -472,6 +500,25 @@ render and the first client render are the same markup. A slow Convex yields
   prerendered route, so the first request after a deploy renders synchronously.
 - The adapter caches the HTML and `__data.json` together, and lets no query
   string but `__pathname` into the cache key.
+
+## `/now`
+
+Rendered the same way as the home page: ISR every 5 minutes, the markdown turned
+into HTML on the server, and the live subscription seeded with that data.
+
+- **One renderer for both sides**, `#lib/now/render-markdown.js`: marked, with
+  raw HTML shown as text and a link or image URL kept only for http(s), mailto or
+  this site. Those are the only two ways markdown reaches script, so they are
+  closed rather than sanitized after the fact — there is no DOMPurify (it needs a
+  DOM the server does not have). The browser loads the renderer only when the
+  content changes while the page is open, i.e. after an edit.
+- **"Updated …" is an absolute date until mounted.** The ISR render cannot know
+  when it will be read; a relative time baked into it would be wrong, and the
+  client's would differ from it.
+- **The Edit button checks `/api/admin/whoami` only for a browser holding the
+  `admin_hint` cookie**, which `/admin` sets beside the real httpOnly
+  `admin_token` and clears on sign-out. It grants nothing — whoami still checks
+  the real cookie — it only spares every visitor a function call.
 
 ---
 
