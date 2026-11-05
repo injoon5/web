@@ -8,7 +8,7 @@
 /** @typedef {'blog' | 'projects'} ArticleKind */
 
 /** The canonical origin, which every absolute URL in a page's head is built on. */
-export const SITE_URL = 'https://www.injoon5.com';
+export const SITE_URL = 'https://injoon5.com';
 
 /** Display order: Korean leads, so `langs[0]` is the primary language. */
 const RANK = { ko: 0, en: 1 };

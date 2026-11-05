@@ -3,7 +3,7 @@ import { slugFromPath } from '#lib/content/bilingual.js';
 import { articlePath } from '#lib/content/article-paths.js';
 
 /** The canonical origin. Kept in one place so the sitemap and RSS agree. */
-export const SITE_URL = 'https://www.injoon5.com';
+export const SITE_URL = 'https://injoon5.com';
 
 /**
  * Static, non-content routes. Priority is advisory — modern crawlers largely

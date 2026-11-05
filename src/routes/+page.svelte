@@ -96,12 +96,12 @@
 		name="keywords"
 		content="오인준, Injoon Oh, injoon5, 블로그, blog, projects, 개발자, developer"
 	/>
-	<meta property="og:image" content="https://www.injoon5.com/api/og?template=home" />
+	<meta property="og:image" content="https://injoon5.com/api/og?template=home" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=home" />
+	<meta name="twitter:image" content="https://injoon5.com/api/og?template=home" />
 
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://www.injoon5.com/" />
+	<meta property="og:url" content="https://injoon5.com/" />
 
 	<!-- The Now-Listening covers (Last.fm's Fastly CDN) and Photos (photos.injoon5.com)
 	     are in the HTML from the ISR render, and are lazy images; warm their origins

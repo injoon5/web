@@ -136,10 +136,10 @@
 	<meta name="description" content={DESCRIPTION} />
 	<meta property="og:title" content="Health — Injoon Oh" />
 	<meta property="og:description" content={DESCRIPTION} />
-	<meta property="og:image" content="https://www.injoon5.com/api/og?template=health" />
-	<meta property="og:url" content="https://www.injoon5.com/health" />
+	<meta property="og:image" content="https://injoon5.com/api/og?template=health" />
+	<meta property="og:url" content="https://injoon5.com/health" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=health" />
+	<meta name="twitter:image" content="https://injoon5.com/api/og?template=health" />
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">

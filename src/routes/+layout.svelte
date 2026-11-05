@@ -79,16 +79,13 @@
 <svelte:head>
 	<!-- An article in a language it does not have (`/en` on a Korean-only post)
 	     renders its primary language, and says so here. -->
-	<link
-		rel="canonical"
-		href="https://www.injoon5.com{page.data.canonicalPath ?? page.url.pathname}"
-	/>
+	<link rel="canonical" href="https://injoon5.com{page.data.canonicalPath ?? page.url.pathname}" />
 	<meta property="og:site_name" content="Injoon Oh" />
 	<link
 		rel="alternate"
 		type="application/rss+xml"
 		title="Injoon Oh"
-		href="https://www.injoon5.com/rss.xml"
+		href="https://injoon5.com/rss.xml"
 	/>
 	<!-- The Convex client opens its websocket at hydration; resolve the host while
 	     the HTML is still parsing (from #104). Every page but the two listings

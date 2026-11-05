@@ -40,10 +40,10 @@
 	/>
 	<meta name="author" content="Injoon Oh (오인준)" />
 	<meta name="keywords" content="오인준, Injoon Oh, 블로그, blog, 글, writing" />
-	<meta property="og:image" content="https://www.injoon5.com/api/og?template=blog" />
+	<meta property="og:image" content="https://injoon5.com/api/og?template=blog" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=blog" />
-	<meta property="og:url" content="https://www.injoon5.com/blog" />
+	<meta name="twitter:image" content="https://injoon5.com/api/og?template=blog" />
+	<meta property="og:url" content="https://injoon5.com/blog" />
 </svelte:head>
 
 <FontPrefetch />

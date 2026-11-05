@@ -18,10 +18,10 @@
 	/>
 	<meta name="author" content="Injoon Oh (오인준)" />
 	<meta name="keywords" content="오인준, Injoon Oh, projects, 프로젝트, 개발, portfolio" />
-	<meta property="og:image" content="https://www.injoon5.com/api/og?template=projects" />
+	<meta property="og:image" content="https://injoon5.com/api/og?template=projects" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://www.injoon5.com/api/og?template=projects" />
-	<meta property="og:url" content="https://www.injoon5.com/projects" />
+	<meta name="twitter:image" content="https://injoon5.com/api/og?template=projects" />
+	<meta property="og:url" content="https://injoon5.com/projects" />
 </svelte:head>
 
 <FontPrefetch />

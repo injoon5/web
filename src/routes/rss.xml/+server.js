@@ -4,7 +4,7 @@ import { create } from 'xmlbuilder2';
 import { blogEnMeta, blogKoMeta } from '#lib/server/content-modules.js';
 import { slugFromPath } from '#lib/content/bilingual.js';
 
-const SITE_URL = 'https://www.injoon5.com';
+const SITE_URL = 'https://injoon5.com';
 
 // Raw markdown sources for feed descriptions. The compiled modules above only
 // carry metadata + a Svelte component, so the description text comes from the
