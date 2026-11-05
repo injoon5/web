@@ -4,29 +4,20 @@
 	import { onMount } from 'svelte';
 	import { apiFetch } from '#lib/api-client.js';
 
-	const nowQuery = useQuery(api.now.get, () => ({}));
+	let { data } = $props();
 
-	// marked + DOMPurify are ~72KB and only ever run in the browser (the page is
-	// prerendered and the content streams in over Convex), so they are pulled in
-	// off the initial bundle rather than shipped to every visitor up front. They
-	// load in parallel with the subscription opening; `renderer` gates rendering
-	// until both the libraries and the content are ready, so the shimmer covers
-	// exactly the same gap it always did.
-	/** @type {{ marked: typeof import('marked').marked, DOMPurify: typeof import('dompurify').default } | null} */
-	let renderer = $state(null);
+	// Seeded with what the ISR render had, so the first client render is the
+	// server's markup exactly; the subscription takes over from there.
+	const nowQuery = useQuery(
+		api.now.get,
+		() => ({}),
+		() => ({ initialData: data.now ?? undefined })
+	);
 
-	// The page is prerendered, so the admin check can't ride in server data. Ask
-	// the server whether this browser holds a valid admin credential and reveal
-	// the Edit affordance only for the owner. Non-blocking: content renders from
-	// the prerendered shell + Convex subscription regardless.
 	let isAdmin = $state(false);
+	let mounted = $state(false);
 	onMount(async () => {
-		const [{ marked }, { default: DOMPurify }] = await Promise.all([
-			import('marked'),
-			import('dompurify')
-		]);
-		renderer = { marked, DOMPurify };
-
+		mounted = true;
 		// Only someone who signed in at /admin has the hint; everyone else would
 		// spend a function call to learn they are not the owner.
 		if (!/(?:^|;\s*)admin_hint=1/.test(document.cookie)) return;
@@ -42,19 +33,19 @@
 	const doc = $derived(nowQuery.data);
 	const content = $derived(doc?.content ?? '');
 	const updatedAt = $derived(doc?.updatedAt ? new Date(doc.updatedAt) : null);
-	// The content is admin-authored, but sanitize the rendered markdown anyway as
-	// defense-in-depth (a compromised admin token shouldn't yield stored XSS).
-	const html = $derived.by(() => {
-		if (!content || !renderer) return '';
-		const rendered = /** @type {string} */ (
-			renderer.marked.parse(content, { gfm: true, breaks: false })
-		);
-		return renderer.DOMPurify.sanitize(rendered);
-	});
 
-	// There is content to show but the renderer hasn't arrived yet — keep the
-	// skeleton up rather than briefly flashing the "nothing here yet" branch.
-	const rendering = $derived(!!content && !renderer);
+	// The server rendered what it saw; render again only if the content has
+	// changed since (an edit), loading the renderer then and not before.
+	/** @type {((md: string) => string) | null} */
+	let render = $state(null);
+	const stale = $derived(!!content && content !== data.now?.content);
+	$effect(() => {
+		if (stale && !render) {
+			import('#lib/now/render-markdown.js').then((m) => (render = m.renderNow));
+		}
+	});
+	const html = $derived(stale ? (render ? render(content) : '') : data.html);
+	const rendering = $derived(stale && !render);
 
 	/** @type {Array<{ unit: Intl.RelativeTimeFormatUnit, secs: number }>} */
 	const RELATIVE_UNITS = [
@@ -143,7 +134,9 @@
 			class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500"
 			title={formatFull(updatedAt)}
 		>
-			Updated {formatRelative(updatedAt)}
+			<!-- Absolute until mounted: the ISR render cannot know when it will be
+			     read, and a relative time baked into it would be wrong. -->
+			Updated {mounted ? formatRelative(updatedAt) : `on ${formatFull(updatedAt)}`}
 		</p>
 	{:else}
 		<p class="text-xl font-medium tracking-tight text-neutral-500 dark:text-neutral-500">
