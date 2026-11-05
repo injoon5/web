@@ -20,10 +20,24 @@
 	let heroNameEl = $state(null);
 	let heroObserver;
 
-	// Both feeds are refreshed by a Convex cron every 5 minutes, so these are
-	// live subscriptions rather than a fetch on mount.
-	const nowQuery = useQuery(api.feeds.nowPlaying, () => ({}));
-	const photosQuery = useQuery(api.feeds.photos, () => ({}));
+	// Both feeds are refreshed by a Convex cron every 5 minutes. The ISR render
+	// (+page.server.js) bakes the latest of each into the HTML, and the live
+	// subscription takes over from there. The server render and the first client
+	// render read the same `initialData`, which is what keeps hydration exact.
+	const nowQuery = useQuery(
+		api.feeds.nowPlaying,
+		() => ({}),
+		() => ({
+			initialData: data.nowPlaying ?? undefined
+		})
+	);
+	const photosQuery = useQuery(
+		api.feeds.photos,
+		() => ({}),
+		() => ({
+			initialData: data.photos ?? undefined
+		})
+	);
 
 	const tracks = $derived(nowQuery.data?.tracks ?? []);
 	const photos = $derived(photosQuery.data?.photos ?? []);
@@ -90,9 +104,8 @@
 	<meta property="og:url" content="https://www.injoon5.com/" />
 
 	<!-- The Now-Listening covers (Last.fm's Fastly CDN) and Photos (photos.injoon5.com)
-	     only load after their Convex feeds resolve client-side. Warming DNS/TCP/TLS to
-	     those origins during that round-trip lets the images paint the moment their
-	     URLs arrive. No `crossorigin` — the <img>s are plain, non-CORS fetches. -->
+	     are in the HTML from the ISR render, and are lazy images; warm their origins
+	     so the first ones paint without waiting on DNS and TLS. -->
 	<link rel="preconnect" href="https://lastfm.freetls.fastly.net" />
 	<link rel="preconnect" href="https://photos.injoon5.com" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
