@@ -73,7 +73,8 @@ src/
   app.d.ts                 # Ambient declarations (__DIALS__, App namespace)
   app.html                 # Owns the dark/light class on <html> (pre-hydration)
   env.js                   # Declares every env var → $app/env/public, $app/env/private
-  hooks.server.js          # Resolves the %lang% placeholder in app.html
+  hooks.server.js          # Resolves the %lang% placeholder in app.html (from the URL)
+  params.js                # Route param matchers (`lang`)
   content/                 # Markdown, outside the router
     blog/{en,ko}/*.md
     projects/{en,ko}/*.md
@@ -84,10 +85,11 @@ src/
     theme.svelte.js        # Observes the class app.html sets; never sets it
     types.d.ts             # Post / Project / Tags
     actions/               # auto-height, marquee
-    article/               # ArticleDials + settings
+    article/               # Article, SwapLine, article-load, ArticleDials + settings
     comments/              # CommentsSection, CommentNode, AdminCommentNode, build-tree
-    content/               # bilingual (en/ko resolution), article-modules (lazy globs),
-                           # preload-articles, series (client cache of /api/series)
+    content/               # article-paths (language ↔ URL), article-modules (lazy globs),
+                           # article-index (client cache of /api/articles.json),
+                           # preload-articles, bilingual (slugFromPath)
     dev/                   # DialsHost, DialsMount
     error/                 # ErrorPage, LifeField, life, glyph, settings
     fonts/                 # interlude.json (generated manifest) + its guard test
@@ -105,17 +107,19 @@ src/
     nav/                   # NavBar, NavDials, settings, hero
     og/                    # satori OG image templates + render
     pasito/                # Svelte port of joshpuckett/pasito
-    server/                # admin, api, content, content-modules, convex, ip,
-                           # series, valid-urls, validation
-    visitor.svelte.js      # ipHash + language preference, without a server load
+    server/                # admin, api, article-index, content, content-modules,
+                           # convex, ip, page-lang, series, sitemap, valid-urls,
+                           # validation
+    visitor.svelte.js      # ipHash (once per session) + the language cookie
     techstack/             # TechStack + data
     ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList,
                            # StableLangStack
   routes/
-    +page.server.js        # Home (prerendered) — reads the lists directly
-    blog/, projects/       # Listing (prerendered) + [slug] (SSR)
+    +page.server.js        # Home (ISR, 5 min) — lists + the two feeds
+    blog/, projects/       # Listing + [slug]/[[lang=lang]], all prerendered
     now/, health/, admin/
-    api/                   # comments, likes, now, og, posts, projects, admin/*
+    api/                   # comments, likes, now, og, posts, projects, visitor,
+                           # articles.json, admin/*
     rss.xml/+server.js
 convex/
   schema.js comments.js likes.js bans.js now.js feeds.js admin.js adminSessions.js
@@ -157,34 +161,78 @@ skip them at the index rather than filtering in JS.
 
 `createdAt` is Convex's built-in `_creationTime`.
 
-**`ipHash` is served by `GET /api/visitor`** and held in `#lib/visitor.svelte.js`.
-Do NOT move it into a load that is prerendered: that would bake the build
-machine's hash into the static payload.
+Schema changes: edit `convex/schema.js` and run `npx convex dev`. There are no
+migration files.
 
-**The `[slug]` routes have no server load, and must not get one back.** A server
-load means every client-side navigation to a post waits on a `__data.json` round
-trip to the function (`iad1`, over a second cold) before its content chunks can
-even be requested. What it used to return comes from elsewhere:
+---
 
-- `prefLang` — the browser reads `?lang=` and the `preferred-lang` cookie itself.
-  Only the server render asks `/api/visitor`, in-process.
-- `ipHash` — fetched once per browser session, never awaited by a load; the like
-  count does not need it. On a landing, hydration answers that fetch from the
-  response the server render inlined, so it costs no request.
-- the series list — `/api/series`, every post's list keyed by slug. Live, not
-  prerendered: SvelteKit answers a server-side fetch of a prerendered path with a
-  real HTTP request back out to the site.
+## Articles (`src/lib/article/`, `src/lib/content/`)
+
+### The language is the URL
+
+Korean is the bare URL (`/blog/us-camp`), English is `/en` (`/blog/us-camp/en`):
+an optional `[[lang=lang]]` param, matched by `src/params.js` (SvelteKit 3:
+one module, `defineParams`, a matcher returns the value or `undefined`). The
+rules — which language is primary, which URL each lives at, what a URL resolves
+to — are `#lib/content/article-paths.js`, shared by the server and the browser.
+
+- **Every article is prerendered**, at both URLs (`entries` in each route's
+  `+page.server.js`, which exports nothing else). `/en` exists even for a
+  Korean-only post: it renders Korean with `canonical` pointing at the bare URL,
+  which is what lets the cookie redirect send anyone there blind.
+- **Each language has its own canonical, `og:url`, `hreflang` set and sitemap
+  `<url>`.** The old `?lang=en` pages declared the Korean page canonical, which
+  made every English page a duplicate to a search engine.
+- **The `preferred-lang` cookie only remembers the visitor's choice.**
+  `vercel.json` redirects a direct visit to the bare URL to `/en` (307), and
+  `?lang=en` permanently; the universal load does the same for a link followed
+  inside the site, where no request is made. The redirect's `:slug` is
+  `[a-z0-9-]+` on purpose: `/blog/__data.json` matches `/:kind/:slug` too.
+- **Switching is a `goto(…, { replace: true, reset: false })` within the same
+  route**, so `Article` stays mounted and the content still slides across. The
+  route wraps it in `{#key data.slug}`: a different article is a new component,
+  never a language swap between two posts. The outgoing language keeps
+  rendering from `seen` through its exit transition.
+- **Likes and comments are keyed by `data.articlePath`** (the bare URL), so both
+  languages share them. **The layout's canonical reads `data.canonicalPath`.**
+- **English content links to other articles' `/en` URLs**, and same-page anchors
+  are `#id`, not `/blog/x#id` — the prerender crawler fails the build on the
+  latter (`prerender_missing_id`), because `/blog/x` is the Korean page.
+- `<html lang>` comes from `pageLang` (`server/page-lang.js`), called from
+  `hooks.server.js` — it has to be right in the prerendered HTML.
+
+### One component, one load
+
+`Article.svelte` is a blog post or a project page: the language state machine,
+the shared head tags, the header and the body. Each route passes its head tags
+(`head`), header pieces (`eyebrow`, `dateline`, `intro`, `aside`) and `footer`
+as snippets; a line of header text that changes with the language is a
+`SwapLine`. `articleLoad(kind)` (`article-load.js`) is the one universal load.
+
+**There is no server load, and there must not be one.** It would put a function
+round trip (`iad1`, over a second cold) in front of every client-side
+navigation, before the content chunk could even be requested. The load needs:
+
+- **`/api/articles.json`** (prerendered, `server/article-index.js`): which
+  languages each article has, and each post's series lists. Read once per
+  browser session. It exists because the load must not import content chunks to
+  find this out — see "Content Lists".
+- **One content chunk**, the language in the URL. The other is preloaded at idle
+  after mount, so a switch never waits.
+
+**`ipHash` is served by `GET /api/visitor`** and held in `#lib/visitor.svelte.js`,
+requested once per browser session and never awaited. Do NOT move it into a load:
+the pages are prerendered, so it would be the build machine's hash.
 
 **A post renders on click without touching the network.** The listings carry
 `data-sveltekit-preload-code="viewport"` for the route's JS, and they and
 `SeriesList` carry `use:preloadArticles` (`#lib/content/preload-articles.js`)
-for the rest of what the load waits on: both languages' content chunks and the
-series lists.
-Both read the globs in `#lib/content/article-modules.js`, so they are the same
-chunks. Measured under Fast 3G: 60–90ms from click to rendered post. Only
-`/api/visitor` goes out, and nothing waits on it. Keep it that way: anything a
-load awaits has to be preloaded too, or it is back on the click's critical path.
-Not `preload-code` on `SeriesList`: the current post's row has no `href`, and
+for what the load waits on: the index and the content chunks. Both read the
+globs in `#lib/content/article-modules.js`, so they are the same chunks.
+Measured under Fast 3G: 60–95ms from click to rendered post, with only
+`/api/visitor` going out, unawaited. Keep it that way: anything a load awaits
+has to be preloaded too, or it is back on the click's critical path. Not
+`preload-code` on `SeriesList`: the current post's row has no `href`, and
 SvelteKit's viewport observer throws `new URL('')` on it.
 
 **What arrives after the post, and how Convex sees it:**
@@ -205,9 +253,6 @@ SvelteKit's viewport observer throws `new URL('')` on it.
 code: the Convex client's fatal parse error intermittently aborts every
 in-flight request, and a failed `import()` stays failed, so a navigation lands
 on `+error`. Build with a parseable `PUBLIC_CONVEX_URL` before measuring.
-
-Schema changes: edit `convex/schema.js` and run `npx convex dev`. There are no
-migration files.
 
 ---
 
@@ -275,6 +320,17 @@ with a valid `adminSecret` bypass everything. A rejected limiter throws;
 `convexErrorToResponse` in `src/lib/server/api.js` maps that to a 429 with
 `Retry-After`.
 
+**Only the SvelteKit server may say whose `ipHash` it is.** `likes.setLike`,
+`comments.create`, `comments.vote` and `comments.checkCanCreate` are public
+Convex functions (the URL ships in the client bundle) that key bans, limits and
+like dedup on the hash they are handed, so each requires `serverCredential`:
+HMAC-SHA256 of `convex-server-call` under `ADMIN_SECRET`, derived by
+`src/lib/server/convex.js` (Node crypto) and `convex/lib/serverCall.js` (Web
+Crypto). `src/lib/server/convex.test.js` pins the two to the same string. It is
+not `ADMIN_SECRET` and bypasses nothing. Convex tests reach these through
+`withServerCall` (`src/test/convex-server-call.js`). Any new public function
+that trusts an `ipHash` argument needs the same.
+
 ---
 
 ## API Routes
@@ -291,8 +347,8 @@ with a valid `adminSecret` bypass everything. A rejected limiter throws;
 | GET    | `/api/likes?url=`         | —        | Count + whether current IP liked              |
 | POST   | `/api/likes`              | —        | Toggle like                                   |
 | POST   | `/api/now`                | admin    | Update `/now` content                         |
-| GET    | `/api/visitor`            | —        | `{ ipHash, lang }` for this visitor, no-store |
-| GET    | `/api/series`             | —        | Every post's series list, keyed by slug       |
+| GET    | `/api/visitor`            | —        | `{ ipHash }` for this visitor, no-store       |
+| GET    | `/api/articles.json`      | —        | Prerendered: languages + series per article   |
 
 ### Admin (`x-admin-secret`)
 
@@ -403,6 +459,20 @@ hold back the other. Each normalizes the response down to what the page renders
   mutation returns `{ changed: false }`.
 - Needs `LAST_FM_PUBLIC_API_KEY` in the Convex env (`npx convex env set`).
 
+**The home page bakes both feeds into its HTML** with Vercel ISR
+(`config.isr.expiration: 300` in `routes/+page.server.js`), and seeds the live
+subscriptions with that data through `useQuery`'s `initialData`, so the server
+render and the first client render are the same markup. A slow Convex yields
+`null` after 3s and the page loads the feed live instead.
+
+- **ISR cost, checked against Vercel's limits:** stale-while-revalidate, so a
+  visitor always gets a cached page; at most ~8,640 regenerations a month, and
+  an unchanged page costs no ISR write (Hobby: 200k writes, 1M reads). Each
+  deployment starts with an empty cache, and `adapter-vercel` ignores ISR on a
+  prerendered route, so the first request after a deploy renders synchronously.
+- The adapter caches the HTML and `__data.json` together, and lets no query
+  string but `__pathname` into the cache key.
+
 ---
 
 ## Content Lists
@@ -429,8 +499,8 @@ import.meta.glob('/src/content/blog/en/*.md', { eager: true, import: 'metadata' 
 imported both ways cannot be split, so Rollup puts every whole post in a static
 chunk. `blog/[slug]/+page.js` did this to read `metadata.series` and every
 article page loaded every post's compiled content — 48KB gzipped, drafts
-included. The series list is now `allPostSeries` (`server/series.js`), served by
-`/api/series`; the universal load keeps only the lazy glob.
+included. The series lists are now `allPostSeries` (`server/series.js`), served in
+`/api/articles.json`; the universal load keeps only the lazy glob.
 
 Listing pages read `publishedPosts()` / `publishedProjects()` directly in a
 server load. `/api/posts` and `/api/projects` still exist as public endpoints,
