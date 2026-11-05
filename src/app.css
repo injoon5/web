@@ -508,6 +508,12 @@ img[data-img-pending] {
 	color: transparent;
 }
 
+/* An image that failed to load (`hideIfBroken`): the tile behind it shows
+   instead of the browser's broken-image icon and its alt text. */
+img[data-broken] {
+	visibility: hidden;
+}
+
 img[data-img-pending][data-img-near] {
 	animation-play-state: running;
 }

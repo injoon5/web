@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { preloadArticles } from '#lib/content/preload-articles.js';
 	import { useQuery } from 'convex-svelte';
+	import { hideIfBroken } from '#lib/actions/hide-if-broken.js';
 	import { api } from '#convex/_generated/api.js';
 	import { heroName } from '#lib/nav/hero.svelte.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '#lib/actions/marquee.js';
@@ -369,6 +370,7 @@
 							src={track.image}
 							alt={track.name || 'Album cover'}
 							class="absolute inset-0 h-full w-full object-cover"
+							use:hideIfBroken
 						/>
 						<div
 							class="now-cover-scrim absolute inset-0 transition-opacity duration-300 group-hover:opacity-0"
@@ -431,6 +433,7 @@
 							decoding="async"
 							src={photo.image}
 							alt={photo.title || 'Photo'}
+							use:hideIfBroken
 							class="absolute inset-0 h-full w-full object-cover transition-[filter] duration-100 group-hover:brightness-70"
 						/>
 
