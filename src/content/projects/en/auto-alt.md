@@ -46,4 +46,4 @@ At Stanford during the US camp, we also prototyped an AI legal advice chatbot fo
 
 ## More
 
-The full story — application panic, SNU dorm all-nighter, YOLO training on a laptop — is in my [LG AI Youth Camp blog post](/blog/lg-ai-youth-camp). The [US camp writeup](/blog/us-camp) covers Silicon Valley.
+The full story — application panic, SNU dorm all-nighter, YOLO training on a laptop — is in my [LG AI Youth Camp blog post](/blog/lg-ai-youth-camp/en). The [US camp writeup](/blog/us-camp/en) covers Silicon Valley.

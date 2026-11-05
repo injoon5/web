@@ -9,7 +9,9 @@
 	import { apiFetch } from '#lib/api-client.js';
 
 	const ipHash = $derived(visitor.ipHash);
-	const path = $derived(page.url.pathname);
+	// The article, not one language of it: `/blog/x/en` shares `/blog/x`'s likes
+	// and comments.
+	const path = $derived(page.data.articlePath ?? page.url.pathname);
 
 	const query = useQuery(
 		api.likes.get,

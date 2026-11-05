@@ -7,7 +7,7 @@ import {
 	projectEnMeta,
 	projectKoMeta
 } from '#lib/server/content-modules.js';
-import { SITE_URL, sitemapEntries } from '#lib/server/sitemap.js';
+import { SITE_URL, languageUrls, sitemapEntries } from '#lib/server/sitemap.js';
 
 export const GET = async () => {
 	const entries = sitemapEntries({ blogEnMeta, blogKoMeta, projectEnMeta, projectKoMeta });
@@ -20,30 +20,14 @@ export const GET = async () => {
 	});
 
 	for (const entry of entries) {
-		const url = urlset.ele('url');
-		url.ele('loc').txt(`${SITE_URL}${entry.path}`).up();
-		if (entry.lastmod) url.ele('lastmod').txt(entry.lastmod).up();
-		if (entry.priority) url.ele('priority').txt(entry.priority).up();
-
-		// Alternates are only meaningful when a slug exists in more than one
-		// language; a single-language post just points at itself.
-		if (entry.langs && entry.langs.length > 1) {
-			for (const lang of entry.langs) {
-				url
-					.ele('xhtml:link', {
-						rel: 'alternate',
-						hreflang: lang,
-						href: `${SITE_URL}${entry.path}?lang=${lang}`
-					})
-					.up();
+		for (const { loc, alternates } of languageUrls(entry)) {
+			const url = urlset.ele('url');
+			url.ele('loc').txt(`${SITE_URL}${loc}`).up();
+			if (entry.lastmod) url.ele('lastmod').txt(entry.lastmod).up();
+			if (entry.priority) url.ele('priority').txt(entry.priority).up();
+			for (const { hreflang, path } of alternates) {
+				url.ele('xhtml:link', { rel: 'alternate', hreflang, href: `${SITE_URL}${path}` }).up();
 			}
-			url
-				.ele('xhtml:link', {
-					rel: 'alternate',
-					hreflang: 'x-default',
-					href: `${SITE_URL}${entry.path}`
-				})
-				.up();
 		}
 	}
 

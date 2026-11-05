@@ -2,6 +2,7 @@
 import { slugFromPath } from '#lib/content/bilingual.js';
 
 /** @typedef {Record<string, unknown> & { slug: string, series?: string, date?: string }} Metadata */
+/** @typedef {{ slug: string, title?: unknown, date?: unknown, series?: unknown }} SeriesEntry */
 
 /**
  * @param {Record<string, unknown>} metaByPath
@@ -59,7 +60,7 @@ export function postSeries(slug, enPaths, koPaths) {
 	};
 }
 
-/** @param {Metadata} m */
+/** @param {Metadata} m @returns {SeriesEntry} */
 const seriesEntry = ({ slug, title, date, series }) => ({ slug, title, date, series });
 
 /**
@@ -68,11 +69,11 @@ const seriesEntry = ({ slug, title, date, series }) => ({ slug, title, date, ser
  *
  * @param {Record<string, unknown>} enPaths an eager `import: 'metadata'` glob
  * @param {Record<string, unknown>} koPaths
- * @returns {Record<string, { enSeries: Partial<Metadata>[], koSeries: Partial<Metadata>[] }>}
+ * @returns {Record<string, { enSeries: SeriesEntry[], koSeries: SeriesEntry[] }>}
  */
 export function allPostSeries(enPaths, koPaths) {
 	const slugs = new Set([...publishedBySlug(enPaths).keys(), ...publishedBySlug(koPaths).keys()]);
-	/** @type {Record<string, { enSeries: Partial<Metadata>[], koSeries: Partial<Metadata>[] }>} */
+	/** @type {Record<string, { enSeries: SeriesEntry[], koSeries: SeriesEntry[] }>} */
 	const out = {};
 	for (const slug of [...slugs].sort()) {
 		const { enSeries, koSeries } = postSeries(slug, enPaths, koPaths);

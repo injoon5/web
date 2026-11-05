@@ -17,7 +17,7 @@ keywords:
 
 This repo ([injoon5/data](https://github.com/injoon5/data)) is the backend for the "now listening" widget on this site. It fetches what I'm playing from Last.fm and writes a JSON file that the frontend reads directly from GitHub.
 
-I wrote the full story in [How I made the "Now Listening" section on my website](/blog/now-listening) — Apple Music API age limits, why I refused to switch to Spotify, Sleeve for scrobbling, and the CORS trick with `raw.githubusercontent.com`.
+I wrote the full story in [How I made the "Now Listening" section on my website](/blog/now-listening/en) — Apple Music API age limits, why I refused to switch to Spotify, Sleeve for scrobbling, and the CORS trick with `raw.githubusercontent.com`.
 
 ## The script
 

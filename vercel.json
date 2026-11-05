@@ -10,6 +10,36 @@
 			"source": "/internal/rss.xml",
 			"destination": "/rss.xml",
 			"permanent": true
+		},
+		{
+			"source": "/:kind(blog|projects)/:slug([a-z0-9-]+)",
+			"has": [
+				{
+					"type": "query",
+					"key": "lang",
+					"value": "en"
+				}
+			],
+			"destination": "/:kind/:slug/en",
+			"permanent": true
+		},
+		{
+			"source": "/:kind(blog|projects)/:slug([a-z0-9-]+)",
+			"has": [
+				{
+					"type": "cookie",
+					"key": "preferred-lang",
+					"value": "en"
+				}
+			],
+			"missing": [
+				{
+					"type": "query",
+					"key": "lang"
+				}
+			],
+			"destination": "/:kind/:slug/en",
+			"permanent": false
 		}
 	],
 	"headers": [

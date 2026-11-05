@@ -87,7 +87,7 @@ It was immediately impressive. The building is called the **Gradient Canopy** �
 
 ![Bikes](/images/uploads/us-camp/IMG_8753.jpeg)
 
-The famous Google bikes were right there, exactly as expected. [I didn't ride one because I wasn't sure if we were allowed to.](/blog/us-camp#day-9-724)
+The famous Google bikes were right there, exactly as expected. [I didn't ride one because I wasn't sure if we were allowed to.](#day-9-724)
 
 We stopped by the Google Store — I picked up a chrome://dino dinosaur figure and a t-shirt — then met with a Google employee who works on AAOS (Android Automotive OS). The Gradient Canopy building is mostly used by the AI team so we couldn't go inside, but we got a tour of the older campus instead.
 

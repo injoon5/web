@@ -76,7 +76,12 @@
 </script>
 
 <svelte:head>
-	<link rel="canonical" href="https://www.injoon5.com{page.url.pathname}" />
+	<!-- An article in a language it does not have (`/en` on a Korean-only post)
+	     renders its primary language, and says so here. -->
+	<link
+		rel="canonical"
+		href="https://www.injoon5.com{page.data.canonicalPath ?? page.url.pathname}"
+	/>
 	<meta property="og:site_name" content="Injoon Oh" />
 </svelte:head>
 

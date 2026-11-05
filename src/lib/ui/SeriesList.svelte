@@ -45,7 +45,7 @@
 		     announced as one, and it cannot navigate. The current post is the
 		     active row, not a destination. -->
 		<a
-			href={current ? undefined : post.slug}
+			href={current ? undefined : `/blog/${post.slug}`}
 			aria-current={current ? 'page' : undefined}
 			class=" border-t border-neutral-200 dark:border-neutral-800 {current
 				? 'cursor-default opacity-50'

@@ -53,7 +53,7 @@ Before the Next.js prototype, I also built presentation materials for a fuller s
 
 ## What happened next
 
-Sirius didn't ship as a standalone app, but the idea clearly stuck — years later I rebuilt the same concept as [TimeforSchool](/projects/timefor-school) (notice board + timetable + lunch API + MCP) and [SchoolWatch](/projects/school-watch) (watchOS client). Same problem, better stack, actually deployed.
+Sirius didn't ship as a standalone app, but the idea clearly stuck — years later I rebuilt the same concept as [TimeforSchool](/projects/timefor-school/en) (notice board + timetable + lunch API + MCP) and [SchoolWatch](/projects/school-watch/en) (watchOS client). Same problem, better stack, actually deployed.
 
 The Sirius name, grid-dashboard concept, and "school info at a glance" pitch are basically the ancestor of everything school-related on this site.
 

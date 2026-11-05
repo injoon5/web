@@ -1,12 +1,12 @@
 import { blogModules, projectModules } from './article-modules.js';
-import { seriesMap } from './series.js';
+import { articleIndex } from './article-index.js';
 
 const noop = () => {};
 
 /**
- * Fetch everything an article's load waits on — both languages' content chunks
- * and, for a post, the series lists — so that a click finds it all in memory.
- * The loads' own `import()`s then resolve from the module map.
+ * Fetch everything an article's load waits on — the article index and both
+ * languages' content chunks — so that a click, or a language switch, finds it
+ * all in memory. The load's own `import()` then resolves from the module map.
  *
  * Likes, votes and the visitor's `ipHash` are not part of this: they arrive
  * after the post renders.
@@ -14,14 +14,14 @@ const noop = () => {};
  * @param {string} pathname  `/blog/<slug>` or `/projects/<slug>`
  */
 export function preloadArticle(pathname) {
-	const match = pathname.match(/^\/(blog|projects)\/([^/]+)\/?$/);
+	const match = pathname.match(/^\/(blog|projects)\/([^/]+)(?:\/en)?\/?$/);
 	if (!match) return;
 	const [, kind, slug] = match;
 	const modules = kind === 'blog' ? blogModules : projectModules;
 	for (const lang of /** @type {const} */ (['en', 'ko'])) {
 		modules[lang][`/src/content/${kind}/${lang}/${slug}.md`]?.().catch(noop);
 	}
-	if (kind === 'blog') seriesMap(fetch);
+	articleIndex(fetch).catch(noop);
 }
 
 /**

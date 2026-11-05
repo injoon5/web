@@ -58,7 +58,9 @@
 	const fallbackHandle = makeHandle();
 
 	const ipHash = $derived(visitor.ipHash);
-	const path = $derived(page.url.pathname);
+	// The article, not one language of it: `/blog/x/en` shares `/blog/x`'s likes
+	// and comments.
+	const path = $derived(page.data.articlePath ?? page.url.pathname);
 
 	// Reactive comments query — live updates across tabs, newest threads first.
 	// `paginationOpts` is injected by the hook; each page is whole threads, so a
@@ -191,7 +193,7 @@
 	const canVote = $derived(voteKnown);
 
 	// Reset transient form state on path change
-	let currentPath = $state(page.url.pathname);
+	let currentPath = $state(page.data.articlePath ?? page.url.pathname);
 	$effect(() => {
 		if (path !== currentPath) {
 			currentPath = path;

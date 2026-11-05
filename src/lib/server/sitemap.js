@@ -1,5 +1,6 @@
 // @ts-check
 import { slugFromPath } from '#lib/content/bilingual.js';
+import { articlePath } from '#lib/content/article-paths.js';
 
 /** The canonical origin. Kept in one place so the sitemap and RSS agree. */
 export const SITE_URL = 'https://www.injoon5.com';
@@ -106,4 +107,27 @@ export function sitemapEntries({ blogEnMeta, blogKoMeta, projectEnMeta, projectK
 		...contentEntries(blogEnMeta, blogKoMeta, '/blog', 'date'),
 		...contentEntries(projectEnMeta, projectKoMeta, '/projects', 'year')
 	];
+}
+
+/**
+ * One `<url>` per language of a bilingual article, each listing every language
+ * as an alternate (and the primary as `x-default`): the form Google asks for,
+ * and the same set the page puts in its own `<head>`. A single-language entry,
+ * or a static page, is one `<url>` with no alternates.
+ *
+ * @param {{ path: string, langs?: string[] }} entry
+ * @returns {{ loc: string, alternates: { hreflang: string, path: string }[] }[]}
+ */
+export function languageUrls(entry) {
+	const langs = entry.langs ?? [];
+	if (langs.length < 2) return [{ loc: entry.path, alternates: [] }];
+
+	const [, kind, slug] = entry.path.split('/');
+	const at = /** @param {string} lang */ (lang) =>
+		articlePath(/** @type {'blog' | 'projects'} */ (kind), slug, lang, langs);
+	const alternates = [
+		...langs.map((lang) => ({ hreflang: lang, path: at(lang) })),
+		{ hreflang: 'x-default', path: at(langs[0]) }
+	];
+	return langs.map((lang) => ({ loc: at(lang), alternates }));
 }
