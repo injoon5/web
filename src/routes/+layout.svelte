@@ -84,6 +84,12 @@
 		href="https://www.injoon5.com{page.data.canonicalPath ?? page.url.pathname}"
 	/>
 	<meta property="og:site_name" content="Injoon Oh" />
+	<link
+		rel="alternate"
+		type="application/rss+xml"
+		title="Injoon Oh"
+		href="https://www.injoon5.com/rss.xml"
+	/>
 	<!-- The Convex client opens its websocket at hydration; resolve the host while
 	     the HTML is still parsing (from #104). Every page but the two listings
 	     subscribes to something, and readers go from those to an article. -->

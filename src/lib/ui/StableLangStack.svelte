@@ -23,7 +23,9 @@
 	} = $props();
 </script>
 
-<div class="grid items-center {className}">
+<!-- A span, not a div: it sits inside inline text (a byline), where a div is
+     invalid HTML. `display: grid` works the same on either. -->
+<span class="grid items-center {className}">
 	{#each langs as l (`${l}-ghost`)}
 		<svelte:element this={as} style="grid-area: 1 / 1" class="invisible" aria-hidden="true">
 			{text(l)}
@@ -34,4 +36,4 @@
 			{text(l)}
 		</svelte:element>
 	{/each}
-</div>
+</span>
