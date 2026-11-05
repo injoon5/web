@@ -80,7 +80,7 @@
 	{@const current = view.entryFor(view.displayLang)}
 	{#if current.series.length > 1 && current.meta.series != undefined}
 		<div class="my-4">
-			<SeriesList series={current.series} />
+			<SeriesList series={current.series} lang={view.displayLang} />
 		</div>
 	{/if}
 {/snippet}

@@ -5,7 +5,8 @@
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
 	import { preloadArticles } from '#lib/content/preload-articles.js';
-	let { series } = $props();
+	// `lang` is the language being read, so the next post opens in it too.
+	let { series, lang = 'ko' } = $props();
 
 	let mounted = $state(false);
 	onMount(() => {
@@ -45,7 +46,7 @@
 		     announced as one, and it cannot navigate. The current post is the
 		     active row, not a destination. -->
 		<a
-			href={current ? undefined : `/blog/${post.slug}`}
+			href={current ? undefined : `/blog/${post.slug}${lang === 'en' ? '/en' : ''}`}
 			aria-current={current ? 'page' : undefined}
 			class=" border-t border-neutral-200 dark:border-neutral-800 {current
 				? 'cursor-default opacity-50'

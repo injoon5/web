@@ -27,6 +27,9 @@
 		]);
 		renderer = { marked, DOMPurify };
 
+		// Only someone who signed in at /admin has the hint; everyone else would
+		// spend a function call to learn they are not the owner.
+		if (!/(?:^|;\s*)admin_hint=1/.test(document.cookie)) return;
 		const res = await apiFetch('/api/admin/whoami');
 		if (res.ok) isAdmin = res.data.isAdmin === true;
 	});

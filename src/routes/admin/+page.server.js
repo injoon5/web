@@ -51,6 +51,16 @@ export const actions = {
 			// Keep the cookie lifetime in lockstep with the token's own expiry.
 			maxAge: SESSION_MAX_AGE_MS / 1000
 		});
+		// Not a credential — it grants nothing, and /api/admin/whoami still checks
+		// the real cookie. It only tells pages like /now that asking is worth a
+		// request, so ordinary visitors don't call a function on every view.
+		cookies.set('admin_hint', '1', {
+			path: '/',
+			httpOnly: false,
+			sameSite: 'strict',
+			secure: !dev,
+			maxAge: SESSION_MAX_AGE_MS / 1000
+		});
 
 		// The redirect lands on `load`, which registers the new token with Convex.
 		throw redirect(303, '/admin');
@@ -59,6 +69,7 @@ export const actions = {
 	logout: async ({ cookies }) => {
 		const token = cookies.get('admin_token') ?? '';
 		cookies.delete('admin_token', { path: '/' });
+		cookies.delete('admin_hint', { path: '/' });
 
 		// Drop the session row too, or a tab left open elsewhere keeps its live
 		// subscriptions until the token's own expiry. Deleting the row is what
