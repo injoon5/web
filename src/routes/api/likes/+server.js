@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { convex } from '#lib/server/convex.js';
+import { convex, serverCredential } from '#lib/server/convex.js';
 import { api } from '#convex/_generated/api.js';
 import { requestIpHash } from '#lib/server/ip.js';
 import { likeSchema } from '#lib/server/validation.js';
@@ -29,6 +29,7 @@ export const POST = async ({ request }) => {
 	return runConvex(
 		() =>
 			convex.mutation(api.likes.setLike, {
+				serverCredential,
 				url: pageUrl,
 				ipHash,
 				liked,

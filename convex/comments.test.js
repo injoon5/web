@@ -10,11 +10,12 @@ import { describe, expect, it } from 'vitest';
 import rateLimiter from '@convex-dev/rate-limiter/test';
 import { api } from './_generated/api.js';
 import schema from './schema.js';
+import { withServerCall } from '../src/test/convex-server-call.js';
 
 const modules = import.meta.glob('./**/*.js');
 
 function setup() {
-	const t = convexTest(schema, modules);
+	const t = withServerCall(convexTest(schema, modules));
 	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
 	return t;
 }
