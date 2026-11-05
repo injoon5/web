@@ -245,6 +245,7 @@
 				href="/"
 				onclick={() => trigger([{ duration: 35 }], { intensity: 1 })}
 				aria-label="Home — Injoon Oh"
+				tabindex={showName ? undefined : -1}
 				class="group inline-flex min-w-0 items-center {showName ? '' : 'pointer-events-none'}"
 			>
 				<!-- Two elements, because the name travels and the hole it travels

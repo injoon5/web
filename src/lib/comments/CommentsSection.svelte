@@ -252,7 +252,7 @@
 			placeholder={`Name (optional — defaults to ${fallbackHandle})`}
 			aria-label="Name (optional)"
 			maxlength="32"
-			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
+			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 		/>
 		<div>
 			<textarea
@@ -261,7 +261,7 @@
 				aria-label="Comment"
 				maxlength={MAX_COMMENT_LENGTH}
 				rows="3"
-				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
+				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 			></textarea>
 			{#if showCharsLeft}
 				<p class="tabular mt-1 text-sm text-neutral-500">Characters left: {charsLeft}</p>
@@ -274,7 +274,7 @@
 				placeholder="Password (save this to edit your comment later)"
 				aria-label="Password"
 				autocomplete="off"
-				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white dark:focus:ring-neutral-800"
+				class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 			/>
 			{#if formSubmitted && password.length > 0 && password.length < MIN_PASSWORD_LENGTH}
 				<p class="mt-1 text-sm text-red-500">
@@ -291,7 +291,7 @@
 				submitComment();
 			}}
 			disabled={isSubmitDisabled}
-			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+			class="rounded-lg bg-neutral-900 p-2 px-4 font-medium text-white transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 dark:focus-visible:outline-neutral-500"
 		>
 			{submitting ? 'Submitting…' : 'Submit'}
 		</button>

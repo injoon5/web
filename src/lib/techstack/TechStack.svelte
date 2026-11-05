@@ -136,9 +136,15 @@
 		return inner.getBoundingClientRect().height;
 	}
 
-	function setOuterHeight(px, { animate = true } = {}) {
+	// `.ts-height-outer` clips, and is padded by this much on every side (and
+	// pulled back out by as much margin) so a focus ring on a panel link at its
+	// edge is inside the clip. Its height is the panel's plus that padding.
+	const RING_ROOM = 4;
+
+	function setOuterHeight(panelPx, { animate = true } = {}) {
 		const outer = heightOuterEl;
-		if (!outer || px <= 0) return;
+		if (!outer || panelPx <= 0) return;
+		const px = panelPx + 2 * RING_ROOM;
 
 		if (!animate) {
 			outer.style.transition = 'none';
@@ -393,7 +399,12 @@
 		margin-bottom: 0.75rem;
 	}
 
+	/* A scroller clips on both axes, so the tabs' focus ring needs room inside
+	   it: padded and pulled back out by the ring's 4px. The fades sit over that
+	   extra strip too, or a scrolled label would show unfaded beyond them. */
 	.ts-tabs-scroll {
+		padding: 4px;
+		margin: -4px;
 		overflow-x: auto;
 		overscroll-behavior-x: contain;
 		scrollbar-width: none;
@@ -411,12 +422,12 @@
 	}
 
 	.ts-tabs-fade-left {
-		left: 0;
+		left: -4px;
 		background: linear-gradient(to right, var(--ts-fade-bg) 15%, transparent);
 	}
 
 	.ts-tabs-fade-right {
-		right: 0;
+		right: -4px;
 		background: linear-gradient(to left, var(--ts-fade-bg) 15%, transparent);
 	}
 
@@ -560,6 +571,9 @@
 
 	/* --- Animated height wrapper --- */
 	.ts-height-outer {
+		/* RING_ROOM in the script. */
+		padding: 4px;
+		margin: -4px;
 		overflow: hidden;
 		transition: height var(--ts-height-ms, 280ms) var(--ease-out-soft);
 	}

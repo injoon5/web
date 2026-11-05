@@ -273,7 +273,7 @@
 						rows="3"
 						maxlength={MAX_COMMENT_LENGTH}
 						aria-label="Edit comment"
-						class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
+						class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					></textarea>
 					<input
 						bind:value={editPassword}
@@ -281,7 +281,7 @@
 						placeholder="Your comment password"
 						aria-label="Your comment password"
 						autocomplete="off"
-						class="mt-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+						class="mt-2 w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
 					{#if editError}
 						<p class="mt-1 text-xs text-red-500">{editError}</p>
@@ -290,7 +290,7 @@
 						<button
 							onclick={saveEdit}
 							disabled={editSubmitting}
-							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-95 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 active:scale-95 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 dark:focus-visible:outline-neutral-500"
 						>
 							{editSubmitting ? 'Saving…' : 'Save'}
 						</button>
@@ -322,7 +322,7 @@
 						placeholder="Your comment password"
 						aria-label="Your comment password"
 						autocomplete="off"
-						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-red-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-red-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
 					{#if deleteError}
 						<p class="text-xs text-red-500">{deleteError}</p>
@@ -331,7 +331,7 @@
 						<button
 							onclick={confirmDelete}
 							disabled={deleteSubmitting || deletePassword.length < MIN_PASSWORD_LENGTH}
-							class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+							class="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:outline-neutral-500"
 						>
 							{deleteSubmitting ? 'Deleting…' : 'Delete'}
 						</button>
@@ -370,7 +370,7 @@
 						placeholder="Name (optional)"
 						aria-label="Name (optional)"
 						maxlength="32"
-						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
+						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
 					<div>
 						<textarea
@@ -379,7 +379,7 @@
 							aria-label="Reply"
 							maxlength={MAX_COMMENT_LENGTH}
 							rows="2"
-							class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
+							class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 						></textarea>
 						{#if showReplyCharsLeft}
 							<p class="tabular mt-0.5 text-xs text-neutral-500">
@@ -393,7 +393,7 @@
 						placeholder="Password (save this to edit later)"
 						aria-label="Password"
 						autocomplete="off"
-						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-200 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white dark:focus:ring-neutral-800"
+						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
 					{#if replyError}
 						<p class="text-xs text-red-500">{replyError}</p>
@@ -402,7 +402,7 @@
 						<button
 							onclick={submitReply}
 							disabled={replyDisabled}
-							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition-[background-color,transform] duration-150 hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 dark:focus-visible:outline-neutral-500"
 						>
 							{replySubmitting ? 'Replying…' : 'Reply'}
 						</button>
