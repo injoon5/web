@@ -1,9 +1,12 @@
 export function marqueePauseWhenOffscreen(node) {
 	let intersecting = true;
 	let hovered = false;
+	// Paused while a cover has keyboard focus, as it is while hovered: otherwise
+	// the focused cover drifts away from its own focus ring and off the screen.
+	let focused = false;
 
 	function sync() {
-		node.style.animationPlayState = intersecting && !hovered ? 'running' : 'paused';
+		node.style.animationPlayState = intersecting && !hovered && !focused ? 'running' : 'paused';
 	}
 
 	const io = new IntersectionObserver(
@@ -23,14 +26,23 @@ export function marqueePauseWhenOffscreen(node) {
 		hovered = false;
 		sync();
 	}
+	/** @param {FocusEvent} e */
+	function onFocusChange(e) {
+		focused = e.type === 'focusin' || node.contains(/** @type {Node | null} */ (e.relatedTarget));
+		sync();
+	}
 	node.addEventListener('mouseenter', onEnter);
 	node.addEventListener('mouseleave', onLeave);
+	node.addEventListener('focusin', onFocusChange);
+	node.addEventListener('focusout', onFocusChange);
 
 	return {
 		destroy() {
 			io.disconnect();
 			node.removeEventListener('mouseenter', onEnter);
 			node.removeEventListener('mouseleave', onLeave);
+			node.removeEventListener('focusin', onFocusChange);
+			node.removeEventListener('focusout', onFocusChange);
 		}
 	};
 }
