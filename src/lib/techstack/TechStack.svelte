@@ -78,10 +78,15 @@
 			return;
 		}
 
+		// Straight to the incoming panel's height, growing or shrinking, so the box
+		// moves with the text. It used to hold the taller height until the outgoing
+		// panel's exit ended and only then shrink — 180ms late, finishing well after
+		// the text had settled. The outgoing panel is absolutely positioned and fades
+		// out faster (PANEL_OUT_MS) than the box closes, so being clipped by it on
+		// the way out is not visible.
 		requestAnimationFrame(() => {
 			const endH = measurePanelHeight();
-			const target = Math.max(startH, endH);
-			if (target > 0) setOuterHeight(target);
+			if (endH > 0) setOuterHeight(endH);
 		});
 	}
 
