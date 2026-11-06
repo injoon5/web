@@ -120,7 +120,7 @@
 		{:else}
 			<button
 				type="button"
-				class="group flex h-full w-full flex-col items-center justify-center gap-3 bg-neutral-950/95 text-white transition-colors hover:bg-neutral-900"
+				class="group flex h-full w-full flex-col items-center justify-center gap-3 bg-neutral-950/95 text-white transition-colors hover:bg-neutral-900 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white/70"
 				aria-label={label}
 				onclick={play}
 			>

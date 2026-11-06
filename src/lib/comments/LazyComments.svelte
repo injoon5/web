@@ -13,20 +13,35 @@
 	 * The wrapper keeps `id="comments"` so a deep link to the anchor still resolves
 	 * on load: the browser scrolls to this element, which brings it into view and
 	 * trips the observer, loading the thread it was pointing at.
+	 *
+	 * The first Tab on the page loads it too. Focus does not scroll the page until
+	 * it lands, so a keyboard reader would otherwise tab straight from the
+	 * article's last link to the footer, past a section that was not there yet.
 	 */
 	let Comments = $state(null);
 
+	/** @param {HTMLElement} node */
 	function whenNear(node) {
-		const io = new IntersectionObserver(
-			([entry]) => {
-				if (!entry.isIntersecting) return;
-				io.disconnect();
-				import('#lib/comments/CommentsSection.svelte').then((m) => (Comments = m.default));
-			},
-			{ rootMargin: '400px' }
-		);
+		const load = () => {
+			io.disconnect();
+			removeEventListener('keydown', onKey);
+			import('#lib/comments/CommentsSection.svelte').then((m) => (Comments = m.default));
+		};
+		/** @param {KeyboardEvent} e */
+		const onKey = (e) => {
+			if (e.key === 'Tab') load();
+		};
+		const io = new IntersectionObserver(([entry]) => entry.isIntersecting && load(), {
+			rootMargin: '400px'
+		});
 		io.observe(node);
-		return { destroy: () => io.disconnect() };
+		addEventListener('keydown', onKey);
+		return {
+			destroy() {
+				io.disconnect();
+				removeEventListener('keydown', onKey);
+			}
+		};
 	}
 </script>
 

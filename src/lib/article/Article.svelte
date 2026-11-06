@@ -279,12 +279,16 @@
 			{@render aside?.(view)}
 		</div>
 
-		<div class="mt-10 grid min-w-0 overflow-hidden" bind:clientWidth={bodyWidth}>
+		<!-- Both boxes below clip, the inner one because a scroller clips on both
+		     axes. Each is padded 6px and pulled back out by as much margin, so a
+		     focus ring (offset 2px, 2px wide) on a link or code block at the
+		     column's edge is inside the clip, and the column itself does not move. -->
+		<div class="-mx-1.5 mt-10 grid min-w-0 overflow-hidden px-1.5" bind:clientWidth={bodyWidth}>
 			{#each [displayLang] as l (l)}
 				{@const entry = entryFor(l)}
 				{@const Content = entry.content}
 				<div
-					class="min-w-0 overflow-x-hidden"
+					class="-mx-1.5 min-w-0 overflow-x-hidden px-1.5"
 					style="grid-area: 1 / 1;"
 					in:flyT={bodyIn}
 					out:flyT={bodyOut}

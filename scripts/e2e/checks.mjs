@@ -62,6 +62,15 @@ export async function runChecks(origin, convex) {
 			h1: document.querySelector('h1')?.textContent?.trim(),
 			canonical: document.querySelector('link[rel=canonical]')?.getAttribute('href')
 		}));
+		// Scroll to the foot: lazy images, the comments section and anything else
+		// that mounts on approach only meet the CSP once they are near the screen.
+		await page.evaluate(async () => {
+			for (let y = 0; y < document.documentElement.scrollHeight; y += innerHeight) {
+				scrollTo(0, y);
+				await new Promise((r) => setTimeout(r, 60));
+			}
+		});
+		await page.waitForLoadState('networkidle');
 		const article = /^\/(blog|projects)\/[^/]+/.test(url);
 		const fine =
 			res?.status() === 200 &&

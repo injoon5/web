@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { preloadArticles } from '#lib/content/preload-articles.js';
 	import { useQuery } from 'convex-svelte';
+	import { hideBrokenImages } from '#lib/actions/hide-broken-images.js';
 	import { api } from '#convex/_generated/api.js';
 	import { heroName } from '#lib/nav/hero.svelte.js';
 	import { marqueePauseWhenOffscreen, marqueeConstantSpeed } from '#lib/actions/marquee.js';
@@ -106,7 +107,7 @@
 	<!-- The Now-Listening covers (Last.fm's Fastly CDN) and Photos (photos.injoon5.com)
 	     are in the HTML from the ISR render, and are lazy images; warm their origins
 	     so the first ones paint without waiting on DNS and TLS. -->
-	<link rel="preconnect" href="https://lastfm.freetls.fastly.net" />
+	<link rel="preconnect" href="https://lastfm-img.freetls.fastly.net" />
 	<link rel="preconnect" href="https://photos.injoon5.com" />
 	<!-- eslint-disable-next-line svelte/no-at-html-tags -- generated JSON-LD -->
 	{@html jsonLdScript(homeSchema())}
@@ -336,8 +337,11 @@
 		</div>
 	</div>
 
+	<!-- `overflow-clip`, not `hidden`: a hidden box is still a scroll container, so
+	     focusing a cover scrolled it sideways and the strip ran out partway along
+	     for good. A clipped box cannot be scrolled at all. -->
 	<div
-		class="relative left-1/2 col-span-full mt-4 w-screen -translate-x-1/2 overflow-hidden pb-4 lg:col-span-12 lg:mt-0"
+		class="relative left-1/2 col-span-full mt-4 w-screen -translate-x-1/2 overflow-clip pb-4 lg:col-span-12 lg:mt-0"
 		style={homeStyle(homeSettings)}
 	>
 		{#if nowQuery.isLoading}
@@ -355,12 +359,17 @@
 			<div
 				use:marqueePauseWhenOffscreen
 				use:marqueeConstantSpeed
+				use:hideBrokenImages
 				class="now-marquee marquee-track flex"
 			>
 				{#each [...tracks, ...tracks] as track, i (i)}
+					<!-- The second half repeats the first so the loop is seamless: it is
+					     scenery, so it is out of the tab order and the accessibility tree. -->
 					<a
 						class="now-cover group relative aspect-square shrink-0 overflow-hidden shadow-md"
 						href={track.url}
+						tabindex={i >= tracks.length ? -1 : undefined}
+						aria-hidden={i >= tracks.length ? 'true' : undefined}
 					>
 						<div class="absolute inset-0 bg-neutral-200 dark:bg-neutral-800"></div>
 						<img
@@ -408,7 +417,7 @@
 	</div>
 
 	<div class="col-span-10 mt-4 justify-center lg:mt-0" style={homeStyle(homeSettings)}>
-		<div class="photo-grid mt-1 grid grid-cols-2">
+		<div class="photo-grid mt-1 grid grid-cols-2" use:hideBrokenImages>
 			{#if photosQuery.isLoading}
 				{#each Array.from({ length: 6 }, (_, index) => index) as index (index)}
 					<div class="shimmer aspect-square w-full"></div>

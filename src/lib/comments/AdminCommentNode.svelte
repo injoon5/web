@@ -163,7 +163,7 @@
 						<button
 							onclick={saveReply}
 							disabled={replySubmitting}
-							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+							class="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200 dark:focus-visible:outline-neutral-500"
 						>
 							{replySubmitting ? 'Saving…' : 'Save reply'}
 						</button>
@@ -184,7 +184,7 @@
 						<button
 							onclick={confirmBan}
 							disabled={banSubmitting}
-							class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600 disabled:opacity-50"
+							class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-amber-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:opacity-50 dark:focus-visible:outline-neutral-500"
 						>
 							{banSubmitting ? 'Banning…' : 'Confirm ban'}
 						</button>
@@ -201,7 +201,7 @@
 						<button
 							onclick={doDelete}
 							disabled={deleteSubmitting}
-							class="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+							class="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 disabled:opacity-50 dark:focus-visible:outline-neutral-500"
 						>
 							{deleteSubmitting ? 'Deleting…' : 'Delete'}
 						</button>

@@ -54,10 +54,11 @@ const dials = process.env.VERCEL_ENV
  *   event handler to allow.
  * - `style-src 'unsafe-inline'`: Svelte writes `style` attributes, and
  *   transitions and the dials add <style>. Styles cannot run script.
- * - Every other origin is one the site actually talks to: Convex (its HTTP and
- *   websocket origin), the analytics collector, the Now Listening and Photos
- *   image hosts, YouTube's no-cookie embeds, Cloudflare's beacon while the
- *   domain is proxied, and the Vercel toolbar on preview deployments.
+ * - Images may come from any https host (see img-src). Every other origin is
+ *   one the site actually talks to: Convex (its HTTP and websocket origin),
+ *   the analytics collector, YouTube's no-cookie embeds, Cloudflare's beacon
+ *   while the domain is proxied, the Vercel toolbar on preview deployments, and
+ *   Google Fonts where the dials ship (DialKit's theme imports Geist Mono).
  */
 function contentSecurityPolicy(): Config['csp'] {
 	const appHtml = readFileSync(new URL('./src/app.html', import.meta.url), 'utf8');
@@ -85,6 +86,14 @@ function contentSecurityPolicy(): Config['csp'] {
 	}
 
 	const vercelLive = 'https://vercel.live';
+	// DialKit's theme @imports Geist Mono from Google Fonts. Only builds that ship
+	// the panels allow it; production never loads the sheet.
+	const dialFonts = dials
+		? {
+				style: ['https://fonts.googleapis.com'] as const,
+				font: ['https://fonts.gstatic.com'] as const
+			}
+		: { style: [] as const, font: [] as const };
 	return {
 		// Hashes for prerendered pages; a nonce for rendered ones, because /health
 		// streams its data and SvelteKit writes each streamed chunk as an inline
@@ -95,17 +104,12 @@ function contentSecurityPolicy(): Config['csp'] {
 		directives: {
 			'default-src': ['self'],
 			'script-src': ['self', ...inline, vercelLive, 'https://static.cloudflareinsights.com'],
-			'style-src': ['self', 'unsafe-inline', vercelLive],
-			'img-src': [
-				'self',
-				'data:',
-				'blob:',
-				'https://lastfm.freetls.fastly.net',
-				'https://photos.injoon5.com',
-				vercelLive,
-				'https://vercel.com'
-			],
-			'font-src': ['self', 'data:', vercelLive],
+			'style-src': ['self', 'unsafe-inline', vercelLive, ...dialFonts.style],
+			// Any https image: an image cannot run script, and a host list broke
+			// Now Listening the moment it was enforced — Last.fm serves covers from
+			// lastfm-img.freetls.fastly.net, and /now or a post may embed anything.
+			'img-src': ['self', 'data:', 'blob:', 'https:'],
+			'font-src': ['self', 'data:', vercelLive, ...dialFonts.font],
 			'connect-src': [
 				'self',
 				...convex,

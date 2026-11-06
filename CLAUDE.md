@@ -358,6 +358,11 @@ script after the header has gone out.
 - **A new origin needs a line in the directives**: an image host, an embed, an
   API the browser calls. `npm run test:e2e` fails on any violation it meets.
 - `style-src` keeps `'unsafe-inline'` — Svelte writes `style` attributes.
+- **No action or event listener on an `<img>`.** Svelte then renders
+  `onload="this.__e=event"` / `onerror=…` into the markup to replay events that
+  fire before hydration, and the CSP refuses both. Listen from a container
+  instead (`hideBrokenImages` catches `error` in the capture phase). The e2e
+  scrolls every page to its foot so lazy images meet the policy.
 
 ---
 
