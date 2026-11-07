@@ -112,8 +112,7 @@ src/
                            # validation
     visitor.svelte.js      # ipHash (once per session) + the language cookie
     techstack/             # TechStack + data
-    ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList,
-                           # StableLangStack
+    ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList
   routes/
     +page.server.js        # Home (ISR, 5 min) — lists + the two feeds
     blog/, projects/       # Listing + [slug]/[[lang=lang]], all prerendered

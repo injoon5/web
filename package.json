@@ -70,6 +70,7 @@
 		"@convex-dev/rate-limiter": "^0.4.2",
 		"@lucide/svelte": "^1.61.0",
 		"@resvg/resvg-js": "^2.6.2",
+		"@scritto/svelte": "^0.1.0",
 		"@videojs/html": "^10.2.0",
 		"bcryptjs": "^3.0.3",
 		"convex": "^1.47.0",

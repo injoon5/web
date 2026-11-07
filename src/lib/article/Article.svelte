@@ -21,9 +21,8 @@
 	import LikeButton from '#lib/likes/LikeButton.svelte';
 	import Lightbox from '#lib/lightbox/Lightbox.svelte';
 	import { lightboxAction } from '#lib/lightbox/store.svelte.js';
-	import NumberFlow from '#lib/ui/NumberFlow.svelte';
+	import Scritto from '@scritto/svelte';
 	import LanguageSwitcher from '#lib/ui/LanguageSwitcher.svelte';
-	import StableLangStack from '#lib/ui/StableLangStack.svelte';
 	import { SITE_URL, articleBase, articlePath } from '#lib/content/article-paths.js';
 	import { preloadArticle } from '#lib/content/preload-articles.js';
 	import { cookieLang, persistLang } from '#lib/visitor.svelte.js';
@@ -182,6 +181,9 @@
 
 	const current = $derived(entryFor(displayLang));
 	const readingMinutes = $derived(parseInt(current.meta.readingTime ?? '', 10));
+	const readingLabel = $derived(
+		displayLang === 'ko' ? `${readingMinutes}분 읽기` : `${readingMinutes} min read`
+	);
 
 	/** @type {View} */
 	const view = {
@@ -252,23 +254,9 @@
 				{@render dateline(current.meta)}
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
-					<span class="tabular inline-flex whitespace-nowrap">
-						<!-- No ghost stack behind the count: sizing it to the widest language leaves a
-						     whole tabular digit of dead space next to the shorter one (7 ko / 10 en).
-						     NumberFlow animates its own width across the swap. -->
-						<span class="shrink-0 leading-none">
-							<NumberFlow value={readingMinutes} />
-						</span>
-						<!-- The unit's gap is a no-break space: each label is its own grid item, and a
-						     plain leading space is dropped at the start of its line box (measured 0px,
-						     "10min read"). Korean sets the unit tight against the number, as it should. -->
-						<StableLangStack
-							langs={data.langs}
-							{displayLang}
-							transition={titleBlur}
-							text={(l) => (l === 'ko' ? '분 읽기' : ' min read')}
-						/>
-					</span>
+					<!-- Scritto diffs the old string against the new one and rolls only what
+					     changed, so number and unit are one value. -->
+					<Scritto class="tabular whitespace-nowrap" value={readingLabel} />
 				{/if}
 			</div>
 			{@render intro?.(view)}
