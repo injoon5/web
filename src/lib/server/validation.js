@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isReservedText } from '#convex/lib/softDelete.js';
 
 /**
  * Convex document IDs are lowercase base32 strings with no separators. This is
@@ -25,25 +26,25 @@ export function parseConvexId(value) {
 
 const convexId = z.string().refine(isConvexId, 'Invalid id');
 
+// trim() first so the length limits validate what actually gets stored.
+// `[deleted]` is what a soft delete writes, and the only mark that one happened.
+const commentText = z
+	.string()
+	.trim()
+	.min(1, 'Comment cannot be empty')
+	.max(200, 'Comment must be 200 characters or less')
+	.refine((text) => !isReservedText(text), 'A comment cannot say only [deleted]');
+
 export const createCommentSchema = z.object({
 	url: z.string().min(1),
 	username: z.string().max(32).optional().default('Anonymous'),
 	password: z.string().min(4, 'Password must be at least 4 characters'),
-	// trim() first so the length limits validate what actually gets stored.
-	text: z
-		.string()
-		.trim()
-		.min(1, 'Comment cannot be empty')
-		.max(200, 'Comment must be 200 characters or less'),
+	text: commentText,
 	parentId: convexId.optional()
 });
 
 export const editCommentSchema = z.object({
-	text: z
-		.string()
-		.trim()
-		.min(1, 'Comment cannot be empty')
-		.max(200, 'Comment must be 200 characters or less'),
+	text: commentText,
 	// Verifies an existing password (already created with min 4), so only a
 	// non-empty value is required here.
 	password: z.string().min(1, 'Password is required')

@@ -16,11 +16,13 @@ import {
 } from './lib/votes.js';
 import { isScoresBackfillComplete } from './lib/migration.js';
 import { applyUrlCountDeltas, incrementUrlCount } from './lib/urlCounts.js';
+import { DELETED_TEXT, isReservedText, isSoftDeleted } from './lib/softDelete.js';
 
 const MAX_DEPTH = 2;
 const MAX_TEXT_LENGTH = 200;
 const MAX_USERNAME_LENGTH = 32;
 const MAX_REPLY_LENGTH = 1000;
+const RESERVED_TEXT_MESSAGE = 'A comment cannot say only [deleted]';
 // Bounds the legacy rank fallback below, before the score backfill has run.
 const MAX_LEGACY_COMMENTS = 200;
 
@@ -193,6 +195,9 @@ export const create = mutation({
 		if (args.text.length < 1 || args.text.length > MAX_TEXT_LENGTH) {
 			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
 		}
+		if (isReservedText(args.text)) {
+			throw new ConvexError({ kind: 'BadRequest', message: RESERVED_TEXT_MESSAGE });
+		}
 		if (username.length > MAX_USERNAME_LENGTH) {
 			throw new ConvexError({
 				kind: 'BadRequest',
@@ -294,7 +299,9 @@ export const applyEdit = internalMutation({
 	},
 	handler: async (ctx, args) => {
 		const comment = await ctx.db.get('comments', args.commentId);
-		if (!comment || comment.deletedAt !== null) {
+		// A soft-deleted comment still has its row and password hash, so without
+		// this its owner could edit it back to life under the name `[deleted]`.
+		if (!comment || comment.deletedAt !== null || isSoftDeleted(comment)) {
 			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
 		}
 
@@ -302,6 +309,9 @@ export const applyEdit = internalMutation({
 		// SvelteKit/Zod layer and store an unbounded edit.
 		if (args.text.length < 1 || args.text.length > MAX_TEXT_LENGTH) {
 			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
+		}
+		if (isReservedText(args.text)) {
+			throw new ConvexError({ kind: 'BadRequest', message: RESERVED_TEXT_MESSAGE });
 		}
 
 		const updatedAt = Date.now();
@@ -321,8 +331,8 @@ export const softDelete = internalMutation({
 		}
 
 		await ctx.db.patch('comments', args.commentId, {
-			text: '[deleted]',
-			username: '[deleted]',
+			text: DELETED_TEXT,
+			username: DELETED_TEXT,
 			updatedAt: Date.now()
 		});
 	}
