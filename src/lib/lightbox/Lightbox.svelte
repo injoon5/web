@@ -2008,14 +2008,6 @@
 			transform 0.16s var(--ease-out);
 	}
 
-	/* 44px to hit, 40px to see: the target grows without the button. */
-	.lb-btn::before {
-		content: '';
-		position: absolute;
-		inset: -2px;
-		border-radius: inherit;
-	}
-
 	/* Touch reports hover on tap, so an ungated hover state sticks after the
 	   finger is gone. */
 	@media (hover: hover) and (pointer: fine) {
