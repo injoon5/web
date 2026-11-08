@@ -1,6 +1,6 @@
 /**
  * Denormalized counter for tables with { url, count } rows and a `by_url`
- * index. Both `commentUrlCounts` and `likeCounts` share this logic.
+ * index: `commentUrlCounts` and `likeCounts`.
  */
 
 /** Merge duplicate rows for the same URL (rare race on concurrent first inserts). */
@@ -46,4 +46,26 @@ export async function adjustCount(ctx, table, url, delta) {
 	}
 	if (next !== row.count) await ctx.db.patch(table, row._id, { count: next });
 	return next;
+}
+
+/**
+ * Apply a whole batch of counted URLs at once — one read-modify-write per
+ * distinct URL rather than per row. Hard-deleting a thread retires up to 200
+ * comments that all share one URL.
+ *
+ * @param {Map<string, number>} deltas  url -> signed change
+ */
+export async function applyCountDeltas(ctx, table, deltas) {
+	for (const [url, delta] of deltas) {
+		if (delta !== 0) await adjustCount(ctx, table, url, delta);
+	}
+}
+
+/** A URL's count, read-only (so safe in a query): duplicate rows are summed, not merged. */
+export async function readCount(ctx, table, url) {
+	const rows = await ctx.db
+		.query(table)
+		.withIndex('by_url', (q) => q.eq('url', url))
+		.collect();
+	return rows.reduce((sum, row) => sum + row.count, 0);
 }

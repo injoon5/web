@@ -1,22 +1,13 @@
 import { v } from 'convex/values';
 import { query } from './_generated/server.js';
-import { assertAdminAccess } from './lib/adminSession.js';
+import { adminAuthArgs, assertAdminAccess } from './lib/adminSession.js';
 import { countActiveCommentsByUrl } from './lib/commentsScan.js';
 import { adminComment } from './lib/serialize.js';
 import { isUrlCountsBackfillComplete } from './lib/migration.js';
-import { getVoteCounts, voteCountsFromDoc } from './lib/votes.js';
+import { countAllVotes, voteCountsFromDoc } from './lib/votes.js';
 
 // One row per commented-on URL — a bound, not a page.
 const URL_LIMIT = 2000;
-
-// Both admin credentials are optional in the validator and neither is optional
-// in effect: `assertAdminAccess` throws unless one of them checks out. The
-// server routes send `adminSecret`; the dashboard's own subscriptions send
-// `sessionToken`. See convex/lib/adminSession.js.
-const adminAuthArgs = {
-	adminSecret: v.optional(v.string()),
-	sessionToken: v.optional(v.string())
-};
 
 export const listUrls = query({
 	args: adminAuthArgs,
@@ -64,9 +55,8 @@ export const listForUrl = query({
 
 		return await Promise.all(
 			active.map(async (doc) => {
-				const cached = voteCountsFromDoc(doc);
-				const { upvotes, downvotes } = cached ?? (await getVoteCounts(ctx, doc, ''));
-				return adminComment(doc, { upvotes, downvotes });
+				const counts = voteCountsFromDoc(doc) ?? (await countAllVotes(ctx, doc._id));
+				return adminComment(doc, counts);
 			})
 		);
 	}

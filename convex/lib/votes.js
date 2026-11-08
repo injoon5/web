@@ -115,19 +115,3 @@ export async function applyVoteChange(ctx, comment, voteType, ipHash) {
 
 	return { ...counts, myVote };
 }
-
-/** Read denormalized vote counts from the comment doc, with live fallback. */
-export async function getVoteCounts(ctx, doc, ipHash) {
-	let myVote = null;
-	if (ipHash) {
-		const rows = await votesForVisitor(ctx, doc._id, ipHash);
-		myVote = rows[0]?.voteType ?? null;
-	}
-
-	if (doc.upvotes !== undefined && doc.downvotes !== undefined) {
-		return { upvotes: doc.upvotes, downvotes: doc.downvotes, myVote };
-	}
-
-	const { upvotes, downvotes } = await countAllVotes(ctx, doc._id);
-	return { upvotes, downvotes, myVote };
-}

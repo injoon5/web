@@ -7,10 +7,16 @@
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import Self from './CommentNode.svelte';
 	import StrayParentGhost from './StrayParentGhost.svelte';
-	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
+	import { CHAR_THRESHOLD } from './constants.js';
 	import { apiFetch } from '#lib/api-client.js';
 	import { untrack } from 'svelte';
-	import { isSoftDeleted } from '#convex/lib/softDelete.js';
+	import {
+		MAX_DEPTH,
+		MAX_TEXT_LENGTH,
+		MAX_USERNAME_LENGTH,
+		MIN_PASSWORD_LENGTH,
+		isSoftDeleted
+	} from '#convex/lib/commentRules.js';
 
 	let {
 		comment,
@@ -59,14 +65,14 @@
 				? 'text-rose-700 dark:text-rose-400'
 				: 'text-neutral-700 dark:text-neutral-300'
 	);
-	const replyCharsLeft = $derived(MAX_COMMENT_LENGTH - replyText.length);
-	const showReplyCharsLeft = $derived(replyText.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
+	const replyCharsLeft = $derived(MAX_TEXT_LENGTH - replyText.length);
+	const showReplyCharsLeft = $derived(replyText.length > MAX_TEXT_LENGTH - CHAR_THRESHOLD);
 	const replyDisabled = $derived(
 		replySubmitting ||
 			!replyText.trim() ||
 			!replyPassword ||
 			replyPassword.length < MIN_PASSWORD_LENGTH ||
-			replyText.length > MAX_COMMENT_LENGTH
+			replyText.length > MAX_TEXT_LENGTH
 	);
 
 	const submitting = $derived(editSubmitting || replySubmitting || deleteSubmitting);
@@ -115,8 +121,8 @@
 	async function saveEdit() {
 		editError = '';
 		if (!editText.trim()) return (editError = 'Comment cannot be empty.');
-		if (editText.length > MAX_COMMENT_LENGTH)
-			return (editError = `Max ${MAX_COMMENT_LENGTH} characters.`);
+		if (editText.length > MAX_TEXT_LENGTH)
+			return (editError = `Max ${MAX_TEXT_LENGTH} characters.`);
 		if (!editPassword) return (editError = 'Password is required.');
 
 		editSubmitting = true;
@@ -137,8 +143,8 @@
 		if (!replyText.trim()) return (replyError = 'Reply cannot be empty.');
 		if (replyPassword.length < MIN_PASSWORD_LENGTH)
 			return (replyError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-		if (replyText.length > MAX_COMMENT_LENGTH)
-			return (replyError = `Max ${MAX_COMMENT_LENGTH} characters.`);
+		if (replyText.length > MAX_TEXT_LENGTH)
+			return (replyError = `Max ${MAX_TEXT_LENGTH} characters.`);
 
 		replySubmitting = true;
 		const res = await apiFetch('/api/comments', {
@@ -279,7 +285,7 @@
 					<textarea
 						bind:value={editText}
 						rows="3"
-						maxlength={MAX_COMMENT_LENGTH}
+						maxlength={MAX_TEXT_LENGTH}
 						aria-label="Edit comment"
 						class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					></textarea>
@@ -377,15 +383,15 @@
 						type="text"
 						placeholder="Name (optional)"
 						aria-label="Name (optional)"
-						maxlength="32"
+						maxlength={MAX_USERNAME_LENGTH}
 						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
 					<div>
 						<textarea
 							bind:value={replyText}
-							placeholder="Reply… (max {MAX_COMMENT_LENGTH} characters)"
+							placeholder="Reply… (max {MAX_TEXT_LENGTH} characters)"
 							aria-label="Reply"
-							maxlength={MAX_COMMENT_LENGTH}
+							maxlength={MAX_TEXT_LENGTH}
 							rows="2"
 							class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 						></textarea>
@@ -422,7 +428,7 @@
 						</button>
 					</div>
 				</div>
-			{:else if comment.depth < 2 && mode === null && !isDeleted}
+			{:else if comment.depth < MAX_DEPTH && mode === null && !isDeleted}
 				<button
 					onclick={openReply}
 					class="mt-2 text-sm font-medium text-neutral-400 transition-colors duration-150 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-200"

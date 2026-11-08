@@ -6,18 +6,15 @@
  * actually shows up on the wire.
  */
 
-import { convexTest } from 'convex-test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import schema from './schema.js';
+import { setupConvex } from '../src/test/convex.js';
 import { HOUR_MS } from './lib/health.js';
 import metricsPayload from '../shortcuts/payloads/metrics-hourly.json';
 import workoutsPayload from '../shortcuts/payloads/workouts-daily.json';
 
-const modules = import.meta.glob('./**/*.js');
-
 const KEY = 'test-health-key';
 
-const setup = () => convexTest(schema, modules);
+const setup = () => setupConvex();
 
 const post = (t, body, key = KEY) =>
 	t.fetch('/health/ingest', {

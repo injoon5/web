@@ -8,19 +8,19 @@
  * revocable. Both land here.
  */
 
-import { ConvexError } from 'convex/values';
+import { v } from 'convex/values';
 import { isAdmin } from './auth.js';
+import { fail } from './errors.js';
+import { sha256Hex } from './crypto.js';
 
 /**
- * SHA-256 of a session token, as lowercase hex. Only the digest is stored, so
- * a leaked table dump is not a set of working credentials.
+ * Both credentials are optional in the validator and neither is optional in
+ * effect: `assertAdminAccess` throws unless one of them checks out.
  */
-export async function hashSessionToken(token) {
-	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
-	return Array.from(new Uint8Array(digest))
-		.map((byte) => byte.toString(16).padStart(2, '0'))
-		.join('');
-}
+export const adminAuthArgs = {
+	adminSecret: v.optional(v.string()),
+	sessionToken: v.optional(v.string())
+};
 
 /**
  * The session row a token names, or null. `.first()` rather than `.unique()`:
@@ -29,7 +29,8 @@ export async function hashSessionToken(token) {
  */
 export async function findSession(ctx, token) {
 	if (!token) return null;
-	const tokenHash = await hashSessionToken(token);
+	// Only the digest is stored, so a leaked table dump is not a set of working credentials.
+	const tokenHash = await sha256Hex(token);
 	return await ctx.db
 		.query('adminSessions')
 		.withIndex('by_token', (q) => q.eq('tokenHash', tokenHash))
@@ -44,5 +45,5 @@ export async function findSession(ctx, token) {
 export async function assertAdminAccess(ctx, { adminSecret, sessionToken }) {
 	if (adminSecret && (await isAdmin(adminSecret))) return;
 	if (await findSession(ctx, sessionToken)) return;
-	throw new ConvexError({ kind: 'Unauthorized' });
+	fail('Unauthorized');
 }

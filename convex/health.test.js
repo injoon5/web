@@ -1,17 +1,14 @@
-import { convexTest } from 'convex-test';
 import { makeFunctionReference } from 'convex/server';
 import { describe, expect, it } from 'vitest';
+import { setupConvex } from '../src/test/convex.js';
 import { internal } from './_generated/api.js';
-import schema from './schema.js';
 import { HOUR_MS, metricUnit, workoutExternalId } from './lib/health.js';
 
 // Built by hand rather than reached through `api.*`, which stays absent from
 // convex/ so nothing here can accidentally grow a public entry point.
 const publicPage = makeFunctionReference('healthPublic:page');
 
-const modules = import.meta.glob('./**/*.js');
-
-const setup = () => convexTest(schema, modules);
+const setup = () => setupConvex();
 
 const HOUR = Date.parse('2026-08-01T09:00:00Z');
 

@@ -12,7 +12,8 @@
  * the cache.
  */
 
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
+import { fail } from './lib/errors.js';
 import { query } from './_generated/server.js';
 import { PUBLIC_METRICS, PUBLIC_RANGES, isDateKey, latestSeriesUpdate } from './lib/health.js';
 import { readDailySeries } from './lib/healthReads.js';
@@ -24,10 +25,10 @@ export const page = query({
 	},
 	handler: async (ctx, args) => {
 		if (!isDateKey(args.startDate)) {
-			throw new ConvexError({ kind: 'BadRequest', message: 'startDate must be YYYY-MM-DD' });
+			fail('BadRequest', 'startDate must be YYYY-MM-DD');
 		}
 		if (!PUBLIC_RANGES.includes(args.days)) {
-			throw new ConvexError({ kind: 'BadRequest', message: 'Unsupported range' });
+			fail('BadRequest', 'Unsupported range');
 		}
 
 		const series = await Promise.all(

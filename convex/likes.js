@@ -1,44 +1,28 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { mutation, query } from './_generated/server.js';
-import { limiter } from './rateLimits.js';
-import { isAdmin } from './lib/auth.js';
-import { assertServerCall } from './lib/serverCall.js';
-import { isBanned } from './lib/bans.js';
-import { adjustLikeCount, readLikeCount } from './lib/likeCounts.js';
-
-async function aggregate(ctx, url, ipHash) {
-	const mine = await ctx.db
-		.query('likes')
-		.withIndex('by_url_ip', (q) => q.eq('url', url).eq('ipHash', ipHash))
-		.first();
-	return {
-		count: await readLikeCount(ctx, url),
-		liked: mine !== null
-	};
-}
+import { beginVisitorWrite, visitorWriteArgs } from './lib/visitorWrite.js';
+import { adjustCount } from './lib/counter.js';
+import { readLikeCount } from './lib/likeCounts.js';
 
 export const get = query({
 	args: { url: v.string(), ipHash: v.string() },
-	handler: async (ctx, { url, ipHash }) => aggregate(ctx, url, ipHash)
+	handler: async (ctx, { url, ipHash }) => {
+		const mine = await ctx.db
+			.query('likes')
+			.withIndex('by_url_ip', (q) => q.eq('url', url).eq('ipHash', ipHash))
+			.first();
+		return { count: await readLikeCount(ctx, url), liked: mine !== null };
+	}
 });
 
 export const setLike = mutation({
 	args: {
 		url: v.string(),
-		ipHash: v.string(),
-		// Desired state. Omitted falls back to a toggle so older clients keep working.
-		liked: v.optional(v.boolean()),
-		adminSecret: v.optional(v.string()),
-		// `ipHash` is only trusted from the SvelteKit server: see lib/serverCall.js.
-		serverCredential: v.string()
+		liked: v.boolean(),
+		...visitorWriteArgs
 	},
 	handler: async (ctx, args) => {
-		await assertServerCall(args.serverCredential);
-		const admin = await isAdmin(args.adminSecret);
-
-		if (await isBanned(ctx, args.ipHash)) {
-			throw new ConvexError({ kind: 'Banned' });
-		}
+		const visitor = await beginVisitorWrite(ctx, args);
 
 		const rows = await ctx.db
 			.query('likes')
@@ -54,17 +38,12 @@ export const setLike = mutation({
 			delta--;
 		}
 		const existing = rows[0] ?? null;
-		const currentlyLiked = existing !== null;
-		const desired = args.liked ?? !currentlyLiked;
 
 		// Only spend a rate-limit token (and write) when the state actually changes,
 		// so idempotent re-sends from the optimistic client are free no-ops.
-		if (desired !== currentlyLiked) {
-			if (!admin) {
-				await limiter.limit(ctx, 'like', { key: args.ipHash, throws: true });
-			}
-
-			if (desired) {
+		if (args.liked !== (existing !== null)) {
+			await visitor.spend('like');
+			if (args.liked) {
 				await ctx.db.insert('likes', { url: args.url, ipHash: args.ipHash });
 				delta++;
 			} else {
@@ -73,12 +52,10 @@ export const setLike = mutation({
 			}
 		}
 
-		if (delta !== 0) await adjustLikeCount(ctx, args.url, delta);
+		if (delta !== 0) await adjustCount(ctx, 'likeCounts', args.url, delta);
 
-		// `liked` is `desired` by construction, so this returns without re-running
-		// the `by_url_ip` lookup the mutation already did. The count still goes
-		// through `readLikeCount`, which is the only thing that knows whether the
-		// denormalized counter is authoritative yet.
-		return { count: await readLikeCount(ctx, args.url), liked: desired };
+		// The count goes through `readLikeCount`, the only thing that knows
+		// whether the denormalized counter is authoritative yet.
+		return { count: await readLikeCount(ctx, args.url), liked: args.liked };
 	}
 });

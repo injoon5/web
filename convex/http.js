@@ -14,7 +14,7 @@
 import { httpRouter } from 'convex/server';
 import { httpAction } from './_generated/server.js';
 import { internal } from './_generated/api.js';
-import { secretsMatch } from './lib/secrets.js';
+import { secretsMatch } from './lib/crypto.js';
 import {
 	DAY_MS,
 	DEFAULT_MAX_POINTS,

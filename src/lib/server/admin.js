@@ -1,9 +1,6 @@
 // @ts-check
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
-import { error } from '@sveltejs/kit';
 import { ADMIN_SECRET } from '$app/env/private';
-
-/** Must stay in sync with convex/lib/secrets.js (Convex V8 crypto.subtle). */
 
 export const SESSION_MAX_AGE_MS = 60 * 60 * 24 * 1000;
 
@@ -93,20 +90,4 @@ export function verifyAdminSecret(request) {
 	}
 
 	return false;
-}
-
-/**
- * @param {string | undefined} token
- * @returns {boolean}
- */
-export function verifyAdminCookie(token) {
-	return !!token && verifyAdminSessionToken(token);
-}
-
-/**
- * Throw a 401 SvelteKit error if the request is not from an admin.
- * @param {Request} request
- */
-export function requireAdmin(request) {
-	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
 }

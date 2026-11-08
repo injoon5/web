@@ -1,11 +1,11 @@
 import { paginationOptsValidator } from 'convex/server';
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { internal } from './_generated/api.js';
 import { internalMutation, mutation, query } from './_generated/server.js';
 import { limiter } from './rateLimits.js';
-import { assertAdmin, isAdmin } from './lib/auth.js';
-import { assertServerCall } from './lib/serverCall.js';
-import { isBanned } from './lib/bans.js';
+import { assertAdmin } from './lib/auth.js';
+import { fail } from './lib/errors.js';
+import { beginVisitorWrite, visitorWriteArgs } from './lib/visitorWrite.js';
 import { publicComment } from './lib/serialize.js';
 import {
 	applyVoteChange,
@@ -15,52 +15,45 @@ import {
 	voteCountsFromDoc
 } from './lib/votes.js';
 import { isScoresBackfillComplete } from './lib/migration.js';
-import { applyUrlCountDeltas, incrementUrlCount } from './lib/urlCounts.js';
-import { DELETED_TEXT, isReservedText, isSoftDeleted } from './lib/softDelete.js';
+import { applyCountDeltas } from './lib/counter.js';
+import {
+	ANONYMOUS,
+	DELETED_TEXT,
+	MAX_DEPTH,
+	MAX_REPLY_LENGTH,
+	commentTextError,
+	isSoftDeleted,
+	usernameError
+} from './lib/commentRules.js';
 
-const MAX_DEPTH = 2;
-const MAX_TEXT_LENGTH = 200;
-const MAX_USERNAME_LENGTH = 32;
-const MAX_REPLY_LENGTH = 1000;
-const RESERVED_TEXT_MESSAGE = 'A comment cannot say only [deleted]';
 // Bounds the legacy rank fallback below, before the score backfill has run.
 const MAX_LEGACY_COMMENTS = 200;
 
-async function consumeRateLimit(ctx, name, ipHash) {
-	await limiter.limit(ctx, name, { key: ipHash, throws: true });
+/** Throws `BadRequest` unless `text` (trimmed) may be a comment; returns it trimmed. */
+function validText(text) {
+	const trimmed = text.trim();
+	const problem = commentTextError(trimmed);
+	if (problem) fail('BadRequest', problem);
+	return trimmed;
 }
 
 /**
  * Ban + rate-limit gate for a would-be comment, consuming nothing. It only moves
  * the rejection in front of the ~100ms of bcrypt `create` would otherwise spend
- * before it could say the IP is banned.
+ * before it could say the IP is banned. It is the same gate `create` runs, so it
+ * rejects exactly what `create` would.
  *
- * `limiter.check`, not `limiter.limit`: `create` consumes the token and stays
- * the authority, and a caller that skips this is checked there exactly as before.
+ * `check`, not `spend`: `create` consumes the token and stays the authority.
  *
  * A mutation, not a query: a token bucket refills with the clock, and Convex
  * freezes time inside a query and caches the result — a cached `ok: false` would
  * outlive its window with no write to invalidate it.
  */
 export const checkCanCreate = mutation({
-	args: {
-		ipHash: v.string(),
-		adminSecret: v.optional(v.string()),
-		// `ipHash` is only trusted from the SvelteKit server: see lib/serverCall.js.
-		serverCredential: v.string()
-	},
-	handler: async (ctx, { ipHash, adminSecret, serverCredential }) => {
-		await assertServerCall(serverCredential);
-		if (await isAdmin(adminSecret)) return;
-
-		if (await isBanned(ctx, ipHash)) {
-			throw new ConvexError({ kind: 'Banned' });
-		}
-
-		const { ok, retryAfter } = await limiter.check(ctx, 'comment', { key: ipHash });
-		if (!ok) {
-			throw new ConvexError({ kind: 'RateLimited', name: 'comment', retryAfter });
-		}
+	args: visitorWriteArgs,
+	handler: async (ctx, args) => {
+		const visitor = await beginVisitorWrite(ctx, args);
+		await visitor.check('comment');
 	}
 });
 
@@ -72,7 +65,7 @@ export const checkCanCreate = mutation({
 export const beginOwnerAction = internalMutation({
 	args: { commentId: v.id('comments'), ipHash: v.string() },
 	handler: async (ctx, { commentId, ipHash }) => {
-		await consumeRateLimit(ctx, 'edit', ipHash);
+		await limiter.limit(ctx, 'edit', { key: ipHash, throws: true });
 		const doc = await ctx.db.get('comments', commentId);
 		if (!doc) return null;
 		return { passwordHash: doc.passwordHash, deletedAt: doc.deletedAt };
@@ -118,10 +111,9 @@ export const list = query({
 	args: {
 		url: v.string(),
 		ipHash: v.string(),
-		paginationOpts: v.optional(paginationOptsValidator)
+		paginationOpts: paginationOptsValidator
 	},
 	handler: async (ctx, { url, ipHash, paginationOpts }) => {
-		const opts = paginationOpts ?? { numItems: 50, cursor: null };
 		const myVotes = await visitorVoteMap(ctx, ipHash);
 
 		// Roots are ranked by a denormalized `score`, kept in step with the vote
@@ -158,7 +150,7 @@ export const list = query({
 				q.eq('url', url).eq('deletedAt', null).eq('parentId', null)
 			)
 			.order('desc')
-			.paginate(opts);
+			.paginate(paginationOpts);
 
 		const page = [];
 		for (const root of result.page) {
@@ -176,52 +168,31 @@ export const create = mutation({
 		passwordHash: v.string(),
 		text: v.string(),
 		parentId: v.optional(v.id('comments')),
-		ipHash: v.string(),
-		adminSecret: v.optional(v.string()),
-		// `ipHash` is only trusted from the SvelteKit server: see lib/serverCall.js.
-		serverCredential: v.string()
+		...visitorWriteArgs
 	},
 	handler: async (ctx, args) => {
-		await assertServerCall(args.serverCredential);
-		const admin = await isAdmin(args.adminSecret);
+		const visitor = await beginVisitorWrite(ctx, args);
 
-		if (await isBanned(ctx, args.ipHash)) {
-			throw new ConvexError({ kind: 'Banned' });
-		}
-
-		// Enforce limits server-side: this mutation is part of the public Convex
-		// API, so direct callers must not be able to bypass the SvelteKit/Zod layer.
-		const username = args.username.trim() || 'Anonymous';
-		if (args.text.length < 1 || args.text.length > MAX_TEXT_LENGTH) {
-			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
-		}
-		if (isReservedText(args.text)) {
-			throw new ConvexError({ kind: 'BadRequest', message: RESERVED_TEXT_MESSAGE });
-		}
-		if (username.length > MAX_USERNAME_LENGTH) {
-			throw new ConvexError({
-				kind: 'BadRequest',
-				message: 'Username must be 32 characters or less'
-			});
-		}
+		// This mutation is public, so its limits cannot be left to the Zod layer.
+		const text = validText(args.text);
+		const username = args.username.trim() || ANONYMOUS;
+		const usernameProblem = usernameError(username);
+		if (usernameProblem) fail('BadRequest', usernameProblem);
 
 		let depth = 0;
 		let parentId = null;
 		if (args.parentId) {
 			const parent = await ctx.db.get('comments', args.parentId);
 			if (!parent || parent.deletedAt !== null) {
-				throw new ConvexError({ kind: 'NotFound', message: 'Parent comment not found' });
+				fail('NotFound', 'Parent comment not found');
 			}
 			// A reply must belong to the same page as its parent, or it renders as
 			// a cross-page stray whose hard-delete would still touch its URL count.
 			if (parent.url !== args.url) {
-				throw new ConvexError({
-					kind: 'BadRequest',
-					message: 'Parent comment is on a different page'
-				});
+				fail('BadRequest', 'Parent comment is on a different page');
 			}
 			if (parent.depth >= MAX_DEPTH) {
-				throw new ConvexError({ kind: 'BadRequest', message: 'Maximum reply depth reached' });
+				fail('BadRequest', 'Maximum reply depth reached');
 			}
 			depth = parent.depth + 1;
 			parentId = args.parentId;
@@ -229,13 +200,13 @@ export const create = mutation({
 
 		// Consume the token only after validation so a rejected request (bad
 		// parent, bad input) doesn't burn part of the caller's budget.
-		if (!admin) await consumeRateLimit(ctx, 'comment', args.ipHash);
+		await visitor.spend('comment');
 
 		const id = await ctx.db.insert('comments', {
 			url: args.url,
 			username,
 			passwordHash: args.passwordHash,
-			text: args.text,
+			text,
 			ipHash: args.ipHash,
 			parentId,
 			depth,
@@ -247,7 +218,7 @@ export const create = mutation({
 			score: 0
 		});
 
-		await incrementUrlCount(ctx, args.url);
+		await applyCountDeltas(ctx, 'commentUrlCounts', new Map([[args.url, 1]]));
 
 		// Read back rather than serialized from the arguments: `_creationTime` is
 		// Convex's to set, and this get is served from the transaction's own write
@@ -261,24 +232,15 @@ export const vote = mutation({
 	args: {
 		commentId: v.id('comments'),
 		voteType: v.union(v.literal('up'), v.literal('down')),
-		ipHash: v.string(),
-		adminSecret: v.optional(v.string()),
-		// `ipHash` is only trusted from the SvelteKit server: see lib/serverCall.js.
-		serverCredential: v.string()
+		...visitorWriteArgs
 	},
 	handler: async (ctx, args) => {
-		await assertServerCall(args.serverCredential);
-		const admin = await isAdmin(args.adminSecret);
-
-		if (await isBanned(ctx, args.ipHash)) {
-			throw new ConvexError({ kind: 'Banned' });
-		}
-
-		if (!admin) await consumeRateLimit(ctx, 'vote', args.ipHash);
+		const visitor = await beginVisitorWrite(ctx, args);
+		await visitor.spend('vote');
 
 		const comment = await ctx.db.get('comments', args.commentId);
 		if (!comment || comment.deletedAt !== null) {
-			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+			fail('NotFound', 'Comment not found');
 		}
 
 		const { upvotes, downvotes, myVote } = await applyVoteChange(
@@ -302,39 +264,39 @@ export const applyEdit = internalMutation({
 		// A soft-deleted comment still has its row and password hash, so without
 		// this its owner could edit it back to life under the name `[deleted]`.
 		if (!comment || comment.deletedAt !== null || isSoftDeleted(comment)) {
-			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+			fail('NotFound', 'Comment not found');
 		}
 
-		// Same limits as `create`, so a direct caller can't bypass the
-		// SvelteKit/Zod layer and store an unbounded edit.
-		if (args.text.length < 1 || args.text.length > MAX_TEXT_LENGTH) {
-			throw new ConvexError({ kind: 'BadRequest', message: 'Comment must be 1-200 characters' });
-		}
-		if (isReservedText(args.text)) {
-			throw new ConvexError({ kind: 'BadRequest', message: RESERVED_TEXT_MESSAGE });
-		}
-
+		const text = validText(args.text);
 		const updatedAt = Date.now();
-		await ctx.db.patch('comments', args.commentId, { text: args.text, updatedAt });
-		return { id: args.commentId, text: args.text, updatedAt };
+		await ctx.db.patch('comments', args.commentId, { text, updatedAt });
+		return { id: args.commentId, text, updatedAt };
 	}
 });
 
-export const softDelete = internalMutation({
-	args: {
-		commentId: v.id('comments')
-	},
-	handler: async (ctx, args) => {
-		const comment = await ctx.db.get('comments', args.commentId);
-		if (!comment || comment.deletedAt !== null) {
-			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
-		}
+async function softDeleteComment(ctx, commentId) {
+	const comment = await ctx.db.get('comments', commentId);
+	if (!comment || comment.deletedAt !== null) fail('NotFound', 'Comment not found');
 
-		await ctx.db.patch('comments', args.commentId, {
-			text: DELETED_TEXT,
-			username: DELETED_TEXT,
-			updatedAt: Date.now()
-		});
+	await ctx.db.patch('comments', commentId, {
+		text: DELETED_TEXT,
+		username: DELETED_TEXT,
+		updatedAt: Date.now()
+	});
+}
+
+/** The owner's soft delete, run by `commentActions.softDeleteComment` once the password checks out. */
+export const softDelete = internalMutation({
+	args: { commentId: v.id('comments') },
+	handler: async (ctx, { commentId }) => softDeleteComment(ctx, commentId)
+});
+
+/** The admin's soft delete: the same change, behind the admin secret instead of a password. */
+export const adminSoftDelete = mutation({
+	args: { commentId: v.id('comments'), adminSecret: v.string() },
+	handler: async (ctx, { commentId, adminSecret }) => {
+		await assertAdmin(adminSecret);
+		await softDeleteComment(ctx, commentId);
 	}
 });
 
@@ -388,7 +350,7 @@ async function hardDeleteFrom(ctx, frontier) {
 		}
 		await ctx.db.patch('comments', doc._id, { deletedAt: now });
 	}
-	await applyUrlCountDeltas(ctx, urlDeltas);
+	await applyCountDeltas(ctx, 'commentUrlCounts', urlDeltas);
 
 	const rest = queue.slice(i);
 	if (rest.length > 0) {
@@ -430,15 +392,12 @@ export const setReply = mutation({
 
 		const comment = await ctx.db.get('comments', commentId);
 		if (!comment || comment.deletedAt !== null) {
-			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
+			fail('NotFound', 'Comment not found');
 		}
 
 		const trimmed = reply.trim();
 		if (trimmed.length > MAX_REPLY_LENGTH) {
-			throw new ConvexError({
-				kind: 'BadRequest',
-				message: 'Reply must be 1000 characters or less'
-			});
+			fail('BadRequest', `Reply must be ${MAX_REPLY_LENGTH} characters or less`);
 		}
 
 		await ctx.db.patch('comments', commentId, { reply: trimmed || null });

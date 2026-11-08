@@ -1,7 +1,8 @@
-import { ConvexError, v } from 'convex/values';
+import { v } from 'convex/values';
 import { mutation, query } from './_generated/server.js';
 import { assertAdmin } from './lib/auth.js';
-import { assertAdminAccess } from './lib/adminSession.js';
+import { adminAuthArgs, assertAdminAccess } from './lib/adminSession.js';
+import { fail } from './lib/errors.js';
 import { publicBan } from './lib/serialize.js';
 
 // The admin list is not paginated, so it reads a bounded page rather than the
@@ -12,10 +13,7 @@ const BAN_LIMIT = 1000;
 // takes either credential — see convex/lib/adminSession.js. The mutations below
 // stay ADMIN_SECRET-only: writes still go through /api/admin/*.
 export const list = query({
-	args: {
-		adminSecret: v.optional(v.string()),
-		sessionToken: v.optional(v.string())
-	},
+	args: adminAuthArgs,
 	handler: async (ctx, { adminSecret, sessionToken }) => {
 		await assertAdminAccess(ctx, { adminSecret, sessionToken });
 		// Newest first: a default table scan is ascending `_creationTime`, so a
@@ -35,9 +33,7 @@ export const create = mutation({
 		await assertAdmin(adminSecret);
 
 		const comment = await ctx.db.get('comments', commentId);
-		if (!comment) {
-			throw new ConvexError({ kind: 'NotFound', message: 'Comment not found' });
-		}
+		if (!comment) fail('NotFound', 'Comment not found');
 
 		const trimmedReason = reason?.trim() || null;
 

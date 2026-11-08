@@ -7,13 +7,9 @@
  * of once per comment) still lands on the right number.
  */
 
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import rateLimiter from '@convex-dev/rate-limiter/test';
+import { TEST_ADMIN_SECRET, setupConvex } from '../src/test/convex.js';
 import { api } from './_generated/api.js';
-import schema from './schema.js';
-
-const modules = import.meta.glob('./**/*.js');
 
 // The continuation is a `runAfter(0)`, so draining it needs the timer APIs.
 beforeEach(() => {
@@ -24,15 +20,9 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-const ADMIN = 'test-admin-secret';
 const URL = '/blog/test';
 
-function setup() {
-	const t = convexTest(schema, modules);
-	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
-	process.env.ADMIN_SECRET = ADMIN;
-	return t;
-}
+const setup = () => setupConvex();
 
 function commentFields(overrides = {}) {
 	return {
@@ -89,7 +79,7 @@ describe('hardDelete', () => {
 		const t = setup();
 		const root = await seedThread(t, 3);
 
-		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: ADMIN });
+		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: TEST_ADMIN_SECRET });
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 
 		expect(await activeCount(t)).toBe(0);
@@ -101,7 +91,7 @@ describe('hardDelete', () => {
 		// 260 comments — past the 200 cap, so the walk has to hand off a frontier.
 		const root = await seedThread(t, 259);
 
-		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: ADMIN });
+		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: TEST_ADMIN_SECRET });
 		expect(await activeCount(t)).toBeGreaterThan(0); // first batch only
 
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -124,7 +114,7 @@ describe('hardDelete', () => {
 			return { root };
 		});
 
-		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: ADMIN });
+		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: TEST_ADMIN_SECRET });
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 
 		expect(await activeCount(t)).toBe(0);
@@ -147,7 +137,7 @@ describe('hardDelete', () => {
 			}
 		});
 
-		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: ADMIN });
+		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: TEST_ADMIN_SECRET });
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 
 		const votes = await t.run(async (ctx) => ctx.db.query('commentVotes').take(10));
@@ -158,9 +148,9 @@ describe('hardDelete', () => {
 		const t = setup();
 		const root = await seedThread(t, 2);
 
-		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: ADMIN });
+		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: TEST_ADMIN_SECRET });
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
-		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: ADMIN });
+		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: TEST_ADMIN_SECRET });
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 
 		expect(await urlCount(t)).toBe(0);

@@ -11,12 +11,12 @@
 	import { api } from '#convex/_generated/api.js';
 	import CommentNode from './CommentNode.svelte';
 	import { buildTree } from './build-tree.js';
+	import { COMMENTS_PAGE_SIZE, CHAR_THRESHOLD } from './constants.js';
 	import {
-		COMMENTS_PAGE_SIZE,
-		MAX_COMMENT_LENGTH,
-		CHAR_THRESHOLD,
+		MAX_TEXT_LENGTH,
+		MAX_USERNAME_LENGTH,
 		MIN_PASSWORD_LENGTH
-	} from './constants.js';
+	} from '#convex/lib/commentRules.js';
 	import { apiFetch } from '#lib/api-client.js';
 
 	const { trigger, destroy } = createWebHaptics();
@@ -166,14 +166,14 @@
 		});
 	}
 
-	const charsLeft = $derived(MAX_COMMENT_LENGTH - commentText.length);
-	const showCharsLeft = $derived(commentText.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
+	const charsLeft = $derived(MAX_TEXT_LENGTH - commentText.length);
+	const showCharsLeft = $derived(commentText.length > MAX_TEXT_LENGTH - CHAR_THRESHOLD);
 	const isSubmitDisabled = $derived(
 		submitting ||
 			!commentText.trim() ||
 			!password ||
 			password.length < MIN_PASSWORD_LENGTH ||
-			commentText.length > MAX_COMMENT_LENGTH
+			commentText.length > MAX_TEXT_LENGTH
 	);
 
 	const commentTree = $derived(listReady ? buildTree(query.results ?? []) : []);
@@ -211,7 +211,7 @@
 		submitError = '';
 		if (!commentText.trim()) return;
 		if (password.length < MIN_PASSWORD_LENGTH) return;
-		if (commentText.length > MAX_COMMENT_LENGTH) return;
+		if (commentText.length > MAX_TEXT_LENGTH) return;
 
 		submitting = true;
 		const res = await apiFetch('/api/comments', {
@@ -251,15 +251,15 @@
 			type="text"
 			placeholder={`Name (optional — defaults to ${fallbackHandle})`}
 			aria-label="Name (optional)"
-			maxlength="32"
+			maxlength={MAX_USERNAME_LENGTH}
 			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 		/>
 		<div>
 			<textarea
 				bind:value={commentText}
-				placeholder="Say something… (max {MAX_COMMENT_LENGTH} characters)"
+				placeholder="Say something… (max {MAX_TEXT_LENGTH} characters)"
 				aria-label="Comment"
-				maxlength={MAX_COMMENT_LENGTH}
+				maxlength={MAX_TEXT_LENGTH}
 				rows="3"
 				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 			></textarea>

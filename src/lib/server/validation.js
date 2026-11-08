@@ -1,57 +1,66 @@
+// @ts-check
+import { error } from '@sveltejs/kit';
 import { z } from 'zod';
-import { isReservedText } from '#convex/lib/softDelete.js';
+import {
+	MAX_REPLY_LENGTH,
+	MAX_USERNAME_LENGTH,
+	MIN_PASSWORD_LENGTH,
+	commentTextError
+} from '#convex/lib/commentRules.js';
+
+const CONVEX_ID = /^[0-9a-z]+$/;
 
 /**
- * Convex document IDs are lowercase base32 strings with no separators. This is
- * a shape guard, not a full validator — Convex stays the authority — but it lets
- * a malformed `params.id` fail as a 400 at the route instead of a 500 after
- * Convex rejects the argument.
+ * A route param that has to be a Convex document id, or a 400. This is a shape
+ * guard, not a full validator — Convex stays the authority — but it lets a
+ * malformed id fail here instead of as a 500 after Convex rejects the argument.
  *
- * @param {unknown} value
- * @returns {boolean}
- */
-export function isConvexId(value) {
-	return typeof value === 'string' && /^[0-9a-z]+$/.test(value);
-}
-
-/**
- * Validate a route/body Convex id and return it, or null when malformed.
  * @template {string} T
- * @param {unknown} value
- * @returns {T | null}
+ * @param {string} value
+ * @returns {T}
  */
-export function parseConvexId(value) {
-	return isConvexId(value) ? /** @type {T} */ (value) : null;
+export function requireConvexId(value) {
+	if (!CONVEX_ID.test(value)) throw error(400, 'Invalid id');
+	return /** @type {T} */ (value);
 }
 
-const convexId = z.string().refine(isConvexId, 'Invalid id');
+const convexId = z.string().regex(CONVEX_ID, 'Invalid id');
 
-// trim() first so the length limits validate what actually gets stored.
-// `[deleted]` is what a soft delete writes, and the only mark that one happened.
+// Trimmed first so the rules judge what actually gets stored. The rules are the
+// ones `comments.create` enforces again on its own side.
 const commentText = z
 	.string()
 	.trim()
-	.min(1, 'Comment cannot be empty')
-	.max(200, 'Comment must be 200 characters or less')
-	.refine((text) => !isReservedText(text), 'A comment cannot say only [deleted]');
+	.superRefine((text, ctx) => {
+		const message = commentTextError(text);
+		if (message) ctx.addIssue({ code: 'custom', message });
+	});
 
 export const createCommentSchema = z.object({
 	url: z.string().min(1),
-	username: z.string().max(32).optional().default('Anonymous'),
-	password: z.string().min(4, 'Password must be at least 4 characters'),
+	username: z
+		.string()
+		.trim()
+		.max(MAX_USERNAME_LENGTH, `Username must be ${MAX_USERNAME_LENGTH} characters or less`)
+		.default(''),
+	password: z
+		.string()
+		.min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`),
 	text: commentText,
 	parentId: convexId.optional()
 });
 
+// These verify a password that was created with the minimum length, so only a
+// non-empty value is required.
+const existingPassword = z.string().min(1, 'Password is required');
+
 export const editCommentSchema = z.object({
 	text: commentText,
-	// Verifies an existing password (already created with min 4), so only a
-	// non-empty value is required here.
-	password: z.string().min(1, 'Password is required')
+	password: existingPassword
 });
 
 export const deleteCommentSchema = z.object({
-	password: z.string().min(1, 'Password is required')
+	password: existingPassword
 });
 
 export const voteSchema = z.object({
@@ -60,11 +69,11 @@ export const voteSchema = z.object({
 
 export const likeSchema = z.object({
 	url: z.string().min(1),
-	liked: z.boolean().optional()
+	liked: z.boolean()
 });
 
 export const replySchema = z.object({
-	reply: z.string().max(1000)
+	reply: z.string().max(MAX_REPLY_LENGTH)
 });
 
 export const nowSchema = z.object({

@@ -2,7 +2,8 @@ import { v } from 'convex/values';
 import { internalMutation, mutation } from './_generated/server.js';
 import { internal } from './_generated/api.js';
 import { assertAdmin } from './lib/auth.js';
-import { findSession, hashSessionToken } from './lib/adminSession.js';
+import { findSession } from './lib/adminSession.js';
+import { sha256Hex } from './lib/crypto.js';
 
 // One admin, one browser, a 24h token — the table holds a handful of rows, so
 // the sweep below reads a bound rather than a page.
@@ -46,7 +47,7 @@ export const ensure = mutation({
 		if (existing) return;
 
 		const sessionId = await ctx.db.insert('adminSessions', {
-			tokenHash: await hashSessionToken(sessionToken),
+			tokenHash: await sha256Hex(sessionToken),
 			expiresAt
 		});
 		await ctx.scheduler.runAt(expiresAt, internal.adminSessions.expire, { sessionId });
