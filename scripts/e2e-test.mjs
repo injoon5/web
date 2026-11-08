@@ -10,7 +10,7 @@
  * that does not already have it.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { startFakeConvex } from './e2e/fake-convex.mjs';
 import { runChecks } from './e2e/checks.mjs';
 
@@ -18,22 +18,14 @@ const CONVEX_PORT = 3299;
 const PREVIEW_PORT = 4173;
 const origin = `http://localhost:${PREVIEW_PORT}`;
 
-/** ADMIN_SECRET as the build will see it: the environment, else .env. */
-function adminSecret() {
-	if (process.env.ADMIN_SECRET) return process.env.ADMIN_SECRET;
-	const line = readFileSync('.env', 'utf8')
-		.split('\n')
-		.find((l) => l.startsWith('ADMIN_SECRET='));
-	return (
-		line
-			?.slice('ADMIN_SECRET='.length)
-			.trim()
-			.replace(/^["']|["']$/g, '') ?? ''
-	);
-}
+// ADMIN_SECRET as the build will see it: the environment, else .env.
+if (existsSync('.env')) process.loadEnvFile('.env');
 
 const env = { ...process.env, PUBLIC_CONVEX_URL: `http://127.0.0.1:${CONVEX_PORT}` };
-const convex = await startFakeConvex({ port: CONVEX_PORT, adminSecret: adminSecret() });
+const convex = await startFakeConvex({
+	port: CONVEX_PORT,
+	adminSecret: process.env.ADMIN_SECRET ?? ''
+});
 
 if (!process.argv.includes('--no-build')) {
 	console.log('Building against the fake Convex…');
@@ -55,14 +47,15 @@ const preview = spawn('npx', ['vite', 'preview', '--port', String(PREVIEW_PORT),
 /** @type {number} */
 let failures;
 try {
-	for (let i = 0; i < 60; i++) {
-		const up = await fetch(origin).then(
+	let up = false;
+	for (let i = 0; i < 60 && !up; i++) {
+		up = await fetch(origin).then(
 			() => true,
 			() => false
 		);
-		if (up) break;
-		await new Promise((r) => setTimeout(r, 500));
+		if (!up) await new Promise((r) => setTimeout(r, 500));
 	}
+	if (!up) throw new Error(`vite preview never answered at ${origin}`);
 	failures = await runChecks(origin, convex);
 } finally {
 	if (preview.pid) process.kill(-preview.pid);

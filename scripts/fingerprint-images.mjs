@@ -8,16 +8,10 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
+import { FINGERPRINTS, RASTER_EXT, ROOT } from './lib/image-cache.js';
 
 const execFileAsync = promisify(execFile);
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
-const OUT_PATH = path.join(ROOT, '.cache', 'source-fingerprints.json');
-
-const RASTER_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 /**
  * @param {string} cmd
@@ -49,8 +43,8 @@ async function main() {
 	// This file is the turbo cache key for image optimization, so it holds content
 	// hashes and nothing else. A commit SHA in here would change on every deploy
 	// and force a re-encode of every image even when none of them moved.
-	await mkdir(path.dirname(OUT_PATH), { recursive: true });
-	await writeFile(OUT_PATH, JSON.stringify({ files: fingerprints }, null, 2));
+	await mkdir(path.dirname(FINGERPRINTS), { recursive: true });
+	await writeFile(FINGERPRINTS, JSON.stringify({ files: fingerprints }, null, 2));
 }
 
 main().catch((err) => {

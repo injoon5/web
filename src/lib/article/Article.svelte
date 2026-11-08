@@ -181,7 +181,7 @@
 	});
 
 	const current = $derived(entryFor(displayLang));
-	const readingMinutes = $derived(parseInt(current.meta.readingTime ?? '', 10));
+	const readingMinutes = $derived(current.meta.readingMinutes);
 
 	/** @type {View} */
 	const view = {
@@ -251,7 +251,7 @@
 				class="mt-1 flex flex-row items-center {bylineClass} font-medium text-neutral-600 dark:text-neutral-400"
 			>
 				{@render dateline(current.meta)}
-				{#if !isNaN(readingMinutes)}
+				{#if readingMinutes}
 					<p class="mx-1">·</p>
 					<span class="tabular inline-flex whitespace-nowrap">
 						<!-- No ghost stack behind the count: sizing it to the widest language leaves a

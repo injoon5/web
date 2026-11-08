@@ -25,6 +25,7 @@
 import { closeSync, existsSync, fstatSync, openSync, readFileSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { imageSize } from './image-size.js';
+import { STATIC_ROOT, resolveLocal } from './static-file.js';
 import { ARTICLE_SIZES } from './image-sizes.js';
 import { VARIANTS_MANIFEST, srcsetOf } from './image-variants.js';
 
@@ -58,22 +59,6 @@ function sizeOfFile(file) {
 		closeSync(fd);
 	}
 	return imageSize(readFileSync(file));
-}
-
-/**
- * Only root-relative URLs into the static directory. A remote image is somebody
- * else's file and cannot be measured here; `../` would climb out of `static/`.
- *
- * @param {string} url
- * @param {string} root
- */
-export function resolveLocal(url, root) {
-	if (!url || !url.startsWith('/') || url.startsWith('//')) return null;
-	const clean = url.split(/[?#]/)[0];
-	const file = path.join(root, decodeURIComponent(clean));
-	const within = path.relative(root, file);
-	if (within.startsWith('..') || path.isAbsolute(within)) return null;
-	return file;
 }
 
 /**
@@ -142,7 +127,7 @@ function visitImages(node, fn) {
  *   `static/`. `variants` defaults to the image step's manifest.
  */
 export function remarkImageSize(options = {}) {
-	const root = options.root ?? path.join(process.cwd(), 'static');
+	const root = options.root ?? STATIC_ROOT;
 	const variants = options.variants ?? readVariants(path.join(process.cwd(), VARIANTS_MANIFEST));
 
 	return function transformer(tree) {

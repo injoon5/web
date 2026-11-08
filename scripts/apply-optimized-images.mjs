@@ -7,14 +7,7 @@
 
 import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
-const STATIC_DIR = path.join(ROOT, 'static');
-const MIRROR_DIR = path.join(ROOT, '.cache', 'image-mirror');
-const FINGERPRINT_PATH = path.join(ROOT, '.cache', 'source-fingerprints.json');
-const MANIFEST_PATH = path.join(ROOT, '.cache', 'image-optimize.json');
+import { MIRROR_DIR, OPTIMIZE_MANIFEST, ROOT, readFingerprints } from './lib/image-cache.js';
 
 /**
  * @param {string} src
@@ -26,23 +19,20 @@ async function copyFileEnsuringDir(src, dest) {
 }
 
 async function main() {
-	let fingerprint;
-	try {
-		fingerprint = JSON.parse(await readFile(FINGERPRINT_PATH, 'utf8'));
-	} catch {
+	const files = await readFingerprints();
+	if (!files) {
 		console.error('Missing .cache/source-fingerprints.json — run fingerprint-images first');
 		process.exit(1);
 	}
 
 	let manifest = {};
 	try {
-		manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
+		manifest = JSON.parse(await readFile(OPTIMIZE_MANIFEST, 'utf8'));
 	} catch {
 		console.error('Missing .cache/image-optimize.json — run build-image-cache first');
 		process.exit(1);
 	}
 
-	const files = fingerprint.files ?? {};
 	let applied = 0;
 	let missing = 0;
 	let copies = 0;
@@ -79,9 +69,6 @@ async function main() {
 			}
 		}
 	}
-
-	// Ensure static dir exists even if there are zero images.
-	await mkdir(STATIC_DIR, { recursive: true });
 
 	console.log(
 		`Applied ${applied} optimized images and ${copies} responsive copies to static/ (${missing} missing)`
