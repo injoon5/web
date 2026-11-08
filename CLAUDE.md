@@ -432,7 +432,10 @@ Admin. Consequences worth knowing:
 ## Comment Deletion Semantics
 
 - **Soft delete** — sets `text` and `username` to `[deleted]`. The row stays, so
-  thread nesting is preserved.
+  thread nesting is preserved. **That text is the only record of it**
+  (`convex/lib/softDelete.js`), so `create`, `applyEdit` and the Zod schemas
+  refuse it as a comment's whole text, and `applyEdit` refuses a soft-deleted
+  comment — the password hash survives the delete.
 
   The public `DELETE /api/comments/[id]` **always** soft-deletes and never
   inspects admin auth. The site owner browses their own posts holding an
@@ -578,6 +581,13 @@ but are no longer how the site's own pages get the list.
 `Lightbox.svelte` orchestrates; the logic lives in modules beside it —
 `geometry.js` (sizing, paging and settle maths, unit-tested without a DOM),
 `spring.js`, `velocity.js`, `flight.js`, `modal.js`, `store.svelte.js`.
+
+**Its state is three enums, not a row of flags.** `phase` (closed, open,
+closing, dismissing), `flewIn` / `flyingHome` (none, photo, photo+bottom), and
+`gesture` (idle, pressed, x, y, pan, pinch, wheel). The CSS classes
+(`.closing`, `.flew`, `.bottom-flew`, `.dragging`…) are derived from them. The
+store effect runs its resets under `untrack`: they read `gesture`, and
+tracking it reset every gesture as it began.
 
 **The lightbox opens groups, not images.** `lightboxAction` looks for a
 `[data-lightbox-group]` ancestor: inside one, the whole group opens at the

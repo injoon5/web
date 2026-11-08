@@ -24,6 +24,10 @@ describe('createCommentSchema', () => {
 		expect(parsed.text).toBe('nice post');
 	});
 
+	it('rejects the soft-delete marker as the whole text', () => {
+		expect(createCommentSchema.safeParse({ ...base, text: '[deleted]' }).success).toBe(false);
+	});
+
 	it('defaults username to Anonymous when omitted', () => {
 		const parsed = createCommentSchema.parse({
 			url: base.url,
@@ -74,6 +78,11 @@ describe('editCommentSchema', () => {
 
 	it('accepts a single-char password (verifies, does not create)', () => {
 		expect(editCommentSchema.safeParse({ text: 'ok', password: 'a' }).success).toBe(true);
+	});
+
+	it('rejects the soft-delete marker as the whole text', () => {
+		expect(editCommentSchema.safeParse({ text: ' [deleted] ', password: 'x' }).success).toBe(false);
+		expect(editCommentSchema.safeParse({ text: '[deleted] it', password: 'x' }).success).toBe(true);
 	});
 });
 

@@ -9,6 +9,8 @@
 	import StrayParentGhost from './StrayParentGhost.svelte';
 	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
 	import { apiFetch } from '#lib/api-client.js';
+	import { untrack } from 'svelte';
+	import { isSoftDeleted } from '#convex/lib/softDelete.js';
 
 	let {
 		comment,
@@ -42,7 +44,7 @@
 	let deleteError = $state('');
 	let deleteSubmitting = $state(false);
 
-	const isDeleted = $derived(comment.text === '[deleted]');
+	const isDeleted = $derived(isSoftDeleted(comment));
 	const isVoting = $derived(votingIds.has(comment.id));
 	// Only reflect the visitor's vote once it's trustworthy (see CommentsSection);
 	// otherwise show neutral arrows so a stale/unknown state can't be mis-toggled.
@@ -67,9 +69,13 @@
 			replyText.length > MAX_COMMENT_LENGTH
 	);
 
-	// Close own form when another card claims the active slot
+	const submitting = $derived(editSubmitting || replySubmitting || deleteSubmitting);
+
+	// Close own form when another card claims the active slot — unless its submit
+	// is still in flight: the result, and any error, belongs on this form. Only a
+	// change of slot closes it, never the submit settling, so a failure stays up.
 	$effect(() => {
-		if (activeFormId !== comment.id && mode !== null) {
+		if (activeFormId !== comment.id && mode !== null && !untrack(() => submitting)) {
 			mode = null;
 		}
 	});
@@ -101,7 +107,9 @@
 
 	function closeForm() {
 		mode = null;
-		setActiveForm(null);
+		// Only this card's own slot: a submit that settles after another card
+		// claimed it must not close that card's form.
+		if (activeFormId === comment.id) setActiveForm(null);
 	}
 
 	async function saveEdit() {

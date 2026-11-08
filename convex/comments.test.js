@@ -8,7 +8,7 @@
 import { convexTest } from 'convex-test';
 import { describe, expect, it } from 'vitest';
 import rateLimiter from '@convex-dev/rate-limiter/test';
-import { api } from './_generated/api.js';
+import { api, internal } from './_generated/api.js';
 import schema from './schema.js';
 import { withServerCall } from '../src/test/convex-server-call.js';
 
@@ -192,5 +192,39 @@ describe('list', () => {
 		const list = await listPage(t);
 		expect(list.page.map((c) => c.text)).toEqual(['high', 'low']);
 		expect(list.isDone).toBe(true);
+	});
+});
+
+/**
+ * A soft delete is recorded only as `[deleted]` text: there is no flag. So no
+ * live comment may say it, and a soft-deleted one may not be edited back.
+ */
+describe('the soft-delete marker', () => {
+	it('cannot be posted as a comment', async () => {
+		const t = setup();
+		await expect(
+			t.mutation(api.comments.create, newComment({ text: ' [deleted] ' }))
+		).rejects.toThrow(/cannot say only \[deleted\]/);
+	});
+
+	it('cannot be written by an edit', async () => {
+		const t = setup();
+		const comment = await t.mutation(api.comments.create, newComment());
+		await expect(
+			t.mutation(internal.comments.applyEdit, { commentId: comment.id, text: '[deleted]' })
+		).rejects.toThrow(/cannot say only \[deleted\]/);
+	});
+
+	it('leaves a soft-deleted comment uneditable', async () => {
+		const t = setup();
+		const comment = await t.mutation(api.comments.create, newComment({ text: 'original' }));
+		await t.mutation(internal.comments.softDelete, { commentId: comment.id });
+
+		await expect(
+			t.mutation(internal.comments.applyEdit, { commentId: comment.id, text: 'back again' })
+		).rejects.toThrow(/Comment not found/);
+
+		const list = await listPage(t);
+		expect(list.page[0]).toMatchObject({ text: '[deleted]', username: '[deleted]' });
 	});
 });

@@ -24,7 +24,7 @@
 		IDENTITY,
 		isOffScreen
 	} from './flight.js';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 
 	// --- tuning ---------------------------------------------------------------
 	const AXIS_LOCK = 8; // px of movement before the drag axis is committed
@@ -69,7 +69,20 @@
 	const FLIGHT_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 	const LIGHTBOX_THEME_COLOR = '#0a0a0a';
 
-	let visible = $state(false);
+	/**
+	 * Where the dialog is in its life. One value, so it cannot be closing and
+	 * dismissing at once.
+	 *
+	 * - `closed`: not mounted.
+	 * - `open`
+	 * - `closing`: leaving, by flying home or by the stage's own exit.
+	 * - `dismissing`: thrown off by a drag, with nowhere on the page to fly to.
+	 *
+	 * @type {'closed' | 'open' | 'closing' | 'dismissing'}
+	 */
+	let phase = $state('closed');
+	const visible = $derived(phase !== 'closed');
+	const leaving = $derived(phase === 'closing' || phase === 'dismissing');
 	// The group the lightbox was opened on. A single image is a group of one, so
 	// there is only one code path through sizing, swiping and dismissal.
 	let items = $state([]);
@@ -78,21 +91,25 @@
 	// `src`. Mounting a neighbour's <img> in the commit that starts the page makes
 	// that commit long and the settle begins late. Do not collapse into `index`.
 	let windowIndex = $state(0);
-	let closing = $state(false);
-	let dismissing = $state(false);
 
 	let rootEl = $state(null);
-	/** This open flew in, so the stage's own entrance stays off for all of it. */
-	let flew = $state(false);
-	/** A flight home is running, so the stage's exit stays off for it. */
-	let flyingHome = $state(false);
 	/**
-	 * A piece of the bottom cluster — the caption, the stepper, or both — is flying
-	 * to or from what the page already shows, so the chrome's own fade is off it
-	 * and on the pieces that fade was for. See the `.bottom-flew` rules.
+	 * What travels between the article and the stage, on the way in and on the
+	 * way home. A level rather than two flags: the bottom cluster — the caption,
+	 * the stepper, or both — only ever flies alongside the photo.
+	 *
+	 * - `none`: nothing flies; the stage's own entrance or exit runs.
+	 * - `photo`: the photo flies, so the stage's entrance (`flewIn`, for the whole
+	 *   open) or exit (`flyingHome`) stays off.
+	 * - `photo+bottom`: so does the bottom cluster, so the chrome's own fade is off
+	 *   it and on the pieces that fade was for. See the `.bottom-flew` rules.
+	 *
+	 * @typedef {'none' | 'photo' | 'photo+bottom'} Flown
 	 */
-	let bottomFlew = $state(false);
-	let bottomFlyingHome = $state(false);
+	/** @type {Flown} */
+	let flewIn = $state('none');
+	/** @type {Flown} */
+	let flyingHome = $state('none');
 	let closeBtn = $state(null);
 	/** Measured, so the image box reserves exactly the room the chrome uses. */
 	let bottomH = $state(0);
@@ -108,14 +125,25 @@
 	// --- gesture state --------------------------------------------------------
 	// One pointer stream for mouse, pen and touch. The axis is locked once, on the
 	// first few px — re-deciding per move let a diagonal flick page and dismiss.
-	/** @type {null | 'x' | 'y' | 'pan'} */
-	let axis = $state(null);
-	let dragging = $state(false);
-	let pinching = $state(false);
+	/**
+	 * The one gesture in hand.
+	 *
+	 * - `idle`
+	 * - `pressed`: one pointer down, axis not locked yet.
+	 * - `x` / `y`: locked to paging or to the dismiss drag.
+	 * - `pan`: one pointer moving a zoomed image.
+	 * - `pinch`: two pointers.
+	 * - `wheel`: a trackpad swipe is moving the track, so nothing may transition it.
+	 *
+	 * @type {'idle' | 'pressed' | 'x' | 'y' | 'pan' | 'pinch' | 'wheel'}
+	 */
+	let gesture = $state('idle');
+	const dragging = $derived(
+		gesture === 'pressed' || gesture === 'x' || gesture === 'y' || gesture === 'pan'
+	);
+	const pinching = $derived(gesture === 'pinch');
 	let dragX = $state(0);
 	let dragY = $state(0);
-	/** A trackpad swipe is moving the track right now, so nothing may transition it. */
-	let wheeling = $state(false);
 	/**
 	 * The one-off `transition` a released gesture hands the track. Null between
 	 * gestures, where `settleTransition` applies — an arrow key carries no velocity.
@@ -184,9 +212,7 @@
 	function resetGesture() {
 		dragX = 0;
 		dragY = 0;
-		axis = null;
-		dragging = false;
-		pinching = false;
+		gesture = 'idle';
 		pointers = [];
 		velocity.clear();
 		slopX = slopY = carryX = 0;
@@ -242,40 +268,40 @@
 
 	$effect(() => {
 		const val = normalizeLightboxValue(lightboxStore.value);
-		if (val?.items.length) {
-			// A close schedules an unmount; reopening inside that window would
-			// otherwise be shut again by the timer from the close before it.
-			clearTimeout(closeTimer);
-			items = val.items;
-			index = val.index;
-			// The first paint has to carry the image, not wait a frame for it.
-			windowIndex = val.index;
-			resetGesture();
-			dropChromeLift();
-			closing = false;
-			dismissing = false;
-			flew = false;
-			flyingHome = false;
-			bottomFlew = false;
-			bottomFlyingHome = false;
-			visible = true;
-		} else {
-			visible = false;
-			closing = false;
-			dismissing = false;
-			// A close mid-drag leaves the window listeners bound and the gesture
-			// half-committed; nothing else would take them down until the next
-			// pointerup, which may never come.
-			pointers = [];
-			unbindPointerStream();
-			// ...and a trackpad swipe closed mid-coast would otherwise settle onto a
-			// lightbox that is no longer there.
-			endWheelGesture();
-			dragging = false;
-			pinching = false;
-			axis = null;
-		}
+		// Only the store drives this. The resets below read gesture state on the
+		// way, and tracking it would rerun the effect on every gesture — resetting
+		// that gesture as it began.
+		untrack(() => (val?.items.length ? show(val) : hide()));
 	});
+
+	/** @param {NonNullable<ReturnType<typeof normalizeLightboxValue>>} val */
+	function show(val) {
+		// A close schedules an unmount; reopening inside that window would
+		// otherwise be shut again by the timer from the close before it.
+		clearTimeout(closeTimer);
+		items = val.items;
+		index = val.index;
+		// The first paint has to carry the image, not wait a frame for it.
+		windowIndex = val.index;
+		resetGesture();
+		dropChromeLift();
+		flewIn = 'none';
+		flyingHome = 'none';
+		phase = 'open';
+	}
+
+	function hide() {
+		phase = 'closed';
+		// A close mid-drag leaves the window listeners bound and the gesture
+		// half-committed; nothing else would take them down until the next
+		// pointerup, which may never come.
+		pointers = [];
+		unbindPointerStream();
+		// ...and a trackpad swipe closed mid-coast would otherwise settle onto a
+		// lightbox that is no longer there.
+		endWheelGesture();
+		gesture = 'idle';
+	}
 
 	// Let the render window follow one frame behind. See `windowIndex`.
 	$effect(() => {
@@ -438,8 +464,8 @@
 				restoreOriginSteps();
 				dropChromeLift();
 				node.remove();
-				flew = false;
-				flyingHome = false;
+				flewIn = 'none';
+				flyingHome = 'none';
 			}
 		};
 	}
@@ -452,8 +478,8 @@
 	}
 
 	function close() {
-		if (closing || dismissing) return;
-		closing = true;
+		if (phase !== 'open') return;
+		phase = 'closing';
 		if (startCloseFlight()) return;
 		scheduleClose(CLOSE_MS);
 	}
@@ -464,7 +490,9 @@
 		const clamped = Math.max(0, Math.min(next, count - 1));
 		dragX = 0;
 		dragY = 0;
-		axis = null;
+		// A drag in hand keeps going, but locks its axis again: the zoom it may have
+		// been panning is reset below.
+		if (dragging) gesture = 'pressed';
 		resetZoom();
 		if (clamped === index) return;
 		index = clamped;
@@ -648,8 +676,8 @@
 					{ opacity: 1, offset: 0.06 },
 					{ transform: there, opacity: 1 }
 				];
-		if (home) bottomFlyingHome = true;
-		else bottomFlew = true;
+		if (home) flyingHome = 'photo+bottom';
+		else flewIn = 'photo+bottom';
 		// Beats the entrance the `.bottom-flew` rules put on `.lb-steps`: an
 		// animation from `element.animate` sorts after every CSS animation for the
 		// property it runs on, and the rules are still wanted for a group whose page
@@ -785,8 +813,8 @@
 					{ ...lb, offset: 0.12 },
 					{ transform: thereT, ...lb }
 				];
-		if (home) bottomFlyingHome = true;
-		else bottomFlew = true;
+		if (home) flyingHome = 'photo+bottom';
+		else flewIn = 'photo+bottom';
 		cap.animate(frames, { duration, easing, fill: home ? 'forwards' : 'backwards' });
 		// Only going out: coming home the page's line stays down until the copy has
 		// landed on it, and the photo's own `onfinish` hands both back together.
@@ -836,7 +864,7 @@
 		const capFrom = captionFlightSpec(cap);
 		const steps = restingSteps(root);
 		const stepsFrom = stepsDelta(steps);
-		flew = true;
+		flewIn = 'photo';
 		flight.cancel();
 		flight.run(
 			to,
@@ -914,7 +942,7 @@
 		const home = deltaBetween(base, homeRect);
 		if (!from || !home) return false;
 
-		flyingHome = true;
+		flyingHome = 'photo';
 		flight.run(
 			img,
 			[{ transform: flightTransform(from) }, { transform: flightTransform(home) }],
@@ -956,7 +984,7 @@
 		if (!visible) return;
 		const el = originEl();
 		if (el) hideOrigin(el);
-		if (bottomFlew) hideOriginCaption(originCaptionEl());
+		if (flewIn === 'photo+bottom') hideOriginCaption(originCaptionEl());
 	});
 
 	// --- pointer gestures -----------------------------------------------------
@@ -990,9 +1018,7 @@
 		pinchStartPanY = panY;
 		pinchCentreX = (a.x + b.x) / 2;
 		pinchCentreY = (a.y + b.y) / 2;
-		pinching = true;
-		dragging = false;
-		axis = null;
+		gesture = 'pinch';
 		dragX = 0;
 		dragY = 0;
 	}
@@ -1016,8 +1042,7 @@
 		slopX = slopY = carryX = 0;
 		panStartX = panX;
 		panStartY = panY;
-		dragging = true;
-		axis = scale > 1 ? 'pan' : null;
+		gesture = scale > 1 ? 'pan' : 'pressed';
 	}
 
 	/**
@@ -1040,7 +1065,7 @@
 	}
 
 	function onPointerDown(e) {
-		if (closing || dismissing) return;
+		if (phase !== 'open') return;
 		if (e.pointerType === 'mouse' && e.button !== 0) return;
 		// A finger on the photo ends any trackpad swipe still coasting; the drag
 		// picks the track up from wherever that left it.
@@ -1071,20 +1096,20 @@
 
 		velocity.push(e.clientX, e.clientY, e.timeStamp);
 
-		if (axis === 'pan') {
+		if (gesture === 'pan') {
 			panX = panStartX + dx;
 			panY = panStartY + dy;
 			clampPan();
 			return;
 		}
 
-		if (!axis) {
+		if (gesture === 'pressed') {
 			if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
 			// Sideways only means something when there is somewhere to go.
-			axis = grouped && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+			gesture = grouped && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
 			// Take the lock threshold back out of the first frame, or the photo sits
 			// still for 8px and then jumps 8px. Measured now, not at pointerdown.
-			if (axis === 'x') {
+			if (gesture === 'x') {
 				slopX = Math.sign(dx) * Math.min(Math.abs(dx), AXIS_LOCK);
 				carryX = pickUpTrack();
 			} else {
@@ -1092,7 +1117,7 @@
 			}
 		}
 
-		if (axis === 'x') {
+		if (gesture === 'x') {
 			const raw = carryX + dx - slopX;
 			// Rubber-band at the ends so the group's edges are felt, not hit.
 			const atEnd = (raw > 0 && index === 0) || (raw < 0 && index === count - 1);
@@ -1167,21 +1192,23 @@
 		const velY = velocity.at(now).y;
 		const far = Math.abs(dragY) > DISMISS_DISTANCE;
 		const flick = Math.abs(velY) > DISMISS_VELOCITY && Math.abs(dragY) > 24;
-		axis = null;
 		if (!far && !flick) {
 			dragY = 0;
 			return;
 		}
+		// Already leaving (Escape mid-drag): that close owns the photo, and a second
+		// one started here would fly it home twice.
+		if (phase !== 'open') return;
 		// The photo goes back where it came from: it has followed the finger down,
 		// and now it travels on to the place it holds in the article — which may
 		// well be back up past where the drag started.
 		if (startCloseFlight({ carried: true, duration: FLIGHT_RETURN_MS })) {
-			closing = true;
+			phase = 'closing';
 			return;
 		}
 		// Nothing to return to. Then it is a discard, and the copy on the page
 		// comes back now rather than leaving a hole in the strip for the throw.
-		dismissing = true;
+		phase = 'dismissing';
 		showOrigin();
 		dragY = Math.sign(dragY || 1) * (winH || 800);
 		scheduleClose(SETTLE_MS);
@@ -1191,9 +1218,9 @@
 		if (!dropPointer(e.pointerId)) return;
 		if (pointers.length === 0) unbindPointerStream();
 
-		if (pinching) {
+		if (gesture === 'pinch') {
 			if (pointers.length >= 2) return;
-			pinching = false;
+			gesture = 'idle';
 			if (scale < 1.05) resetZoom();
 			else clampPan();
 			// A finger still down after a pinch keeps dragging, from where it is.
@@ -1206,24 +1233,19 @@
 		}
 
 		if (pointers.length > 0 || !dragging) return;
-		dragging = false;
-		if (axis === 'pan') {
-			clampPan();
-			axis = null;
-			return;
-		}
-		if (axis === 'x') settleX(e.timeStamp);
-		else if (axis === 'y') settleY(e.timeStamp);
-		axis = null;
+		const released = gesture;
+		gesture = 'idle';
+		if (released === 'pan') clampPan();
+		else if (released === 'x') settleX(e.timeStamp);
+		else if (released === 'y') settleY(e.timeStamp);
 	}
 
 	function onPointerCancel(e) {
 		dropPointer(e.pointerId);
 		if (pointers.length === 0) {
 			unbindPointerStream();
-			dragging = false;
-			pinching = false;
-			axis = null;
+			// A trackpad swipe is not a pointer, and settles on its own timer.
+			if (gesture !== 'wheel') gesture = 'idle';
 			velocity.clear();
 			slopX = slopY = carryX = 0;
 			dragX = 0;
@@ -1290,8 +1312,10 @@
 		// A trackpad swipe moves the track under the fingers, the same as a drag
 		// does. It used to accumulate 80px in silence and then jump a whole page,
 		// which is the same gesture the article's own strip answers continuously.
-		if (!wheeling) {
-			wheeling = true;
+		if (gesture !== 'wheel') {
+			// A pointer gesture in hand owns the track.
+			if (gesture !== 'idle') return;
+			gesture = 'wheel';
 			// Same as a finger taking over mid-settle: pick the track up where it
 			// is, and remember that offset so it is not later mistaken for scrolling
 			// the visitor did.
@@ -1315,8 +1339,8 @@
 	 * where it came to rest is all it meant — there is no flick to read off it.
 	 */
 	function settleWheel() {
-		if (!wheeling) return;
-		wheeling = false;
+		if (gesture !== 'wheel') return;
+		gesture = 'idle';
 		const target = pageTarget(dragX - wheelCarry, 0);
 		armTrackSettle(target, 0);
 		goTo(target);
@@ -1324,7 +1348,7 @@
 
 	function endWheelGesture() {
 		clearTimeout(wheelTimer);
-		wheeling = false;
+		if (gesture === 'wheel') gesture = 'idle';
 		wheelRaw = wheelCarry = 0;
 	}
 
@@ -1411,11 +1435,11 @@
 	// released one gets the spring `armTrackSettle` built for it; everything else
 	// (an arrow key, a tapped dot) gets the shared curve.
 	const trackTransition = $derived(
-		wheeling || (dragging && axis === 'x') ? 'none' : (trackSettle ?? settleTransition)
+		gesture === 'wheel' || gesture === 'x' ? 'none' : (trackSettle ?? settleTransition)
 	);
 
 	const stageTransform = $derived(
-		`translate3d(0, ${dragY}px, 0) scale(${dismissing ? 0.9 : 1 - dismissProgress * 0.12})`
+		`translate3d(0, ${dragY}px, 0) scale(${phase === 'dismissing' ? 0.9 : 1 - dismissProgress * 0.12})`
 	);
 	const stageTransition = $derived(settling ? settleTransition : 'none');
 
@@ -1427,12 +1451,12 @@
 	);
 
 	// Only the flat scrim's alpha follows the drag. See the note on `.lb-blur`.
-	const scrimOpacity = $derived(closing || dismissing ? 0 : 1 - dismissProgress * 0.8);
+	const scrimOpacity = $derived(leaving ? 0 : 1 - dismissProgress * 0.8);
 	// The exit is held off the chrome while a caption is flying home inside it —
 	// the pieces take it themselves, so the caption stays legible until it lands
 	// rather than being faded out from above at 200ms of a 260ms flight.
 	const chromeOpacity = $derived(
-		(closing || dismissing) && !bottomFlyingHome ? 0 : Math.max(0, 1 - dismissProgress * 2.4)
+		leaving && flyingHome !== 'photo+bottom' ? 0 : Math.max(0, 1 - dismissProgress * 2.4)
 	);
 
 	const dialogLabel = $derived(
@@ -1448,13 +1472,13 @@
 		bind:this={rootEl}
 		use:portal
 		class="lb-root"
-		class:closing
-		class:dismissing
+		class:closing={phase === 'closing'}
+		class:dismissing={phase === 'dismissing'}
 		class:zoomed={scale > 1}
-		class:flew
-		class:flying-home={flyingHome}
-		class:bottom-flew={bottomFlew}
-		class:bottom-flying-home={bottomFlyingHome}
+		class:flew={flewIn !== 'none'}
+		class:flying-home={flyingHome !== 'none'}
+		class:bottom-flew={flewIn === 'photo+bottom'}
+		class:bottom-flying-home={flyingHome === 'photo+bottom'}
 		class:dragging
 		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
 		style:--lb-spring={springOr(null, SPRING_IN)}
