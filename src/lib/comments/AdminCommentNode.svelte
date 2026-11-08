@@ -4,6 +4,7 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import { apiFetch } from '#lib/api-client.js';
+	import { untrack } from 'svelte';
 
 	// No `onChange`: the dashboard subscribes to `admin.listForUrl`, so every
 	// write here comes back down the websocket on its own.
@@ -19,8 +20,12 @@
 
 	let deleteSubmitting = $state(false);
 
+	const submitting = $derived(replySubmitting || banSubmitting || deleteSubmitting);
+
+	// Another card claiming the slot closes this form, unless its submit is still
+	// in flight. See CommentNode.
 	$effect(() => {
-		if (activeFormId !== comment.id && mode !== null) mode = null;
+		if (activeFormId !== comment.id && mode !== null && !untrack(() => submitting)) mode = null;
 	});
 
 	function openReply() {
@@ -42,7 +47,7 @@
 
 	function closeForm() {
 		mode = null;
-		setActiveForm(null);
+		if (activeFormId === comment.id) setActiveForm(null);
 	}
 
 	async function saveReply() {

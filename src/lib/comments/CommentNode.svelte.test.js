@@ -133,3 +133,65 @@ describe('CommentNode replies', () => {
 		expect(screen.getByPlaceholderText(/Reply…/)).toBeInTheDocument();
 	});
 });
+
+describe('CommentNode form slot', () => {
+	/** A fetch that answers only when told to. */
+	function deferredFetch() {
+		let answer;
+		const fetch = vi.fn(
+			() =>
+				new Promise((resolve) => {
+					answer = (status, body) => resolve(new Response(JSON.stringify(body), { status }));
+				})
+		);
+		vi.stubGlobal('fetch', fetch);
+		return { answer: (status, body) => answer(status, body) };
+	}
+
+	async function startEdit() {
+		await fireEvent.click(screen.getByRole('button', { name: 'Edit comment' }));
+		await fireEvent.input(screen.getByLabelText('Your comment password'), {
+			target: { value: 'hunter2' }
+		});
+		await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+	}
+
+	it('leaves another card holding the slot alone when its save lands', async () => {
+		const server = deferredFetch();
+		const { rerender, setActiveForm } = renderNode({}, { activeFormId: 'c1' });
+		await startEdit();
+
+		// Another card's form opens while the save is in flight.
+		await rerender({ activeFormId: 'c2' });
+		setActiveForm.mockClear();
+		server.answer(200, { id: 'c1' });
+		// Let the response and the handler after it run to the end.
+		await new Promise((resolve) => setTimeout(resolve, 20));
+
+		expect(screen.queryByLabelText('Your comment password')).toBeNull();
+		expect(setActiveForm).not.toHaveBeenCalledWith(null);
+		vi.unstubAllGlobals();
+	});
+
+	it('keeps a failed save on screen after another card took the slot', async () => {
+		const server = deferredFetch();
+		const { rerender } = renderNode({}, { activeFormId: 'c1' });
+		await startEdit();
+
+		await rerender({ activeFormId: 'c2' });
+		expect(screen.getByLabelText('Your comment password')).toBeInTheDocument();
+
+		server.answer(401, { message: 'Incorrect password' });
+		await vi.waitFor(() => expect(screen.getByText('Incorrect password')).toBeInTheDocument());
+		vi.unstubAllGlobals();
+	});
+
+	it('still closes when another card takes the slot and nothing is in flight', async () => {
+		const { rerender } = renderNode({}, { activeFormId: 'c1' });
+		await fireEvent.click(screen.getByRole('button', { name: 'Edit comment' }));
+		expect(screen.getByLabelText('Your comment password')).toBeInTheDocument();
+
+		await rerender({ activeFormId: 'c2' });
+		expect(screen.queryByLabelText('Your comment password')).toBeNull();
+	});
+});
