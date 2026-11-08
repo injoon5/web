@@ -3,7 +3,6 @@
 const vscode = require('vscode');
 
 const { catalogFor } = require('../lib/catalog');
-const { imageSize } = require('../lib/image-size');
 const { parseFields, requiredKeys } = require('../lib/frontmatter');
 const { scanMarkdown } = require('../lib/markdown-scan');
 const media = require('../lib/media');
@@ -52,7 +51,7 @@ async function assetInfo(uri) {
 		info = { exists: true, size: stat.size };
 
 		if (media.mediaKind(uri.fsPath) === 'image' && stat.size < 16 * 1024 * 1024) {
-			const dimensions = imageSize(await vscode.workspace.fs.readFile(uri));
+			const dimensions = await workspace.imageSizeOf(uri);
 			if (dimensions) {
 				info.width = dimensions.width;
 				info.height = dimensions.height;

@@ -3,10 +3,8 @@
 const vscode = require('vscode');
 
 const { catalogFor } = require('../lib/catalog');
-const { componentImportEdit } = require('../lib/insert');
 const { parseFields, requiredKeys } = require('../lib/frontmatter');
 const { scanMarkdown } = require('../lib/markdown-scan');
-const { imageSize } = require('../lib/image-size');
 const media = require('../lib/media');
 const workspace = require('../lib/workspace');
 
@@ -85,7 +83,7 @@ class ContentCompletionProvider {
 		}
 
 		if (/(^|\s)<[A-Za-z]*$/.test(linePrefix)) {
-			return this.#components(context, document, position, linePrefix);
+			return this.#components(position, linePrefix);
 		}
 
 		if (/^:{1,3}$/.test(linePrefix.trim()) && linePrefix.trimStart() === linePrefix.trim()) {
@@ -281,10 +279,16 @@ class ContentCompletionProvider {
 			const catalog = catalogFor(folder);
 			await catalog.ready();
 			const fullRange = new vscode.Range(position.translate(0, -typed.length), position);
+			// The site's own rule for where each language of an article lives: an
+			// English post links to the other article's English URL.
+			const paths = await workspace.siteModule(folder, 'src/lib/content/article-paths.js');
+			const docLang = context.content?.lang ?? 'en';
 
 			for (const entry of catalog.entries.values()) {
-				const url = `/${entry.kind}/${entry.slug}`;
-				const lang = entry.langs.get(context.content?.lang ?? 'en') ?? [...entry.langs.values()][0];
+				const langs = paths.orderLangs([...entry.langs.keys()]);
+				const target = paths.resolveLang(docLang, langs);
+				const url = paths.articlePath(entry.kind, entry.slug, target, langs);
+				const lang = entry.langs.get(target);
 				const completion = new vscode.CompletionItem(url, vscode.CompletionItemKind.Reference);
 				completion.detail = lang?.title;
 				completion.range = fullRange;
@@ -297,45 +301,19 @@ class ContentCompletionProvider {
 	}
 
 	/**
-	 * `<LazyVideo` and `<Gallery` bring their own import.
+	 * `<LazyVideo` becomes the markdown form, which `remarkLazyVideo` measures
+	 * and imports the component for; a hand-written tag is neither.
 	 *
-	 * @param {ReturnType<typeof workspace.describe>} context
-	 * @param {vscode.TextDocument} document
 	 * @param {vscode.Position} position
 	 * @param {string} linePrefix
 	 */
-	#components(context, document, position, linePrefix) {
+	#components(position, linePrefix) {
 		const typed = /<([A-Za-z]*)$/.exec(linePrefix)?.[1] ?? '';
-		const range = new vscode.Range(position.translate(0, -(typed.length + 1)), position);
-
-		const components = [
-			{
-				name: context.config.videoComponent?.name ?? 'LazyVideo',
-				path: context.config.videoComponent?.path ?? '#lib/ui/LazyVideo.svelte',
-				body: '<${1:LazyVideo} src="${2:/videos/}" label="${3:Play demo video}" />'
-			}
-		];
-
-		return components.map((component) => {
-			const completion = new vscode.CompletionItem(component.name, vscode.CompletionItemKind.Class);
-			completion.detail = component.path;
-			completion.range = range;
-			completion.insertText = new vscode.SnippetString(
-				component.body.replace('${1:LazyVideo}', component.name)
-			);
-
-			const importEdit = componentImportEdit(document.getText(), component);
-			if (importEdit) {
-				completion.additionalTextEdits = [
-					vscode.TextEdit.insert(document.positionAt(importEdit.offset), importEdit.insert)
-				];
-				completion.documentation = new vscode.MarkdownString(
-					`Also adds \`import ${component.name} from '${component.path}';\``
-				);
-			}
-
-			return completion;
-		});
+		const completion = new vscode.CompletionItem('LazyVideo', vscode.CompletionItemKind.Snippet);
+		completion.detail = 'Video, measured at build time';
+		completion.range = new vscode.Range(position.translate(0, -(typed.length + 1)), position);
+		completion.insertText = new vscode.SnippetString('![${1:Play demo video}](/videos/$2)');
+		return [completion];
 	}
 
 	/**
@@ -361,7 +339,7 @@ async function describeAsset(uri) {
 		const parts = [humanSize(stat.size)];
 
 		if (stat.size < 8 * 1024 * 1024) {
-			const size = imageSize(await vscode.workspace.fs.readFile(uri));
+			const size = await workspace.imageSizeOf(uri);
 			if (size) parts.unshift(`${size.width}×${size.height}`);
 		}
 

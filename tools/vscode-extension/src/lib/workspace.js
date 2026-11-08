@@ -2,6 +2,7 @@
 
 const vscode = require('vscode');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const { assetFolderFor, classifyContentPath, toPosix } = require('./content-file');
 
@@ -25,10 +26,6 @@ function getConfig(resource) {
 		transcodeTarget: raw.get('transcodeTarget', 'jpeg'),
 		maxWidth: raw.get('maxWidth', 2400),
 		altTextPlaceholder: raw.get('altTextPlaceholder', true),
-		videoComponent: raw.get('videoComponent', {
-			name: 'LazyVideo',
-			path: '#lib/ui/LazyVideo.svelte'
-		}),
 		statusBar: raw.get('statusBar', true),
 		diagnostics: {
 			enabled: raw.get('diagnostics.enabled', true),
@@ -155,14 +152,42 @@ async function takenStems(dir) {
 	return stems;
 }
 
+/**
+ * A dependency-free ES module of the site itself, loaded from the workspace —
+ * so the editor applies the same rule the build does rather than a copy of it.
+ * The extension only activates in this repository (`workspaceContains:
+ * mdsvex.config.js`), so the file is always there.
+ *
+ * @param {vscode.WorkspaceFolder} folder
+ * @param {string} rel  relative to the workspace root
+ */
+function siteModule(folder, rel) {
+	return import(pathToFileURL(path.join(folder.uri.fsPath, rel)).href);
+}
+
+/**
+ * The size the build will give an image, from the build's own header reader —
+ * which applies EXIF orientation, so a portrait iPhone photo reads as one.
+ *
+ * @param {vscode.Uri} uri
+ */
+async function imageSizeOf(uri) {
+	const folder = folderFor(uri);
+	if (!folder) return null;
+	const { imageSize } = await siteModule(folder, 'src/lib/markdown/image-size.js');
+	return imageSize(await vscode.workspace.fs.readFile(uri));
+}
+
 module.exports = {
 	assetTarget,
 	describe,
 	exists,
 	folderFor,
 	getConfig,
+	imageSizeOf,
 	join,
 	relativeTo,
+	siteModule,
 	takenStems,
 	uriForUrl,
 	urlForUri

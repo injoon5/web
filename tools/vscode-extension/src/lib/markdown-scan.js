@@ -87,8 +87,8 @@ function scanMarkdown(text) {
 
 	/** @type {ScannedFence[]} */
 	const galleryFences = [];
-	/** @type {number[]} */
-	const openGalleries = [];
+	/** @type {ScannedFence | null} */
+	let openGallery = null;
 
 	let fenceMarker = '';
 
@@ -111,15 +111,17 @@ function scanMarkdown(text) {
 			continue;
 		}
 
-		if (GALLERY_OPEN.test(trimmed)) {
-			openGalleries.push(galleryFences.length);
-			galleryFences.push({ index: start + line.indexOf(':'), line: i, closeIndex: null });
+		// Fences do not nest, as in `remarkGallery`: inside an open one, a
+		// second opener is text and the first `:::` closes the outer fence.
+		if (openGallery === null && GALLERY_OPEN.test(trimmed)) {
+			openGallery = { index: start + line.indexOf(':'), line: i, closeIndex: null };
+			galleryFences.push(openGallery);
 			continue;
 		}
 
-		if (GALLERY_CLOSE.test(trimmed) && openGalleries.length) {
-			const at = openGalleries.pop();
-			galleryFences[at].closeIndex = start + line.indexOf(':');
+		if (openGallery !== null && GALLERY_CLOSE.test(trimmed)) {
+			openGallery.closeIndex = start + line.indexOf(':');
+			openGallery = null;
 		}
 	}
 

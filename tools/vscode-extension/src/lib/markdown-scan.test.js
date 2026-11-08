@@ -105,3 +105,9 @@ test('an image with a title and angle-bracketed url still parses', () => {
 	const scan = scanMarkdown('![A](</images/with space.png> "Caption")\n');
 	assert.equal(scan.images[0].url, '/images/with space.png');
 });
+
+test('gallery fences do not nest, as the build reads them', () => {
+	const scan = scanMarkdown(':::gallery\n![a](/a.png)\n:::gallery\n![b](/b.png)\n:::\n');
+	assert.equal(scan.galleryFences.length, 1);
+	assert.notEqual(scan.galleryFences[0].closeIndex, null);
+});
