@@ -32,7 +32,6 @@
 	 * @typedef {{
 	 *   displayLang: string,
 	 *   entryFor: (lang: string) => LangEntry,
-	 *   titleBlur: { duration: number } & Record<string, unknown>,
 	 *   headerHeight: { duration: number, enabled: boolean }
 	 * }} View
 	 */
@@ -44,7 +43,7 @@
 	 *   bylineClass?: string;
 	 *   head?: import('svelte').Snippet<[Record<string, any>, string]>;
 	 *   eyebrow?: import('svelte').Snippet<[View]>;
-	 *   dateline: import('svelte').Snippet<[Record<string, any>]>;
+	 *   dateline: import('svelte').Snippet<[Record<string, any>, string]>;
 	 *   intro?: import('svelte').Snippet<[View]>;
 	 *   aside?: import('svelte').Snippet<[View]>;
 	 *   footer?: import('svelte').Snippet;
@@ -158,12 +157,6 @@
 	});
 
 	let bodyWidth = $state(0);
-	const titleBlur = $derived({
-		amount: 8,
-		opacity: 0,
-		duration: animate ? 420 : 0,
-		easing: cubicOut
-	});
 	const headerHeight = $derived({ duration: animate ? 420 : 0, enabled: animate });
 	// Both directions share duration + easing so the panels stay a constant gap apart while sliding.
 	const bodyIn = $derived({
@@ -191,9 +184,6 @@
 			return displayLang;
 		},
 		entryFor,
-		get titleBlur() {
-			return titleBlur;
-		},
 		get headerHeight() {
 			return headerHeight;
 		}
@@ -244,14 +234,13 @@
 				tag="h1"
 				{displayLang}
 				text={(l) => entryFor(l).meta.title}
-				transition={titleBlur}
 				height={headerHeight}
 				class="text-3xl font-semibold tracking-tight md:font-semibold"
 			/>
 			<div
 				class="mt-1 flex flex-row items-center {bylineClass} font-medium text-neutral-600 dark:text-neutral-400"
 			>
-				{@render dateline(current.meta)}
+				{@render dateline(current.meta, displayLang)}
 				{#if !isNaN(readingMinutes)}
 					<p class="mx-1">·</p>
 					<!-- Scritto diffs the old string against the new one and rolls only what

@@ -49,7 +49,6 @@
 	<SwapLine
 		displayLang={view.displayLang}
 		text={(l) => view.entryFor(l).meta.description}
-		transition={view.titleBlur}
 		height={view.headerHeight}
 		outerClass="mt-3"
 		class="text-2xl leading-tight font-medium text-neutral-500 dark:text-neutral-500"

@@ -1070,3 +1070,11 @@ h6 > a:focus-visible {
 figure > figcaption {
 	@apply text-center;
 }
+
+/* Scritto's ssr.css holds its text on one line until the element upgrades, which
+   is right for a count and wrong for a title: the prerendered paint would run a
+   long title off the column and snap it back on upgrade. Afterwards the element
+   sets `data-wrap` on any value with a space, so this only covers the gap. */
+scritto-text.scritto-wrap:not(:defined) {
+	white-space: normal !important;
+}

@@ -1,6 +1,7 @@
 <script>
 	import Article from '#lib/article/Article.svelte';
 	import SwapLine from '#lib/article/SwapLine.svelte';
+	import Scritto from '@scritto/svelte';
 	import { formatDate } from '#lib/format.js';
 	import SeriesList from '#lib/ui/SeriesList.svelte';
 	import LazyComments from '#lib/comments/LazyComments.svelte';
@@ -65,15 +66,18 @@
 			tag="h2"
 			displayLang={view.displayLang}
 			text={(l) => view.entryFor(l).series[0]?.series}
-			transition={view.titleBlur}
 			height={view.headerHeight}
 			class="text-xl font-medium text-neutral-500 dark:text-neutral-500"
 		/>
 	{/if}
 {/snippet}
 
-{#snippet dateline(meta)}
-	<p class="tabular whitespace-nowrap">{formatDate(meta.date)}</p>
+{#snippet dateline(meta, lang)}
+	<p class="tabular whitespace-nowrap">
+		<Scritto
+			value={lang === 'ko' ? formatDate(meta.date, 'long', 'ko-KR') : formatDate(meta.date)}
+		/>
+	</p>
 {/snippet}
 
 {#snippet aside(view)}
