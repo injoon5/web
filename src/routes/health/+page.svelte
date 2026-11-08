@@ -1,4 +1,6 @@
 <script>
+	import { SITE_URL } from '#lib/content/article-paths.js';
+	import { ogImageUrl } from '#lib/og/url.js';
 	import HealthDialsMount from '#lib/health/HealthDialsMount.svelte';
 	import MetricSection from '#lib/health/MetricSection.svelte';
 	import RangePicker from '#lib/health/RangePicker.svelte';
@@ -136,10 +138,10 @@
 	<meta name="description" content={DESCRIPTION} />
 	<meta property="og:title" content="Health — Injoon Oh" />
 	<meta property="og:description" content={DESCRIPTION} />
-	<meta property="og:image" content="https://injoon5.com/api/og?template=health" />
-	<meta property="og:url" content="https://injoon5.com/health" />
+	<meta property="og:image" content={ogImageUrl('health')} />
+	<meta property="og:url" content="{SITE_URL}/health" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://injoon5.com/api/og?template=health" />
+	<meta name="twitter:image" content={ogImageUrl('health')} />
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">

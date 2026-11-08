@@ -2,27 +2,43 @@ import { describe, it, expect, vi } from 'vitest';
 
 // The real globs compile every post; these cases bring their own metadata.
 vi.mock('#lib/server/content-modules.js', () => ({
-	blogEnMeta: {},
-	blogKoMeta: {},
-	projectEnMeta: {},
-	projectKoMeta: {}
+	metadataGlobs: { blog: { en: {}, ko: {} }, projects: { en: {}, ko: {} } }
 }));
+import { buildCatalogue } from './catalogue.js';
 import { buildArticleIndex } from './article-index.js';
 import { pageLang } from './page-lang.js';
 
-const index = buildArticleIndex({
-	blogEnMeta: {
-		'/src/content/blog/en/a.md': { published: true, series: 'S', date: '2024-02-01', title: 'A' },
-		'/src/content/blog/en/draft.md': { published: false }
-	},
-	blogKoMeta: {
-		'/src/content/blog/ko/a.md': { published: true, series: 'S', date: '2024-02-01', title: '가' },
-		'/src/content/blog/ko/b.md': { published: true, series: 'S', date: '2024-01-01', title: '나' },
-		'/src/content/blog/ko/solo.md': { published: true }
-	},
-	projectEnMeta: { '/src/content/projects/en/p.md': { published: true } },
-	projectKoMeta: {}
-});
+const index = buildArticleIndex(
+	buildCatalogue({
+		blog: {
+			en: {
+				'/src/content/blog/en/a.md': {
+					published: true,
+					series: 'S',
+					date: '2024-02-01',
+					title: 'A'
+				},
+				'/src/content/blog/en/draft.md': { published: false }
+			},
+			ko: {
+				'/src/content/blog/ko/a.md': {
+					published: true,
+					series: 'S',
+					date: '2024-02-01',
+					title: '가'
+				},
+				'/src/content/blog/ko/b.md': {
+					published: true,
+					series: 'S',
+					date: '2024-01-01',
+					title: '나'
+				},
+				'/src/content/blog/ko/solo.md': { published: true }
+			}
+		},
+		projects: { en: { '/src/content/projects/en/p.md': { published: true } }, ko: {} }
+	})
+);
 
 describe('buildArticleIndex', () => {
 	it('lists the published languages of every article, Korean first', () => {

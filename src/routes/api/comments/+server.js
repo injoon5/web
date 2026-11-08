@@ -5,7 +5,7 @@ import { api } from '#convex/_generated/api.js';
 import { requestIpHash } from '#lib/server/ip.js';
 import { visitorArgs } from '#lib/server/callers.js';
 import { createCommentSchema } from '#lib/server/validation.js';
-import { isValidPageUrl } from '#lib/server/valid-urls.js';
+import { isArticleUrl } from '#lib/server/article-index.js';
 import { runConvex, parseBody } from '#lib/server/api.js';
 
 const MAX_PAGE = 50;
@@ -47,7 +47,7 @@ export const POST = async ({ request }) => {
 		text,
 		parentId
 	} = await parseBody(request, createCommentSchema);
-	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
+	if (!isArticleUrl(pageUrl)) throw error(404, 'Page not found');
 
 	// Ask whether this IP may comment at all before spending ~100ms of CPU on
 	// bcrypt. `create` re-checks and is what actually consumes the token; this

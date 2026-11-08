@@ -24,7 +24,7 @@
 	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import LanguageSwitcher from '#lib/ui/LanguageSwitcher.svelte';
 	import StableLangStack from '#lib/ui/StableLangStack.svelte';
-	import { SITE_URL, articleBase, articlePath } from '#lib/content/article-paths.js';
+	import { SITE_URL, alternates, articleBase, articlePath } from '#lib/content/article-paths.js';
 	import { preloadArticle } from '#lib/content/preload-articles.js';
 	import { cookieLang, persistLang } from '#lib/visitor.svelte.js';
 
@@ -223,9 +223,10 @@
 			{#if l !== data.lang}
 				<meta property="og:locale:alternate" content={ogLocale(l)} />
 			{/if}
-			<link rel="alternate" hreflang={l} href={SITE_URL + hrefFor(l)} />
 		{/each}
-		<link rel="alternate" hreflang="x-default" href={SITE_URL + hrefFor(data.langs[0])} />
+		{#each alternates(data.kind, data.slug, data.langs) as { hreflang, path } (hreflang)}
+			<link rel="alternate" {hreflang} href={SITE_URL + path} />
+		{/each}
 	{/if}
 	{@render head?.(data.meta, url)}
 </svelte:head>

@@ -2,13 +2,19 @@
 	import Article from '#lib/article/Article.svelte';
 	import SwapLine from '#lib/article/SwapLine.svelte';
 	import { SITE_URL } from '#lib/content/article-paths.js';
+	import { ogImageUrl } from '#lib/og/url.js';
 	import { projectSchema, breadcrumbSchema, keywordsFor, jsonLdScript } from '#lib/seo/jsonld.js';
 
 	let { data } = $props();
 
 	/** @param {Record<string, any>} meta */
 	const ogImage = (meta) =>
-		`${SITE_URL}/api/og?template=project&title=${encodeURIComponent(meta.title)}&description=${encodeURIComponent(meta.description || '')}&year=${encodeURIComponent(meta.year || '')}&tags=${encodeURIComponent((meta.tags || []).join(','))}`;
+		ogImageUrl('project', {
+			title: meta.title,
+			description: meta.description,
+			year: meta.year,
+			tags: meta.tags
+		});
 
 	// The project's hand-picked keywords lead among the page terms — the phrases
 	// it targets — then its title and tags, the same order the blog page uses.

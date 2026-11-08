@@ -1,10 +1,5 @@
 // @ts-check
-
-/**
- * The canonical origin. This module runs in the browser, so it can't reach into
- * `#lib/server/*` — the value is a public constant and lives here directly.
- */
-const SITE_URL = 'https://injoon5.com';
+import { SITE_URL } from '#lib/content/article-paths.js';
 
 /** The author's romanised and Korean names, kept together so search for either resolves. */
 export const AUTHOR_NAME = 'Injoon Oh';

@@ -1,9 +1,6 @@
 // @ts-check
-import { slugFromPath } from '#lib/content/bilingual.js';
-import { articlePath } from '#lib/content/article-paths.js';
-
-/** The canonical origin. Kept in one place so the sitemap and RSS agree. */
-export const SITE_URL = 'https://injoon5.com';
+import { alternates } from '#lib/content/article-paths.js';
+import { DATE_FIELD } from './catalogue.js';
 
 /**
  * Static, non-content routes. Priority is advisory — modern crawlers largely
@@ -34,100 +31,32 @@ export function toIsoDate(value) {
 }
 
 /**
- * Korean is the site default and the language `<loc>` points at, so it leads the
- * alternate list; English follows. Any other language sorts after both.
+ * The sitemap's `<url>` records: the static pages, then one per language of
+ * every published article, each bilingual one listing every language as an
+ * alternate (and the primary as `x-default`) — the form Google asks for, and the
+ * same set the page puts in its own `<head>`.
  *
- * @param {string[]} langs
+ * @param {import('./catalogue.js').Catalogue} catalogue
+ * @returns {{ loc: string, lastmod?: string | null, priority?: string, alternates: { hreflang: string, path: string }[] }[]}
  */
-function orderLangs(langs) {
-	const rank = /** @param {string} l */ (l) => (l === 'ko' ? 0 : l === 'en' ? 1 : 2);
-	return [...langs].sort((a, b) => rank(a) - rank(b));
-}
-
-/**
- * Fold the eager en/ko metadata globs into one sitemap entry per slug, recording
- * which languages published so the entry can carry accurate hreflang alternates
- * — the same contract the `[slug]` pages emit in their `<head>`.
- *
- * @param {Record<string, unknown>} enMeta
- * @param {Record<string, unknown>} koMeta
- * @param {string} pathPrefix  e.g. `/blog`
- * @param {string} dateField   frontmatter field used for lastmod (`date` | `year`)
- * @returns {{ path: string, langs: string[], lastmod: string | null }[]}
- */
-export function contentEntries(enMeta, koMeta, pathPrefix, dateField) {
-	/** @type {Map<string, { langs: Set<string>, lastmod: string | null }>} */
-	const bySlug = new Map();
-
-	for (const [lang, metaByPath] of /** @type {const} */ ([
-		['en', enMeta],
-		['ko', koMeta]
-	])) {
-		for (const path in metaByPath) {
-			const meta = /** @type {Record<string, unknown> | undefined} */ (metaByPath[path]);
-			if (meta?.published !== true) continue;
-
-			const slug = slugFromPath(path);
-			if (!slug) continue;
-
-			const entry = bySlug.get(slug) ?? { langs: new Set(), lastmod: null };
-			entry.langs.add(lang);
-
-			const iso = toIsoDate(meta[dateField]);
-			// The most recent date across the two languages wins the lastmod.
-			if (iso && (!entry.lastmod || iso > entry.lastmod)) entry.lastmod = iso;
-
-			bySlug.set(slug, entry);
-		}
-	}
-
-	return [...bySlug.entries()]
-		.sort((a, b) => (b[1].lastmod ?? '').localeCompare(a[1].lastmod ?? ''))
-		.map(([slug, entry]) => ({
-			path: `${pathPrefix}/${slug}`,
-			langs: orderLangs([...entry.langs]),
-			lastmod: entry.lastmod
-		}));
-}
-
-/**
- * Build the full ordered list of sitemap URL records: the static pages first,
- * then every published post and project.
- *
- * @param {object} globs
- * @param {Record<string, unknown>} globs.blogEnMeta
- * @param {Record<string, unknown>} globs.blogKoMeta
- * @param {Record<string, unknown>} globs.projectEnMeta
- * @param {Record<string, unknown>} globs.projectKoMeta
- * @returns {{ path: string, langs?: string[], lastmod?: string | null, priority?: string }[]}
- */
-export function sitemapEntries({ blogEnMeta, blogKoMeta, projectEnMeta, projectKoMeta }) {
+export function sitemapUrls(catalogue) {
+	const articles = [...catalogue.blog, ...catalogue.projects].flatMap((article) => {
+		const field = DATE_FIELD[article.kind];
+		// The most recent date across the languages is the article's lastmod.
+		const lastmod =
+			Object.values(article.meta)
+				.map((meta) => toIsoDate(meta[field]))
+				.filter(Boolean)
+				.sort()
+				.at(-1) ?? null;
+		const links = alternates(article.kind, article.slug, article.langs);
+		const listed = links.length > 2 ? links : [];
+		return links
+			.filter(({ hreflang }) => hreflang !== 'x-default')
+			.map(({ path }) => ({ loc: path, lastmod, alternates: listed }));
+	});
 	return [
-		...STATIC_PAGES,
-		...contentEntries(blogEnMeta, blogKoMeta, '/blog', 'date'),
-		...contentEntries(projectEnMeta, projectKoMeta, '/projects', 'year')
+		...STATIC_PAGES.map(({ path, priority }) => ({ loc: path, priority, alternates: [] })),
+		...articles
 	];
-}
-
-/**
- * One `<url>` per language of a bilingual article, each listing every language
- * as an alternate (and the primary as `x-default`): the form Google asks for,
- * and the same set the page puts in its own `<head>`. A single-language entry,
- * or a static page, is one `<url>` with no alternates.
- *
- * @param {{ path: string, langs?: string[] }} entry
- * @returns {{ loc: string, alternates: { hreflang: string, path: string }[] }[]}
- */
-export function languageUrls(entry) {
-	const langs = entry.langs ?? [];
-	if (langs.length < 2) return [{ loc: entry.path, alternates: [] }];
-
-	const [, kind, slug] = entry.path.split('/');
-	const at = /** @param {string} lang */ (lang) =>
-		articlePath(/** @type {'blog' | 'projects'} */ (kind), slug, lang, langs);
-	const alternates = [
-		...langs.map((lang) => ({ hreflang: lang, path: at(lang) })),
-		{ hreflang: 'x-default', path: at(langs[0]) }
-	];
-	return langs.map((lang) => ({ loc: at(lang), alternates }));
 }

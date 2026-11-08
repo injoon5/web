@@ -5,6 +5,7 @@
 	import SeriesList from '#lib/ui/SeriesList.svelte';
 	import LazyComments from '#lib/comments/LazyComments.svelte';
 	import { SITE_URL } from '#lib/content/article-paths.js';
+	import { ogImageUrl } from '#lib/og/url.js';
 	import {
 		blogPostingSchema,
 		breadcrumbSchema,
@@ -16,7 +17,7 @@
 
 	/** @param {Record<string, any>} meta */
 	const ogImage = (meta) =>
-		`${SITE_URL}/api/og?template=blog-post&title=${encodeURIComponent(meta.title)}&description=${encodeURIComponent(meta.description || '')}&date=${encodeURIComponent(meta.date || '')}`;
+		ogImageUrl('blog-post', { title: meta.title, description: meta.description, date: meta.date });
 
 	// Author names lead (so 오인준 rides on every article), then the post's own
 	// hand-picked keywords, its title, series and tags. The frontmatter keywords

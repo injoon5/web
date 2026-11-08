@@ -1,6 +1,6 @@
 /**
- * Single home for the eager content metadata globs. Values are the metadata
- * records themselves, not modules.
+ * Single home for the eager content metadata globs, by kind and language.
+ * Values are the metadata records themselves, not modules.
  *
  * Both halves of the options matter. `import: 'metadata'` keeps the compiled
  * Svelte component for every post out of anything that imports this — Rollup
@@ -15,19 +15,13 @@
  * `prerendered/pages/rss.xml` has items after a build if you touch this.
  */
 
-export const blogEnMeta = import.meta.glob('/src/content/blog/en/*.md', {
-	eager: true,
-	import: 'metadata'
-});
-export const blogKoMeta = import.meta.glob('/src/content/blog/ko/*.md', {
-	eager: true,
-	import: 'metadata'
-});
-export const projectEnMeta = import.meta.glob('/src/content/projects/en/*.md', {
-	eager: true,
-	import: 'metadata'
-});
-export const projectKoMeta = import.meta.glob('/src/content/projects/ko/*.md', {
-	eager: true,
-	import: 'metadata'
-});
+export const metadataGlobs = {
+	blog: {
+		en: import.meta.glob('/src/content/blog/en/*.md', { eager: true, import: 'metadata' }),
+		ko: import.meta.glob('/src/content/blog/ko/*.md', { eager: true, import: 'metadata' })
+	},
+	projects: {
+		en: import.meta.glob('/src/content/projects/en/*.md', { eager: true, import: 'metadata' }),
+		ko: import.meta.glob('/src/content/projects/ko/*.md', { eager: true, import: 'metadata' })
+	}
+};

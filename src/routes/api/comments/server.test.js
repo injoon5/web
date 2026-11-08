@@ -10,9 +10,9 @@ vi.mock('#lib/server/convex.js', () => ({
 	}
 }));
 
-// Every URL is a real page here; `valid-urls` builds its set from the content
+// Every URL is a real page here; the article index builds its set from the content
 // globs, which is not what these cases are about.
-vi.mock('#lib/server/valid-urls.js', () => ({ isValidPageUrl: () => true }));
+vi.mock('#lib/server/article-index.js', () => ({ isArticleUrl: () => true }));
 
 vi.mock('bcryptjs', () => ({
 	default: { hash: vi.fn().mockResolvedValue('$2a$10$hashed') }

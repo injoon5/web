@@ -1,11 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import {
-	toIsoDate,
-	contentEntries,
-	sitemapEntries,
-	languageUrls,
-	STATIC_PAGES
-} from './sitemap.js';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('#lib/server/content-modules.js', () => ({
+	metadataGlobs: { blog: { en: {}, ko: {} }, projects: { en: {}, ko: {} } }
+}));
+import { buildCatalogue } from './catalogue.js';
+import { toIsoDate, sitemapUrls } from './sitemap.js';
 
 describe('toIsoDate', () => {
 	it('normalises a full frontmatter date', () => {
@@ -24,66 +23,58 @@ describe('toIsoDate', () => {
 	});
 });
 
-describe('contentEntries', () => {
-	const enMeta = {
-		'/src/content/blog/en/us-camp.md': { published: true, date: '2024-07-16' },
-		'/src/content/blog/en/draft.md': { published: false, date: '2024-01-01' }
-	};
-	const koMeta = {
-		'/src/content/blog/ko/us-camp.md': { published: true, date: '2024-07-16' },
-		'/src/content/blog/ko/film-photography.md': { published: true, date: '2024-03-01' }
-	};
+describe('sitemapUrls', () => {
+	const urls = sitemapUrls(
+		buildCatalogue({
+			blog: {
+				en: {
+					'/src/content/blog/en/us-camp.md': { published: true, date: '2024-07-20' },
+					'/src/content/blog/en/draft.md': { published: false, date: '2024-01-01' }
+				},
+				ko: {
+					'/src/content/blog/ko/us-camp.md': { published: true, date: '2024-07-16' },
+					'/src/content/blog/ko/film.md': { published: true, date: '2024-03-01' }
+				}
+			},
+			projects: {
+				en: {},
+				ko: { '/src/content/projects/ko/thing.md': { published: true, year: '2025' } }
+			}
+		})
+	);
+	const at = (loc) => urls.find((u) => u.loc === loc);
 
-	it('emits one entry per slug, skipping unpublished', () => {
-		const entries = contentEntries(enMeta, koMeta, '/blog', 'date');
-		expect(entries.map((e) => e.path)).toEqual(['/blog/us-camp', '/blog/film-photography']);
-	});
-
-	it('records every language a slug published in, ko first', () => {
-		const [usCamp, film] = contentEntries(enMeta, koMeta, '/blog', 'date');
-		expect(usCamp.langs).toEqual(['ko', 'en']);
-		// A ko-only post lists only ko — no phantom English alternate.
-		expect(film.langs).toEqual(['ko']);
-	});
-
-	it('sorts newest first and carries an ISO lastmod', () => {
-		const entries = contentEntries(enMeta, koMeta, '/blog', 'date');
-		expect(entries[0].lastmod).toBe('2024-07-16');
-		expect(entries[1].lastmod).toBe('2024-03-01');
-	});
-});
-
-describe('sitemapEntries', () => {
-	it('leads with the static pages, then content', () => {
-		const entries = sitemapEntries({
-			blogEnMeta: {},
-			blogKoMeta: { '/src/content/blog/ko/hello.md': { published: true, date: '2024-01-01' } },
-			projectEnMeta: {},
-			projectKoMeta: { '/src/content/projects/ko/thing.md': { published: true, year: '2025' } }
-		});
-		expect(entries.slice(0, STATIC_PAGES.length)).toEqual(STATIC_PAGES);
-		expect(entries.map((e) => e.path)).toContain('/blog/hello');
-		expect(entries.map((e) => e.path)).toContain('/projects/thing');
-	});
-});
-
-describe('languageUrls', () => {
-	it('gives each language of a bilingual article its own URL, all cross-listed', () => {
-		const urls = languageUrls({ path: '/blog/us-camp', langs: ['ko', 'en'] });
-		expect(urls.map((u) => u.loc)).toEqual(['/blog/us-camp', '/blog/us-camp/en']);
-		for (const url of urls) {
-			expect(url.alternates).toEqual([
-				{ hreflang: 'ko', path: '/blog/us-camp' },
-				{ hreflang: 'en', path: '/blog/us-camp/en' },
-				{ hreflang: 'x-default', path: '/blog/us-camp' }
-			]);
-		}
-	});
-
-	it('leaves a single-language article and a static page alone', () => {
-		expect(languageUrls({ path: '/blog/film', langs: ['ko'] })).toEqual([
-			{ loc: '/blog/film', alternates: [] }
+	it('lists the static pages, then every language of every published article', () => {
+		expect(urls.map((u) => u.loc)).toEqual([
+			'/',
+			'/blog',
+			'/projects',
+			'/now',
+			'/health',
+			'/blog/us-camp',
+			'/blog/us-camp/en',
+			'/blog/film',
+			'/projects/thing'
 		]);
-		expect(languageUrls({ path: '/now' })).toEqual([{ loc: '/now', alternates: [] }]);
+	});
+
+	it('cross-lists every language of a bilingual article, the primary as x-default', () => {
+		const expected = [
+			{ hreflang: 'ko', path: '/blog/us-camp' },
+			{ hreflang: 'en', path: '/blog/us-camp/en' },
+			{ hreflang: 'x-default', path: '/blog/us-camp' }
+		];
+		expect(at('/blog/us-camp').alternates).toEqual(expected);
+		expect(at('/blog/us-camp/en').alternates).toEqual(expected);
+	});
+
+	it('gives a single-language article and a static page no alternates', () => {
+		expect(at('/blog/film').alternates).toEqual([]);
+		expect(at('/now').alternates).toEqual([]);
+	});
+
+	it("dates an article by the newest of its languages' dates", () => {
+		expect(at('/blog/us-camp').lastmod).toBe('2024-07-20');
+		expect(at('/projects/thing').lastmod).toBe('2025-01-01');
 	});
 });
