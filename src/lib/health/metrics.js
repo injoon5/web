@@ -114,30 +114,6 @@ export function formatStamp(ms) {
 	return stampFormat.format(new Date(ms));
 }
 
-const RELATIVE_UNITS = [
-	{ unit: 'year', secs: 60 * 60 * 24 * 365 },
-	{ unit: 'month', secs: 60 * 60 * 24 * 30 },
-	{ unit: 'week', secs: 60 * 60 * 24 * 7 },
-	{ unit: 'day', secs: 60 * 60 * 24 },
-	{ unit: 'hour', secs: 60 * 60 },
-	{ unit: 'minute', secs: 60 }
-];
-
-const relativeFormat = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-
-/**
- * "3 hours ago" for an ingest timestamp. `now` is a parameter so the caller
- * decides when the clock is read.
- */
-export function formatRelative(ms, now = Date.now()) {
-	const diff = Math.round((ms - now) / 1000);
-	const abs = Math.abs(diff);
-	for (const { unit, secs } of RELATIVE_UNITS) {
-		if (abs >= secs) return relativeFormat.format(Math.round(diff / secs), unit);
-	}
-	return 'just now';
-}
-
 /**
  * Label for a point in a series. Merged windows cover a span rather than a day,
  * so they read as a range.

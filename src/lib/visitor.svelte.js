@@ -1,4 +1,5 @@
 import { browser } from '$app/env';
+import { LANG_COOKIE, readCookie } from '#lib/cookies.js';
 
 /**
  * Per-visitor state for the article pages, which are prerendered and so know
@@ -41,7 +42,8 @@ export function loadVisitor(fetch = globalThis.fetch) {
 	pending ??= fetch('/api/visitor')
 		.then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
 		.then((v) => {
-			visitor.ipHash = v.ipHash ?? '';
+			// A hash a write already adopted is newer than this one.
+			visitor.ipHash ||= v.ipHash ?? '';
 		})
 		.catch(() => {
 			// Try again on the next article navigation.
@@ -49,19 +51,15 @@ export function loadVisitor(fetch = globalThis.fetch) {
 		});
 }
 
-const COOKIE = 'preferred-lang';
-
 /** The language the visitor last picked, or null. Browser only. */
 export function cookieLang() {
-	if (!browser) return null;
-	const match = document.cookie.match(/(?:^|;\s*)preferred-lang=([^;]*)/);
-	return match ? decodeURIComponent(match[1]) : null;
+	return browser ? readCookie(document.cookie, LANG_COOKIE) : null;
 }
 
 /** @param {string} lang */
 export function persistLang(lang) {
 	try {
-		document.cookie = `${COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
+		document.cookie = `${LANG_COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
 	} catch {
 		// Cookies may be unavailable.
 	}

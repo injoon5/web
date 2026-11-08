@@ -3,7 +3,6 @@ import {
 	PAGE_METRICS,
 	dayScore,
 	formatCompact,
-	formatRelative,
 	formatValue,
 	lastFilledIndex,
 	pickAxisTicks,
@@ -268,19 +267,6 @@ describe('formatValue', () => {
 	it('groups thousands and honours decimals', () => {
 		expect(formatValue(8421)).toBe('8,421');
 		expect(formatValue(6.23, 1)).toBe('6.2');
-	});
-});
-
-describe('formatRelative', () => {
-	const now = Date.parse('2026-08-02T12:00:00Z');
-
-	it('reads in the largest unit that fits', () => {
-		expect(formatRelative(now - 3 * 60 * 60 * 1000, now)).toBe('3 hours ago');
-		expect(formatRelative(now - 2 * 24 * 60 * 60 * 1000, now)).toBe('2 days ago');
-	});
-
-	it('says just now inside the first minute', () => {
-		expect(formatRelative(now - 5000, now)).toBe('just now');
 	});
 });
 

@@ -24,7 +24,6 @@
 		setActiveForm,
 		votingIds,
 		votingAnim,
-		canVote = true,
 		voteKnown = true,
 		onVote,
 		onHaptic
@@ -55,7 +54,7 @@
 	// Only reflect the visitor's vote once it's trustworthy (see CommentsSection);
 	// otherwise show neutral arrows so a stale/unknown state can't be mis-toggled.
 	const myVote = $derived(voteKnown ? comment.myVote : null);
-	const voteDisabled = $derived(isVoting || !canVote);
+	const voteDisabled = $derived(isVoting || !voteKnown);
 	// The score wears the visitor's own vote colour, so the tally itself says which
 	// way they leaned — a second, quieter cue alongside the lit-up button.
 	const scoreColor = $derived(
@@ -453,7 +452,6 @@
 						{setActiveForm}
 						{votingIds}
 						{votingAnim}
-						{canVote}
 						{voteKnown}
 						{onVote}
 						{onHaptic}

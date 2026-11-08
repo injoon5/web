@@ -20,3 +20,26 @@ export const convex = new ConvexHttpClient(PUBLIC_CONVEX_URL);
 export const serverCredential = ADMIN_SECRET
 	? createHmac('sha256', ADMIN_SECRET).update('convex-server-call').digest('hex')
 	: '';
+
+/**
+ * A query a server render can do without: its result, or null if Convex fails
+ * or takes more than three seconds. The page's live subscription then loads it
+ * in the browser instead.
+ *
+ * @template T
+ * @param {import('convex/server').FunctionReference<'query', 'public', any, T>} query
+ * @param {Record<string, unknown>} [args]
+ * @returns {Promise<T | null>}
+ */
+export function queryOrNull(query, args = {}) {
+	/** @type {ReturnType<typeof setTimeout>} */
+	let timer;
+	const timeout = new Promise((resolve) => (timer = setTimeout(() => resolve(null), 3000)));
+	const result = convex.query(query, args).catch((err) => {
+		console.error(err);
+		return null;
+	});
+	return /** @type {Promise<T | null>} */ (
+		Promise.race([result, timeout]).finally(() => clearTimeout(timer))
+	);
+}

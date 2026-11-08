@@ -33,7 +33,6 @@ function renderNode(commentOverrides = {}, propOverrides = {}) {
 			setActiveForm,
 			votingIds: new SvelteSet(),
 			votingAnim: { id: null, side: null },
-			canVote: true,
 			voteKnown: true,
 			onVote,
 			onHaptic,
@@ -94,14 +93,11 @@ describe('CommentNode voting', () => {
 		);
 	});
 
-	it('shows a neutral vote when the vote is not yet trustworthy', () => {
+	it("shows a neutral, disabled vote until the visitor's vote is known", () => {
 		renderNode({ myVote: 'up' }, { voteKnown: false });
-		expect(screen.getByRole('button', { name: 'Upvote' })).toHaveAttribute('aria-pressed', 'false');
-	});
-
-	it('disables voting when canVote is false', () => {
-		renderNode({}, { canVote: false });
-		expect(screen.getByRole('button', { name: 'Upvote' })).toBeDisabled();
+		const upvote = screen.getByRole('button', { name: 'Upvote' });
+		expect(upvote).toHaveAttribute('aria-pressed', 'false');
+		expect(upvote).toBeDisabled();
 	});
 
 	it('disables voting while a vote for this comment is in flight', () => {

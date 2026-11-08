@@ -3,7 +3,7 @@ import { browser } from '$app/env';
 import { articleIndex } from '#lib/content/article-index.js';
 import { articleBase, articlePath, resolveLang } from '#lib/content/article-paths.js';
 import { articleModule } from '#lib/content/article-modules.js';
-import { cookieLang, loadVisitor } from '#lib/visitor.svelte.js';
+import { cookieLang } from '#lib/visitor.svelte.js';
 
 /**
  * The universal load both article routes share. No server load, ever: the pages
@@ -24,8 +24,6 @@ export function articleLoad(kind) {
 		const { langs } = entry;
 
 		if (browser) {
-			loadVisitor(fetch);
-
 			// A visitor who picked English, following a link inside the site to the
 			// bare URL. A direct visit was already redirected by vercel.json; this
 			// is the same rule for client-side navigation, where no request is made.

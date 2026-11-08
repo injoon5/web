@@ -1,6 +1,6 @@
 <script>
-	import { page } from '$app/state';
-	import { adoptIpHash, visitor } from '#lib/visitor.svelte.js';
+	import { adoptIpHash } from '#lib/visitor.svelte.js';
+	import { articleVisitor, freshFor } from '#lib/article-visitor.svelte.js';
 	import { onDestroy } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
@@ -57,10 +57,9 @@
 	}
 	const fallbackHandle = makeHandle();
 
-	const ipHash = $derived(visitor.ipHash);
-	// The article, not one language of it: `/blog/x/en` shares `/blog/x`'s likes
-	// and comments.
-	const path = $derived(page.data.articlePath ?? page.url.pathname);
+	const article = articleVisitor();
+	const ipHash = $derived(article.ipHash);
+	const path = $derived(article.path);
 
 	// Reactive comments query — live updates across tabs, newest threads first.
 	// `paginationOpts` is injected by the hook; each page is whole threads, so a
@@ -81,27 +80,19 @@
 		}
 	);
 
-	// `usePaginatedQuery` has no `isStale`. With `keepPreviousData` the previous
-	// page's results survive an args change as the *same* array reference while
-	// the new page loads, and every fresh server push hands back a new array — so
-	// a reference change is how we tell this page's list from the page we
-	// navigated away from.
-	let freshPath = $state(null);
-	let lastResults = null;
-	$effect(() => {
-		const results = query.results;
-		if (results !== lastResults) {
-			lastResults = results;
-			if (!query.isLoading) freshPath = path;
-		}
-	});
+	// `usePaginatedQuery` has no `isStale`, but the previous page's results
+	// survive an args change as the same array while the new page loads.
+	const fresh = freshFor(
+		() => path,
+		() => (query.isLoading ? null : query.results)
+	);
 	// True only when the loaded list is this page's list. Everything downstream —
 	// rendering the tree, voting, editing, deleting — hangs off this, so a
 	// client-side navigation shows a skeleton rather than the previous page's
 	// comments, and there is nothing to act on until the new list lands.
 	// (Loading another page keeps the list up — only a first-page load hides it.)
 	const listReady = $derived(
-		!!query.results && freshPath === path && query.status !== 'LoadingFirstPage'
+		!!query.results && fresh.current && query.status !== 'LoadingFirstPage'
 	);
 
 	// Cross-card form coordination — only one form open at a time
@@ -149,7 +140,7 @@
 	}
 
 	function vote(commentId, voteType) {
-		if (!canVote) return;
+		if (!voteKnown) return;
 
 		if (votingAnimTimer) clearTimeout(votingAnimTimer);
 		votingAnim = { id: commentId, side: voteType };
@@ -190,10 +181,9 @@
 
 	// Trust per-visitor vote state once ipHash is loaded and this page's list is fresh.
 	const voteKnown = $derived(listReady && !!ipHash);
-	const canVote = $derived(voteKnown);
 
 	// Reset transient form state on path change
-	let currentPath = $state(page.data.articlePath ?? page.url.pathname);
+	let currentPath = $state(article.path);
 	$effect(() => {
 		if (path !== currentPath) {
 			currentPath = path;
@@ -327,7 +317,6 @@
 					{setActiveForm}
 					{votingIds}
 					{votingAnim}
-					{canVote}
 					{voteKnown}
 					onVote={vote}
 					onHaptic={haptic}

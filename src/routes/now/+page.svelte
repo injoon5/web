@@ -5,6 +5,8 @@
 	import { api } from '#convex/_generated/api.js';
 	import { onMount } from 'svelte';
 	import { apiFetch } from '#lib/api-client.js';
+	import { formatRelative } from '#lib/format.js';
+	import { ADMIN_HINT_COOKIE, readCookie } from '#lib/cookies.js';
 
 	let { data } = $props();
 
@@ -22,7 +24,7 @@
 		mounted = true;
 		// Only someone who signed in at /admin has the hint; everyone else would
 		// spend a function call to learn they are not the owner.
-		if (!/(?:^|;\s*)admin_hint=1/.test(document.cookie)) return;
+		if (readCookie(document.cookie, ADMIN_HINT_COOKIE) !== '1') return;
 		const res = await apiFetch('/api/admin/whoami');
 		if (res.ok) isAdmin = res.data.isAdmin === true;
 	});
@@ -48,28 +50,6 @@
 	});
 	const html = $derived(stale ? (render ? render(content) : '') : data.html);
 	const rendering = $derived(stale && !render);
-
-	/** @type {Array<{ unit: Intl.RelativeTimeFormatUnit, secs: number }>} */
-	const RELATIVE_UNITS = [
-		{ unit: 'year', secs: 60 * 60 * 24 * 365 },
-		{ unit: 'month', secs: 60 * 60 * 24 * 30 },
-		{ unit: 'week', secs: 60 * 60 * 24 * 7 },
-		{ unit: 'day', secs: 60 * 60 * 24 },
-		{ unit: 'hour', secs: 60 * 60 },
-		{ unit: 'minute', secs: 60 },
-		{ unit: 'second', secs: 1 }
-	];
-	const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-	/** @param {Date} date */
-	function formatRelative(date) {
-		const diff = Math.round((date.getTime() - Date.now()) / 1000);
-		const abs = Math.abs(diff);
-		for (const { unit, secs } of RELATIVE_UNITS) {
-			if (abs >= secs) return rtf.format(Math.round(diff / secs), unit);
-		}
-		// Under a second — "1 second ago" would be a lie, and 0 rounds to it.
-		return 'now';
-	}
 
 	/** @param {Date} date */
 	function formatFull(date) {

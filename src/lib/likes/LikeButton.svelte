@@ -1,6 +1,6 @@
 <script>
-	import { page } from '$app/state';
-	import { adoptIpHash, visitor } from '#lib/visitor.svelte.js';
+	import { adoptIpHash } from '#lib/visitor.svelte.js';
+	import { articleVisitor, freshFor } from '#lib/article-visitor.svelte.js';
 	import { onDestroy } from 'svelte';
 	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import { useQuery } from 'convex-svelte';
@@ -8,10 +8,9 @@
 	import Heart from '@lucide/svelte/icons/heart';
 	import { apiFetch } from '#lib/api-client.js';
 
-	const ipHash = $derived(visitor.ipHash);
-	// The article, not one language of it: `/blog/x/en` shares `/blog/x`'s likes
-	// and comments.
-	const path = $derived(page.data.articlePath ?? page.url.pathname);
+	const article = articleVisitor();
+	const ipHash = $derived(article.ipHash);
+	const path = $derived(article.path);
 
 	const query = useQuery(
 		api.likes.get,
@@ -20,23 +19,20 @@
 			ipHash
 		}),
 		// Keep the prior result so the count doesn't flash to the skeleton when
-		// the subscription re-fires. `freshPath` (below) tracks which page the
-		// latest non-stale result belongs to, so retained data from a previous
-		// page is never treated as authoritative.
+		// the subscription re-fires.
 		{ keepPreviousData: true }
 	);
 
-	// Pathname the most recent fresh (non-stale) result belongs to.
-	let freshPath = $state(null);
-	$effect(() => {
-		if (query.data && !query.isStale) freshPath = path;
-	});
-	const ready = $derived(!query.isStale && !!query.data && freshPath === path);
+	const fresh = freshFor(
+		() => path,
+		() => (query.isStale ? null : query.data)
+	);
+	const ready = $derived(!query.isStale && !!query.data && fresh.current);
 	// The count is the same under any ipHash, so a result for this page stays
 	// good while the subscription swaps identity — which it does when the
 	// visitor's hash arrives after the post has rendered. Without this the count
 	// went back to the skeleton for that swap.
-	const countReady = $derived(!!query.data && freshPath === path);
+	const countReady = $derived(!!query.data && fresh.current);
 
 	// Authoritative server state for this page (count is global; liked is per-IP).
 	const serverCount = $derived(countReady ? (query.data.count ?? 0) : 0);

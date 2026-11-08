@@ -11,7 +11,6 @@
 		RANGES,
 		dayScore,
 		formatPointLabel,
-		formatRelative,
 		formatStamp,
 		latestIndex,
 		rangeStartDate,
@@ -20,6 +19,7 @@
 
 	import { chartSettings } from '#lib/health/settings.svelte.js';
 	import { useQuery } from 'convex-svelte';
+	import { formatRelative } from '#lib/format.js';
 	import { api } from '#convex/_generated/api.js';
 
 	const DESCRIPTION = 'Steps, movement and energy, straight off an Apple Watch.';

@@ -16,12 +16,13 @@
 <script>
 	import { onMount } from 'svelte';
 	import { files, hangul } from '#lib/fonts/interlude.json';
+	import { cookieLang } from '#lib/visitor.svelte.js';
 
 	onMount(() => {
 		const connection = /** @type {any} */ (navigator).connection;
 		if (connection?.saveData || /2g/.test(connection?.effectiveType ?? '')) return;
 
-		const english = /(?:^|;\s*)preferred-lang=en\b/.test(document.cookie);
+		const english = cookieLang() === 'en';
 		const urls = [files.extended.url, ...(english ? [] : hangul.site.map((f) => f.url))];
 
 		let cancelled = false;
