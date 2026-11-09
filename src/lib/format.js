@@ -1,17 +1,13 @@
 // @ts-check
 
-/** @typedef {Intl.DateTimeFormatOptions['dateStyle']} DateStyle */
-
 /**
  * Article dates: "Jan 5, 2026".
  * @param {string | undefined | null} date
- * @param {DateStyle} [dateStyle]
- * @param {string} [locales]
  */
-export function formatDate(date, dateStyle = 'medium', locales = 'en-US') {
+export function formatDate(date) {
 	if (!date) return '';
 	// Safari is mad about dashes in the date.
-	return new Intl.DateTimeFormat(locales, { dateStyle }).format(
+	return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(
 		new Date(date.replaceAll('-', '/'))
 	);
 }

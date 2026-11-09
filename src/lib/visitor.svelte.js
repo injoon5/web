@@ -1,18 +1,11 @@
 import { browser } from '$app/env';
-import { LANG_COOKIE, readCookie } from '#lib/cookies.js';
 
 /**
- * Per-visitor state for the article pages, which are prerendered and so know
- * nothing about who is reading.
- *
- * - `ipHash` only decides whether the heart is filled and which vote is yours.
- *   The browser fetches it once per session from `/api/visitor`, and nothing
- *   waits for it: the post renders, the like count shows, and the heart and
- *   votes fill in when it lands.
- * - The language is the URL (`#lib/content/article-paths.js`). The
- *   `preferred-lang` cookie only remembers what the visitor picked, so that
- *   vercel.json can send a direct visit to `/en`, and a link followed inside the
- *   site can do the same in the browser.
+ * This visitor's `ipHash`, for the article pages, which are prerendered and so
+ * know nothing about who is reading. It only decides whether the heart is
+ * filled and which vote is yours. The browser fetches it once per session from
+ * `/api/visitor`, and nothing waits for it: the post renders, the like count
+ * shows, and the heart and votes fill in when it lands.
  */
 export const visitor = $state({ ipHash: '' });
 
@@ -49,18 +42,4 @@ export function loadVisitor(fetch = globalThis.fetch) {
 			// Try again on the next article navigation.
 			pending = null;
 		});
-}
-
-/** The language the visitor last picked, or null. Browser only. */
-export function cookieLang() {
-	return browser ? readCookie(document.cookie, LANG_COOKIE) : null;
-}
-
-/** @param {string} lang */
-export function persistLang(lang) {
-	try {
-		document.cookie = `${LANG_COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
-	} catch {
-		// Cookies may be unavailable.
-	}
 }

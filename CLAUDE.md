@@ -350,6 +350,8 @@ the admin bypass, then the ban; it returns the limiter to `spend` from once the
 write is certain (`check` for `checkCanCreate`, which must refuse exactly what
 `create` would). On the SvelteKit side `visitorArgs(request)` /
 `adminArgs(request)` (`src/lib/server/callers.js`) build those arguments.
+(`commentActions.softDeleteComment` takes only `ipHash` and `serverCredential`:
+a visitor's delete never inspects admin auth — see Comment Deletion Semantics.)
 `SERVER_CALL_FUNCTIONS` in `serverCall.js` names them;
 `convex/serverCall.test.js` checks it against every public write that takes an
 `ipHash`, and the Convex test helper (`setupConvex` in `src/test/convex.js`)
@@ -426,10 +428,11 @@ Listening and Photos) subscribe via `convex-svelte`'s `useQuery`.
 gates a page render — each section renders its own skeleton off `query.isLoading`.
 
 **CommentsSection and LikeButton pass `keepPreviousData: true`**, which also
-retains the _previous page's_ result across a client-side navigation. Both track
-`freshPath` and gate rendering and every write on
-`freshPath === page.url.pathname`. Any new `keepPreviousData` subscription keyed
-on the pathname needs the same guard, or visitors can act on the page they left.
+retains the _previous page's_ result across a client-side navigation. Both gate
+rendering and every write on `freshFor(path, result).current`
+(`#lib/article-visitor.svelte.js`), keyed on the article's path. Any new
+`keepPreviousData` subscription needs the same guard, or visitors can act on the
+page they left.
 
 **The admin dashboard subscribes too** — `admin.listUrls`, `bans.list` and
 `admin.listForUrl` — with the session token described under Authentication &
@@ -1483,14 +1486,13 @@ answer.
 
 ## Environment Variables
 
-| Variable            | Used in                                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `PUBLIC_CONVEX_URL` | Convex client — browser (root layout) and server-side HTTP client                                              |
-| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                                           |
-| `IP_HASH_SECRET`    | HMAC for `hashIp`. Must be in `turbo.json` `build.env`                                                         |
-| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Sets `PUBLIC_CONVEX_URL` automatically                                               |
-| `HEALTH_API_KEY`    | Apple Health ingest — the Shortcut's bearer token. Convex-side only                                            |
-| `CONVEX_SITE_URL`   | Optional override. Convex HTTP actions live on the `.site` twin of `PUBLIC_CONVEX_URL`, derived automatically. |
+| Variable            | Used in                                                              |
+| ------------------- | -------------------------------------------------------------------- |
+| `PUBLIC_CONVEX_URL` | Convex client — browser (root layout) and server-side HTTP client    |
+| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env |
+| `IP_HASH_SECRET`    | HMAC for `hashIp`. Must be in `turbo.json` `build.env`               |
+| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Sets `PUBLIC_CONVEX_URL` automatically     |
+| `HEALTH_API_KEY`    | Apple Health ingest — the Shortcut's bearer token. Convex-side only  |
 
 `LAST_FM_PUBLIC_API_KEY` is Convex-only — the feed cron reads it inside the
 deployment, so it never reaches SvelteKit or Vercel.

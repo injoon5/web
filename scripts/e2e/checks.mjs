@@ -5,6 +5,7 @@
  * write that reaches Convex without the server credential.
  */
 import { chromium } from 'playwright';
+import { SITE_URL } from '../../src/lib/content/article-paths.js';
 
 // The fake Convex has no websocket.
 const WEBSOCKET = /websocket|wss?:\/\//i;
@@ -113,7 +114,7 @@ export async function runChecks(origin, convex) {
 			res?.status() === 200 &&
 			!(await onErrorPage()) &&
 			errors.length === before &&
-			(!article || (!!info.h1 && info.canonical === `https://injoon5.com${url}`));
+			(!article || (!!info.h1 && info.canonical === `${SITE_URL}${url}`));
 		if (fine) rendered++;
 		else check(false, `GET ${url} → ${res?.status()} lang=${info.lang} h1="${info.h1 ?? ''}"`);
 	}

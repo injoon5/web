@@ -3,7 +3,7 @@ import { browser } from '$app/env';
 import { articleIndex } from '#lib/content/article-index.js';
 import { articleBase, articlePath, resolveLang } from '#lib/content/article-paths.js';
 import { articleModule } from '#lib/content/article-modules.js';
-import { cookieLang } from '#lib/visitor.svelte.js';
+import { cookieLang } from '#lib/cookies.js';
 
 /**
  * The universal load both article routes share. No server load, ever: the pages

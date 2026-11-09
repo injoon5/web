@@ -26,7 +26,7 @@
 	import StableLangStack from '#lib/ui/StableLangStack.svelte';
 	import { SITE_URL, alternates, articleBase, articlePath } from '#lib/content/article-paths.js';
 	import { preloadArticle } from '#lib/content/preload-articles.js';
-	import { cookieLang, persistLang } from '#lib/visitor.svelte.js';
+	import { cookieLang, persistLang } from '#lib/cookies.js';
 
 	/**
 	 * @typedef {{ meta: Record<string, any>, content: any, series: any[] }} LangEntry

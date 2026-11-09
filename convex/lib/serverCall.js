@@ -8,8 +8,9 @@ import { fail } from './errors.js';
  * attempt limit on the `ipHash` they are handed. The Convex URL ships in the
  * client bundle, so without this anyone could call them directly with a fresh
  * made-up hash per request and walk past all of it. Each takes
- * `visitorWriteArgs` (./visitorWrite.js); `convex/serverCall.test.js` checks
- * this list against those validators.
+ * `visitorWriteArgs` (./visitorWrite.js), except `softDeleteComment`, which
+ * takes no `adminSecret`: a visitor's delete never inspects admin auth.
+ * `convex/serverCall.test.js` checks this list against the validators.
  */
 export const SERVER_CALL_FUNCTIONS = [
 	'likes:setLike',

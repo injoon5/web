@@ -8,7 +8,6 @@
 	import {
 		DEFAULT_RANGE,
 		PAGE_METRICS,
-		RANGES,
 		dayScore,
 		formatPointLabel,
 		formatStamp,
@@ -21,6 +20,7 @@
 	import { useQuery } from 'convex-svelte';
 	import { formatRelative } from '#lib/format.js';
 	import { api } from '#convex/_generated/api.js';
+	import { PUBLIC_RANGES } from '#convex/lib/health.js';
 
 	const DESCRIPTION = 'Steps, movement and energy, straight off an Apple Watch.';
 
@@ -219,7 +219,7 @@
 
 		{#if sections.length}
 			<div class="mt-10">
-				<RangePicker ranges={RANGES} value={days} onselect={selectRange} />
+				<RangePicker ranges={PUBLIC_RANGES} value={days} onselect={selectRange} />
 			</div>
 
 			<!-- Two columns from lg up, where each still gets ~440px — enough that a

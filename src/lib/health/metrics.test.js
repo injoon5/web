@@ -412,3 +412,12 @@ describe('awkward real-world series', () => {
 		expect(dayScore(sections, 4).score).toBeNull();
 	});
 });
+
+describe('PAGE_METRICS', () => {
+	it('presents every metric the public query serves', () => {
+		for (const metric of PAGE_METRICS) {
+			expect(metric.label, metric.key).toBeTruthy();
+			expect(metric.goal, metric.key).toBeGreaterThan(0);
+		}
+	});
+});

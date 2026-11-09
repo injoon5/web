@@ -5,7 +5,7 @@ vi.mock('#lib/server/content-modules.js', () => ({
 	metadataGlobs: { blog: { en: {}, ko: {} }, projects: { en: {}, ko: {} } }
 }));
 import { buildCatalogue } from './catalogue.js';
-import { buildArticleIndex } from './article-index.js';
+import { buildArticleIndex, isArticleUrl } from './article-index.js';
 import { pageLang } from './page-lang.js';
 
 const index = buildArticleIndex(
@@ -70,5 +70,17 @@ describe('pageLang', () => {
 		expect(pageLang('/', index)).toBe('en');
 		expect(pageLang('/blog', index)).toBe('en');
 		expect(pageLang('/blog/missing', index)).toBe('en');
+	});
+});
+
+describe('isArticleUrl', () => {
+	it('accepts only the bare URL of a published article', () => {
+		expect(isArticleUrl('/blog/a', index)).toBe(true);
+		expect(isArticleUrl('/projects/p', index)).toBe(true);
+		expect(isArticleUrl('/blog/a/en', index)).toBe(false);
+		expect(isArticleUrl('/blog/a/', index)).toBe(false);
+		expect(isArticleUrl('/blog/draft', index)).toBe(false);
+		expect(isArticleUrl('/blog/missing', index)).toBe(false);
+		expect(isArticleUrl('/now', index)).toBe(false);
 	});
 });

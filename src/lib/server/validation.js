@@ -3,9 +3,9 @@ import { error } from '@sveltejs/kit';
 import { z } from 'zod';
 import {
 	MAX_REPLY_LENGTH,
-	MAX_USERNAME_LENGTH,
 	MIN_PASSWORD_LENGTH,
-	commentTextError
+	commentTextError,
+	usernameError
 } from '#convex/lib/commentRules.js';
 
 const CONVEX_ID = /^[0-9a-z]+$/;
@@ -26,23 +26,25 @@ export function requireConvexId(value) {
 
 const convexId = z.string().regex(CONVEX_ID, 'Invalid id');
 
+/**
+ * A Zod refinement from one of the comment rules, which return why a value is
+ * refused or null.
+ *
+ * @param {(value: string) => string | null} check
+ */
+const rule =
+	(check) => (/** @type {string} */ value, /** @type {import('zod').RefinementCtx} */ ctx) => {
+		const message = check(value);
+		if (message) ctx.addIssue({ code: 'custom', message });
+	};
+
 // Trimmed first so the rules judge what actually gets stored. The rules are the
 // ones `comments.create` enforces again on its own side.
-const commentText = z
-	.string()
-	.trim()
-	.superRefine((text, ctx) => {
-		const message = commentTextError(text);
-		if (message) ctx.addIssue({ code: 'custom', message });
-	});
+const commentText = z.string().trim().superRefine(rule(commentTextError));
 
 export const createCommentSchema = z.object({
 	url: z.string().min(1),
-	username: z
-		.string()
-		.trim()
-		.max(MAX_USERNAME_LENGTH, `Username must be ${MAX_USERNAME_LENGTH} characters or less`)
-		.default(''),
+	username: z.string().trim().superRefine(rule(usernameError)).default(''),
 	password: z
 		.string()
 		.min(MIN_PASSWORD_LENGTH, `Password must be at least ${MIN_PASSWORD_LENGTH} characters`),

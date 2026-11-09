@@ -16,7 +16,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { files, hangul } from '#lib/fonts/interlude.json';
-	import { cookieLang } from '#lib/visitor.svelte.js';
+	import { cookieLang } from '#lib/cookies.js';
 
 	onMount(() => {
 		const connection = /** @type {any} */ (navigator).connection;

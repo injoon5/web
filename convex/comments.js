@@ -15,7 +15,7 @@ import {
 	voteCountsFromDoc
 } from './lib/votes.js';
 import { isScoresBackfillComplete } from './lib/migration.js';
-import { applyCountDeltas } from './lib/counter.js';
+import { adjustCount, applyCountDeltas } from './lib/counter.js';
 import {
 	ANONYMOUS,
 	DELETED_TEXT,
@@ -213,7 +213,7 @@ export const create = mutation({
 			score: 0
 		});
 
-		await applyCountDeltas(ctx, 'commentUrlCounts', new Map([[args.url, 1]]));
+		await adjustCount(ctx, 'commentUrlCounts', args.url, 1);
 
 		// Read back rather than serialized from the arguments: `_creationTime` is
 		// Convex's to set, and this get is served from the transaction's own write
@@ -231,12 +231,12 @@ export const vote = mutation({
 	},
 	handler: async (ctx, args) => {
 		const visitor = await beginVisitorWrite(ctx, args);
-		await visitor.spend('vote');
 
 		const comment = await ctx.db.get('comments', args.commentId);
 		if (!comment || comment.deletedAt !== null) {
 			fail('NotFound', 'Comment not found');
 		}
+		await visitor.spend('vote');
 
 		const { upvotes, downvotes, myVote } = await applyVoteChange(
 			ctx,

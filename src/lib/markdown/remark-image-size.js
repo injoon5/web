@@ -88,11 +88,10 @@ export function sizeOfLocalImage(url, root) {
  * @returns {Record<string, import('./image-variants.js').VariantEntry>}
  */
 function readVariants(file) {
-	try {
-		return JSON.parse(readFileSync(file, 'utf8'));
-	} catch {
-		return {};
-	}
+	if (!existsSync(file)) return {};
+	// A manifest that exists but does not parse is a broken image step, not a
+	// dev checkout: fail the build rather than ship it with no srcset at all.
+	return JSON.parse(readFileSync(file, 'utf8'));
 }
 
 /**

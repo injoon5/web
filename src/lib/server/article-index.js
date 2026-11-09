@@ -1,4 +1,5 @@
 // @ts-check
+import { articleBase, parseArticlePath } from '#lib/content/article-paths.js';
 import { catalogue as siteCatalogue } from './catalogue.js';
 import { seriesBySlug } from './series.js';
 
@@ -50,10 +51,13 @@ export function articleEntries(kind) {
  * are keyed by, so the only URLs they may be written under.
  *
  * @param {string} url
+ * @param {ArticleIndex} [index]
  */
-export function isArticleUrl(url) {
-	const match = /^\/(blog|projects)\/([^/]+)$/.exec(url);
+export function isArticleUrl(url, index = articleIndex) {
+	const article = parseArticlePath(url);
 	return (
-		!!match && Object.hasOwn(articleIndex[/** @type {'blog' | 'projects'} */ (match[1])], match[2])
+		!!article &&
+		url === articleBase(article.kind, article.slug) &&
+		Object.hasOwn(index[article.kind], article.slug)
 	);
 }

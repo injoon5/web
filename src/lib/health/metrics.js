@@ -3,7 +3,7 @@
  * pure, so the score and chart arithmetic is testable without a DOM.
  */
 
-import { PUBLIC_METRICS, PUBLIC_RANGES, shiftDateKey } from '#convex/lib/health.js';
+import { PUBLIC_METRICS, shiftDateKey } from '#convex/lib/health.js';
 
 /**
  * How each metric reads, and the daily target it is scored against. The key list
@@ -17,21 +17,11 @@ const PRESENTATION = {
 	distance: { label: 'Walking + running distance', unit: 'km', decimals: 1, goal: 7 }
 };
 
-const FALLBACK = { label: '', unit: '', decimals: 0, goal: 0 };
-
 /**
  * Sections in order, derived from the Convex allowlist so the page and the
  * public query cannot drift apart.
  */
-export const PAGE_METRICS = PUBLIC_METRICS.map((key) => ({
-	key,
-	...FALLBACK,
-	label: key,
-	...PRESENTATION[key]
-}));
-
-/** Range picker steps. Kept coarse so every view hits the same Convex query cache entries. */
-export const RANGES = PUBLIC_RANGES;
+export const PAGE_METRICS = PUBLIC_METRICS.map((key) => ({ key, ...PRESENTATION[key] }));
 export const DEFAULT_RANGE = 30;
 
 /**

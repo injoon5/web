@@ -16,10 +16,7 @@ vi.mock('#lib/content/article-modules.js', () => {
 	return { articleModule: (kind, lang, slug) => files[`${kind}/${lang}/${slug}`] };
 });
 
-vi.mock('#lib/visitor.svelte.js', () => ({
-	cookieLang: () => state.cookie,
-	loadVisitor: () => {}
-}));
+vi.mock('#lib/cookies.js', () => ({ cookieLang: () => state.cookie }));
 
 import { articleLoad } from './article-load.js';
 
