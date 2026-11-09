@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Lightbox from './Lightbox.svelte';
-import { lightboxStore, lightboxAction, openLightbox } from './store.svelte.js';
+import { closeLightbox, lightboxAction, lightboxValue, openLightbox } from './store.svelte.js';
 
 const openValue = {
 	src: 'https://example.com/cat.jpg',
@@ -11,8 +11,8 @@ const openValue = {
 	naturalHeight: 600
 };
 
-beforeEach(() => lightboxStore.set(null));
-afterEach(() => lightboxStore.set(null));
+beforeEach(() => closeLightbox());
+afterEach(() => closeLightbox());
 
 describe('Lightbox rendering', () => {
 	it('renders nothing while closed', () => {
@@ -22,7 +22,7 @@ describe('Lightbox rendering', () => {
 
 	it('renders the image, caption and close button when opened', async () => {
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 
 		expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('Lightbox rendering', () => {
 describe('Lightbox placeholder', () => {
 	it('paints the pixels the page already has under its own copy', async () => {
 		render(Lightbox);
-		lightboxStore.set({ ...openValue, poster: openValue.src, ready: true });
+		openLightbox([{ ...openValue, poster: openValue.src, ready: true }]);
 		await tick();
 
 		const img = screen.getByRole('img', { name: 'A cat' });
@@ -49,7 +49,7 @@ describe('Lightbox placeholder', () => {
 
 	it('shows a placeholder when no copy of the image exists on the page', async () => {
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 
 		const img = screen.getByRole('img', { name: 'A cat' });
@@ -62,7 +62,7 @@ describe('Lightbox placeholder', () => {
 
 	it('drops both the moment its own copy lands', async () => {
 		render(Lightbox);
-		lightboxStore.set({ ...openValue, poster: openValue.src });
+		openLightbox([{ ...openValue, poster: openValue.src }]);
 		await tick();
 
 		const img = screen.getByRole('img', { name: 'A cat' });
@@ -77,7 +77,7 @@ describe('Lightbox placeholder', () => {
 	// for the one case it was written for.
 	it('fades in from nothing when there is no box at all', async () => {
 		render(Lightbox);
-		lightboxStore.set({ src: 'https://example.com/unknown.jpg', alt: 'Unknown' });
+		openLightbox([{ src: 'https://example.com/unknown.jpg', alt: 'Unknown' }]);
 		await tick();
 
 		const img = screen.getByRole('img', { name: 'Unknown' });
@@ -90,13 +90,15 @@ describe('Lightbox placeholder', () => {
 	// own pixels need to be painted into.
 	it('sizes an unmeasured image from the shape of the one on the page', async () => {
 		render(Lightbox);
-		lightboxStore.set({
-			src: 'https://example.com/full.jpg',
-			alt: 'Big',
-			poster: 'https://example.com/thumb.jpg',
-			posterWidth: 400,
-			posterHeight: 200
-		});
+		openLightbox([
+			{
+				src: 'https://example.com/full.jpg',
+				alt: 'Big',
+				poster: 'https://example.com/thumb.jpg',
+				posterWidth: 400,
+				posterHeight: 200
+			}
+		]);
 		await tick();
 
 		const img = screen.getByRole('img', { name: 'Big' });
@@ -113,7 +115,7 @@ describe('Lightbox placeholder', () => {
 describe('Lightbox focus management', () => {
 	it('moves focus to the close button on open', async () => {
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 
 		const closeBtn = screen.getByRole('button', { name: 'Close image' });
@@ -126,14 +128,14 @@ describe('Lightbox focus management', () => {
 		trigger.focus();
 
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 		const closeBtn = screen.getByRole('button', { name: 'Close image' });
 		await waitFor(() => expect(document.activeElement).toBe(closeBtn));
 
 		// Closing must return focus to the original trigger — not leave it on the
 		// (now unmounted) close button. Regression guard for the focus-recapture fix.
-		lightboxStore.set(null);
+		closeLightbox();
 		await tick();
 		await waitFor(() => expect(document.activeElement).toBe(trigger));
 
@@ -159,7 +161,7 @@ describe('Lightbox theme-color', () => {
 		const { light, dark } = addThemeMetas();
 		try {
 			render(Lightbox);
-			lightboxStore.set(openValue);
+			openLightbox([openValue]);
 			await tick();
 
 			// Both metas forced dark with the media gate dropped so it wins in any scheme.
@@ -169,7 +171,7 @@ describe('Lightbox theme-color', () => {
 				expect(dark.getAttribute('content')).toBe('#0a0a0a');
 			});
 
-			lightboxStore.set(null);
+			closeLightbox();
 			await tick();
 
 			await waitFor(() => {
@@ -206,7 +208,10 @@ const activeStep = () =>
 
 async function openGroup(index = 0) {
 	render(Lightbox);
-	lightboxStore.set({ items: group.map((i) => ({ ...i })), index });
+	openLightbox(
+		group.map((i) => ({ ...i })),
+		index
+	);
 	await tick();
 	await screen.findByRole('dialog');
 }
@@ -214,7 +219,7 @@ async function openGroup(index = 0) {
 describe('Lightbox single image', () => {
 	it('still accepts a bare image and shows no group chrome for it', async () => {
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 
 		expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -316,10 +321,10 @@ describe('Lightbox groups', () => {
 		// not pull forty images over the wire.
 		expect(loadedSrcs()).toEqual(group.map((i) => i.src));
 
-		lightboxStore.set({
-			items: [...group, ...group].map((i, n) => ({ ...i, src: `${i.src}#${n}` })),
-			index: 0
-		});
+		openLightbox(
+			[...group, ...group].map((i, n) => ({ ...i, src: `${i.src}#${n}` })),
+			0
+		);
 		await tick();
 		expect(slides()).toHaveLength(6);
 		expect(loadedSrcs()).toHaveLength(2);
@@ -446,13 +451,13 @@ describe('Lightbox shared-element flight', () => {
 	it('hides the image it flew from, and gives it back on close', async () => {
 		const img = pageImage();
 		render(Lightbox);
-		lightboxStore.set({ items: [{ ...openValue, el: img }], index: 0 });
+		openLightbox([{ ...openValue, el: img }], 0);
 		await tick();
 		await screen.findByRole('dialog');
 
 		await waitFor(() => expect(img.style.visibility).toBe('hidden'));
 
-		lightboxStore.set(null);
+		closeLightbox();
 		await tick();
 		await waitFor(() => expect(img.style.visibility).toBe(''));
 		img.remove();
@@ -462,13 +467,13 @@ describe('Lightbox shared-element flight', () => {
 		const a = pageImage();
 		const b = pageImage();
 		render(Lightbox);
-		lightboxStore.set({
-			items: [
+		openLightbox(
+			[
 				{ ...group[0], el: a },
 				{ ...group[1], el: b }
 			],
-			index: 0
-		});
+			0
+		);
 		await tick();
 		await screen.findByRole('dialog');
 		await waitFor(() => expect(a.style.visibility).toBe('hidden'));
@@ -479,7 +484,7 @@ describe('Lightbox shared-element flight', () => {
 		await waitFor(() => expect(b.style.visibility).toBe('hidden'));
 		expect(a.style.visibility).toBe('');
 
-		lightboxStore.set(null);
+		closeLightbox();
 		await tick();
 		await waitFor(() => expect(b.style.visibility).toBe(''));
 		a.remove();
@@ -488,7 +493,7 @@ describe('Lightbox shared-element flight', () => {
 
 	it('still opens from a bare store value, which carries no element to fly from', async () => {
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 		expect(await screen.findByRole('dialog')).toBeInTheDocument();
 	});
@@ -497,7 +502,7 @@ describe('Lightbox shared-element flight', () => {
 describe('Lightbox open and close bookkeeping', () => {
 	it('does not open on an empty group', async () => {
 		render(Lightbox);
-		lightboxStore.set({ items: [], index: 0 });
+		openLightbox([], 0);
 		await tick();
 		expect(screen.queryByRole('dialog')).toBeNull();
 	});
@@ -506,13 +511,13 @@ describe('Lightbox open and close bookkeeping', () => {
 		// Closing schedules an unmount. Reopening before that timer fires used to
 		// be shut straight back down by it.
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 		await screen.findByRole('dialog');
 
 		screen.getByRole('button', { name: 'Close image' }).click();
 		await tick();
-		lightboxStore.set({ ...openValue, alt: 'A second cat' });
+		openLightbox([{ ...openValue, alt: 'A second cat' }]);
 		await tick();
 
 		await new Promise((r) => setTimeout(r, 400));
@@ -524,7 +529,7 @@ describe('Lightbox open and close bookkeeping', () => {
 		// One flag used to mean both "this open flew" and "a flight home is
 		// running", so a close with nowhere to fly to lost its exit entirely.
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 		const dialog = await screen.findByRole('dialog');
 
@@ -538,19 +543,19 @@ describe('Lightbox open and close bookkeeping', () => {
 describe('Lightbox modality', () => {
 	it('locks the page behind it and gives it back on close', async () => {
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 		await screen.findByRole('dialog');
 		expect(document.body.style.overflow).toBe('hidden');
 
-		lightboxStore.set(null);
+		closeLightbox();
 		await tick();
 		await waitFor(() => expect(document.body.style.overflow).toBe(''));
 	});
 
 	it('renders into <body>, where no ancestor can trap a fixed backdrop', async () => {
 		const { container } = render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 
 		const dialog = await screen.findByRole('dialog');
@@ -563,13 +568,13 @@ describe('Lightbox modality', () => {
 		document.body.appendChild(sibling);
 
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 		await screen.findByRole('dialog');
 		await waitFor(() => expect(sibling).toHaveAttribute('inert'));
 		expect(sibling).toHaveAttribute('aria-hidden', 'true');
 
-		lightboxStore.set(null);
+		closeLightbox();
 		await tick();
 		await waitFor(() => expect(sibling).not.toHaveAttribute('inert'));
 		expect(sibling).not.toHaveAttribute('aria-hidden');
@@ -579,7 +584,7 @@ describe('Lightbox modality', () => {
 
 	it('leaves the page chrome under the dialog, and never strands the flag it lifts it with', async () => {
 		render(Lightbox);
-		lightboxStore.set(openValue);
+		openLightbox([openValue]);
 		await tick();
 		await screen.findByRole('dialog');
 
@@ -591,7 +596,7 @@ describe('Lightbox modality', () => {
 		screen.getByRole('button', { name: 'Close image' }).click();
 		await tick();
 
-		lightboxStore.set(null);
+		closeLightbox();
 		await tick();
 		await waitFor(() => expect(document.documentElement.dataset.lightbox).toBeUndefined());
 	});
@@ -621,7 +626,7 @@ describe('lightboxAction', () => {
 		size(img);
 		img.click();
 
-		const value = lightboxStore.value;
+		const value = lightboxValue();
 		expect(value.items).toHaveLength(1);
 		expect(value.items[0]).toMatchObject({ src: abs('/a.png'), alt: 'A' });
 		destroy();
@@ -634,7 +639,7 @@ describe('lightboxAction', () => {
 		node.querySelectorAll('img').forEach((i) => size(i));
 		node.querySelectorAll('img')[1].click();
 
-		const value = lightboxStore.value;
+		const value = lightboxValue();
 		expect(value.items.map((i) => i.src)).toEqual([abs('/a.png'), abs('/b.png'), abs('/c.png')]);
 		expect(value.index).toBe(1);
 		destroy();
@@ -647,7 +652,7 @@ describe('lightboxAction', () => {
 		node.querySelectorAll('img').forEach((i) => size(i, 20, 20));
 		node.querySelectorAll('img')[0].click();
 
-		const value = lightboxStore.value;
+		const value = lightboxValue();
 		expect(value.items).toHaveLength(2);
 		destroy();
 	});
@@ -662,7 +667,7 @@ describe('lightboxAction', () => {
 		icon.click();
 		linked.click();
 
-		const value = lightboxStore.value;
+		const value = lightboxValue();
 		expect(value).toBeNull();
 		destroy();
 	});
@@ -676,7 +681,7 @@ describe('lightboxAction', () => {
 		size(img, 350, 233);
 		img.click();
 
-		const [item] = lightboxStore.value.items;
+		const [item] = lightboxValue().items;
 		expect(item.srcset).toBe('/a.w640.k.webp 640w, /a.png 2400w');
 		expect(item).toMatchObject({ naturalWidth: 2400, naturalHeight: 1600 });
 		destroy();
@@ -689,7 +694,7 @@ describe('lightboxAction', () => {
 		const img = node.querySelector('img');
 		size(img);
 		img.click();
-		expect(lightboxStore.value.items[0].srcset).toBeUndefined();
+		expect(lightboxValue().items[0].srcset).toBeUndefined();
 		destroy();
 	});
 
@@ -701,7 +706,7 @@ describe('lightboxAction', () => {
 		imgs.forEach((i) => size(i));
 		imgs[1].click();
 
-		const value = lightboxStore.value;
+		const value = lightboxValue();
 		expect(value.items.map((i) => i.el)).toEqual(imgs);
 		destroy();
 	});
@@ -722,7 +727,7 @@ describe('lightboxAction', () => {
 		const { node, destroy } = mount('<img src="/a.png" alt="A" width="1600" height="900">');
 		node.querySelector('img').click();
 
-		expect(lightboxStore.value.items[0]).toMatchObject({
+		expect(lightboxValue().items[0]).toMatchObject({
 			naturalWidth: 1600,
 			naturalHeight: 900
 		});
@@ -735,7 +740,7 @@ describe('lightboxAction', () => {
 		size(img, 800, 600);
 		img.click();
 
-		expect(lightboxStore.value.items[0]).toMatchObject({
+		expect(lightboxValue().items[0]).toMatchObject({
 			naturalWidth: 800,
 			naturalHeight: 600
 		});
@@ -750,7 +755,7 @@ describe('lightboxAction', () => {
 		size(img, 400, 300);
 		img.click();
 
-		const item = lightboxStore.value.items[0];
+		const item = lightboxValue().items[0];
 		expect(item.src).toBe('/full.png');
 		// Unknown, because nothing has measured that file — but the shape is not.
 		expect(item.naturalWidth).toBe(0);
@@ -762,13 +767,13 @@ describe('lightboxAction', () => {
 describe('openLightbox', () => {
 	it('clamps the index into the group', () => {
 		openLightbox(group, 99);
-		const value = lightboxStore.value;
+		const value = lightboxValue();
 		expect(value.index).toBe(2);
 	});
 
 	it('does nothing when handed nothing', () => {
 		openLightbox([]);
-		const value = lightboxStore.value;
+		const value = lightboxValue();
 		expect(value).toBeNull();
 	});
 });

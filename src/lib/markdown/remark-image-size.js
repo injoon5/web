@@ -11,7 +11,7 @@
  *
  * It also stamps `data-img-pending`, which is what puts a placeholder in that
  * box (see `app.css`), and `loading`/`decoding`. Those two were being set from
- * `lazyImagesAction` after hydration, which is several hundred milliseconds
+ * `lightboxAction` after hydration, which is several hundred milliseconds
  * after the browser has already decided what to fetch.
  *
  * The size is read once per file per build, from the header — see

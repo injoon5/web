@@ -1,47 +1,30 @@
 import { isLoaded, sizeOf, trackImages } from './image-cache.js';
 
 /**
- * `null` = closed. Open is `{ items, index }`, where an item is
- * `{ src, alt, naturalWidth, naturalHeight }`. A bare item is also accepted —
- * `normalizeLightboxValue` widens it into a one-image group.
+ * The open group, `{ items, index }`, or `null` when closed. An item is what
+ * `toItem` builds from a page image (or any `{ src, alt, ... }` a caller has).
+ *
+ * @type {{ items: any[], index: number } | null}
  */
 let value = $state(null);
 
-export const lightboxStore = {
-	get value() {
-		return value;
-	},
-	set(next) {
-		value = next;
-	}
-};
-
-/** Max displayed height for lightbox images (px). Keeps tall shots from filling the viewport. */
-export const MAX_LIGHTBOX_HEIGHT = 900;
+/** What the lightbox is showing; read by `Lightbox.svelte`. */
+export function lightboxValue() {
+	return value;
+}
 
 /**
- * Open the lightbox on a set of images.
+ * Open the lightbox on a set of images, at `index`.
  * @param {Array<{ src: string, alt?: string, naturalWidth?: number, naturalHeight?: number }>} items
  * @param {number} [index]
  */
 export function openLightbox(items, index = 0) {
 	if (!items?.length) return;
-	lightboxStore.set({ items, index: Math.max(0, Math.min(index, items.length - 1)) });
+	value = { items, index: Math.max(0, Math.min(index, items.length - 1)) };
 }
 
-/**
- * Accept either shape the store can hold and return the group form.
- * @returns {{ items: any[], index: number } | null}
- */
-export function normalizeLightboxValue(value) {
-	if (!value) return null;
-	if (Array.isArray(value.items)) {
-		return {
-			items: value.items,
-			index: Math.max(0, Math.min(value.index ?? 0, value.items.length - 1))
-		};
-	}
-	return { items: [value], index: 0 };
+export function closeLightbox() {
+	value = null;
 }
 
 /**
@@ -144,21 +127,18 @@ function toItem(img) {
 	};
 }
 
-/** Images an author has opted out of, plus the ones a group would swallow. */
+/** Not an image the author opted out of with `data-no-lightbox`. */
 function openable(img) {
 	return !img.hasAttribute('data-no-lightbox');
 }
 
 /**
- * Every image in the article reports its load to the shared cache, and holds a
- * placeholder in its own box until then. See `image-cache.js`.
+ * Opens the lightbox on a click on an article image. Every image in the article
+ * also reports its load to the shared cache, and holds a placeholder in its own
+ * box until then (see `image-cache.js`).
  */
-export function lazyImagesAction(node) {
-	trackImages(node);
-}
-
 export function lightboxAction(node) {
-	lazyImagesAction(node);
+	trackImages(node);
 
 	function handleClick(e) {
 		// A modified click is the visitor asking the browser for something else
