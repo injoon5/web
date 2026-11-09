@@ -59,6 +59,7 @@
 	let cleanupTheme;
 
 	onMount(async () => {
+		cleanupTheme = theme.watch();
 		// Lazy-load analytics so it never rides in the initial JS for routes that
 		// don't need it (the only call site is here).
 		const { configure } = await import('onedollarstats');
@@ -66,7 +67,6 @@
 			collectorUrl: 'https://collector.onedollarstats.com/events',
 			autocollect: true
 		});
-		cleanupTheme = theme.watch();
 	});
 
 	onDestroy(() => {

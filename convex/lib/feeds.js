@@ -15,6 +15,12 @@ export const PHOTO_LIMIT = 8;
 export const PHOTOS_FEED_URL = 'https://photos.injoon5.com/feed.json';
 
 /** @param {string} apiKey */
+/** Artists whose Last.fm name is not how they write it. */
+const ARTIST_NAMES = { Lany: 'LANY' };
+
+/** @param {string} name */
+const displayArtist = (name) => ARTIST_NAMES[name] ?? name;
+
 export function lastfmUrl(apiKey) {
 	const params = new URLSearchParams({
 		method: 'user.getrecenttracks',
@@ -55,7 +61,7 @@ export function normalizeTracks(payload) {
 		const uts = Number(track?.date?.uts);
 		return {
 			name: str(track?.name),
-			artist: str(track?.artist?.['#text']),
+			artist: displayArtist(str(track?.artist?.['#text'])),
 			url: str(track?.url),
 			image: coverUrl(track?.image),
 			nowPlaying: track?.['@attr']?.nowplaying === 'true',

@@ -54,13 +54,13 @@
 	let toggleEl = $state();
 
 	// On the home page the hero owns the name, so the navbar name stays hidden
-	// until the hero scrolls out of view (tracked by heroNameVisible). Every
-	// other page shows it immediately.
+	// until the hero scrolls out of view (`heroName.visible`). Every other page
+	// shows it immediately.
 	let isHome = $derived(page.url.pathname === '/');
 	let showName = $derived(!isHome || !heroName.visible);
 
+	/** Every nav item is a section, active anywhere under it. */
 	function isActive(href) {
-		if (href === '/') return page.url.pathname === '/';
 		return page.url.pathname.startsWith(href);
 	}
 
@@ -261,11 +261,7 @@
 				     away from `group-hover:opacity-0` outright, and hovering the
 				     wordmark would have stopped doing anything on the one page this
 				     animation runs on. -->
-				<span
-					class="nav-name block min-w-0"
-					data-shown={!isHome || showName}
-					data-animate={mounted}
-				>
+				<span class="nav-name block min-w-0" data-shown={showName} data-animate={mounted}>
 					<span class="nav-name-roll relative block min-w-0">
 						<span
 							class="block truncate font-sans text-2xl font-medium tracking-tight will-change-auto group-hover:opacity-0 group-hover:blur-sm

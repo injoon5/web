@@ -30,6 +30,13 @@ const photo = (over = {}) => ({
 });
 
 describe('normalizeTracks', () => {
+	it('writes an artist the way they write themselves', () => {
+		const [first] = normalizeTracks({
+			recenttracks: { track: [track({ artist: { '#text': 'Lany' } })] }
+		});
+		expect(first.artist).toBe('LANY');
+	});
+
 	it('keeps only what the marquee renders', () => {
 		const [first] = normalizeTracks({ recenttracks: { track: [track()] } });
 

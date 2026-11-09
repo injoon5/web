@@ -84,7 +84,6 @@
 
 <svelte:head>
 	<title>Injoon Oh</title>
-	<meta charset="UTF-8" />
 	<meta property="og:title" content="Injoon Oh" />
 	<meta
 		name="description"
@@ -250,10 +249,7 @@
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/projects/{post.slug}"
 				>
-					<h3
-						lang={post.lang}
-						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
-					>
+					<h3 lang={post.lang} class="line-clamp-1 text-base font-medium group-hover:underline">
 						{post.title}
 					</h3>
 					<p
@@ -391,7 +387,7 @@
 								{track.name}
 							</p>
 							<p class="truncate text-sm font-normal text-white/60 lg:text-base">
-								{track.artist === 'Lany' ? 'LANY' : track.artist}
+								{track.artist}
 							</p>
 						</div>
 					</a>
@@ -538,7 +534,6 @@
 		will-change: transform;
 		animation: now-scroll linear infinite;
 		animation-duration: 60s; /* overridden by marqueeConstantSpeed action */
-		animation-play-state: var(--marquee-play-state, running);
 	}
 	@keyframes now-scroll {
 		from {

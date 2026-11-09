@@ -239,7 +239,7 @@
 				aria-hidden="true"
 			/>
 			<span
-				class="like-label inline-block whitespace-nowrap transition-[width] duration-200 ease-out will-change-[width]"
+				class="inline-block whitespace-nowrap transition-[width] duration-200 ease-out will-change-[width]"
 				style="width: {isLiked ? '40px' : '30px'}"
 			>
 				{isLiked ? 'Liked' : 'Like'}
