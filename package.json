@@ -23,6 +23,7 @@
 		"test:e2e": "node scripts/e2e-test.mjs"
 	},
 	"devDependencies": {
+		"@convex-dev/eslint-plugin": "^5.0.1",
 		"@edge-runtime/vm": "^5.0.0",
 		"@eslint/js": "^10.0.1",
 		"@pierre/highlights": "^0.2.0",

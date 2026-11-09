@@ -58,7 +58,7 @@ async function activeCount(t) {
 	return await t.run(async (ctx) => {
 		const rows = await ctx.db
 			.query('comments')
-			.withIndex('by_url_deleted', (q) => q.eq('url', URL).eq('deletedAt', null))
+			.withIndex('by_url_deleted_parent_score', (q) => q.eq('url', URL).eq('deletedAt', null))
 			.collect();
 		return rows.length;
 	});

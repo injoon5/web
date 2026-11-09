@@ -44,11 +44,11 @@ export const listForUrl = query({
 	handler: async (ctx, { url, adminSecret, sessionToken }) => {
 		await assertAdminAccess(ctx, { adminSecret, sessionToken });
 
-		// Tombstones are skipped at the index — see the `by_url_deleted` note in
-		// convex/schema.js.
+		// Tombstones are skipped at the index — see the note on it in
+		// convex/schema.js. Sorted below, so the index's own order is moot.
 		const active = await ctx.db
 			.query('comments')
-			.withIndex('by_url_deleted', (q) => q.eq('url', url).eq('deletedAt', null))
+			.withIndex('by_url_deleted_parent_score', (q) => q.eq('url', url).eq('deletedAt', null))
 			.collect();
 
 		active.sort((a, b) => a._creationTime - b._creationTime);

@@ -119,7 +119,7 @@ export const list = query({
 		if (!(await isScoresBackfillComplete(ctx))) {
 			const active = await ctx.db
 				.query('comments')
-				.withIndex('by_url_deleted', (q) => q.eq('url', url).eq('deletedAt', null))
+				.withIndex('by_url_deleted_parent_score', (q) => q.eq('url', url).eq('deletedAt', null))
 				.collect();
 
 			// Roots: true top-level comments, plus replies whose parent was

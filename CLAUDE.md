@@ -148,29 +148,30 @@ or the API routes. `--no-build` reuses a build made against the fake.
 
 ## Convex Schema (`convex/schema.js`)
 
-| Table              | Key fields                                                                                                                     | Indexes                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes, score? | `by_url_deleted`, `by_url_deleted_parent_score`, `by_parent` |
-| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                                 | `by_comment_ip`, `by_ip`                                     |
-| `likes`            | url, ipHash                                                                                                                    | `by_url_ip`                                                  |
-| `commentUrlCounts` | url, count                                                                                                                     | `by_url`                                                     |
-| `likeCounts`       | url, count                                                                                                                     | `by_url`                                                     |
-| `migrationMeta`    | key, complete                                                                                                                  | `by_key`                                                     |
-| `bannedIps`        | ipHash, reason                                                                                                                 | `by_ip`                                                      |
-| `adminSessions`    | tokenHash (SHA-256 of the `admin_token` cookie), expiresAt                                                                     | `by_token`                                                   |
-| `nowPage`          | content, updatedAt                                                                                                             | —                                                            |
-| `nowPlaying`       | tracks[], updatedAt — one row                                                                                                  | —                                                            |
-| `photos`           | photos[], updatedAt — one row                                                                                                  | —                                                            |
-| `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                                   | `by_metric_date`, `by_date`                                  |
-| `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                            | `by_metric_hour`                                             |
-| `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                        | `by_metric_time`, `by_time`                                  |
-| `healthWorkouts`   | externalId, type, start, end, duration, distance?, activeEnergy?, avgHeartRate?, maxHeartRate?, elevation?, source?            | `by_start`, `by_type_start`, `by_external`                   |
+| Table              | Key fields                                                                                                                     | Indexes                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes, score? | `by_url_deleted_parent_score`, `by_parent` |
+| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                                 | `by_comment_ip`, `by_ip`                   |
+| `likes`            | url, ipHash                                                                                                                    | `by_url_ip`                                |
+| `commentUrlCounts` | url, count                                                                                                                     | `by_url`                                   |
+| `likeCounts`       | url, count                                                                                                                     | `by_url`                                   |
+| `migrationMeta`    | key, complete                                                                                                                  | `by_key`                                   |
+| `bannedIps`        | ipHash, reason                                                                                                                 | `by_ip`                                    |
+| `adminSessions`    | tokenHash (SHA-256 of the `admin_token` cookie), expiresAt                                                                     | `by_token`                                 |
+| `nowPage`          | content, updatedAt                                                                                                             | —                                          |
+| `nowPlaying`       | tracks[], updatedAt — one row                                                                                                  | —                                          |
+| `photos`           | photos[], updatedAt — one row                                                                                                  | —                                          |
+| `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                                   | `by_metric_date`, `by_date`                |
+| `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                            | `by_metric_hour`                           |
+| `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                        | `by_metric_time`, `by_time`                |
+| `healthWorkouts`   | externalId, type, start, end, duration, distance?, activeEnergy?, avgHeartRate?, maxHeartRate?, elevation?, source?            | `by_start`, `by_type_start`, `by_external` |
 
 **Prefix rule:** an index whose fields are a prefix of another is redundant —
-bind only the leading fields of the longer one. `by_url` on `comments` is gone
-for this reason: hard delete only sets `deletedAt`, so tombstones stay forever,
-and every public read binds `by_url_deleted` with `.eq('deletedAt', null)` to
-skip them at the index rather than filtering in JS.
+bind only the leading fields of the longer one. `by_url` and `by_url_deleted`
+on `comments` are gone for this reason: hard delete only sets `deletedAt`, so
+tombstones stay forever, and every read binds `url` and `.eq('deletedAt', null)`
+on `by_url_deleted_parent_score` to skip them at the index rather than filtering
+in JS.
 
 `createdAt` is Convex's built-in `_creationTime`.
 
@@ -464,8 +465,8 @@ Admin. Consequences worth knowing:
   `admin_token` cookie, so branching on admin there turned an ordinary
   visitor-side delete into a hard delete of the whole subtree.
 
-- **Hard delete** — sets `deletedAt`, excluded from every public query by the
-  `by_url_deleted` index. Children keep their `parentId` and surface as "stray"
+- **Hard delete** — sets `deletedAt`, excluded from every public query at the
+  index (`deletedAt` is bound to `null`). Children keep their `parentId` and surface as "stray"
   in the admin tree, rendered with an amber badge by `buildTree()`.
 
   A hard delete walks the subtree in batches of 200. **The continuation resumes
@@ -1519,5 +1520,11 @@ override what you may have learned about Convex from training data.
 
 Convex agent skills for common tasks can be installed by running
 `npx convex ai-files install`.
+
+`npm run lint` enforces Convex's own best-practice rules on `convex/*.js`
+(`@convex-dev/eslint-plugin`: explicit table names on `ctx.db` calls, argument
+validators, no `.filter()` on a db query, no prefix-duplicate indexes, no
+top-of-the-hour crons). `eslint.config.js` says which of its rules are off and
+why.
 
 <!-- convex-ai-end -->

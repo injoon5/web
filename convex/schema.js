@@ -62,13 +62,13 @@ export default defineSchema({
 		score: v.optional(v.number())
 	})
 		// Hard delete only sets `deletedAt`, so tombstones stay in the table
-		// forever. Binding `deletedAt` too lets every public read skip them at the
-		// index instead of collecting them and filtering in JS. `by_url` alone
-		// would be a prefix of this one, and so redundant.
-		.index('by_url_deleted', ['url', 'deletedAt'])
-		// Roots only (`parentId === null`), ranked by the denormalized `score`.
+		// forever. Binding `deletedAt` lets every read skip them at the index
+		// instead of collecting them and filtering in JS; binding `parentId` too
+		// gives the public list its roots, ranked by the denormalized `score`.
 		// `_creationTime` trails every index, so `.order('desc')` breaks equal
-		// scores newest-first — the same order the old whole-page rank produced.
+		// scores newest-first. A `url` + `deletedAt` read binds only the leading
+		// fields: a separate index on those would be a prefix of this one, and so
+		// redundant.
 		.index('by_url_deleted_parent_score', ['url', 'deletedAt', 'parentId', 'score'])
 		.index('by_parent', ['parentId']),
 

@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import prettier from 'eslint-config-prettier';
+import convex from '@convex-dev/eslint-plugin';
 import svelte from 'eslint-plugin-svelte';
 import globals from 'globals';
 import ts from 'typescript-eslint';
@@ -70,6 +71,27 @@ export default defineConfig(
 			// The plugin's wrapper around the core rule reads scope state that only
 			// exists for module sourceType, and throws on a CommonJS file.
 			'svelte/no-inner-declarations': 'off'
+		}
+	},
+	{
+		// Convex's own best-practice rules, as its recommended set turns them on
+		// (which targets `.ts` only, so the files are named here). Off from that
+		// set, with reasons: `no-process-env`, because the typed `env` object
+		// needs `convex.config.js` env declarations and a codegen run against a
+		// deployment; `require-access-control` and `no-collect-in-query`, which
+		// the set itself leaves off — the visitor writes are gated by
+		// `beginVisitorWrite`, and each `.collect()` reads a range CLAUDE.md
+		// explains the bound of.
+		files: ['convex/**/*.js'],
+		plugins: { '@convex-dev': convex },
+		rules: {
+			'@convex-dev/no-old-registered-function-syntax': 'error',
+			'@convex-dev/require-args-validator': 'error',
+			'@convex-dev/explicit-table-ids': 'error',
+			'@convex-dev/no-filter-in-query': 'error',
+			'@convex-dev/no-top-of-hour-crons': 'error',
+			'@convex-dev/no-schema-import-cycle': 'error',
+			'@convex-dev/no-duplicate-indexes': 'error'
 		}
 	},
 	{
