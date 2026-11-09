@@ -1,18 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { computeStepWindow, StepAnimator, AutoPlayController, DEFAULT_METRICS } from './core.js';
+import { computeStepWindow, StepAnimator, DEFAULT_METRICS } from './core.js';
+import stepperSource from './Stepper.svelte?raw';
 
 describe('computeStepWindow', () => {
 	it('does not window when every step fits', () => {
-		expect(computeStepWindow(4, 1, undefined, 'horizontal')).toEqual({
+		expect(computeStepWindow(4, 1, undefined)).toEqual({
 			windowStart: 0,
 			transformValue: 'none',
 			containerSize: undefined
 		});
-		expect(computeStepWindow(5, 1, 5, 'horizontal').transformValue).toBe('none');
+		expect(computeStepWindow(5, 1, 5).transformValue).toBe('none');
 	});
 
 	it('centres the active step once the count passes maxVisible', () => {
-		const { windowStart, transformValue } = computeStepWindow(20, 10, 5, 'horizontal');
+		const { windowStart, transformValue } = computeStepWindow(20, 10, 5);
 		expect(windowStart).toBe(8); // 10 - floor(5 / 2)
 		expect(transformValue).toBe(
 			`translateX(-${8 * (DEFAULT_METRICS.dotSize + DEFAULT_METRICS.gap)}px)`
@@ -20,19 +21,20 @@ describe('computeStepWindow', () => {
 	});
 
 	it('stops the window at both ends instead of scrolling past them', () => {
-		expect(computeStepWindow(20, 0, 5, 'horizontal').windowStart).toBe(0);
-		expect(computeStepWindow(20, 19, 5, 'horizontal').windowStart).toBe(15); // count - maxVisible
+		expect(computeStepWindow(20, 0, 5).windowStart).toBe(0);
+		expect(computeStepWindow(20, 19, 5).windowStart).toBe(15); // count - maxVisible
 	});
 
-	it('translates along Y when vertical', () => {
-		expect(computeStepWindow(20, 10, 5, 'vertical').transformValue).toMatch(/^translateY\(/);
+	it("measures with the same geometry the stepper's stylesheet draws", () => {
+		const px = (name) => Number(new RegExp(`--pill-${name}:\\s*(\\d+)px`).exec(stepperSource)?.[1]);
+		expect({ dotSize: px('dot-size'), activeWidth: px('active-width'), gap: px('gap') }).toEqual(
+			DEFAULT_METRICS
+		);
 	});
 
 	it('sizes the container to the dots, the pill and the gaps between them', () => {
 		const { dotSize, activeWidth, gap } = DEFAULT_METRICS;
-		expect(computeStepWindow(20, 0, 5, 'horizontal').containerSize).toBe(
-			4 * dotSize + activeWidth + 4 * gap
-		);
+		expect(computeStepWindow(20, 0, 5).containerSize).toBe(4 * dotSize + activeWidth + 4 * gap);
 	});
 });
 
@@ -104,19 +106,5 @@ describe('StepAnimator', () => {
 		const animator = new StepAnimator(2);
 		animator.getSteps().push({ key: 99, index: 99, phase: 'stable' });
 		expect(animator.getSteps()).toHaveLength(2);
-	});
-});
-
-describe('AutoPlayController', () => {
-	it('advances one step at a time', () => {
-		expect(new AutoPlayController().computeNext(0, 3)).toBe(1);
-	});
-
-	it('wraps at the end when looping', () => {
-		expect(new AutoPlayController({ loop: true }).computeNext(2, 3)).toBe(0);
-	});
-
-	it('runs out at the end when not looping', () => {
-		expect(new AutoPlayController({ loop: false }).computeNext(2, 3)).toBeNull();
 	});
 });
