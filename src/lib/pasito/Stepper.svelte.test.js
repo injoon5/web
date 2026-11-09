@@ -96,7 +96,7 @@ describe('Stepper count changes', () => {
 		expect(stepsIn(container)).toHaveLength(3);
 		expect(stepsIn(container)[2]).toHaveClass('pasito-exiting');
 
-		await vi.advanceTimersByTimeAsync(400);
+		await vi.runOnlyPendingTimersAsync();
 		expect(stepsIn(container)).toHaveLength(2);
 	});
 

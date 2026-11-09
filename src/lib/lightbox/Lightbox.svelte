@@ -69,7 +69,7 @@
 	// A dismissed photo has further to travel — it starts wherever the finger
 	// left it — so it gets a little longer to get there.
 	const FLIGHT_RETURN_MS = 300;
-	// Fallback for browsers without `linear()`. See `springEasing`.
+	// Fallback for browsers without `linear()`. See `springOr`.
 	const FLIGHT_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 	const LIGHTBOX_THEME_COLOR = '#0a0a0a';
 
@@ -573,7 +573,6 @@
 		hiddenOrigin = null;
 	}
 
-	/** The lightbox's own copy of the image currently on screen. */
 	function currentImgEl() {
 		return rootEl?.querySelector('.lb-img[data-current="true"]') ?? null;
 	}
@@ -788,7 +787,7 @@
 	 *
 	 * The window is the backdrop's, not the flight's: measured, the scrim is 55% in
 	 * by 33ms of an open and 88% gone by 67ms of a close, so the voice changes over
-	 * the first quarter going out and the first third coming home. White type left
+	 * the first 12% going out, and between 5% and 35% coming home. White type left
 	 * on a bright article is the whole failure mode here — its dark halo is all that
 	 * shows, and it reads as a grey smear following the photo home.
 	 *
@@ -999,7 +998,6 @@
 		({ x: panX, y: panY } = clampPanTo(currentFit, scale, availW, availH, panX, panY));
 	}
 
-	/** Re-anchor the pan so the point under the fingers/cursor stays put. */
 	function scaleAbout(nextScale, x, y, baseScale, basePanX, basePanY) {
 		({ x: panX, y: panY } = panAfterScale({
 			nextScale,
@@ -1014,10 +1012,6 @@
 		scale = nextScale;
 	}
 
-	/**
-	 * Zoom to `next` (clamped to 1–MAX_SCALE) about a point, from the current
-	 * zoom: back to 1 is a full reset, anything else keeps the point still.
-	 */
 	function zoomTo(next, x, y) {
 		next = Math.max(1, Math.min(MAX_SCALE, next));
 		if (next === 1) return resetZoom();
@@ -1122,8 +1116,7 @@
 			if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
 			// Sideways only means something when there is somewhere to go.
 			gesture = grouped && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-			// Take the lock threshold back out of the first frame, or the photo sits
-			// still for 8px and then jumps 8px. Measured now, not at pointerdown.
+			// The slop (see `slopX`) is measured now, not at pointerdown.
 			if (gesture === 'x') {
 				slopX = Math.sign(dx) * Math.min(Math.abs(dx), AXIS_LOCK);
 				carryX = pickUpTrack();
@@ -1336,9 +1329,7 @@
 		wheelRaw -= e.deltaX;
 		const page = winW || 1;
 		const atEnd = (wheelRaw > 0 && index === 0) || (wheelRaw < 0 && index === count - 1);
-		// One page is all a settle can honour, and at the ends there is not even
-		// that. Momentum carries far past either, and the strip was sliding several
-		// images by and taking them back. See `clampTravel`.
+		// See `clampTravel`: one page mid-group, none at the ends.
 		dragX = clampTravel(wheelRaw, atEnd ? 0 : page, page * WHEEL_GIVE, RUBBER);
 		clearTimeout(wheelTimer);
 		wheelTimer = setTimeout(settleWheel, WHEEL_IDLE_MS);
@@ -1454,7 +1445,8 @@
 		}`
 	);
 
-	// Only the flat scrim's alpha follows the drag. See the note on `.lb-blur`.
+	// Only the flat scrim's alpha follows the drag; the blur holds. See the note
+	// on the two backdrop layers in the markup.
 	const scrimOpacity = $derived(leaving ? 0 : 1 - dismissProgress * 0.8);
 	// The exit is held off the chrome while a caption is flying home inside it —
 	// the pieces take it themselves, so the caption stays legible until it lands
@@ -2149,7 +2141,6 @@
 	.lb-steps :global(.lb-stepper) {
 		--pill-bg: rgba(255, 255, 255, 0.28);
 		--pill-active-bg: rgba(255, 255, 255, 0.95);
-		--pill-fill-bg: rgba(255, 255, 255, 0.35);
 		--pill-container-bg: rgba(0, 0, 0, 0.55);
 		--pill-container-border: rgba(255, 255, 255, 0.12);
 		--pill-focus-ring: rgba(255, 255, 255, 0.65);

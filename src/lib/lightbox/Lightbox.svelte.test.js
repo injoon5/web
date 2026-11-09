@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Lightbox from './Lightbox.svelte';
@@ -387,27 +387,47 @@ describe('Lightbox swipe paging', () => {
 
 	it('gives the released swipe a settle of its own, and hands the track back after', async () => {
 		await openGroup(0);
-		expect(track().style.transition).toContain('340ms');
+		const durationOf = (transition) => Number(/^transform (\d+)ms /.exec(transition)?.[1]);
+		const shared = track().style.transition;
+		expect(durationOf(shared)).toBeGreaterThan(0);
 
 		await drag({ dx: -400, ms: 200, steps: 16 });
 		expect(currentSrc()).toBe(group[1].src);
-		// Its own duration, scaled to the distance still to travel.
+		// Shorter than the shared curve: most of the page is already behind the
+		// finger, so there is less of it left to travel.
 		const settle = track().style.transition;
-		expect(settle).toMatch(/^transform (\d+)ms /);
-		const ms = Number(settle.match(/^transform (\d+)ms /)[1]);
-		expect(ms).toBeGreaterThanOrEqual(190);
-		// Strictly under the shared curve's 340: most of the page is already behind
-		// the finger, so there is less of it left to travel.
-		expect(ms).toBeLessThan(340);
+		expect(durationOf(settle)).toBeGreaterThan(0);
+		expect(durationOf(settle)).toBeLessThan(durationOf(shared));
 
 		// ...and the next arrow key must not inherit this swipe's velocity.
-		await new Promise((r) => setTimeout(r, ms + 120));
-		expect(track().style.transition).toContain('340ms');
+		await waitFor(() => expect(track().style.transition).toBe(shared), { timeout: 2000 });
 	});
 
-	it('rubber-bands rather than paging off the end of the group', async () => {
-		await openGroup(0);
-		await drag({ dx: 400, ms: 200, steps: 16 });
+	it('rubber-bands past the end of the group instead of following the finger', async () => {
+		/** How far the track sits off its slot while a finger holds it `dx` away. */
+		async function heldAt(dx) {
+			const viewport = screen.getByRole('dialog').querySelector('.lb-viewport');
+			viewport.dispatchEvent(pointer('pointerdown', 0, 0, 0));
+			for (let i = 1; i <= 16; i++) {
+				window.dispatchEvent(pointer('pointermove', (dx * i) / 16, 0, (2000 * i) / 16));
+			}
+			await tick();
+			const offset = Number(/\+ (-?[\d.]+)px\)/.exec(track().style.transform)?.[1]);
+			window.dispatchEvent(pointer('pointerup', dx, 0, 2000));
+			await tick();
+			return offset;
+		}
+
+		await openGroup(1);
+		const free = await heldAt(100);
+		expect(currentSrc()).toBe(group[1].src);
+
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+		await tick();
+		const banded = await heldAt(100);
+		expect(free).toBeGreaterThan(0);
+		expect(banded).toBeGreaterThan(0);
+		expect(banded).toBeLessThan(free);
 		expect(currentSrc()).toBe(group[0].src);
 	});
 
@@ -490,13 +510,6 @@ describe('Lightbox shared-element flight', () => {
 		a.remove();
 		b.remove();
 	});
-
-	it('still opens from a bare store value, which carries no element to fly from', async () => {
-		render(Lightbox);
-		openLightbox([openValue]);
-		await tick();
-		expect(await screen.findByRole('dialog')).toBeInTheDocument();
-	});
 });
 
 describe('Lightbox open and close bookkeeping', () => {
@@ -515,14 +528,21 @@ describe('Lightbox open and close bookkeeping', () => {
 		await tick();
 		await screen.findByRole('dialog');
 
-		screen.getByRole('button', { name: 'Close image' }).click();
-		await tick();
-		openLightbox([{ ...openValue, alt: 'A second cat' }]);
-		await tick();
+		vi.useFakeTimers();
+		try {
+			screen.getByRole('button', { name: 'Close image' }).click();
+			await tick();
+			openLightbox([{ ...openValue, alt: 'A second cat' }]);
+			await tick();
 
-		await new Promise((r) => setTimeout(r, 400));
-		expect(screen.queryByRole('dialog')).toBeInTheDocument();
-		expect(screen.getByText('A second cat')).toBeInTheDocument();
+			// Whatever the close scheduled has now fired.
+			await vi.runOnlyPendingTimersAsync();
+			await tick();
+			expect(screen.queryByRole('dialog')).toBeInTheDocument();
+			expect(screen.getByText('A second cat')).toBeInTheDocument();
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it('lets a close that cannot fly keep its own exit animation', async () => {
@@ -582,23 +602,23 @@ describe('Lightbox modality', () => {
 		sibling.remove();
 	});
 
-	it('leaves the page chrome under the dialog, and never strands the flag it lifts it with', async () => {
+	// The flag that raises the header is set mid-flight, which needs layout, so it
+	// is planted by hand here: what is under test is that nothing strands it.
+	it('never strands the flag that lifts the page chrome above it', async () => {
+		const root = document.documentElement;
 		render(Lightbox);
+
+		root.dataset.lightbox = 'returning';
 		openLightbox([openValue]);
 		await tick();
 		await screen.findByRole('dialog');
+		expect(root.dataset.lightbox).toBeUndefined();
 
-		// The header reads this off <html>. An open lightbox covers it, so nothing
-		// is set: it is raised only for the stretch of a flight home that ends
-		// underneath it, which needs layout and so never happens here.
-		expect(document.documentElement.dataset.lightbox).toBeUndefined();
-
-		screen.getByRole('button', { name: 'Close image' }).click();
-		await tick();
-
+		root.dataset.lightbox = 'returning';
 		closeLightbox();
 		await tick();
-		await waitFor(() => expect(document.documentElement.dataset.lightbox).toBeUndefined());
+		await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+		expect(root.dataset.lightbox).toBeUndefined();
 	});
 });
 

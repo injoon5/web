@@ -10,9 +10,8 @@
 	import { computeStepWindow, StepAnimator } from './core.js';
 
 	let {
-		/** Total number of steps. */
 		count,
-		/** Zero-based active step index. */
+		/** Zero-based. */
 		active,
 		/** Called with the index of a clicked step. Omit for a read-only stepper. */
 		onStepClick = undefined,
@@ -20,7 +19,6 @@
 		maxVisible = undefined,
 		/** Extra class, for `--pill-*` overrides. */
 		class: className = '',
-		/** Accessible name for the stepper as a whole. */
 		label = 'Progress steps',
 		/**
 		 * Upstream is always a `tablist` of `tab`s. A stepper that isn't picking
@@ -29,7 +27,7 @@
 		 */
 		containerRole = 'tablist',
 		stepRole = 'tab',
-		/** Accessible name for one step. @type {(index: number, count: number) => string} */
+		/** @type {(index: number, count: number) => string} */
 		stepLabel = (index) => `Step ${index + 1}`
 	} = $props();
 
