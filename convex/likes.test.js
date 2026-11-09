@@ -1,9 +1,8 @@
 /**
  * Likes.
  *
- * `setLike` now reports the state it just wrote instead of re-reading it, and
- * moves the denormalized counter once per call rather than once per row
- * touched. Both halves are checked against the `likes` table itself, and under
+ * `setLike` reports the state it just wrote, and moves the denormalized counter
+ * once per call rather than once per row touched. Both halves are checked against the `likes` table itself, and under
  * both read regimes: before the backfill flag is set the count is derived from
  * the rows, after it the counter row is authoritative, and the two must not be
  * allowed to disagree.
@@ -48,7 +47,7 @@ async function rowCount(t) {
 }
 
 describe('setLike', () => {
-	it('records a like and reports it without re-reading', async () => {
+	it('records a like and reports the new state', async () => {
 		const t = setup();
 
 		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
@@ -105,19 +104,6 @@ describe('setLike', () => {
 		expect(await storedCount(t)).toBe(1);
 	});
 
-	it('serves the denormalized counter once the backfill is marked done', async () => {
-		const t = setup();
-		await completeBackfill(t);
-
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: 'a', liked: true });
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: 'b', liked: true });
-
-		// Same answer either way — which is the point of keeping them in step.
-		expect(result.count).toBe(2);
-		expect(await rowCount(t)).toBe(2);
-		expect(await storedCount(t)).toBe(2);
-	});
-
 	it('rejects a banned IP', async () => {
 		const t = setup();
 		await t.run(async (ctx) => {
@@ -145,6 +131,21 @@ describe('get', () => {
 			count: 2,
 			liked: true
 		});
+	});
+
+	it('counts the rows until the backfill is marked done, then trusts the counter', async () => {
+		const t = setup();
+		// A counter that disagrees with the rows, so the two regimes are told apart.
+		await t.run(async (ctx) => {
+			await ctx.db.insert('likes', { url: URL, ipHash: 'a' });
+			await ctx.db.insert('likes', { url: URL, ipHash: 'b' });
+			await ctx.db.insert('likeCounts', { url: URL, count: 5 });
+		});
+
+		expect((await t.query(api.likes.get, { url: URL, ipHash: IP })).count).toBe(2);
+
+		await completeBackfill(t);
+		expect((await t.query(api.likes.get, { url: URL, ipHash: IP })).count).toBe(5);
 	});
 });
 

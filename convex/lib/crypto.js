@@ -7,7 +7,6 @@ function hex(buffer) {
 	return Array.from(new Uint8Array(buffer), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** HMAC-SHA256 of `message` under `key`, as lowercase hex. */
 export async function hmacHex(key, message) {
 	const cryptoKey = await crypto.subtle.importKey(
 		'raw',
@@ -19,7 +18,6 @@ export async function hmacHex(key, message) {
 	return hex(await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message)));
 }
 
-/** SHA-256 of `text`, as lowercase hex. */
 export async function sha256Hex(text) {
 	return hex(await crypto.subtle.digest('SHA-256', encoder.encode(text)));
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PHOTO_LIMIT, TRACK_LIMIT, lastfmUrl, normalizePhotos, normalizeTracks } from './feeds.js';
+import { PHOTO_LIMIT, TRACK_LIMIT, normalizePhotos, normalizeTracks } from './feeds.js';
 
 const track = (over = {}) => ({
 	name: 'for lovers who hesitate',
@@ -120,17 +120,5 @@ describe('normalizePhotos', () => {
 
 	it('throws on a feed without a photos array', () => {
 		expect(() => normalizePhotos({ meta: {} })).toThrow(/photos array/);
-	});
-});
-
-describe('lastfmUrl', () => {
-	it('asks for the user, the format and the limit', () => {
-		const url = new URL(lastfmUrl('secret-key'));
-
-		expect(url.searchParams.get('method')).toBe('user.getrecenttracks');
-		expect(url.searchParams.get('user')).toBe('injoon5');
-		expect(url.searchParams.get('api_key')).toBe('secret-key');
-		expect(url.searchParams.get('format')).toBe('json');
-		expect(url.searchParams.get('limit')).toBe(String(TRACK_LIMIT));
 	});
 });

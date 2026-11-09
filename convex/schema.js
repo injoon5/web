@@ -13,7 +13,6 @@ export const feedTrack = v.object({
 	playedAt: v.union(v.number(), v.null()) // null while the track is playing
 });
 
-/** One photo of the Photos feed. */
 export const feedPhoto = v.object({
 	id: v.string(),
 	title: v.string(),
@@ -110,9 +109,6 @@ export default defineSchema({
 		reason: v.union(v.string(), v.null())
 	}).index('by_ip', ['ipHash']),
 
-	// ---------------------------------------------------------------------------
-	// Admin sessions
-	//
 	// The dashboard subscribes to the admin queries over the websocket, so the
 	// browser needs a credential of its own — ADMIN_SECRET is the master key and
 	// never leaves the server. A row is the SHA-256 of the `admin_token` cookie
@@ -123,7 +119,6 @@ export default defineSchema({
 	// `expiresAt > Date.now()` check inside one would keep streaming from a
 	// cached result past the deadline. Deleting the row invalidates every query
 	// that read it, which is exactly what revocation has to do.
-	// ---------------------------------------------------------------------------
 	adminSessions: defineTable({
 		tokenHash: v.string(),
 		expiresAt: v.number()
@@ -134,14 +129,9 @@ export default defineSchema({
 		updatedAt: v.number()
 	}),
 
-	// ---------------------------------------------------------------------------
-	// Home-page feeds
-	//
-	// One row each, overwritten by the 5-minute cron. Normalized down to what the
+	// Home-page feeds: one row each, overwritten by the 5-minute cron. Normalized down to what the
 	// page renders (see convex/lib/feeds.js) — the upstream payloads carry four
 	// image sizes, EXIF and mbids the home page never touches.
-	// ---------------------------------------------------------------------------
-
 	nowPlaying: defineTable({
 		tracks: v.array(feedTrack),
 		updatedAt: v.number()
@@ -152,14 +142,9 @@ export default defineSchema({
 		updatedAt: v.number()
 	}),
 
-	// ---------------------------------------------------------------------------
-	// Apple Health
-	//
-	// Three tiers of the same data, so a read touches about as many rows as the
+	// Apple Health: three tiers of the same data, so a read touches about as many rows as the
 	// chart plots points: day rollups for multi-day charts, hour buckets for
 	// intraday, raw samples only for export/debug (pruned at 30 days).
-	// ---------------------------------------------------------------------------
-
 	// One row per (metric, date). The hourly Shortcut re-sends the whole day, so
 	// this is upserted rather than appended.
 	healthDaily: defineTable({

@@ -137,13 +137,14 @@ describe('list', () => {
 
 	it('pages through threads ranked by score, keeping replies with their root', async () => {
 		const t = setup();
-		const lowRoot = await t.mutation(api.comments.create, newComment({ text: 'low root' }));
-		await t.mutation(api.comments.create, newComment({ text: 'low reply', parentId: lowRoot.id }));
+		// The higher-scored thread is the older one, so a newest-first order fails.
 		const highRoot = await t.mutation(api.comments.create, newComment({ text: 'high root' }));
 		await t.mutation(
 			api.comments.create,
 			newComment({ text: 'high reply', parentId: highRoot.id })
 		);
+		const lowRoot = await t.mutation(api.comments.create, newComment({ text: 'low root' }));
+		await t.mutation(api.comments.create, newComment({ text: 'low reply', parentId: lowRoot.id }));
 
 		// Seed what the score backfill writes: a ranked `score` per root plus the
 		// completion flag, so `list` reads the ranked index instead of the fallback.
@@ -173,8 +174,9 @@ describe('list', () => {
 
 	it('falls back to a bounded whole-page rank before the score backfill runs', async () => {
 		const t = setup();
-		const low = await t.mutation(api.comments.create, newComment({ text: 'low' }));
+		// Older but higher-scored, so a newest-first order fails.
 		const high = await t.mutation(api.comments.create, newComment({ text: 'high' }));
+		const low = await t.mutation(api.comments.create, newComment({ text: 'low' }));
 
 		// Legacy rows carry vote counts but no `score`, and no completion flag.
 		await t.run(async (ctx) => {

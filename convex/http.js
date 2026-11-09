@@ -1,8 +1,6 @@
 /**
- * The only public surface for health data.
- *
  * Everything in `convex/health.js` is internal, so this key-checking action is
- * the single door in. It also owns all the parsing: Shortcuts sends loosely
+ * the door in (`convex/healthPublic.js` serves only what /health renders). It also owns all the parsing: Shortcuts sends loosely
  * typed dictionaries (numbers as strings, timestamps as ISO text), and the
  * mutation should receive values that are already clean.
  *
@@ -52,10 +50,6 @@ const DEFAULT_WORKOUT_LIMIT = 50;
 
 class BadRequest extends Error {}
 
-// ---------------------------------------------------------------------------
-// Auth + response helpers
-// ---------------------------------------------------------------------------
-
 async function authorized(request) {
 	const header = request.headers.get('authorization') ?? '';
 	const match = header.match(/^Bearer\s+(.+)$/i);
@@ -74,7 +68,6 @@ function json(body, { status = 200, cache } = {}) {
 	return new Response(JSON.stringify(body), { status, headers });
 }
 
-/** Wrap a handler with bearer auth and BadRequest -> 400 mapping. */
 function guarded(handler) {
 	return httpAction(async (ctx, request) => {
 		if (!(await authorized(request))) {
@@ -88,10 +81,6 @@ function guarded(handler) {
 		}
 	});
 }
-
-// ---------------------------------------------------------------------------
-// Parsing
-// ---------------------------------------------------------------------------
 
 /**
  * Digits grouped the way Calculate Statistics formats them: `8,421`, `1,234.5`.
@@ -237,10 +226,6 @@ function parseWorkouts(raw, defaultSource) {
 	});
 }
 
-// ---------------------------------------------------------------------------
-// Bounds
-// ---------------------------------------------------------------------------
-
 /**
  * The last day a series covers.
  *
@@ -252,10 +237,6 @@ function parseWorkouts(raw, defaultSource) {
 function windowEndDate(now) {
 	return dateKey(now + DAY_MS);
 }
-
-// ---------------------------------------------------------------------------
-// Routes
-// ---------------------------------------------------------------------------
 
 const ingest = guarded(async (ctx, request) => {
 	let body;

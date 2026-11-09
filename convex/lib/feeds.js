@@ -5,7 +5,6 @@
  * carry `#text`/`@attr` keys the schema should not hold.
  */
 
-/** Last.fm account the recent-tracks feed is read for. */
 const LASTFM_USER = 'injoon5';
 
 /** The marquee loops 20 covers; the grid shows 6 of the 8 kept. */
@@ -14,13 +13,13 @@ export const PHOTO_LIMIT = 8;
 
 export const PHOTOS_FEED_URL = 'https://photos.injoon5.com/feed.json';
 
-/** @param {string} apiKey */
 /** Artists whose Last.fm name is not how they write it. */
 const ARTIST_NAMES = { Lany: 'LANY' };
 
 /** @param {string} name */
 const displayArtist = (name) => ARTIST_NAMES[name] ?? name;
 
+/** @param {string} apiKey */
 export function lastfmUrl(apiKey) {
 	const params = new URLSearchParams({
 		method: 'user.getrecenttracks',

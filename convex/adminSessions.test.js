@@ -64,14 +64,15 @@ describe('adminSessions.ensure', () => {
 		await register(t);
 		const [first] = await sessionRows(t);
 
+		// A later load asks for a later expiry, so a patch would show in the row.
+		vi.advanceTimersByTime(60 * 1000);
 		await register(t);
 		const rows = await sessionRows(t);
 
 		expect(rows).toHaveLength(1);
 		// A rewrite would bump `_creationTime` (insert) or invalidate every
 		// dashboard subscription reading this row (patch). Neither happened.
-		expect(rows[0]._id).toBe(first._id);
-		expect(rows[0]._creationTime).toBe(first._creationTime);
+		expect(rows[0]).toEqual(first);
 	});
 
 	it('does not register an already-expired token', async () => {

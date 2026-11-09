@@ -91,7 +91,6 @@ export function dateKeyToMs(date) {
 	return Date.parse(`${date}T00:00:00.000Z`);
 }
 
-/** Shift a `YYYY-MM-DD` key by whole days. */
 export function shiftDateKey(date, days) {
 	return dateKey(dateKeyToMs(date) + days * DAY_MS);
 }
@@ -156,7 +155,6 @@ export function foldSamples(existingTimes, incoming) {
 	return { inserts, delta: { count: inserts.length, sum, min, max } };
 }
 
-/** Merge a bucket delta into an existing bucket row (or into nothing, for a new one). */
 export function applyBucketDelta(existing, delta) {
 	if (!existing) return { ...delta };
 	return {
@@ -255,12 +253,6 @@ export function buildDailySeries({ metric, unit, rows, startDate, days, maxPoint
 	};
 }
 
-/**
- * Newest write across a set of series, or null when none of them holds one.
- *
- * Shared by the public query and the SSR load so "Updated 3 hours ago" means the
- * same thing whichever path rendered the page.
- */
 export function latestSeriesUpdate(series) {
 	let newest = null;
 	for (const one of series) {

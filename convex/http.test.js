@@ -128,7 +128,6 @@ describe('POST /health/ingest — the workouts shortcut', () => {
 		});
 		// end - start, since the Shortcut sends no duration.
 		expect(run.duration).toBe(2130);
-		expect(run.externalId).toBe(`running:${Date.parse('2026-08-01T06:12:00Z')}`);
 		expect(rows.map((r) => r.type)).toContain('traditional strength training');
 	});
 

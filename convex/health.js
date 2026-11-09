@@ -1,6 +1,4 @@
 /**
- * Apple Health storage and reads.
- *
  * Every function here is internal. There is no `ctx.auth` identity for this data
  * and a query can't see an HTTP header, so a public `dailySeries` taking an
  * arbitrary metric would serve body fat to anyone holding the deployment URL.
@@ -37,10 +35,6 @@ import {
 
 const SAMPLE_RETENTION_DAYS = 30;
 const PRUNE_BATCH = 200;
-
-// ---------------------------------------------------------------------------
-// Write
-// ---------------------------------------------------------------------------
 
 const metricInput = v.object({
 	metric: v.string(),
@@ -128,8 +122,6 @@ export const ingest = internalMutation({
 });
 
 /**
- * Insert raw samples and fold them into their hour buckets.
- *
  * Grouped by (metric, hour) so each hour costs one range read; the samples
  * already in that hour are the dedupe set, and only genuinely new samples reach
  * the bucket. A sample counted into a bucket sum twice can never be backed out,
@@ -204,13 +196,9 @@ async function appendSamples(ctx, samples, result) {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// Read
-//
 // Thin registrations over `lib/healthReads.js`, one metric per query: each gets
 // its own read budget, and the Convex query cache keys on the arguments, so a
 // shared range picker across metrics reuses cached reads.
-// ---------------------------------------------------------------------------
 
 export const dailySeries = internalQuery({
 	args: {
@@ -261,12 +249,8 @@ export const samples = internalQuery({
 	handler: (ctx, args) => readSamples(ctx, args)
 });
 
-// ---------------------------------------------------------------------------
-// Retention
-// ---------------------------------------------------------------------------
-
 /**
- * Drop raw samples older than the retention window. The hour buckets they were
+ * The hour buckets they were
  * folded into stay, so intraday history survives; only the export/debug tier is
  * pruned. Batched with a self-reschedule to stay inside one transaction's write
  * budget.

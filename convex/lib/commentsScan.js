@@ -1,11 +1,5 @@
-/**
- * Shared pagination over the comments table (admin scans, backfills).
- */
-
-/** Invoke `onBatch` for each page of comments. Returns last pagination result. */
 async function paginateCommentBatches(ctx, { pageSize, onBatch }) {
 	let cursor = null;
-	// Assigned on the first pass of the do-while below, so it is never read unset.
 	let lastBatch;
 
 	do {
@@ -20,7 +14,6 @@ async function paginateCommentBatches(ctx, { pageSize, onBatch }) {
 	return lastBatch;
 }
 
-/** Count active (non-hard-deleted) comments grouped by page URL. */
 export async function countActiveCommentsByUrl(ctx, pageSize = 500) {
 	const counts = new Map();
 

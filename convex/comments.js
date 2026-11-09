@@ -29,7 +29,6 @@ import {
 // Bounds the legacy rank fallback below, before the score backfill has run.
 const MAX_LEGACY_COMMENTS = 200;
 
-/** Throws `BadRequest` unless `text` (trimmed) may be a comment; returns it trimmed. */
 function validText(text) {
 	const trimmed = text.trim();
 	const problem = commentTextError(trimmed);
@@ -93,10 +92,6 @@ async function threadFromRoot(ctx, root) {
 	return docs;
 }
 
-/**
- * Serialize a whole thread from its root into public comment shapes, in tree
- * order (root, then its replies, then theirs).
- */
 async function serializeThread(ctx, root, myVotes) {
 	const docs = await threadFromRoot(ctx, root);
 	return Promise.all(
@@ -291,7 +286,6 @@ export const softDelete = internalMutation({
 	handler: async (ctx, { commentId }) => softDeleteComment(ctx, commentId)
 });
 
-/** The admin's soft delete: the same change, behind the admin secret instead of a password. */
 export const adminSoftDelete = mutation({
 	args: { commentId: v.id('comments'), adminSecret: v.string() },
 	handler: async (ctx, { commentId, adminSecret }) => {
@@ -306,9 +300,6 @@ export const adminSoftDelete = mutation({
 const HARD_DELETE_BATCH = 200;
 
 /**
- * Hard-delete up to HARD_DELETE_BATCH still-active comments reachable from
- * `frontier` (votes removed, url counts decremented, deletedAt set).
- *
  * The continuation resumes from the nodes this walk did not reach, rather than
  * restarting at the root. Restarting re-issued a `by_parent` query for every
  * node already retired by an earlier batch, so the reads to delete a subtree

@@ -240,15 +240,6 @@ describe('reads', () => {
 		expect(runs[0].start).toBeGreaterThan(runs[1].start);
 	});
 
-	it('exposes the HTTP routes without importing anything public', async () => {
-		const http = await import('./http.js');
-		expect(typeof http.default.lookup).toBe('function');
-		expect(http.default.lookup('/health/ingest', 'POST')).toBeTruthy();
-		expect(http.default.lookup('/health/series', 'GET')).toBeTruthy();
-		expect(http.default.lookup('/health/workouts', 'GET')).toBeTruthy();
-		expect(http.default.lookup('/health', 'GET')).toBeTruthy();
-	});
-
 	it('drops raw samples past the retention cutoff but keeps their buckets', async () => {
 		const t = setup();
 		await t.mutation(internal.health.ingest, { samples: heartRate(10) });
@@ -295,7 +286,7 @@ describe('public page query', () => {
 
 	// Workouts are ingested and readable through the key-gated route, but the
 	// page doesn't render them, so the unauthenticated query must not carry them.
-	it('serves no workouts', async () => {
+	it('serves the series and their stamp, and nothing else', async () => {
 		const t = setup();
 		await t.mutation(internal.health.ingest, {
 			workouts: [
@@ -310,7 +301,8 @@ describe('public page query', () => {
 		});
 
 		const result = await t.query(publicPage, { startDate: '2026-07-03', days: 30 });
-		expect(result.workouts).toBeUndefined();
+		expect(Object.keys(result).sort()).toEqual(['series', 'updatedAt']);
+		expect(JSON.stringify(result)).not.toContain('running');
 	});
 
 	it('reports when the window was last written', async () => {

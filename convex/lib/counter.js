@@ -50,8 +50,7 @@ export async function adjustCount(ctx, table, url, delta) {
 
 /**
  * Apply a whole batch of counted URLs at once — one read-modify-write per
- * distinct URL rather than per row. Hard-deleting a thread retires up to 200
- * comments that all share one URL.
+ * distinct URL rather than per row.
  *
  * @param {Map<string, number>} deltas  url -> signed change
  */

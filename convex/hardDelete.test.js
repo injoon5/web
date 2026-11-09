@@ -86,14 +86,29 @@ describe('hardDelete', () => {
 		expect(await urlCount(t)).toBe(0);
 	});
 
-	it('finishes a subtree larger than one batch via the continuation', async () => {
+	it('finishes a wide, deep subtree that has to span several batches', async () => {
 		const t = setup();
-		// 260 comments — past the 200 cap, so the walk has to hand off a frontier.
-		const root = await seedThread(t, 259);
+		// 631 comments over three levels: whatever the batch size, a continuation
+		// has to resume somewhere in the middle of a level and still reach the rest.
+		const root = await t.run(async (ctx) => {
+			const root = await ctx.db.insert('comments', commentFields({ text: 'root' }));
+			for (let i = 0; i < 30; i++) {
+				const child = await ctx.db.insert(
+					'comments',
+					commentFields({ parentId: root, depth: 1, text: `c${i}` })
+				);
+				for (let j = 0; j < 20; j++) {
+					await ctx.db.insert(
+						'comments',
+						commentFields({ parentId: child, depth: 2, text: `c${i}.${j}` })
+					);
+				}
+			}
+			await ctx.db.insert('commentUrlCounts', { url: URL, count: 631 });
+			return root;
+		});
 
 		await t.mutation(api.comments.hardDelete, { commentId: root, adminSecret: TEST_ADMIN_SECRET });
-		expect(await activeCount(t)).toBeGreaterThan(0); // first batch only
-
 		await t.finishAllScheduledFunctions(vi.runAllTimers);
 
 		expect(await activeCount(t)).toBe(0);
