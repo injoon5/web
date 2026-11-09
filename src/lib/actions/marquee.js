@@ -52,9 +52,9 @@ export function marqueePauseWhenOffscreen(node) {
 export function marqueeConstantSpeed(node) {
 	const PX_PER_SECOND = 40;
 
-	// Read rather than hard-coded, so the tuning panel can move it by setting
-	// `--marquee-speed` on the track. Unset — every production build — this is
-	// the same 40 it always was.
+	// Read rather than hard-coded, so the tuning panel can move it: the home page
+	// always sets `--marquee-speed` on the track (from `HOME_DEFAULTS`, 40), and
+	// the fallback only covers a track rendered without it.
 	function speed() {
 		const declared = Number(getComputedStyle(node).getPropertyValue('--marquee-speed'));
 		return Number.isFinite(declared) && declared > 0 ? declared : PX_PER_SECOND;

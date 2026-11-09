@@ -31,20 +31,17 @@
 
 	let mode = $state(null); // 'edit' | 'reply' | 'delete' | null
 
-	// Edit form state
 	let editText = $state('');
 	let editPassword = $state('');
 	let editError = $state('');
 	let editSubmitting = $state(false);
 
-	// Reply form state
 	let replyText = $state('');
 	let replyUsername = $state('');
 	let replyPassword = $state('');
 	let replyError = $state('');
 	let replySubmitting = $state(false);
 
-	// Delete form state
 	let deletePassword = $state('');
 	let deleteError = $state('');
 	let deleteSubmitting = $state(false);
@@ -198,7 +195,6 @@
 				? 'border border-dashed border-neutral-300/80 bg-transparent dark:border-neutral-700/80'
 				: 'border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900'}"
 		>
-			<!-- Header: username + vote/edit/delete -->
 			<div class="flex flex-row items-center justify-between gap-2">
 				<p
 					class="leading-none font-semibold {isDeleted
@@ -278,7 +274,6 @@
 				</div>
 			</div>
 
-			<!-- Body or edit form -->
 			{#if mode === 'edit' && !isDeleted}
 				<div class="mt-2">
 					<textarea
@@ -321,7 +316,6 @@
 				<p class="mt-1 font-medium break-words">{comment.text}</p>
 			{/if}
 
-			<!-- Delete confirm -->
 			{#if mode === 'delete' && !isDeleted}
 				<div
 					class="mt-3 space-y-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/20"
@@ -358,7 +352,6 @@
 				</div>
 			{/if}
 
-			<!-- Timestamp -->
 			<p class="tabular mt-1 text-sm font-medium text-neutral-500">
 				{new Date(comment.createdAt).toLocaleString()}
 				{#if comment.updatedAt && comment.updatedAt !== comment.createdAt}
@@ -366,7 +359,6 @@
 				{/if}
 			</p>
 
-			<!-- Admin reply -->
 			{#if comment.reply}
 				<div class="mt-4 rounded-lg bg-neutral-200 p-4 dark:bg-neutral-800">
 					<p class="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Admin Reply:</p>
@@ -374,7 +366,6 @@
 				</div>
 			{/if}
 
-			<!-- Reply form / reply button -->
 			{#if mode === 'reply'}
 				<div class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700">
 					<input

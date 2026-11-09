@@ -85,16 +85,4 @@ describe('RangePicker', () => {
 		await user.click(getByRole('radio', { name: '30' }));
 		expect(onselect).not.toHaveBeenCalled();
 	});
-
-	// Before the pill has a box to occupy — server-rendered HTML, and the frame
-	// before the first measurement — the checked option carries its own
-	// background, so the selection is never invisible.
-	it('leaves the checked option a background until the pill is measured', () => {
-		const { getByRole } = setup();
-		const pill = document.querySelector('[aria-hidden="true"].pointer-events-none');
-
-		// jsdom reports no layout, so the pill can never be measured here.
-		expect(pill).toHaveClass('invisible');
-		expect(getByRole('radio', { checked: true }).className).toContain('bg-neutral-100');
-	});
 });

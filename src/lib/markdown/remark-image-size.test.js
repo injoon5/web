@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
+import { mdsvexTree } from './mdsvex-tree.js';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -9,11 +8,8 @@ import { remarkGallery } from './remark-gallery.js';
 
 const ROOT = 'static';
 
-function run(markdown, plugins = [[remarkImageSize, { root: ROOT }]]) {
-	let processor = unified().use(remarkParse);
-	for (const plugin of plugins) processor = processor.use(...[].concat(plugin));
-	return processor.runSync(processor.parse(markdown));
-}
+const run = (markdown, plugins = [[remarkImageSize, { root: ROOT }]]) =>
+	mdsvexTree(markdown, plugins);
 
 /** Every image node in the tree, in order. */
 function images(node, out = []) {
@@ -23,8 +19,8 @@ function images(node, out = []) {
 }
 
 describe('remarkImageSize', () => {
-	it('stamps the file size, and the attributes the placeholder needs', () => {
-		const tree = run('![A shot](/images/uploads/SCR-20240820-sod.png)\n');
+	it('stamps the file size, and the attributes the placeholder needs', async () => {
+		const tree = await run('![A shot](/images/uploads/SCR-20240820-sod.png)\n');
 		const props = images(tree)[0].data.hProperties;
 		expect(props.width).toBeGreaterThan(0);
 		expect(props.height).toBeGreaterThan(0);
@@ -35,35 +31,35 @@ describe('remarkImageSize', () => {
 
 	// The whole point: the box has to be the one the photo ends up in, and that
 	// is the rotated one for a photo out of a phone.
-	it('reports the displayed size of an Exif-rotated photo', () => {
-		const tree = run('![Portrait](/images/uploads/us-camp/IMG_8855.jpeg)\n');
+	it('reports the displayed size of an Exif-rotated photo', async () => {
+		const tree = await run('![Portrait](/images/uploads/us-camp/IMG_8855.jpeg)\n');
 		const { width, height } = images(tree)[0].data.hProperties;
 		expect({ width, height }).toEqual({ width: 1512, height: 2016 });
 	});
 
-	it('leaves a remote image alone — it cannot measure a file it does not have', () => {
-		const tree = run('![Remote](https://example.com/a.png)\n');
+	it('leaves a remote image alone — it cannot measure a file it does not have', async () => {
+		const tree = await run('![Remote](https://example.com/a.png)\n');
 		expect(images(tree)[0].data?.hProperties).toBeUndefined();
 	});
 
-	it('leaves an image that is not there alone rather than guessing a box', () => {
-		const tree = run('![Missing](/images/uploads/nope-not-here.png)\n');
+	it('leaves an image that is not there alone rather than guessing a box', async () => {
+		const tree = await run('![Missing](/images/uploads/nope-not-here.png)\n');
 		expect(images(tree)[0].data?.hProperties).toBeUndefined();
 	});
 
 	// `..` in a URL would otherwise read files from outside the served directory.
-	it('refuses to climb out of the static directory', () => {
-		const tree = run('![Escape](/../package.json)\n');
+	it('refuses to climb out of the static directory', async () => {
+		const tree = await run('![Escape](/../package.json)\n');
 		expect(images(tree)[0].data?.hProperties).toBeUndefined();
 	});
 
-	it('measures an image inside a link, or a list, or a caption', () => {
-		const tree = run('- [![Nested](/images/uploads/SCR-20240820-sod.png)](/somewhere)\n');
+	it('measures an image inside a link, or a list, or a caption', async () => {
+		const tree = await run('- [![Nested](/images/uploads/SCR-20240820-sod.png)](/somewhere)\n');
 		expect(images(tree)[0].data.hProperties.width).toBeGreaterThan(0);
 	});
 
-	it('hands the size to the gallery, which puts it on the slide', () => {
-		const tree = run(
+	it('hands the size to the gallery, which puts it on the slide', async () => {
+		const tree = await run(
 			'![One](/images/uploads/SCR-20240820-sod.png)\n![Two](/images/uploads/SCR-20240820-dos.png)\n',
 			[[remarkImageSize, { root: ROOT }], remarkGallery]
 		);
@@ -80,7 +76,7 @@ describe('remarkImageSize', () => {
 });
 
 describe('sizeOfLocalImage', () => {
-	it('reads past the head when a JPEG frame header sits deep in the file', () => {
+	it('reads past the head when a JPEG frame header sits deep in the file', async () => {
 		// Four 64KB APP2 segments (an ICC profile's worth) before the frame header,
 		// so the first 128KB alone cannot answer.
 		const app2 = Buffer.alloc(0xffff + 2);
@@ -126,9 +122,9 @@ describe('remarkImageSize with responsive copies', () => {
 		}
 	};
 
-	it('offers the copies, with the article column as sizes, and keeps src the original', () => {
+	it('offers the copies, with the article column as sizes, and keeps src the original', async () => {
 		const root = rootWith(['images/photo.w640.k1.webp', 'images/photo.w2560.k2.webp']);
-		const tree = run('![A](/images/photo.png)\n', [[remarkImageSize, { root, variants }]]);
+		const tree = await run('![A](/images/photo.png)\n', [[remarkImageSize, { root, variants }]]);
 		const props = images(tree)[0].data.hProperties;
 		expect(props.srcset).toBe('/images/photo.w640.k1.webp 640w, /images/photo.w2560.k2.webp 2560w');
 		expect(props.sizes).toMatch(/699px/);
@@ -136,16 +132,16 @@ describe('remarkImageSize with responsive copies', () => {
 		expect(props.width).toBe(2560);
 	});
 
-	it('offers nothing when a copy is missing from disk, rather than a broken candidate', () => {
+	it('offers nothing when a copy is missing from disk, rather than a broken candidate', async () => {
 		const root = rootWith(['images/photo.w640.k1.webp']);
-		const tree = run('![A](/images/photo.png)\n', [[remarkImageSize, { root, variants }]]);
+		const tree = await run('![A](/images/photo.png)\n', [[remarkImageSize, { root, variants }]]);
 		expect(images(tree)[0].data.hProperties.srcset).toBeUndefined();
 		expect(images(tree)[0].data.hProperties.width).toBe(2560);
 	});
 
-	it('hands the srcset to a gallery slide', () => {
+	it('hands the srcset to a gallery slide', async () => {
 		const root = rootWith(['images/photo.w640.k1.webp', 'images/photo.w2560.k2.webp']);
-		const tree = run('![A](/images/photo.png)\n![B](/images/photo.png)\n', [
+		const tree = await run('![A](/images/photo.png)\n![B](/images/photo.png)\n', [
 			[remarkImageSize, { root, variants }],
 			remarkGallery
 		]);

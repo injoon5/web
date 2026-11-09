@@ -26,7 +26,6 @@
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 	}
 
-	// Main comment form
 	let commentText = $state('');
 	let username = $state('');
 	let password = $state('');
@@ -34,8 +33,8 @@
 	let submitting = $state(false);
 	let submitError = $state('');
 
-	// Generate a Linear-style anonymous handle for the placeholder
-	// (e.g. "stranger-7sl", "wanderer-k2x"). Stable per session.
+	// What a comment posts under when the name is left blank, and the name
+	// field's placeholder (e.g. "stranger-7sl"). Picked once per mount.
 	const handleAdjectives = [
 		'stranger',
 		'wanderer',
@@ -61,7 +60,7 @@
 	const ipHash = $derived(article.ipHash);
 	const path = $derived(article.path);
 
-	// Reactive comments query — live updates across tabs, newest threads first.
+	// Threads arrive highest score first, newest first on ties.
 	// `paginationOpts` is injected by the hook; each page is whole threads, so a
 	// reply never arrives without the parent it hangs off.
 	// Skipped until the visitor's hash is known: every comment carries this
@@ -95,7 +94,7 @@
 		!!query.results && fresh.current && query.status !== 'LoadingFirstPage'
 	);
 
-	// Cross-card form coordination — only one form open at a time
+	// Only one reply, edit or delete form is open in the whole thread.
 	let activeFormId = $state(null);
 	function setActiveForm(id) {
 		activeFormId = id;
@@ -179,10 +178,8 @@
 			: { duration: (d) => Math.min(520, 200 + Math.sqrt(d) * 22), easing: cubicOut }
 	);
 
-	// Trust per-visitor vote state once ipHash is loaded and this page's list is fresh.
 	const voteKnown = $derived(listReady && !!ipHash);
 
-	// Reset transient form state on path change
 	let currentPath = $state(article.path);
 	$effect(() => {
 		if (path !== currentPath) {
@@ -234,7 +231,6 @@
 <div>
 	<h3 class="mb-4 text-2xl font-semibold tracking-tight" id="comments-heading">Comments</h3>
 
-	<!-- Main comment form -->
 	<div class="mt-2 space-y-2">
 		<input
 			bind:value={username}

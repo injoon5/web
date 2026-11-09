@@ -211,7 +211,6 @@
 		confetti effect.
 	-->
 	<div class="relative overflow-clip [overflow-clip-margin:80px]">
-		<!-- Heart confetti particles -->
 		{#each particles as p (p.id)}
 			<span
 				class="heart-particle pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-rose-500 select-none"

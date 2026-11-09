@@ -238,12 +238,45 @@ describe('CommentsSection voting', () => {
 });
 
 describe('CommentsSection and the visitor identity', () => {
-	it('does not subscribe until the visitor ipHash is known', () => {
+	/**
+	 * Answers the way Convex would: nothing for a skipped subscription, and each
+	 * comment carrying the vote of whoever the list was read for.
+	 */
+	function fakeConvex(myVoteFor) {
+		const cache = new Map();
+		usePaginatedQuery.mockImplementation((_query, args) => {
+			const read = () => {
+				const a = args();
+				if (a === 'skip') return undefined;
+				const key = `${a.url}|${a.ipHash}`;
+				if (!cache.has(key)) cache.set(key, [comment({ url: a.url, myVote: myVoteFor(a) })]);
+				return cache.get(key);
+			};
+			return {
+				get results() {
+					return read();
+				},
+				get isLoading() {
+					return !read();
+				},
+				get status() {
+					return read() ? 'Exhausted' : 'LoadingFirstPage';
+				},
+				error: null,
+				loadMore: () => false
+			};
+		});
+	}
+
+	it("reads the list only once the visitor's ipHash is known, and under it", async () => {
+		fakeConvex((a) => (a.url === '/blog/test' && a.ipHash === 'test-ip-hash' ? 'up' : null));
 		visitor.ipHash = '';
 		render(CommentsSection);
-		const argsFn = usePaginatedQuery.mock.lastCall[1];
-		expect(argsFn()).toBe('skip');
+		expect(screen.queryByText('hello world')).toBeNull();
+
 		visitor.ipHash = 'test-ip-hash';
-		expect(argsFn()).toEqual({ url: '/blog/test', ipHash: 'test-ip-hash' });
+
+		const upvote = await screen.findByRole('button', { name: 'Upvote' });
+		expect(upvote).toHaveAttribute('aria-pressed', 'true');
 	});
 });

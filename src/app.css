@@ -2,7 +2,6 @@
 
 @plugin '@tailwindcss/typography';
 
-/* Class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Interlude, split for the web by scripts/fonts/build-interlude.py — see the
@@ -259,9 +258,8 @@
 	}
 
 	/* The height of the sticky header, as a token, because more than the header
-	   needs to know it: the anchor offset below, the table of contents' own
-	   sticky top, and the home page's hero handover all measure from the bottom
-	   edge of that bar. 3.5rem is what the shipped row comes to — a 32px line box
+	   needs to know it: the anchor offset below and the home page's hero handover
+	   both measure from the bottom edge of that bar. 3.5rem is what the shipped row comes to — a 32px line box
 	   with 12px of padding either side — and it has to be written here as a
 	   static value rather than measured, because a visitor arriving on a `#hash`
 	   is scrolled by the browser while the document is still parsing, long before
@@ -292,8 +290,8 @@
 		-moz-osx-font-smoothing: grayscale;
 
 		/* Every kind of jump the browser performs lands its target at the top of
-		   the scrollport, which is behind the header: a `#hash` link, the table of
-		   contents, find-in-page, scroll-to-text-fragment and tabbing to something
+		   the scrollport, which is behind the header: a `#hash` link,
+		   find-in-page, scroll-to-text-fragment and tabbing to something
 		   off screen. Without this a deep link to a heading put the whole heading
 		   under the bar and opened the page on the paragraph after it. The extra
 		   1rem is so the target arrives with air above it instead of wedged
@@ -505,7 +503,7 @@ img[data-img-pending] {
 	color: transparent;
 }
 
-/* An image that failed to load (`hideIfBroken`): the tile behind it shows
+/* An image that failed to load (`hideBrokenImages`): the tile behind it shows
    instead of the browser's broken-image icon and its alt text. */
 img[data-broken] {
 	visibility: hidden;
@@ -525,7 +523,6 @@ img[data-img-pending][data-img-near] {
 	);
 }
 
-/* Tabular numerals for metrics, dates, counters */
 .tabular {
 	font-variant-numeric: tabular-nums;
 }
@@ -585,7 +582,7 @@ img[data-img-pending][data-img-near] {
 
 /* Plot height, shorter on a phone: below `sm` the four sections stack into one
    column, and the full height turned /health into five thousand pixels of
-   scrolling. Both values come from `chart-settings.svelte.js` as custom
+   scrolling. Both values come from `#lib/health/settings.svelte.js` as custom
    properties, so the tuning panel moves them and the CSS just picks. */
 .health-plot-box {
 	height: var(--chart-h-sm);
@@ -815,10 +812,7 @@ img[data-img-pending][data-img-near] {
 		opacity var(--motion-fast) ease;
 }
 
-/*
-  Shared post / project prose styling.
-  Extracted from blog/[slug] and projects/[slug] so both stay in sync.
-*/
+/* Article body styling, for blog posts and project pages alike (`Article.svelte`). */
 @utility prose-post {
 	@apply prose prose-neutral dark:prose-invert mx-auto max-w-none min-w-0;
 	@apply prose-p:text-neutral-900 dark:prose-p:text-neutral-100 prose-p:leading-relaxed prose-li:leading-relaxed prose-p:font-normal;

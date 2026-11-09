@@ -160,11 +160,11 @@ describe('CommentNode form slot', () => {
 		// Another card's form opens while the save is in flight.
 		await rerender({ activeFormId: 'c2' });
 		setActiveForm.mockClear();
+		expect(screen.getByLabelText('Your comment password')).toBeInTheDocument();
 		server.answer(200, { id: 'c1' });
-		// Let the response and the handler after it run to the end.
-		await new Promise((resolve) => setTimeout(resolve, 20));
 
-		expect(screen.queryByLabelText('Your comment password')).toBeNull();
+		// The form closing is the save handler finishing; the slot is checked after.
+		await vi.waitFor(() => expect(screen.queryByLabelText('Your comment password')).toBeNull());
 		expect(setActiveForm).not.toHaveBeenCalledWith(null);
 		vi.unstubAllGlobals();
 	});

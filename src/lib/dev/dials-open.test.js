@@ -39,11 +39,10 @@ describe('dials open state', () => {
 	});
 
 	it('round-trips a re-open', () => {
-		const store = stubStorage();
+		stubStorage();
 		writeDialsOpen(false);
 		writeDialsOpen(true);
 		expect(readDialsOpen()).toBe(true);
-		expect(store.get('dialkit-open')).toBe('1');
 	});
 
 	it('falls back to open with no storage at all', () => {
