@@ -97,7 +97,8 @@ function blockInsertPadding(text, offset) {
 }
 
 /**
- * The edit that makes `<LazyVideo />` resolve: an import in the file's instance
+ * The edit that makes a component the post uses (`<Gallery />`, a hand-written
+ * `<LazyVideo />`) resolve: an import in the file's instance
  * `<script>`, or a whole `<script>` block just under the frontmatter if there
  * isn't one. mdsvex performs this same splice for its own layout import.
  *

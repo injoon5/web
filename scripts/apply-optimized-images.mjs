@@ -2,7 +2,8 @@
 /**
  * Copy optimized image mirrors from .cache/ onto static/ for the build, with
  * each image's responsive copies beside it (`*.w960.<key>.webp`, gitignored).
- * Always runs after build-image-cache (even on turbo cache hit).
+ * Uncached in turbo.json, so it runs even when build-image-cache was restored
+ * from the cache — static/ is not in that task's outputs.
  */
 
 import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';

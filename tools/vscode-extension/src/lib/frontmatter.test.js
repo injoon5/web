@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { parseFields, quote, requiredKeys, stringifyFrontmatter } = require('./frontmatter');
+const { parseFields, quote, stringifyFrontmatter } = require('./frontmatter');
 
 const body = [
 	'type: blog',
@@ -45,11 +45,6 @@ test('fields carry the line and column of their value', () => {
 test('an inline array is an array', () => {
 	const fields = parseFields("tags: ['a', 'b']\n", 1);
 	assert.deepEqual(fields.get('tags').value, ['a', 'b']);
-});
-
-test('required keys differ by kind', () => {
-	assert.deepEqual(requiredKeys('projects'), ['title', 'description', 'year', 'published']);
-	assert.ok(requiredKeys('blog').includes('date'));
 });
 
 test('quoting only where it changes meaning', () => {

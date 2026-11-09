@@ -155,8 +155,9 @@ async function takenStems(dir) {
 /**
  * A dependency-free ES module of the site itself, loaded from the workspace —
  * so the editor applies the same rule the build does rather than a copy of it.
- * The extension only activates in this repository (`workspaceContains:
- * mdsvex.config.js`), so the file is always there.
+ * The extension also activates on any markdown file (`onLanguage:markdown`), so
+ * outside this repository the import rejects; every caller treats that as no
+ * answer rather than an error.
  *
  * @param {vscode.WorkspaceFolder} folder
  * @param {string} rel  relative to the workspace root

@@ -1446,8 +1446,9 @@ inside code masked), `frontmatter`, `content-file`, `naming` and `insert`.
 **Where the site already has the rule, the extension loads it** rather than
 copying it: `workspace.siteModule` imports a dependency-free module of the
 site from the workspace (image sizes from `src/lib/markdown/image-size.js`,
-article URLs from `src/lib/content/article-paths.js`). The extension only
-activates in this repository, so the file is always there.
+article URLs from `src/lib/content/article-paths.js`). Opened on markdown
+outside this repository the import fails, and every caller treats that as no
+answer.
 
 - **A drop is filed by the post, not by the file.** Editing
   `blog/{en,ko}/us-camp.md` sends media to `static/images/uploads/us-camp/`;

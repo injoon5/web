@@ -281,10 +281,12 @@ class ContentCompletionProvider {
 			const fullRange = new vscode.Range(position.translate(0, -typed.length), position);
 			// The site's own rule for where each language of an article lives: an
 			// English post links to the other article's English URL.
-			const paths = await workspace.siteModule(folder, 'src/lib/content/article-paths.js');
+			const paths = await workspace
+				.siteModule(folder, 'src/lib/content/article-paths.js')
+				.catch(() => null);
 			const docLang = context.content?.lang ?? 'en';
 
-			for (const entry of catalog.entries.values()) {
+			for (const entry of paths ? catalog.entries.values() : []) {
 				const langs = paths.orderLangs([...entry.langs.keys()]);
 				const target = paths.resolveLang(docLang, langs);
 				const url = paths.articlePath(entry.kind, entry.slug, target, langs);

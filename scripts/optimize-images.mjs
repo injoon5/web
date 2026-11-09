@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Losslessly-ish compress raster images from git into .cache/image-mirror/.
- * apply-optimized-images.mjs copies mirrors onto static/ for the build.
+ * Re-encode (lossy for JPEG and WebP) and size-cap the raster images from git
+ * into .cache/image-mirror/; apply-optimized-images.mjs copies them onto static/
+ * for the build. A re-encode that comes out larger keeps the original bytes.
  *
  * Source bytes always come from git HEAD so optimized static/ files never
  * bust the manifest. Turbo Remote Cache restores .cache/ across deploys.
@@ -32,9 +33,8 @@ const execFileAsync = promisify(execFile);
 
 const VARIANTS_PATH = path.join(ROOT, VARIANTS_MANIFEST);
 
-/** Max width for blog/photo assets (2x typical content column). */
 const MAX_WIDTH = Number.parseInt(process.env.IMAGE_MAX_WIDTH ?? '2400', 10);
-/** Max height — same bounding box as width so tall portraits get resized too. */
+/** The same bound as the width, so a tall portrait is capped too. */
 const MAX_HEIGHT = Number.parseInt(process.env.IMAGE_MAX_HEIGHT ?? '2400', 10);
 const JPEG_QUALITY = Number.parseInt(process.env.JPEG_QUALITY ?? '88', 10);
 const PNG_COMPRESSION = Number.parseInt(process.env.PNG_COMPRESSION ?? '9', 10);
