@@ -22,6 +22,8 @@ import {
 	MAX_HOURS_PER_INGEST,
 	MAX_SERIES_DAYS,
 	MAX_SERIES_HOURS,
+	MAX_SAMPLES,
+	MAX_WORKOUTS,
 	dateKey,
 	dateKeyToMs,
 	hourFloor,
@@ -341,7 +343,11 @@ const series = guarded(async (ctx, request) => {
 const workoutList = guarded(async (ctx, request) => {
 	const url = new URL(request.url);
 	const days = intParam(url, 'days', { fallback: 90, min: 1, max: MAX_SERIES_DAYS });
-	const limit = intParam(url, 'limit', { fallback: DEFAULT_WORKOUT_LIMIT, min: 1, max: 200 });
+	const limit = intParam(url, 'limit', {
+		fallback: DEFAULT_WORKOUT_LIMIT,
+		min: 1,
+		max: MAX_WORKOUTS
+	});
 	const rawType = url.searchParams.get('type');
 	const type = rawType ? rawType.trim().toLowerCase() : undefined;
 
@@ -372,7 +378,7 @@ const sampleList = guarded(async (ctx, request) => {
 	const url = new URL(request.url);
 	const metric = metricName(url.searchParams.get('metric'), 'metric');
 	const hours = intParam(url, 'hours', { fallback: 24, min: 1, max: MAX_SERIES_HOURS });
-	const limit = intParam(url, 'limit', { fallback: 500, min: 1, max: 1000 });
+	const limit = intParam(url, 'limit', { fallback: 500, min: 1, max: MAX_SAMPLES });
 
 	const endMs = hourFloor(Date.now()) + HOUR_MS;
 	const rows = await ctx.runQuery(internal.health.samples, {

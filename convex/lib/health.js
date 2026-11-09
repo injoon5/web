@@ -1,9 +1,6 @@
 /**
  * Pure helpers for the Apple Health tier (no `ctx`, no `Date.now()`), so the
  * rollup arithmetic and the series densifying are unit-testable on their own.
- *
- * Convex modules export functions only, so metric semantics live in
- * `metricKind()` / `metricUnit()` rather than a const map.
  */
 
 export const HOUR_MS = 60 * 60 * 1000;
@@ -25,6 +22,10 @@ export const MAX_HOURS_PER_INGEST = 12;
 export const MAX_SERIES_DAYS = 1825; // 5 years
 export const MAX_SERIES_HOURS = 24 * 90;
 
+/** Most rows a workout or raw-sample read returns. */
+export const MAX_WORKOUTS = 200;
+export const MAX_SAMPLES = 1000;
+
 /**
  * The exact surface the public /health page renders, and therefore the only
  * thing the realtime subscription is allowed to serve. Everything else — other
@@ -36,64 +37,40 @@ export const PUBLIC_METRICS = ['steps', 'activeEnergy', 'exerciseMinutes', 'dist
 export const PUBLIC_RANGES = [7, 30, 90, 365];
 
 /**
- * How a metric composes across time.
+ * Every metric the Shortcut sends: how it composes across time, and its display
+ * unit (Shortcuts sends bare numbers, so the unit is ours to know).
  *
  * `sum` metrics are totals over a window (steps in an hour add up to steps in a
  * day); `avg` metrics are instantaneous readings that only ever average.
  */
+const METRICS = {
+	steps: { kind: 'sum', unit: 'count' },
+	distance: { kind: 'sum', unit: 'km' },
+	activeEnergy: { kind: 'sum', unit: 'kcal' },
+	basalEnergy: { kind: 'sum', unit: 'kcal' },
+	exerciseMinutes: { kind: 'sum', unit: 'min' },
+	standHours: { kind: 'sum', unit: 'hours' },
+	flightsClimbed: { kind: 'sum', unit: 'flights' },
+	mindfulMinutes: { kind: 'sum', unit: 'min' },
+	heartRate: { kind: 'avg', unit: 'bpm' },
+	restingHeartRate: { kind: 'avg', unit: 'bpm' },
+	walkingHeartRateAverage: { kind: 'avg', unit: 'bpm' },
+	hrv: { kind: 'avg', unit: 'ms' },
+	respiratoryRate: { kind: 'avg', unit: 'breaths/min' },
+	oxygenSaturation: { kind: 'avg', unit: '%' },
+	bodyFat: { kind: 'avg', unit: '%' },
+	vo2Max: { kind: 'avg', unit: 'ml/kg·min' },
+	weight: { kind: 'avg', unit: 'kg' }
+};
+
+/** @param {string} metric */
 export function metricKind(metric) {
-	switch (metric) {
-		case 'steps':
-		case 'distance':
-		case 'activeEnergy':
-		case 'basalEnergy':
-		case 'exerciseMinutes':
-		case 'standHours':
-		case 'flightsClimbed':
-		case 'mindfulMinutes':
-			return 'sum';
-		default:
-			// heartRate, restingHeartRate, hrv, respiratoryRate, vo2Max, weight,
-			// bodyFat, oxygenSaturation, walkingHeartRateAverage, …
-			return 'avg';
-	}
+	return Object.hasOwn(METRICS, metric) ? METRICS[metric].kind : 'avg';
 }
 
-/** Display unit for a metric. Shortcuts sends bare numbers, so the unit is ours to know. */
+/** @param {string} metric */
 export function metricUnit(metric) {
-	switch (metric) {
-		case 'steps':
-			return 'count';
-		case 'flightsClimbed':
-			return 'flights';
-		case 'standHours':
-			return 'hours';
-		case 'distance':
-			return 'km';
-		case 'activeEnergy':
-		case 'basalEnergy':
-			return 'kcal';
-		case 'exerciseMinutes':
-		case 'mindfulMinutes':
-			return 'min';
-		case 'heartRate':
-		case 'restingHeartRate':
-		case 'walkingHeartRateAverage':
-			return 'bpm';
-		case 'hrv':
-			return 'ms';
-		case 'respiratoryRate':
-			return 'breaths/min';
-		case 'oxygenSaturation':
-		case 'bodyFat':
-			return '%';
-		case 'vo2Max':
-			return 'ml/kg·min';
-		case 'weight':
-			return 'kg';
-		default:
-			return '';
-	}
+	return Object.hasOwn(METRICS, metric) ? METRICS[metric].unit : '';
 }
 
 const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;

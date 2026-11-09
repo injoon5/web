@@ -1,6 +1,49 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+// Row shapes that functions also take as arguments, so the two cannot drift.
+
+/** One track of the Now Listening feed, as `convex/lib/feeds.js` normalizes it. */
+export const feedTrack = v.object({
+	name: v.string(),
+	artist: v.string(),
+	url: v.string(),
+	image: v.string(),
+	nowPlaying: v.boolean(),
+	playedAt: v.union(v.number(), v.null()) // null while the track is playing
+});
+
+/** One photo of the Photos feed. */
+export const feedPhoto = v.object({
+	id: v.string(),
+	title: v.string(),
+	url: v.string(),
+	image: v.string(),
+	takenAt: v.string() // the feed's own formatted, timezone-naive capture time
+});
+
+export const healthSample = v.object({
+	metric: v.string(),
+	value: v.number(),
+	time: v.number(),
+	unit: v.string(),
+	source: v.optional(v.string())
+});
+
+export const healthWorkout = v.object({
+	externalId: v.string(), // `${type}:${startMs}` — Shortcuts exposes no workout UUID
+	type: v.string(),
+	start: v.number(),
+	end: v.number(),
+	duration: v.number(), // seconds
+	distance: v.optional(v.number()),
+	activeEnergy: v.optional(v.number()),
+	avgHeartRate: v.optional(v.number()),
+	maxHeartRate: v.optional(v.number()),
+	elevation: v.optional(v.number()),
+	source: v.optional(v.string())
+});
+
 export default defineSchema({
 	comments: defineTable({
 		url: v.string(),
@@ -100,29 +143,12 @@ export default defineSchema({
 	// ---------------------------------------------------------------------------
 
 	nowPlaying: defineTable({
-		tracks: v.array(
-			v.object({
-				name: v.string(),
-				artist: v.string(),
-				url: v.string(),
-				image: v.string(),
-				nowPlaying: v.boolean(),
-				playedAt: v.union(v.number(), v.null()) // null while the track is playing
-			})
-		),
+		tracks: v.array(feedTrack),
 		updatedAt: v.number()
 	}),
 
 	photos: defineTable({
-		photos: v.array(
-			v.object({
-				id: v.string(),
-				title: v.string(),
-				url: v.string(),
-				image: v.string(),
-				takenAt: v.string() // the feed's own formatted, timezone-naive capture time
-			})
-		),
+		photos: v.array(feedPhoto),
 		updatedAt: v.number()
 	}),
 
@@ -158,36 +184,16 @@ export default defineSchema({
 		min: v.number(),
 		max: v.number(),
 		unit: v.string()
-	})
-		.index('by_metric_hour', ['metric', 'hour'])
-		.index('by_hour', ['hour']),
+	}).index('by_metric_hour', ['metric', 'hour']),
 
-	healthSamples: defineTable({
-		metric: v.string(),
-		value: v.number(),
-		time: v.number(),
-		unit: v.string(),
-		source: v.optional(v.string())
-	})
+	healthSamples: defineTable(healthSample)
 		.index('by_metric_time', ['metric', 'time'])
 		.index('by_time', ['time']),
 
 	// Workouts are events, not a time series — a handful a day at most, always
 	// read as a list or a per-type history — so `by_start` / `by_type_start`
 	// range scans are already proportional to what renders. No rollup tier.
-	healthWorkouts: defineTable({
-		externalId: v.string(), // `${type}:${startMs}` — Shortcuts exposes no workout UUID
-		type: v.string(),
-		start: v.number(),
-		end: v.number(),
-		duration: v.number(), // seconds
-		distance: v.optional(v.number()),
-		activeEnergy: v.optional(v.number()),
-		avgHeartRate: v.optional(v.number()),
-		maxHeartRate: v.optional(v.number()),
-		elevation: v.optional(v.number()),
-		source: v.optional(v.string())
-	})
+	healthWorkouts: defineTable(healthWorkout)
 		.index('by_start', ['start'])
 		.index('by_type_start', ['type', 'start'])
 		.index('by_external', ['externalId'])

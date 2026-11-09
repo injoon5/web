@@ -14,6 +14,7 @@
  */
 
 import { v } from 'convex/values';
+import { healthSample, healthWorkout } from './schema.js';
 import { internalMutation, internalQuery } from './_generated/server.js';
 import { internal } from './_generated/api.js';
 import {
@@ -47,28 +48,6 @@ const metricInput = v.object({
 	unit: v.string()
 });
 
-const sampleInput = v.object({
-	metric: v.string(),
-	value: v.number(),
-	time: v.number(),
-	unit: v.string(),
-	source: v.optional(v.string())
-});
-
-const workoutInput = v.object({
-	externalId: v.string(),
-	type: v.string(),
-	start: v.number(),
-	end: v.number(),
-	duration: v.number(),
-	distance: v.optional(v.number()),
-	activeEnergy: v.optional(v.number()),
-	avgHeartRate: v.optional(v.number()),
-	maxHeartRate: v.optional(v.number()),
-	elevation: v.optional(v.number()),
-	source: v.optional(v.string())
-});
-
 /**
  * One mutation for the whole payload, so day rows, hour rollups and workouts
  * commit atomically. Input is already parsed and normalized by the HTTP action.
@@ -78,8 +57,8 @@ export const ingest = internalMutation({
 		date: v.optional(v.string()),
 		source: v.optional(v.string()),
 		metrics: v.optional(v.array(metricInput)),
-		samples: v.optional(v.array(sampleInput)),
-		workouts: v.optional(v.array(workoutInput))
+		samples: v.optional(v.array(healthSample)),
+		workouts: v.optional(v.array(healthWorkout))
 	},
 	handler: async (ctx, args) => {
 		const updatedAt = Date.now();

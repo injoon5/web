@@ -21,23 +21,7 @@ import {
 	normalizeTracks,
 	sameFeedRows
 } from './lib/feeds.js';
-
-const trackValidator = v.object({
-	name: v.string(),
-	artist: v.string(),
-	url: v.string(),
-	image: v.string(),
-	nowPlaying: v.boolean(),
-	playedAt: v.union(v.number(), v.null())
-});
-
-const photoValidator = v.object({
-	id: v.string(),
-	title: v.string(),
-	url: v.string(),
-	image: v.string(),
-	takenAt: v.string()
-});
+import { feedPhoto, feedTrack } from './schema.js';
 
 // ---------------------------------------------------------------------------
 // Reads
@@ -71,7 +55,7 @@ export const photos = query({
 // ---------------------------------------------------------------------------
 
 export const saveNowPlaying = internalMutation({
-	args: { tracks: v.array(trackValidator) },
+	args: { tracks: v.array(feedTrack) },
 	handler: async (ctx, args) => {
 		const existing = await ctx.db.query('nowPlaying').first();
 		if (existing && sameFeedRows(existing.tracks, args.tracks)) return { changed: false };
@@ -87,7 +71,7 @@ export const saveNowPlaying = internalMutation({
 });
 
 export const savePhotos = internalMutation({
-	args: { photos: v.array(photoValidator) },
+	args: { photos: v.array(feedPhoto) },
 	handler: async (ctx, args) => {
 		const existing = await ctx.db.query('photos').first();
 		if (existing && sameFeedRows(existing.photos, args.photos)) return { changed: false };
