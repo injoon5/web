@@ -249,7 +249,10 @@
 					class="group flex flex-col gap-1 bg-neutral-100 px-4 py-3 text-neutral-900 transition-[background-color,transform] duration-150 ease-out hover:bg-neutral-200 active:scale-[0.98] dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
 					href="/projects/{post.slug}"
 				>
-					<h3 lang={post.lang} class="line-clamp-1 text-base font-medium group-hover:underline">
+					<h3
+						lang={post.lang}
+						class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:underline dark:text-neutral-100"
+					>
 						{post.title}
 					</h3>
 					<p
