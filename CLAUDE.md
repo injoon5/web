@@ -1011,6 +1011,11 @@ decides what a plugin can do:
   Math-Italic faces so they are fetched with the sheet rather than after layout.
   `swap` would be worse — fallback metrics make fractions and scripts jump.
   Wait for the fonts before screenshotting, or every glyph is blank.
+- **Headings link to themselves the way MDN's do**: `rehype-autolink-headings`
+  wraps the heading text in `<a class="heading-anchor">`, and the `#` beside it
+  is `::after` content with empty alternative text (`app.css`). It used to be a
+  `#` text node, which every copy, reader view and search snippet of a heading
+  carried, inside a link that was `aria-hidden` and unreachable by keyboard.
 - `gfm-test.md` (unpublished) exercises every one of these; flip its
   `published` locally to look.
 

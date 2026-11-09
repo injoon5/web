@@ -1029,32 +1029,24 @@ img[data-img-pending][data-img-near] {
 	@apply border-neutral-300/90 bg-neutral-200/80 dark:border-neutral-600 dark:bg-neutral-700/90;
 }
 
-/* Headings anchor links — hidden until heading is hovered */
-h1 > a {
-	@apply -ml-8 pr-2 opacity-0 transition-opacity duration-150;
+/* A heading in a post links to itself: its text is the link, and the `#`
+   after it is generated content, shown on hover or keyboard focus. The
+   alternative text after the slash keeps that glyph out of what a screen
+   reader announces; the first declaration is for browsers without it. */
+.heading-anchor {
+	color: inherit;
+	font-weight: inherit;
+	text-decoration: none;
 }
 
-h1 > a,
-h2 > a,
-h3 > a,
-h4 > a,
-h5 > a,
-h6 > a {
-	@apply ml-3 opacity-0 transition-opacity duration-150;
+.heading-anchor::after {
+	content: '#';
+	content: '#' / '';
+	@apply ml-3 font-normal text-neutral-400 opacity-0 transition-opacity duration-150 select-none dark:text-neutral-500;
 }
 
-h1:hover > a,
-h2:hover > a,
-h3:hover > a,
-h4:hover > a,
-h5:hover > a,
-h6:hover > a,
-h1 > a:focus-visible,
-h2 > a:focus-visible,
-h3 > a:focus-visible,
-h4 > a:focus-visible,
-h5 > a:focus-visible,
-h6 > a:focus-visible {
+:is(h1, h2, h3, h4, h5, h6):hover > .heading-anchor::after,
+.heading-anchor:focus-visible::after {
 	@apply opacity-100;
 }
 

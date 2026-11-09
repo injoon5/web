@@ -48,7 +48,10 @@ const config = {
 		rehypeSlug,
 		rehypeFigure,
 		[rehypeExternalLinks, { target: ['_blank'], rel: ['noopener noreferrer'] }],
-		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }],
+		// The heading text itself is the link, as on MDN. The `#` beside it is
+		// drawn by CSS (`.heading-anchor` in app.css), so it is never part of the
+		// heading's text: not in a copy, reader mode or what a screen reader says.
+		[rehypeAutolinkHeadings, { behavior: 'wrap', properties: { className: ['heading-anchor'] } }],
 		// Last, so the autolinker never puts a `#` on the footnotes' hidden heading.
 		rehypeFootnotes
 	]
