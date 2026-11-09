@@ -3,7 +3,7 @@
  * pure, so the score and chart arithmetic is testable without a DOM.
  */
 
-import { PUBLIC_METRICS, PUBLIC_RANGES, shiftDateKey } from '#convex/lib/health.js';
+import { PUBLIC_METRICS, shiftDateKey } from '#convex/lib/health.js';
 
 /**
  * How each metric reads, and the daily target it is scored against. The key list
@@ -17,21 +17,11 @@ const PRESENTATION = {
 	distance: { label: 'Walking + running distance', unit: 'km', decimals: 1, goal: 7 }
 };
 
-const FALLBACK = { label: '', unit: '', decimals: 0, goal: 0 };
-
 /**
  * Sections in order, derived from the Convex allowlist so the page and the
  * public query cannot drift apart.
  */
-export const PAGE_METRICS = PUBLIC_METRICS.map((key) => ({
-	key,
-	...FALLBACK,
-	label: key,
-	...PRESENTATION[key]
-}));
-
-/** Range picker steps. Kept coarse so every view hits the same Convex query cache entries. */
-export const RANGES = PUBLIC_RANGES;
+export const PAGE_METRICS = PUBLIC_METRICS.map((key) => ({ key, ...PRESENTATION[key] }));
 export const DEFAULT_RANGE = 30;
 
 /**
@@ -112,30 +102,6 @@ export function formatFullDay(ms) {
 /** Absolute stamp for the `title` behind a relative "updated …" line. */
 export function formatStamp(ms) {
 	return stampFormat.format(new Date(ms));
-}
-
-const RELATIVE_UNITS = [
-	{ unit: 'year', secs: 60 * 60 * 24 * 365 },
-	{ unit: 'month', secs: 60 * 60 * 24 * 30 },
-	{ unit: 'week', secs: 60 * 60 * 24 * 7 },
-	{ unit: 'day', secs: 60 * 60 * 24 },
-	{ unit: 'hour', secs: 60 * 60 },
-	{ unit: 'minute', secs: 60 }
-];
-
-const relativeFormat = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-
-/**
- * "3 hours ago" for an ingest timestamp. `now` is a parameter so the caller
- * decides when the clock is read.
- */
-export function formatRelative(ms, now = Date.now()) {
-	const diff = Math.round((ms - now) / 1000);
-	const abs = Math.abs(diff);
-	for (const { unit, secs } of RELATIVE_UNITS) {
-		if (abs >= secs) return relativeFormat.format(Math.round(diff / secs), unit);
-	}
-	return 'just now';
 }
 
 /**

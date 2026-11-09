@@ -22,15 +22,14 @@ const sharedAlias = [
 ];
 
 export default defineConfig({
-	// Mirrors `vite.config.ts`. Tests exercise the shipped path, so the /health
-	// tuning panel is compiled out here the same way it is in production.
+	// Mirrors `vite.config.ts`. Tests exercise the shipped path, so the DialKit
+	// panels are compiled out here the same way they are in production.
 	define: {
 		__DIALS__: 'false'
 	},
 	test: {
 		projects: [
 			{
-				// Pure logic / server helpers — fast, no DOM.
 				resolve: { alias: sharedAlias },
 				test: {
 					name: 'unit',
@@ -53,7 +52,6 @@ export default defineConfig({
 				}
 			},
 			{
-				// Svelte component tests — jsdom + Testing Library.
 				plugins: [svelte(), svelteTesting()],
 				resolve: { alias: sharedAlias },
 				test: {

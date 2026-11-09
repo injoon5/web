@@ -1,9 +1,8 @@
 // @ts-check
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
-import { error } from '@sveltejs/kit';
+import { dev } from '$app/env';
 import { ADMIN_SECRET } from '$app/env/private';
-
-/** Must stay in sync with convex/lib/secrets.js (Convex V8 crypto.subtle). */
+import { ADMIN_HINT_COOKIE, ADMIN_TOKEN_COOKIE, readCookie } from '#lib/cookies.js';
 
 export const SESSION_MAX_AGE_MS = 60 * 60 * 24 * 1000;
 
@@ -81,32 +80,37 @@ export function verifyAdminSecret(request) {
 	const header = request.headers.get('x-admin-secret');
 	if (header) return secretsMatch(header);
 
-	const cookie = request.headers.get('cookie') ?? '';
-	const match = cookie.match(/(?:^|;\s*)admin_token=([^;]+)/);
-	if (match) {
-		try {
-			return verifyAdminSessionToken(decodeURIComponent(match[1]));
-		} catch {
-			// A malformed percent-encoding throws URIError; treat it as no token.
-			return false;
-		}
-	}
-
-	return false;
+	const token = readCookie(request.headers.get('cookie') ?? '', ADMIN_TOKEN_COOKIE);
+	return token !== null && verifyAdminSessionToken(token);
 }
 
 /**
- * @param {string | undefined} token
- * @returns {boolean}
+ * Sign the admin in: the session token, and beside it the hint that grants
+ * nothing — `/api/admin/whoami` still checks the real cookie — but tells pages
+ * like /now that asking is worth a request, so ordinary visitors don't call a
+ * function on every view. Both live exactly as long as the token does.
+ *
+ * @param {import('@sveltejs/kit').Cookies} cookies
  */
-export function verifyAdminCookie(token) {
-	return !!token && verifyAdminSessionToken(token);
+export function setAdminCookies(cookies) {
+	const options = /** @type {const} */ ({
+		path: '/',
+		sameSite: 'strict',
+		secure: !dev,
+		maxAge: SESSION_MAX_AGE_MS / 1000
+	});
+	cookies.set(ADMIN_TOKEN_COOKIE, createAdminSessionToken(), { ...options, httpOnly: true });
+	cookies.set(ADMIN_HINT_COOKIE, '1', { ...options, httpOnly: false });
 }
 
 /**
- * Throw a 401 SvelteKit error if the request is not from an admin.
- * @param {Request} request
+ * Sign the admin out, returning the token the cookie held ('' for none).
+ *
+ * @param {import('@sveltejs/kit').Cookies} cookies
  */
-export function requireAdmin(request) {
-	if (!verifyAdminSecret(request)) throw error(401, 'Unauthorized');
+export function clearAdminCookies(cookies) {
+	const token = cookies.get(ADMIN_TOKEN_COOKIE) ?? '';
+	cookies.delete(ADMIN_TOKEN_COOKIE, { path: '/' });
+	cookies.delete(ADMIN_HINT_COOKIE, { path: '/' });
+	return token;
 }

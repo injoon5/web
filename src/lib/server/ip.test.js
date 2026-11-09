@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getClientIp, hashIp, requestIpHash, isCloudflareIp } from './ip';
+import { getClientIp, hashIp, requestIpHash, isCloudflareIp } from './ip.js';
 
 function reqWith(headers) {
 	return new Request('http://x/api', { headers });
@@ -51,9 +51,14 @@ describe('hashIp', () => {
 });
 
 describe('requestIpHash', () => {
-	it('hashes the resolved client IP', () => {
-		const req = reqWith({ 'x-real-ip': '203.0.113.5' });
-		expect(requestIpHash(req)).toBe(hashIp('203.0.113.5'));
+	// The bug this replaced: hashing the Cloudflare edge gave one visitor a new
+	// identity on most requests.
+	it('gives one visitor the same hash through different Cloudflare edges', () => {
+		const via = (edge) => reqWith({ 'x-real-ip': edge, 'cf-connecting-ip': '203.0.113.9' });
+		expect(requestIpHash(via('172.70.1.2'))).toBe(requestIpHash(via('162.158.4.4')));
+		expect(requestIpHash(via('172.70.1.2'))).not.toBe(
+			requestIpHash(reqWith({ 'x-real-ip': '172.70.1.2' }))
+		);
 	});
 });
 
@@ -66,7 +71,7 @@ describe('when IP_HASH_SECRET is not configured', () => {
 	it('hashIp throws', async () => {
 		vi.resetModules();
 		vi.doMock('$app/env/private', () => ({ ADMIN_SECRET: 'x', IP_HASH_SECRET: '' }));
-		const mod = await import('./ip');
+		const mod = await import('./ip.js');
 		expect(() => mod.hashIp('1.2.3.4')).toThrow(/IP_HASH_SECRET/);
 	});
 });

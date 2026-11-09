@@ -21,27 +21,7 @@ import {
 	normalizeTracks,
 	sameFeedRows
 } from './lib/feeds.js';
-
-const trackValidator = v.object({
-	name: v.string(),
-	artist: v.string(),
-	url: v.string(),
-	image: v.string(),
-	nowPlaying: v.boolean(),
-	playedAt: v.union(v.number(), v.null())
-});
-
-const photoValidator = v.object({
-	id: v.string(),
-	title: v.string(),
-	url: v.string(),
-	image: v.string(),
-	takenAt: v.string()
-});
-
-// ---------------------------------------------------------------------------
-// Reads
-// ---------------------------------------------------------------------------
+import { feedPhoto, feedTrack } from './schema.js';
 
 export const nowPlaying = query({
 	args: {},
@@ -57,9 +37,6 @@ export const photos = query({
 	}
 });
 
-// ---------------------------------------------------------------------------
-// Writes
-//
 // One row per feed, patched in place — a feed has no history worth keeping, and
 // an insert-per-refresh would add 288 rows a day per feed.
 //
@@ -68,10 +45,9 @@ export const photos = query({
 // every open home page every five minutes to say nothing had changed. The page
 // reads `lastScrobbledAt` off the tracks and never renders `updatedAt`, so
 // holding the row still when the list matches is invisible to it.
-// ---------------------------------------------------------------------------
 
 export const saveNowPlaying = internalMutation({
-	args: { tracks: v.array(trackValidator) },
+	args: { tracks: v.array(feedTrack) },
 	handler: async (ctx, args) => {
 		const existing = await ctx.db.query('nowPlaying').first();
 		if (existing && sameFeedRows(existing.tracks, args.tracks)) return { changed: false };
@@ -87,7 +63,7 @@ export const saveNowPlaying = internalMutation({
 });
 
 export const savePhotos = internalMutation({
-	args: { photos: v.array(photoValidator) },
+	args: { photos: v.array(feedPhoto) },
 	handler: async (ctx, args) => {
 		const existing = await ctx.db.query('photos').first();
 		if (existing && sameFeedRows(existing.photos, args.photos)) return { changed: false };
@@ -101,10 +77,6 @@ export const savePhotos = internalMutation({
 		return { changed: true };
 	}
 });
-
-// ---------------------------------------------------------------------------
-// Refreshes (cron entry points)
-// ---------------------------------------------------------------------------
 
 /**
  * Upstream failures throw rather than write: the cron logs it, the stored row

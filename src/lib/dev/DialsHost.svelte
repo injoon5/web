@@ -11,7 +11,7 @@
 	 * own: a site-wide panel meant tuning tokens that only some pages actually
 	 * show, which is how you end up with sliders that appear to do nothing. Every
 	 * control now lives on the page it affects — `HomeDials`, `ArticleDials`,
-	 * `HealthDials` — and each registers into this overlay as a folder that comes
+	 * `HealthDials`, `NavDials`, `ErrorDials` — and each registers into this overlay as a folder that comes
 	 * and goes with the route.
 	 */
 

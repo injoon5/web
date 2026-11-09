@@ -9,6 +9,7 @@
 	import { setupConvex } from 'convex-svelte';
 	import { PUBLIC_CONVEX_URL, PUBLIC_GIT_COMMIT, PUBLIC_GIT_COMMIT_DATE } from '$app/env/public';
 	import { theme } from '#lib/theme.svelte.js';
+	import { SITE_URL } from '#lib/content/article-paths.js';
 
 	const { children } = $props();
 
@@ -58,6 +59,7 @@
 	let cleanupTheme;
 
 	onMount(async () => {
+		cleanupTheme = theme.watch();
 		// Lazy-load analytics so it never rides in the initial JS for routes that
 		// don't need it (the only call site is here).
 		const { configure } = await import('onedollarstats');
@@ -65,7 +67,6 @@
 			collectorUrl: 'https://collector.onedollarstats.com/events',
 			autocollect: true
 		});
-		cleanupTheme = theme.watch();
 	});
 
 	onDestroy(() => {
@@ -79,14 +80,9 @@
 <svelte:head>
 	<!-- An article in a language it does not have (`/en` on a Korean-only post)
 	     renders its primary language, and says so here. -->
-	<link rel="canonical" href="https://injoon5.com{page.data.canonicalPath ?? page.url.pathname}" />
+	<link rel="canonical" href="{SITE_URL}{page.data.canonicalPath ?? page.url.pathname}" />
 	<meta property="og:site_name" content="Injoon Oh" />
-	<link
-		rel="alternate"
-		type="application/rss+xml"
-		title="Injoon Oh"
-		href="https://injoon5.com/rss.xml"
-	/>
+	<link rel="alternate" type="application/rss+xml" title="Injoon Oh" href="{SITE_URL}/rss.xml" />
 	<!-- The Convex client opens its websocket at hydration; resolve the host while
 	     the HTML is still parsing (from #104). Every page but the two listings
 	     subscribes to something, and readers go from those to an article. -->
@@ -102,9 +98,9 @@
 	{@render children()}
 </div>
 
-<!-- Every public page gets the tuning panel, and production gets no trace of it:
-     `__DIALS__` is a build-time literal, so this folds away and DialKit is never
-     emitted. Page-level panels register into it as folders. -->
+<!-- The one DialKit overlay, which page-level panels register into as folders.
+     Production gets no trace of it: `__DIALS__` is a build-time literal, so this
+     folds away and DialKit is never emitted. -->
 <DialsMount />
 
 <footer class="mt-10 mb-20 w-full pt-24 tracking-tight">

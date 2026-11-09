@@ -1,19 +1,18 @@
 import { redirect, fail } from '@sveltejs/kit';
-import { dev } from '$app/env';
 import { ADMIN_SECRET } from '$app/env/private';
+import { ADMIN_TOKEN_COOKIE } from '#lib/cookies.js';
 import { convex } from '#lib/server/convex.js';
 import { api } from '#convex/_generated/api.js';
 import {
-	createAdminSessionToken,
+	clearAdminCookies,
 	secretsMatch,
 	sessionTokenExpiry,
-	verifyAdminSessionToken,
-	SESSION_MAX_AGE_MS
+	setAdminCookies
 } from '#lib/server/admin.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export const load = async ({ cookies }) => {
-	const token = cookies.get('admin_token') ?? '';
+	const token = cookies.get(ADMIN_TOKEN_COOKIE) ?? '';
 	const expiresAt = sessionTokenExpiry(token);
 	if (expiresAt === null) return { authenticated: false, sessionToken: null };
 
@@ -43,38 +42,19 @@ export const actions = {
 			return fail(401, { error: 'Incorrect password' });
 		}
 
-		cookies.set('admin_token', createAdminSessionToken(), {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'strict',
-			secure: !dev,
-			// Keep the cookie lifetime in lockstep with the token's own expiry.
-			maxAge: SESSION_MAX_AGE_MS / 1000
-		});
-		// Not a credential — it grants nothing, and /api/admin/whoami still checks
-		// the real cookie. It only tells pages like /now that asking is worth a
-		// request, so ordinary visitors don't call a function on every view.
-		cookies.set('admin_hint', '1', {
-			path: '/',
-			httpOnly: false,
-			sameSite: 'strict',
-			secure: !dev,
-			maxAge: SESSION_MAX_AGE_MS / 1000
-		});
+		setAdminCookies(cookies);
 
 		// The redirect lands on `load`, which registers the new token with Convex.
 		throw redirect(303, '/admin');
 	},
 
 	logout: async ({ cookies }) => {
-		const token = cookies.get('admin_token') ?? '';
-		cookies.delete('admin_token', { path: '/' });
-		cookies.delete('admin_hint', { path: '/' });
+		const token = clearAdminCookies(cookies);
 
 		// Drop the session row too, or a tab left open elsewhere keeps its live
 		// subscriptions until the token's own expiry. Deleting the row is what
 		// re-runs those queries, and they then fail their auth check.
-		if (ADMIN_SECRET && verifyAdminSessionToken(token)) {
+		if (sessionTokenExpiry(token) !== null) {
 			await convex.mutation(api.adminSessions.revoke, {
 				adminSecret: ADMIN_SECRET,
 				sessionToken: token

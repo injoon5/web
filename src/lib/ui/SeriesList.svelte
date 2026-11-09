@@ -1,7 +1,7 @@
 <script>
 	import { motion } from '#lib/reduced-motion.svelte.js';
 	import { page } from '$app/state';
-	import { blur } from 'svelte/transition';
+	import { swapBlur } from '#lib/ui/swap-blur.js';
 	import { cubicOut } from 'svelte/easing';
 	import { onMount } from 'svelte';
 	import { preloadArticles } from '#lib/content/preload-articles.js';
@@ -19,7 +19,6 @@
 		easing: cubicOut
 	});
 	// Empty config when duration is 0 so no opacity-0 start frame blinks on load.
-	const blurT = (node, params) => (params.duration ? blur(node, params) : {});
 	// Reverse a copy — mutating the prop in place flipped the order on every render.
 	const ordered = $derived([...series].reverse());
 </script>
@@ -32,8 +31,8 @@
 		{#key series[0].series}
 			<h2
 				style="grid-area: 1 / 1;"
-				in:blurT={bf}
-				out:blurT={bf}
+				in:swapBlur={bf}
+				out:swapBlur={bf}
 				class="line-clamp-1 text-lg font-semibold text-neutral-900 select-none dark:text-neutral-100"
 			>
 				Series: {series[0].series}
@@ -65,8 +64,8 @@
 					{#key post.title}
 						<h2
 							style="grid-area: 1 / 1;"
-							in:blurT={bf}
-							out:blurT={bf}
+							in:swapBlur={bf}
+							out:swapBlur={bf}
 							class="-mb-1 line-clamp-1 text-lg font-medium"
 						>
 							{post.title}

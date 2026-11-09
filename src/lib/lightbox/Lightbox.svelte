@@ -1,6 +1,6 @@
 <script>
 	import { motion } from '#lib/reduced-motion.svelte.js';
-	import { lightboxStore, MAX_LIGHTBOX_HEIGHT, normalizeLightboxValue } from './store.svelte.js';
+	import { closeLightbox, lightboxValue } from './store.svelte.js';
 	import Stepper from '#lib/pasito/Stepper.svelte';
 	import { springEasing, springOr } from './spring.js';
 	import {
@@ -34,6 +34,8 @@
 	const DISMISS_VELOCITY = 0.65; // px/ms flick that dismisses
 	const RUBBER = 0.55; // iOS rubber-band constant, for drags past an end
 	const MAX_SCALE = 4;
+	const KEY_ZOOM_STEP = 1.5; // `+` and `-`
+	const WHEEL_ZOOM = 0.0035; // exponent per px of ctrl/cmd-wheel
 	const TAP_SLOP = 6; // px of movement that turns a tap into a drag
 	const CLOSE_MS = 220;
 	// Paging is the thing you do most once the lightbox is open, so it is tuned
@@ -41,7 +43,7 @@
 	// shorter journey, and never so brief that the eye loses the photo.
 	const SETTLE_MS = 340;
 	const SETTLE_MIN_MS = 190;
-	// ms of pointer history a release is judged on. See `velocityAt`.
+	// ms of pointer history a release is judged on. See velocity.js.
 	const VELOCITY_WINDOW = 60;
 	// Settle spring velocity bounds. See `settleSpec` in geometry.js.
 	const SETTLE_V0_MAX = 6;
@@ -58,6 +60,8 @@
 	const SETTLE_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)';
 	const CHROME_TOP = 72; // room the close button's row needs
 	const CHROME_BOTTOM_MIN = 56;
+	// Keeps tall shots from filling a tall viewport.
+	const MAX_LIGHTBOX_HEIGHT = 900;
 	// The shared-element flight: the photo travels from where it sits in the
 	// article to where it sits full-screen, and back. Out is faster than in.
 	const FLIGHT_IN_MS = 340;
@@ -65,7 +69,7 @@
 	// A dismissed photo has further to travel — it starts wherever the finger
 	// left it — so it gets a little longer to get there.
 	const FLIGHT_RETURN_MS = 300;
-	// Fallback for browsers without `linear()`. See `springEasing`.
+	// Fallback for browsers without `linear()`. See `springOr`.
 	const FLIGHT_EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 	const LIGHTBOX_THEME_COLOR = '#0a0a0a';
 
@@ -267,14 +271,14 @@
 	const centreY = $derived(CHROME_TOP + availH / 2);
 
 	$effect(() => {
-		const val = normalizeLightboxValue(lightboxStore.value);
+		const val = lightboxValue();
 		// Only the store drives this. The resets below read gesture state on the
 		// way, and tracking it would rerun the effect on every gesture — resetting
 		// that gesture as it began.
 		untrack(() => (val?.items.length ? show(val) : hide()));
 	});
 
-	/** @param {NonNullable<ReturnType<typeof normalizeLightboxValue>>} val */
+	/** @param {NonNullable<ReturnType<typeof lightboxValue>>} val */
 	function show(val) {
 		// A close schedules an unmount; reopening inside that window would
 		// otherwise be shut again by the timer from the close before it.
@@ -474,7 +478,7 @@
 		clearTimeout(closeTimer);
 		// Reduced motion drops movement, not the fade — the element still has to
 		// have time to fade out before it is unmounted.
-		closeTimer = setTimeout(() => lightboxStore.set(null), ms);
+		closeTimer = setTimeout(() => closeLightbox(), ms);
 	}
 
 	function close() {
@@ -569,7 +573,6 @@
 		hiddenOrigin = null;
 	}
 
-	/** The lightbox's own copy of the image currently on screen. */
 	function currentImgEl() {
 		return rootEl?.querySelector('.lb-img[data-current="true"]') ?? null;
 	}
@@ -784,7 +787,7 @@
 	 *
 	 * The window is the backdrop's, not the flight's: measured, the scrim is 55% in
 	 * by 33ms of an open and 88% gone by 67ms of a close, so the voice changes over
-	 * the first quarter going out and the first third coming home. White type left
+	 * the first 12% going out, and between 5% and 35% coming home. White type left
 	 * on a bright article is the whole failure mode here — its dark halo is all that
 	 * shows, and it reads as a grey smear following the photo home.
 	 *
@@ -956,7 +959,7 @@
 				showOrigin();
 				restoreOriginCaption();
 				restoreOriginSteps();
-				lightboxStore.set(null);
+				closeLightbox();
 			}
 		);
 		if (capHome)
@@ -995,7 +998,6 @@
 		({ x: panX, y: panY } = clampPanTo(currentFit, scale, availW, availH, panX, panY));
 	}
 
-	/** Re-anchor the pan so the point under the fingers/cursor stays put. */
 	function scaleAbout(nextScale, x, y, baseScale, basePanX, basePanY) {
 		({ x: panX, y: panY } = panAfterScale({
 			nextScale,
@@ -1008,6 +1010,13 @@
 			panY: basePanY
 		}));
 		scale = nextScale;
+	}
+
+	function zoomTo(next, x, y) {
+		next = Math.max(1, Math.min(MAX_SCALE, next));
+		if (next === 1) return resetZoom();
+		scaleAbout(next, x, y, scale, panX, panY);
+		clampPan();
 	}
 
 	function beginPinch() {
@@ -1107,8 +1116,7 @@
 			if (Math.abs(dx) < AXIS_LOCK && Math.abs(dy) < AXIS_LOCK) return;
 			// Sideways only means something when there is somewhere to go.
 			gesture = grouped && Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-			// Take the lock threshold back out of the first frame, or the photo sits
-			// still for 8px and then jumps 8px. Measured now, not at pointerdown.
+			// The slop (see `slopX`) is measured now, not at pointerdown.
 			if (gesture === 'x') {
 				slopX = Math.sign(dx) * Math.min(Math.abs(dx), AXIS_LOCK);
 				carryX = pickUpTrack();
@@ -1292,12 +1300,7 @@
 		if (!visible) return;
 		if (e.ctrlKey || e.metaKey) {
 			e.preventDefault();
-			const next = Math.max(1, Math.min(MAX_SCALE, scale * Math.exp(-e.deltaY * 0.0035)));
-			if (next === 1) resetZoom();
-			else {
-				scaleAbout(next, e.clientX, e.clientY, scale, panX, panY);
-				clampPan();
-			}
+			zoomTo(scale * Math.exp(-e.deltaY * WHEEL_ZOOM), e.clientX, e.clientY);
 			return;
 		}
 		if (scale > 1) {
@@ -1326,9 +1329,7 @@
 		wheelRaw -= e.deltaX;
 		const page = winW || 1;
 		const atEnd = (wheelRaw > 0 && index === 0) || (wheelRaw < 0 && index === count - 1);
-		// One page is all a settle can honour, and at the ends there is not even
-		// that. Momentum carries far past either, and the strip was sliding several
-		// images by and taking them back. See `clampTravel`.
+		// See `clampTravel`: one page mid-group, none at the ends.
 		dragX = clampTravel(wheelRaw, atEnd ? 0 : page, page * WHEEL_GIVE, RUBBER);
 		clearTimeout(wheelTimer);
 		wheelTimer = setTimeout(settleWheel, WHEEL_IDLE_MS);
@@ -1365,18 +1366,12 @@
 		}
 		if (e.key === '+' || e.key === '=') {
 			e.preventDefault();
-			scaleAbout(Math.min(MAX_SCALE, scale * 1.5), centreX, centreY, scale, panX, panY);
-			clampPan();
+			zoomTo(scale * KEY_ZOOM_STEP, centreX, centreY);
 			return;
 		}
 		if (e.key === '-') {
 			e.preventDefault();
-			const next = Math.max(1, scale / 1.5);
-			if (next === 1) resetZoom();
-			else {
-				scaleAbout(next, centreX, centreY, scale, panX, panY);
-				clampPan();
-			}
+			zoomTo(scale / KEY_ZOOM_STEP, centreX, centreY);
 			return;
 		}
 		if (grouped && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
@@ -1450,7 +1445,8 @@
 		}`
 	);
 
-	// Only the flat scrim's alpha follows the drag. See the note on `.lb-blur`.
+	// Only the flat scrim's alpha follows the drag; the blur holds. See the note
+	// on the two backdrop layers in the markup.
 	const scrimOpacity = $derived(leaving ? 0 : 1 - dismissProgress * 0.8);
 	// The exit is held off the chrome while a caption is flying home inside it —
 	// the pieces take it themselves, so the caption stays legible until it lands
@@ -1480,7 +1476,7 @@
 		class:bottom-flew={flewIn === 'photo+bottom'}
 		class:bottom-flying-home={flyingHome === 'photo+bottom'}
 		class:dragging
-		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px"
+		style="--lb-vh: {winH}px; --lb-pad-top: {CHROME_TOP}px; --lb-pad-bottom: {reserveBottom}px; --lb-max-height: {MAX_LIGHTBOX_HEIGHT}px; --lb-close: {CLOSE_MS}ms; --lb-flight-in: {FLIGHT_IN_MS}ms; --ease-entrance: {FLIGHT_EASE}"
 		style:--lb-spring={springOr(null, SPRING_IN)}
 		role="dialog"
 		aria-modal="true"
@@ -1563,7 +1559,7 @@
 
 		<!-- Chrome layer — above the image, and outside the transform that moves it,
 		     so a swipe never drags the controls along with the photo. -->
-		<div class="lb-chrome" style="opacity: {chromeOpacity}">
+		<div class="lb-chrome" style:opacity={chromeOpacity}>
 			<button bind:this={closeBtn} class="lb-btn lb-close" onclick={close} aria-label="Close image">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -1657,11 +1653,10 @@
 
 <style>
 	.lb-root {
-		/* Two curves for the whole component: a strong ease-out for anything
-		   entering or leaving, and the drawer curve for anything a finger settles.
-		   Never ease-in — it withholds movement while the eye is on it. */
+		/* A strong ease-out for anything leaving; `--ease-entrance` (the flight's
+		   own fallback curve, set from the script) for anything arriving. Never
+		   ease-in — it withholds movement while the eye is on it. */
 		--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-		--ease-entrance: cubic-bezier(0.16, 1, 0.3, 1);
 
 		position: fixed;
 		top: 0;
@@ -1744,7 +1739,7 @@
 		inset: 0;
 		/* The flight's own spring, so the fallback entrance is not stiffer than the
 		   animation it stands in for. */
-		animation: lb-in 0.36s var(--lb-spring, var(--ease-entrance)) both;
+		animation: lb-in var(--lb-flight-in) var(--lb-spring, var(--ease-entrance)) both;
 	}
 
 	/* A photo flying from the article *is* the entrance; a stage scaling under it
@@ -1756,7 +1751,7 @@
 
 	/* Declared after, so a close still gets its exit even on an open that flew. */
 	.lb-root.closing .lb-stage {
-		animation: lb-out 0.22s var(--ease-out) forwards;
+		animation: lb-out var(--lb-close) var(--ease-out) forwards;
 	}
 
 	/* ...unless the photo is flying home under its own power, or being thrown. */
@@ -1785,12 +1780,12 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--lb-pad-top, 72px) 1rem var(--lb-pad-bottom, 56px);
+		padding: var(--lb-pad-top) 1rem var(--lb-pad-bottom);
 	}
 
 	.lb-img {
 		max-width: 100%;
-		max-height: min(100%, var(--lb-max-height, 900px));
+		max-height: min(100%, var(--lb-max-height));
 		width: auto;
 		height: auto;
 		object-fit: contain;
@@ -2146,7 +2141,6 @@
 	.lb-steps :global(.lb-stepper) {
 		--pill-bg: rgba(255, 255, 255, 0.28);
 		--pill-active-bg: rgba(255, 255, 255, 0.95);
-		--pill-fill-bg: rgba(255, 255, 255, 0.35);
 		--pill-container-bg: rgba(0, 0, 0, 0.55);
 		--pill-container-border: rgba(255, 255, 255, 0.12);
 		--pill-focus-ring: rgba(255, 255, 255, 0.65);

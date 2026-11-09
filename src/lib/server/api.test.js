@@ -1,17 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ConvexError } from 'convex/values';
 import { z } from 'zod';
-import { parseBody, convexErrorToResponse, runConvex, handleConvexErr } from './api';
-
-/** Run `fn`, returning the thrown error (or undefined if it didn't throw). */
-function caught(fn) {
-	try {
-		fn();
-	} catch (err) {
-		return err;
-	}
-	return undefined;
-}
+import { parseBody, convexErrorToResponse, runConvex } from './api.js';
 
 function jsonRequest(body) {
 	return new Request('http://x/api', {
@@ -22,9 +12,8 @@ function jsonRequest(body) {
 }
 
 describe('convexErrorToResponse', () => {
-	it('maps a RateLimited ConvexError to a 429 Response with Retry-After', () => {
+	it('maps a RateLimited ConvexError to a 429 with Retry-After', () => {
 		const res = convexErrorToResponse(new ConvexError({ kind: 'RateLimited', retryAfter: 2500 }));
-		expect(res).toBeInstanceOf(Response);
 		expect(res.status).toBe(429);
 		expect(res.headers.get('Retry-After')).toBe('3');
 	});
@@ -37,36 +26,26 @@ describe('convexErrorToResponse', () => {
 	it.each([
 		['Banned', 403],
 		['Unauthorized', 401],
-		['Forbidden', 403],
 		['NotFound', 404],
-		['BadRequest', 400],
-		['Unknown', 500]
+		['BadRequest', 400]
 	])('maps a %s ConvexError to HTTP %i', (kind, status) => {
-		const err = caught(() => convexErrorToResponse(new ConvexError({ kind })));
-		expect(err?.status).toBe(status);
+		expect(convexErrorToResponse(new ConvexError({ kind })).status).toBe(status);
 	});
 
-	it('handles the cross-boundary { data: { kind } } shape', () => {
-		const err = caught(() =>
-			convexErrorToResponse({ data: { kind: 'NotFound', message: 'gone' } })
-		);
-		expect(err?.status).toBe(404);
-
-		const res = convexErrorToResponse({ data: { kind: 'RateLimited' } });
-		expect(res).toBeInstanceOf(Response);
-		expect(res.status).toBe(429);
+	it("answers with Convex's own message, which apiFetch shows", async () => {
+		const res = convexErrorToResponse(new ConvexError({ kind: 'NotFound', message: 'gone' }));
+		await expect(res.json()).resolves.toEqual({ message: 'gone' });
 	});
 
-	it('maps a plain Error mentioning Unauthorized to 401, else 500', () => {
-		expect(
-			caught(() => convexErrorToResponse(new Error('Server Error: Unauthorized')))?.status
-		).toBe(401);
-		expect(caught(() => convexErrorToResponse(new Error('boom')))?.status).toBe(500);
+	it('is a 500 for an unknown kind or a plain error', () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		expect(convexErrorToResponse(new ConvexError({ kind: 'Mystery' })).status).toBe(500);
+		expect(convexErrorToResponse(new Error('boom')).status).toBe(500);
 	});
 });
 
 describe('parseBody', () => {
-	const schema = z.object({ name: z.string().min(1) });
+	const schema = z.object({ name: z.string().min(1, 'Name is required') });
 
 	it('returns parsed data for a valid body', async () => {
 		await expect(parseBody(jsonRequest({ name: 'ok' }), schema)).resolves.toEqual({ name: 'ok' });
@@ -80,13 +59,13 @@ describe('parseBody', () => {
 	it('throws 400 with the first validation message on schema mismatch', async () => {
 		const err = await parseBody(jsonRequest({ name: '' }), schema).catch((e) => e);
 		expect(err.status).toBe(400);
+		expect(err.body.message).toBe('Name is required');
 	});
 });
 
 describe('runConvex', () => {
 	it('builds a JSON response on success', async () => {
 		const res = await runConvex(async () => ({ ok: true }));
-		expect(res).toBeInstanceOf(Response);
 		await expect(res.json()).resolves.toEqual({ ok: true });
 	});
 
@@ -98,24 +77,10 @@ describe('runConvex', () => {
 		expect(res.status).toBe(201);
 	});
 
-	it('returns a 429 Response when the call is rate limited', async () => {
+	it('answers a thrown Convex error with its status instead of throwing', async () => {
 		const res = await runConvex(async () => {
-			throw new ConvexError({ kind: 'RateLimited', retryAfter: 1000 });
-		});
-		expect(res.status).toBe(429);
-	});
-
-	it('throws a mapped HttpError for non-rate-limit Convex errors', async () => {
-		const err = await runConvex(async () => {
 			throw new ConvexError({ kind: 'NotFound' });
-		}).catch((e) => e);
-		expect(err.status).toBe(404);
-	});
-});
-
-describe('handleConvexErr', () => {
-	it('returns a Response for rate limits and throws otherwise', () => {
-		expect(handleConvexErr(new ConvexError({ kind: 'RateLimited' }))).toBeInstanceOf(Response);
-		expect(caught(() => handleConvexErr(new ConvexError({ kind: 'Banned' })))?.status).toBe(403);
+		});
+		expect(res.status).toBe(404);
 	});
 });

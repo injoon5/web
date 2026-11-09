@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Losslessly-ish compress raster images from git into .cache/image-mirror/.
- * apply-optimized-images.mjs copies mirrors onto static/ for the build.
+ * Re-encode (lossy for JPEG and WebP) and size-cap the raster images from git
+ * into .cache/image-mirror/; apply-optimized-images.mjs copies them onto static/
+ * for the build. A re-encode that comes out larger keeps the original bytes.
  *
  * Source bytes always come from git HEAD so optimized static/ files never
  * bust the manifest. Turbo Remote Cache restores .cache/ across deploys.
@@ -10,33 +11,30 @@
 import { execFile } from 'node:child_process';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import sharp from 'sharp';
 import {
 	VARIANTS_MANIFEST,
-	VARIANT_QUALITY,
+	VARIANT_ENCODING,
+	VARIANT_SETTINGS,
 	variantKey,
 	variantPath,
 	variantWidths
 } from '../src/lib/markdown/image-variants.js';
+import {
+	CACHE_DIR,
+	MIRROR_DIR,
+	OPTIMIZE_MANIFEST,
+	ROOT,
+	readFingerprints
+} from './lib/image-cache.js';
 
 const execFileAsync = promisify(execFile);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
-const CACHE_DIR = path.join(ROOT, '.cache');
-const MANIFEST_PATH = path.join(CACHE_DIR, 'image-optimize.json');
-const FINGERPRINT_PATH = path.join(CACHE_DIR, 'source-fingerprints.json');
 const VARIANTS_PATH = path.join(ROOT, VARIANTS_MANIFEST);
 
-/** Animated GIFs stay as they are; everything else gets smaller copies. */
-const VARIANT_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
-const MIRROR_DIR = path.join(CACHE_DIR, 'image-mirror');
-
-/** Max width for blog/photo assets (2x typical content column). */
 const MAX_WIDTH = Number.parseInt(process.env.IMAGE_MAX_WIDTH ?? '2400', 10);
-/** Max height — same bounding box as width so tall portraits get resized too. */
+/** The same bound as the width, so a tall portrait is capped too. */
 const MAX_HEIGHT = Number.parseInt(process.env.IMAGE_MAX_HEIGHT ?? '2400', 10);
 const JPEG_QUALITY = Number.parseInt(process.env.JPEG_QUALITY ?? '88', 10);
 const PNG_COMPRESSION = Number.parseInt(process.env.PNG_COMPRESSION ?? '9', 10);
@@ -67,7 +65,7 @@ async function run(cmd, args, options = {}) {
 
 async function loadManifest() {
 	try {
-		const raw = await readFile(MANIFEST_PATH, 'utf8');
+		const raw = await readFile(OPTIMIZE_MANIFEST, 'utf8');
 		manifest = JSON.parse(raw);
 	} catch {
 		manifest = {};
@@ -77,7 +75,7 @@ async function loadManifest() {
 async function saveManifest() {
 	if (dryRun) return;
 	await mkdir(CACHE_DIR, { recursive: true });
-	await writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+	await writeFile(OPTIMIZE_MANIFEST, JSON.stringify(manifest, null, 2));
 }
 
 function mirrorPath(rel) {
@@ -233,12 +231,12 @@ async function buildVariants(rel, inputHash, sourceBuf) {
 	if (!entry) return { written: 0 };
 	// Article images only: nothing outside `static/images` is ever given a
 	// srcset. A list left from before that rule would name files nobody writes.
-	if (!rel.startsWith('static/images/') || !VARIANT_EXT.has(path.extname(rel).toLowerCase())) {
+	if (!rel.startsWith('static/images/')) {
 		delete entry.variants;
 		return { written: 0 };
 	}
 
-	const settings = `${VARIANT_QUALITY}`;
+	const settings = VARIANT_SETTINGS;
 	if (!force && entry.variantInput === inputHash && entry.variantSettings === settings) {
 		const files = (entry.variants ?? []).map((v) => mirrorPath(v.file));
 		const present = await Promise.all(
@@ -263,7 +261,7 @@ async function buildVariants(rel, inputHash, sourceBuf) {
 		const out = await sharp(sourceBuf, { failOn: 'none' })
 			.rotate()
 			.resize({ width: w, withoutEnlargement: true })
-			.webp({ quality: VARIANT_QUALITY, effort: 5, smartSubsample: true })
+			.webp(VARIANT_ENCODING)
 			.toBuffer();
 		if (w === width && out.length >= original) continue;
 		const file = variantPath(rel, w, variantKey(inputHash, w));
@@ -326,17 +324,14 @@ async function main() {
 		process.exit(1);
 	}
 
-	let fingerprint;
-	try {
-		fingerprint = JSON.parse(await readFile(FINGERPRINT_PATH, 'utf8'));
-	} catch {
+	const files = await readFingerprints();
+	if (!files) {
 		console.error('Missing .cache/source-fingerprints.json — run fingerprint-images first');
 		process.exit(1);
 	}
 
 	await loadManifest();
 
-	const files = fingerprint.files ?? {};
 	let totalSaved = 0;
 	let optimized = 0;
 	let skipped = 0;

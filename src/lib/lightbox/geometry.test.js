@@ -130,19 +130,24 @@ describe('clampPanTo', () => {
 
 describe('panAfterScale', () => {
 	it('keeps the point under the finger put', () => {
-		// Zooming about the exact centre should not shift the pan.
-		expect(
-			panAfterScale({
-				nextScale: 2,
-				baseScale: 1,
-				x: 100,
-				y: 100,
-				centreX: 100,
-				centreY: 100,
-				panX: 0,
-				panY: 0
-			})
-		).toEqual({ x: 0, y: 0 });
+		// The image is drawn at `centre + pan + scale * p`, so the image point under
+		// the finger is `(finger - centre - pan) / scale`. It must not move.
+		const before = { scale: 1.5, panX: 20, panY: -10 };
+		const at = { x: 300, y: 40, centreX: 100, centreY: 120 };
+		const after = panAfterScale({
+			nextScale: 3,
+			baseScale: before.scale,
+			...at,
+			panX: before.panX,
+			panY: before.panY
+		});
+		const under = (pan, centre, finger, scale) => (finger - centre - pan) / scale;
+		expect(under(after.x, at.centreX, at.x, 3)).toBeCloseTo(
+			under(before.panX, at.centreX, at.x, before.scale)
+		);
+		expect(under(after.y, at.centreY, at.y, 3)).toBeCloseTo(
+			under(before.panY, at.centreY, at.y, before.scale)
+		);
 	});
 
 	it('pushes the pan away from an off-centre anchor', () => {
@@ -168,7 +173,7 @@ describe('pageStep', () => {
 	});
 
 	it('pages on a slow drag past a fifth of the viewport', () => {
-		expect(pageStep(-120, 0, 400, limits)).toBe(-0 + 1);
+		expect(pageStep(-120, 0, 400, limits)).toBe(1);
 	});
 
 	it('stays put on a short slow drag — distance alone ignored real flicks', () => {

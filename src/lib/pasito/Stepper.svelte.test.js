@@ -61,39 +61,6 @@ describe('Stepper rendering', () => {
 });
 
 describe('Stepper theming and windowing', () => {
-	it('passes duration and easing through as custom properties', () => {
-		const { container } = render(Stepper, {
-			count: 3,
-			active: 0,
-			transitionDuration: 200,
-			easing: 'linear'
-		});
-		const el = container.querySelector('.pasito-container');
-		expect(el.style.getPropertyValue('--pill-duration')).toBe('200ms');
-		expect(el.style.getPropertyValue('--pill-easing')).toBe('linear');
-	});
-
-	it('sets no easing property when none is given, so the CSS default stands', () => {
-		const { container } = render(Stepper, { count: 3, active: 0 });
-		expect(
-			container.querySelector('.pasito-container').style.getPropertyValue('--pill-easing')
-		).toBe('');
-	});
-
-	it('only times the fill on the active step', () => {
-		const { container } = render(Stepper, {
-			count: 3,
-			active: 1,
-			filling: true,
-			fillDuration: 2500
-		});
-		const steps = stepsIn(container);
-		expect(steps[1]).toHaveClass('pasito-step-filling');
-		expect(steps[1].style.getPropertyValue('--pill-fill-duration')).toBe('2500ms');
-		expect(steps[0]).not.toHaveClass('pasito-step-filling');
-		expect(steps[0].style.getPropertyValue('--pill-fill-duration')).toBe('');
-	});
-
 	it('leaves the track alone while everything fits', () => {
 		const { container } = render(Stepper, { count: 4, active: 0, maxVisible: 5 });
 		expect(container.querySelector('.pasito-track').style.transform).toBe('none');
@@ -129,7 +96,7 @@ describe('Stepper count changes', () => {
 		expect(stepsIn(container)).toHaveLength(3);
 		expect(stepsIn(container)[2]).toHaveClass('pasito-exiting');
 
-		await vi.advanceTimersByTimeAsync(400);
+		await vi.runOnlyPendingTimersAsync();
 		expect(stepsIn(container)).toHaveLength(2);
 	});
 

@@ -29,7 +29,6 @@ function callDelete(headers) {
 	return DELETE({ params: { id: 'c1' }, request: deleteRequest(headers) });
 }
 
-/** Name of the Convex function reference passed to convex.action(). */
 function calledAction() {
 	return getFunctionName(convex.action.mock.calls[0][0]);
 }

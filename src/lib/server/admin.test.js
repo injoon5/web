@@ -6,11 +6,9 @@ import {
 	createAdminSessionToken,
 	verifyAdminSessionToken,
 	verifyAdminSecret,
-	verifyAdminCookie,
-	requireAdmin,
 	sessionTokenExpiry,
 	SESSION_MAX_AGE_MS
-} from './admin';
+} from './admin.js';
 
 /** Build a token signed with the (known) test secret and a chosen expiry. */
 function signToken(expiresAt, nonce = 'deadbeef') {
@@ -114,30 +112,6 @@ describe('verifyAdminSecret', () => {
 	});
 });
 
-describe('verifyAdminCookie', () => {
-	it('validates the token and rejects undefined', () => {
-		expect(verifyAdminCookie(createAdminSessionToken())).toBe(true);
-		expect(verifyAdminCookie(undefined)).toBe(false);
-		expect(verifyAdminCookie('')).toBe(false);
-	});
-});
-
-describe('requireAdmin', () => {
-	it('throws a 401 for non-admin requests', () => {
-		try {
-			requireAdmin(new Request('http://x/api'));
-			throw new Error('expected requireAdmin to throw');
-		} catch (err) {
-			expect(err.status).toBe(401);
-		}
-	});
-
-	it('does not throw for an authenticated request', () => {
-		const req = new Request('http://x/api', { headers: { 'x-admin-secret': ADMIN_SECRET } });
-		expect(() => requireAdmin(req)).not.toThrow();
-	});
-});
-
 describe('when ADMIN_SECRET is not configured', () => {
 	afterEach(() => {
 		vi.resetModules();
@@ -147,7 +121,7 @@ describe('when ADMIN_SECRET is not configured', () => {
 	it('secretsMatch returns false and createAdminSessionToken throws', async () => {
 		vi.resetModules();
 		vi.doMock('$app/env/private', () => ({ ADMIN_SECRET: '', IP_HASH_SECRET: 'x' }));
-		const mod = await import('./admin');
+		const mod = await import('./admin.js');
 		expect(mod.secretsMatch('anything')).toBe(false);
 		expect(() => mod.createAdminSessionToken()).toThrow();
 	});

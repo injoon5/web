@@ -1,17 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { resolveOgInput, buildOgElement } from './build';
+import { resolveOgInput, buildOgElement } from './build.js';
+import { ogImageUrl } from './url.js';
 
 const params = (obj) => new URLSearchParams(obj);
 
 describe('resolveOgInput', () => {
-	it('returns a fixture copy when fixture id is known', () => {
-		const input = resolveOgInput(params({ fixture: 'home' }));
-		expect(input.template).toBe('home');
-	});
-
-	it('ignores an unknown fixture and reads params instead', () => {
-		const input = resolveOgInput(params({ fixture: 'does-not-exist', template: 'blog' }));
-		expect(input.template).toBe('blog');
+	it('reads back what ogImageUrl writes', () => {
+		const fields = { title: 'A & B', description: '설명 100%', year: '2025', tags: ['x y', 'z'] };
+		const url = new URL(ogImageUrl('project', fields));
+		expect(resolveOgInput(url.searchParams)).toEqual({ template: 'project', date: '', ...fields });
 	});
 
 	it('defaults to the home template with empty fields', () => {
@@ -49,21 +46,17 @@ describe('resolveOgInput', () => {
 	it('caps each tag length at 40 chars', () => {
 		expect(resolveOgInput(params({ tags: 'y'.repeat(100) })).tags[0]).toHaveLength(40);
 	});
-
-	it('returns an empty tag array when none provided', () => {
-		expect(resolveOgInput(params({})).tags).toEqual([]);
-	});
 });
 
 describe('buildOgElement', () => {
-	it.each(['home', 'blog', 'blog-post', 'projects', 'project', 'now', 'health'])(
-		'returns a satori element tree for the %s template',
-		(template) => {
-			const el = buildOgElement({ template, title: 't', description: 'd', tags: ['x'] });
-			expect(el).toBeTypeOf('object');
-			expect(el).toHaveProperty('type');
-		}
-	);
+	it.each(['blog-post', 'project'])('puts the title on the %s card', (template) => {
+		const el = buildOgElement({ template, title: 'A distinctive title' });
+		expect(JSON.stringify(el)).toContain('A distinctive title');
+	});
+
+	it.each(['blog', 'projects', 'now', 'health'])('draws its own card for %s', (template) => {
+		expect(buildOgElement({ template })).not.toEqual(buildOgElement({ template: 'home' }));
+	});
 
 	it('falls back to the home template for an unknown template', () => {
 		expect(buildOgElement({ template: 'bogus' })).toEqual(buildOgElement({ template: 'home' }));

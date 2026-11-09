@@ -2,7 +2,6 @@
 
 const vscode = require('vscode');
 
-const { imageSize } = require('../lib/image-size');
 const { scanMarkdown } = require('../lib/markdown-scan');
 const media = require('../lib/media');
 const workspace = require('../lib/workspace');
@@ -100,8 +99,7 @@ class MediaHoverProvider {
 			const facts = [humanSize(stat.size)];
 
 			if (kind === 'image' && stat.size < 16 * 1024 * 1024) {
-				const bytes = await vscode.workspace.fs.readFile(uri);
-				const size = imageSize(bytes);
+				const size = await workspace.imageSizeOf(uri);
 				if (size) facts.unshift(`${size.width} × ${size.height}`);
 				markdown.appendMarkdown(`<img src="${uri.toString()}" width="320">\n\n`);
 			}

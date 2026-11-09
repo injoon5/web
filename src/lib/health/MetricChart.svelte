@@ -23,9 +23,8 @@
 	 * from the `active` index handed back down — so every chart on the page marks
 	 * the same day, whichever one the pointer is over.
 	 *
-	 * Every dimension comes from `chartSettings`, which is a plain object of
-	 * shipped defaults everywhere except preview deployments — see
-	 * `chart-settings.svelte.js`.
+	 * Every dimension comes from `chartSettings` (`settings.svelte.js`), which
+	 * nothing writes in production; on preview the tuning panel binds to it.
 	 */
 	let { values, label, decimals = 0, delay = 0, active = null, onscrub } = $props();
 

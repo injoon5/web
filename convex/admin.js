@@ -1,22 +1,13 @@
 import { v } from 'convex/values';
 import { query } from './_generated/server.js';
-import { assertAdminAccess } from './lib/adminSession.js';
+import { adminAuthArgs, assertAdminAccess } from './lib/adminSession.js';
 import { countActiveCommentsByUrl } from './lib/commentsScan.js';
 import { adminComment } from './lib/serialize.js';
 import { isUrlCountsBackfillComplete } from './lib/migration.js';
-import { getVoteCounts, voteCountsFromDoc } from './lib/votes.js';
+import { countAllVotes, voteCountsFromDoc } from './lib/votes.js';
 
 // One row per commented-on URL — a bound, not a page.
 const URL_LIMIT = 2000;
-
-// Both admin credentials are optional in the validator and neither is optional
-// in effect: `assertAdminAccess` throws unless one of them checks out. The
-// server routes send `adminSecret`; the dashboard's own subscriptions send
-// `sessionToken`. See convex/lib/adminSession.js.
-const adminAuthArgs = {
-	adminSecret: v.optional(v.string()),
-	sessionToken: v.optional(v.string())
-};
 
 export const listUrls = query({
 	args: adminAuthArgs,
@@ -53,20 +44,19 @@ export const listForUrl = query({
 	handler: async (ctx, { url, adminSecret, sessionToken }) => {
 		await assertAdminAccess(ctx, { adminSecret, sessionToken });
 
-		// Tombstones are skipped at the index — see the `by_url_deleted` note in
-		// convex/schema.js.
+		// Tombstones are skipped at the index — see the note on it in
+		// convex/schema.js. Sorted below, so the index's own order is moot.
 		const active = await ctx.db
 			.query('comments')
-			.withIndex('by_url_deleted', (q) => q.eq('url', url).eq('deletedAt', null))
+			.withIndex('by_url_deleted_parent_score', (q) => q.eq('url', url).eq('deletedAt', null))
 			.collect();
 
 		active.sort((a, b) => a._creationTime - b._creationTime);
 
 		return await Promise.all(
 			active.map(async (doc) => {
-				const cached = voteCountsFromDoc(doc);
-				const { upvotes, downvotes } = cached ?? (await getVoteCounts(ctx, doc, ''));
-				return adminComment(doc, { upvotes, downvotes });
+				const counts = voteCountsFromDoc(doc) ?? (await countAllVotes(ctx, doc._id));
+				return adminComment(doc, counts);
 			})
 		);
 	}

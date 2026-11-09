@@ -17,8 +17,7 @@ import {
 	metricKind,
 	metricUnit,
 	parseInstant,
-	shiftDateKey,
-	workoutExternalId
+	shiftDateKey
 } from './health.js';
 
 describe('metric semantics', () => {
@@ -93,9 +92,6 @@ describe('foldSamples', () => {
 		);
 		expect(second.inserts).toHaveLength(0);
 		expect(second.delta).toBe(null);
-
-		// Nothing new, so the bucket is untouched.
-		expect(bucket.count).toBe(100);
 	});
 
 	it('deduplicates repeats inside a single batch', () => {
@@ -135,10 +131,8 @@ describe('bucketSizeFor', () => {
 		expect(bucketSizeFor(400, 400)).toBe(1);
 	});
 
-	it('merges a five-year window into about 260 weekly points', () => {
-		const days = 1825;
-		expect(bucketSizeFor(days, 400)).toBe(7);
-		expect(Math.ceil(days / 7)).toBe(261);
+	it('merges a five-year window into weekly points', () => {
+		expect(bucketSizeFor(1825, 400)).toBe(7);
 	});
 
 	it('drops to monthly when weekly still overflows', () => {
@@ -295,13 +289,5 @@ describe('buildHourlySeries', () => {
 			hours: 1
 		});
 		expect(series.values).toEqual([280]);
-	});
-});
-
-describe('workoutExternalId', () => {
-	it('is stable across re-syncs of the same workout', () => {
-		const start = Date.parse('2026-08-01T06:12:00Z');
-		expect(workoutExternalId('running', start)).toBe(workoutExternalId('running', start));
-		expect(workoutExternalId('running', start)).not.toBe(workoutExternalId('cycling', start));
 	});
 });

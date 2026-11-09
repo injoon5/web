@@ -11,6 +11,8 @@ import {
 	HOUR_MS,
 	MAX_SERIES_DAYS,
 	MAX_SERIES_HOURS,
+	MAX_SAMPLES,
+	MAX_WORKOUTS,
 	buildDailySeries,
 	buildHourlySeries,
 	metricUnit,
@@ -65,7 +67,7 @@ export async function readHourlySeries(ctx, { metric, startHour, hours, maxPoint
 }
 
 export async function readWorkouts(ctx, { startMs, type, limit }) {
-	const take = Math.min(Math.max(1, Math.floor(limit)), 200);
+	const take = Math.min(Math.max(1, Math.floor(limit)), MAX_WORKOUTS);
 
 	const rows = type
 		? await ctx.db
@@ -121,7 +123,7 @@ export async function readDay(ctx, date) {
 }
 
 export async function readSamples(ctx, { metric, startMs, endMs, limit }) {
-	const take = Math.min(Math.max(1, Math.floor(limit)), 1000);
+	const take = Math.min(Math.max(1, Math.floor(limit)), MAX_SAMPLES);
 
 	const rows = await ctx.db
 		.query('healthSamples')

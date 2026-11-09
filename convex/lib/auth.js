@@ -1,14 +1,10 @@
-import { ConvexError } from 'convex/values';
-import { secretsMatch } from './secrets.js';
+import { secretsMatch } from './crypto.js';
+import { fail } from './errors.js';
 
 export async function isAdmin(secret) {
-	return (
-		Boolean(process.env.ADMIN_SECRET) && (await secretsMatch(secret, process.env.ADMIN_SECRET))
-	);
+	return secretsMatch(secret, process.env.ADMIN_SECRET);
 }
 
 export async function assertAdmin(secret) {
-	if (!(await isAdmin(secret))) {
-		throw new ConvexError({ kind: 'Unauthorized' });
-	}
+	if (!(await isAdmin(secret))) fail('Unauthorized');
 }

@@ -12,19 +12,11 @@ vi.mock('#lib/content/article-index.js', () => ({ articleIndex: async () => inde
 
 vi.mock('#lib/content/article-modules.js', () => {
 	const mod = (lang) => async () => ({ default: `Content:${lang}`, metadata: { title: lang } });
-	return {
-		blogModules: {
-			ko: { '/src/content/blog/ko/both.md': mod('ko'), '/src/content/blog/ko/solo.md': mod('ko') },
-			en: { '/src/content/blog/en/both.md': mod('en') }
-		},
-		projectModules: { ko: {}, en: {} }
-	};
+	const files = { 'blog/ko/both': mod('ko'), 'blog/ko/solo': mod('ko'), 'blog/en/both': mod('en') };
+	return { articleModule: (kind, lang, slug) => files[`${kind}/${lang}/${slug}`] };
 });
 
-vi.mock('#lib/visitor.svelte.js', () => ({
-	cookieLang: () => state.cookie,
-	loadVisitor: () => {}
-}));
+vi.mock('#lib/cookies.js', () => ({ cookieLang: () => state.cookie }));
 
 import { articleLoad } from './article-load.js';
 

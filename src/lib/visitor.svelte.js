@@ -1,17 +1,11 @@
 import { browser } from '$app/env';
 
 /**
- * Per-visitor state for the article pages, which are prerendered and so know
- * nothing about who is reading.
- *
- * - `ipHash` only decides whether the heart is filled and which vote is yours.
- *   The browser fetches it once per session from `/api/visitor`, and nothing
- *   waits for it: the post renders, the like count shows, and the heart and
- *   votes fill in when it lands.
- * - The language is the URL (`#lib/content/article-paths.js`). The
- *   `preferred-lang` cookie only remembers what the visitor picked, so that
- *   vercel.json can send a direct visit to `/en`, and a link followed inside the
- *   site can do the same in the browser.
+ * This visitor's `ipHash`, for the article pages, which are prerendered and so
+ * know nothing about who is reading. It only decides whether the heart is
+ * filled and which vote is yours. The browser fetches it once per session from
+ * `/api/visitor`, and nothing waits for it: the post renders, the like count
+ * shows, and the heart and votes fill in when it lands.
  */
 export const visitor = $state({ ipHash: '' });
 
@@ -41,28 +35,11 @@ export function loadVisitor(fetch = globalThis.fetch) {
 	pending ??= fetch('/api/visitor')
 		.then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
 		.then((v) => {
-			visitor.ipHash = v.ipHash ?? '';
+			// A hash a write already adopted is newer than this one.
+			visitor.ipHash ||= v.ipHash ?? '';
 		})
 		.catch(() => {
 			// Try again on the next article navigation.
 			pending = null;
 		});
-}
-
-const COOKIE = 'preferred-lang';
-
-/** The language the visitor last picked, or null. Browser only. */
-export function cookieLang() {
-	if (!browser) return null;
-	const match = document.cookie.match(/(?:^|;\s*)preferred-lang=([^;]*)/);
-	return match ? decodeURIComponent(match[1]) : null;
-}
-
-/** @param {string} lang */
-export function persistLang(lang) {
-	try {
-		document.cookie = `${COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
-	} catch {
-		// Cookies may be unavailable.
-	}
 }

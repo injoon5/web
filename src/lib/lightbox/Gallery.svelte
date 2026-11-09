@@ -14,7 +14,7 @@
 	import { motion } from '#lib/reduced-motion.svelte.js';
 	import Stepper from '#lib/pasito/Stepper.svelte';
 	import { trackImages } from './image-cache.js';
-	import { COLUMN_SIZES } from '#lib/markdown/image-sizes.js';
+	import { ARTICLE_SIZES, COLUMN_MAX } from '#lib/markdown/image-sizes.js';
 
 	const DEFAULT_HEIGHT = 'clamp(220px, 52vw, 460px)';
 
@@ -31,10 +31,10 @@
 	 */
 	function sizesFor(image) {
 		if (height !== DEFAULT_HEIGHT || !image.width || !image.height) {
-			return `auto, ${COLUMN_SIZES}`;
+			return ARTICLE_SIZES;
 		}
 		const r = image.width / image.height;
-		const px = (h) => `${Math.round(Math.min(699, h * r))}px`;
+		const px = (h) => `${Math.round(Math.min(COLUMN_MAX, h * r))}px`;
 		return `auto, (min-width: 885px) ${px(460)}, (min-width: 424px) calc(52vw * ${r.toFixed(3)}), ${px(220)}`;
 	}
 

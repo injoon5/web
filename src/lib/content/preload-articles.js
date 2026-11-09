@@ -1,5 +1,6 @@
-import { blogModules, projectModules } from './article-modules.js';
+import { articleModule } from './article-modules.js';
 import { articleIndex } from './article-index.js';
+import { parseArticlePath } from './article-paths.js';
 
 const noop = () => {};
 
@@ -14,12 +15,10 @@ const noop = () => {};
  * @param {string} pathname  `/blog/<slug>` or `/projects/<slug>`
  */
 export function preloadArticle(pathname) {
-	const match = pathname.match(/^\/(blog|projects)\/([^/]+)(?:\/en)?\/?$/);
-	if (!match) return;
-	const [, kind, slug] = match;
-	const modules = kind === 'blog' ? blogModules : projectModules;
-	for (const lang of /** @type {const} */ (['en', 'ko'])) {
-		modules[lang][`/src/content/${kind}/${lang}/${slug}.md`]?.().catch(noop);
+	const article = parseArticlePath(pathname);
+	if (!article) return;
+	for (const lang of ['en', 'ko']) {
+		articleModule(article.kind, lang, article.slug)?.().catch(noop);
 	}
 	articleIndex(fetch).catch(noop);
 }

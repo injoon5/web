@@ -1,13 +1,12 @@
 import { error } from '@sveltejs/kit';
-import { convex, serverCredential } from '#lib/server/convex.js';
+import bcrypt from 'bcryptjs';
+import { convex } from '#lib/server/convex.js';
 import { api } from '#convex/_generated/api.js';
 import { requestIpHash } from '#lib/server/ip.js';
+import { visitorArgs } from '#lib/server/callers.js';
 import { createCommentSchema } from '#lib/server/validation.js';
-import { verifyAdminSecret } from '#lib/server/admin.js';
-import { isValidPageUrl } from '#lib/server/valid-urls.js';
-import { runConvex, parseBody, handleConvexErr } from '#lib/server/api.js';
-import { ADMIN_SECRET } from '$app/env/private';
-import bcrypt from 'bcryptjs';
+import { isArticleUrl } from '#lib/server/article-index.js';
+import { runConvex, parseBody } from '#lib/server/api.js';
 
 const MAX_PAGE = 50;
 
@@ -21,13 +20,12 @@ export const GET = async ({ url, request }) => {
 		MAX_PAGE
 	);
 	const cursor = url.searchParams.get('cursor') ?? null;
-	const ipHash = requestIpHash(request);
 
 	return runConvex(
 		() =>
 			convex.query(api.comments.list, {
 				url: pageUrl,
-				ipHash,
+				ipHash: requestIpHash(request),
 				paginationOpts: { numItems, cursor }
 			}),
 		(result) =>
@@ -41,9 +39,7 @@ export const GET = async ({ url, request }) => {
 
 /** @type {import('./$types').RequestHandler} */
 export const POST = async ({ request }) => {
-	const ipHash = requestIpHash(request);
-	const admin = verifyAdminSecret(request);
-
+	const visitor = visitorArgs(request);
 	const {
 		url: pageUrl,
 		username,
@@ -51,35 +47,28 @@ export const POST = async ({ request }) => {
 		text,
 		parentId
 	} = await parseBody(request, createCommentSchema);
-
-	if (!isValidPageUrl(pageUrl)) throw error(404, 'Page not found');
+	if (!isArticleUrl(pageUrl)) throw error(404, 'Page not found');
 
 	// Ask whether this IP may comment at all before spending ~100ms of CPU on
 	// bcrypt. `create` re-checks and is what actually consumes the token; this
 	// only moves the rejection in front of the expensive part, so a banned or
 	// rate-limited caller costs two indexed reads instead of a hash.
-	try {
-		await convex.mutation(api.comments.checkCanCreate, {
-			serverCredential,
-			ipHash,
-			adminSecret: admin ? ADMIN_SECRET : undefined
-		});
-	} catch (err) {
-		return handleConvexErr(err);
-	}
+	const gate = await runConvex(
+		() => convex.mutation(api.comments.checkCanCreate, visitor),
+		() => new Response(null, { status: 204 })
+	);
+	if (!gate.ok) return gate;
 
 	const passwordHash = await bcrypt.hash(password, 10);
 	return runConvex(
 		() =>
 			convex.mutation(api.comments.create, {
-				serverCredential,
 				url: pageUrl,
-				username: username ?? 'Anonymous',
+				username,
 				passwordHash,
 				text,
 				parentId,
-				ipHash,
-				adminSecret: admin ? ADMIN_SECRET : undefined
+				...visitor
 			}),
 		(comment) => Response.json({ comment }, { status: 201 })
 	);

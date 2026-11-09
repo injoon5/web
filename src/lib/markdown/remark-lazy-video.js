@@ -27,8 +27,7 @@
  * to its top half.
  */
 
-import path from 'node:path';
-import { resolveLocal } from './remark-image-size.js';
+import { STATIC_ROOT, resolveLocal } from './static-file.js';
 import { addComponentImport } from './splice-import.js';
 import { sizeOfVideoFile } from './video-size.js';
 
@@ -103,7 +102,7 @@ function videoNode({ src, label }, size) {
 
 /** @param {{ root?: string }} [options] `root` is the directory `/`-rooted URLs resolve in */
 export function remarkLazyVideo(options = {}) {
-	const root = options.root ?? path.join(process.cwd(), 'static');
+	const root = options.root ?? STATIC_ROOT;
 	return function transformer(tree) {
 		let found = false;
 

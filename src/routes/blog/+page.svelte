@@ -1,4 +1,6 @@
 <script>
+	import { SITE_URL } from '#lib/content/article-paths.js';
+	import { ogImageUrl } from '#lib/og/url.js';
 	import FontPrefetch from '#lib/fonts/FontPrefetch.svelte';
 	import { preloadArticles } from '#lib/content/preload-articles.js';
 
@@ -40,10 +42,10 @@
 	/>
 	<meta name="author" content="Injoon Oh (오인준)" />
 	<meta name="keywords" content="오인준, Injoon Oh, 블로그, blog, 글, writing" />
-	<meta property="og:image" content="https://injoon5.com/api/og?template=blog" />
+	<meta property="og:image" content={ogImageUrl('blog')} />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://injoon5.com/api/og?template=blog" />
-	<meta property="og:url" content="https://injoon5.com/blog" />
+	<meta name="twitter:image" content={ogImageUrl('blog')} />
+	<meta property="og:url" content="{SITE_URL}/blog" />
 </svelte:head>
 
 <FontPrefetch />

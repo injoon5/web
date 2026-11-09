@@ -8,16 +8,9 @@
  * initial data, which is what the pages render from anyway.
  */
 import { createServer } from 'node:http';
-import { createHmac } from 'node:crypto';
+import { SERVER_CALL_FUNCTIONS, deriveServerCredential } from '../../convex/lib/serverCall.js';
 
-const GATED = new Set([
-	'likes:setLike',
-	'comments:create',
-	'comments:vote',
-	'comments:checkCanCreate',
-	'commentActions:editComment',
-	'commentActions:softDeleteComment'
-]);
+const GATED = new Set(SERVER_CALL_FUNCTIONS);
 
 const VALUES = {
 	'feeds:nowPlaying': {
@@ -62,8 +55,8 @@ const VALUES = {
  * @param {{ port: number, adminSecret: string }} options
  * @returns {Promise<{ calls: { path: string, credential: string }[], close: () => void }>}
  */
-export function startFakeConvex({ port, adminSecret }) {
-	const expected = createHmac('sha256', adminSecret).update('convex-server-call').digest('hex');
+export async function startFakeConvex({ port, adminSecret }) {
+	const expected = await deriveServerCredential(adminSecret);
 	/** @type {{ path: string, credential: string }[]} */
 	const calls = [];
 

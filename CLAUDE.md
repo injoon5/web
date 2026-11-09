@@ -80,7 +80,10 @@ src/
     projects/{en,ko}/*.md
   lib/
     api-client.js          # apiFetch — the only way components call /api
-    format.js              # formatDate / formatDateLong / formatDateTime
+    article-visitor.svelte.js  # articleVisitor (path + ipHash) and freshFor, for
+                           # the likes and comments widgets
+    cookies.js             # Every cookie name, and readCookie
+    format.js              # formatDate / formatDateLong / formatDateTime / formatRelative
     reduced-motion.svelte.js  # One shared prefers-reduced-motion subscription
     theme.svelte.js        # Observes the class app.html sets; never sets it
     types.d.ts             # Post / Project / Tags
@@ -89,7 +92,7 @@ src/
     comments/              # CommentsSection, CommentNode, AdminCommentNode, build-tree
     content/               # article-paths (language ↔ URL), article-modules (lazy globs),
                            # article-index (client cache of /api/articles.json),
-                           # preload-articles, bilingual (slugFromPath)
+                           # preload-articles
     dev/                   # DialsHost, DialsMount
     error/                 # ErrorPage, LifeField, life, glyph, settings
     fonts/                 # interlude.json (generated manifest) + its guard test
@@ -100,20 +103,21 @@ src/
     likes/LikeButton.svelte
     markdown/              # remark-gallery, remark-image-size, image-size,
                            # remark-lazy-video, splice-import, remark-reading-time,
-                           # reading-time, code-highlighter, code-theme,
+                           # post-lang, static-file, code-highlighter, code-theme,
                            # remark-stylesheets, remark-youtube, video-size,
                            # rehype-footnotes, KatexFonts, image-variants,
                            # image-sizes
     nav/                   # NavBar, NavDials, settings, hero
-    og/                    # satori OG image templates + render
+    og/                    # satori OG image templates + render; url.js (ogImageUrl)
     pasito/                # Svelte port of joshpuckett/pasito
-    server/                # admin, api, article-index, content, content-modules,
-                           # convex, ip, page-lang, series, sitemap, valid-urls,
-                           # validation
+    server/                # admin, api, callers (visitorArgs/adminArgs),
+                           # catalogue (every published article, once),
+                           # article-index, content, content-modules, convex, ip,
+                           # page-lang, series, sitemap, validation
     visitor.svelte.js      # ipHash (once per session) + the language cookie
     techstack/             # TechStack + data
     ui/                    # LanguageSwitcher, LazyVideo, NumberFlow, SeriesList,
-                           # StableLangStack
+                           # StableLangStack, swap-blur
   routes/
     +page.server.js        # Home (ISR, 5 min) — lists + the two feeds
     blog/, projects/       # Listing + [slug]/[[lang=lang]], all prerendered
@@ -144,29 +148,30 @@ or the API routes. `--no-build` reuses a build made against the fake.
 
 ## Convex Schema (`convex/schema.js`)
 
-| Table              | Key fields                                                                                                                     | Indexes                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes, score? | `by_url_deleted`, `by_url_deleted_parent_score`, `by_parent` |
-| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                                 | `by_comment_ip`, `by_ip`                                     |
-| `likes`            | url, ipHash                                                                                                                    | `by_url_ip`                                                  |
-| `commentUrlCounts` | url, count                                                                                                                     | `by_url`                                                     |
-| `likeCounts`       | url, count                                                                                                                     | `by_url`                                                     |
-| `migrationMeta`    | key, complete                                                                                                                  | `by_key`                                                     |
-| `bannedIps`        | ipHash, reason                                                                                                                 | `by_ip`                                                      |
-| `adminSessions`    | tokenHash (SHA-256 of the `admin_token` cookie), expiresAt                                                                     | `by_token`                                                   |
-| `nowPage`          | content, updatedAt                                                                                                             | —                                                            |
-| `nowPlaying`       | tracks[], updatedAt — one row                                                                                                  | —                                                            |
-| `photos`           | photos[], updatedAt — one row                                                                                                  | —                                                            |
-| `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                                   | `by_metric_date`, `by_date`                                  |
-| `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                            | `by_metric_hour`, `by_hour`                                  |
-| `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                        | `by_metric_time`, `by_time`                                  |
-| `healthWorkouts`   | externalId, type, start, end, duration, distance?, activeEnergy?, avgHeartRate?, maxHeartRate?, elevation?, source?            | `by_start`, `by_type_start`, `by_external`                   |
+| Table              | Key fields                                                                                                                     | Indexes                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| `comments`         | url, username, passwordHash, text, ipHash, parentId (id\|null), depth, reply, updatedAt, deletedAt, upvotes, downvotes, score? | `by_url_deleted_parent_score`, `by_parent` |
+| `commentVotes`     | commentId, ipHash, voteType (`'up'`\|`'down'`)                                                                                 | `by_comment_ip`, `by_ip`                   |
+| `likes`            | url, ipHash                                                                                                                    | `by_url_ip`                                |
+| `commentUrlCounts` | url, count                                                                                                                     | `by_url`                                   |
+| `likeCounts`       | url, count                                                                                                                     | `by_url`                                   |
+| `migrationMeta`    | key, complete                                                                                                                  | `by_key`                                   |
+| `bannedIps`        | ipHash, reason                                                                                                                 | `by_ip`                                    |
+| `adminSessions`    | tokenHash (SHA-256 of the `admin_token` cookie), expiresAt                                                                     | `by_token`                                 |
+| `nowPage`          | content, updatedAt                                                                                                             | —                                          |
+| `nowPlaying`       | tracks[], updatedAt — one row                                                                                                  | —                                          |
+| `photos`           | photos[], updatedAt — one row                                                                                                  | —                                          |
+| `healthDaily`      | date (`YYYY-MM-DD`), metric, value, unit, source?, updatedAt                                                                   | `by_metric_date`, `by_date`                |
+| `healthBuckets`    | metric, hour (epoch ms), count, sum, min, max, unit                                                                            | `by_metric_hour`                           |
+| `healthSamples`    | metric, value, time, unit, source? (raw, pruned at 30d)                                                                        | `by_metric_time`, `by_time`                |
+| `healthWorkouts`   | externalId, type, start, end, duration, distance?, activeEnergy?, avgHeartRate?, maxHeartRate?, elevation?, source?            | `by_start`, `by_type_start`, `by_external` |
 
 **Prefix rule:** an index whose fields are a prefix of another is redundant —
-bind only the leading fields of the longer one. `by_url` on `comments` is gone
-for this reason: hard delete only sets `deletedAt`, so tombstones stay forever,
-and every public read binds `by_url_deleted` with `.eq('deletedAt', null)` to
-skip them at the index rather than filtering in JS.
+bind only the leading fields of the longer one. `by_url` and `by_url_deleted`
+on `comments` are gone for this reason: hard delete only sets `deletedAt`, so
+tombstones stay forever, and every read binds `url` and `.eq('deletedAt', null)`
+on `by_url_deleted_parent_score` to skip them at the index rather than filtering
+in JS.
 
 `createdAt` is Convex's built-in `_creationTime`.
 
@@ -338,9 +343,25 @@ requires `serverCredential`:
 HMAC-SHA256 of `convex-server-call` under `ADMIN_SECRET`, derived by
 `src/lib/server/convex.js` (Node crypto) and `convex/lib/serverCall.js` (Web
 Crypto). `src/lib/server/convex.test.js` pins the two to the same string. It is
-not `ADMIN_SECRET` and bypasses nothing. Convex tests reach these through
-`withServerCall` (`src/test/convex-server-call.js`). Any new public function
-that trusts an `ipHash` argument needs the same.
+not `ADMIN_SECRET` and bypasses nothing.
+
+**One gate, one list.** Each such function takes `visitorWriteArgs` and starts
+with `beginVisitorWrite` (`convex/lib/visitorWrite.js`): server credential, then
+the admin bypass, then the ban; it returns the limiter to `spend` from once the
+write is certain (`check` for `checkCanCreate`, which must refuse exactly what
+`create` would). On the SvelteKit side `visitorArgs(request)` /
+`adminArgs(request)` (`src/lib/server/callers.js`) build those arguments.
+(`commentActions.softDeleteComment` takes only `ipHash` and `serverCredential`:
+a visitor's delete never inspects admin auth — see Comment Deletion Semantics.)
+`SERVER_CALL_FUNCTIONS` in `serverCall.js` names them;
+`convex/serverCall.test.js` checks it against every public write that takes an
+`ipHash`, and the Convex test helper (`setupConvex` in `src/test/convex.js`)
+and the e2e fake read it. A new public function that trusts an `ipHash`
+argument takes `visitorWriteArgs` and goes on that list.
+
+**Error kinds** are `ERROR_KINDS` in `convex/lib/errors.js` (thrown with
+`fail(kind, message)`); `convexErrorToResponse` maps the same table to HTTP
+statuses, and always answers with a `Response`.
 
 ## Content-Security-Policy (`vite.config.ts`)
 
@@ -408,10 +429,11 @@ Listening and Photos) subscribe via `convex-svelte`'s `useQuery`.
 gates a page render — each section renders its own skeleton off `query.isLoading`.
 
 **CommentsSection and LikeButton pass `keepPreviousData: true`**, which also
-retains the _previous page's_ result across a client-side navigation. Both track
-`freshPath` and gate rendering and every write on
-`freshPath === page.url.pathname`. Any new `keepPreviousData` subscription keyed
-on the pathname needs the same guard, or visitors can act on the page they left.
+retains the _previous page's_ result across a client-side navigation. Both gate
+rendering and every write on `freshFor(path, result).current`
+(`#lib/article-visitor.svelte.js`), keyed on the article's path. Any new
+`keepPreviousData` subscription needs the same guard, or visitors can act on the
+page they left.
 
 **The admin dashboard subscribes too** — `admin.listUrls`, `bans.list` and
 `admin.listForUrl` — with the session token described under Authentication &
@@ -433,7 +455,8 @@ Admin. Consequences worth knowing:
 
 - **Soft delete** — sets `text` and `username` to `[deleted]`. The row stays, so
   thread nesting is preserved. **That text is the only record of it**
-  (`convex/lib/softDelete.js`), so `create`, `applyEdit` and the Zod schemas
+  (`convex/lib/commentRules.js`, which also holds every comment limit the Zod
+  schemas and the forms import), so `create`, `applyEdit` and the Zod schemas
   refuse it as a comment's whole text, and `applyEdit` refuses a soft-deleted
   comment — the password hash survives the delete.
 
@@ -442,8 +465,8 @@ Admin. Consequences worth knowing:
   `admin_token` cookie, so branching on admin there turned an ordinary
   visitor-side delete into a hard delete of the whole subtree.
 
-- **Hard delete** — sets `deletedAt`, excluded from every public query by the
-  `by_url_deleted` index. Children keep their `parentId` and surface as "stray"
+- **Hard delete** — sets `deletedAt`, excluded from every public query at the
+  index (`deletedAt` is bound to `null`). Children keep their `parentId` and surface as "stray"
   in the admin tree, rendered with an amber badge by `buildTree()`.
 
   A hard delete walks the subtree in batches of 200. **The continuation resumes
@@ -465,8 +488,8 @@ Four counters are stepped by a delta, never recomputed:
   in a way that makes OCC conflicts _more_ likely.
 - **`commentUrlCounts` / `likeCounts`** — one `adjustCount(ctx, table, url,
 delta)` per distinct URL. Every comment in a subtree shares a URL, so stepping
-  by one meant 200 reads and 200 patches of a single row in one transaction. The
-  batch helpers (`applyUrlCountDeltas`, `applyLikeCountDeltas`) take a
+  by one meant 200 reads and 200 patches of a single row in one transaction.
+  `applyCountDeltas(ctx, table, deltas)` (`convex/lib/counter.js`) takes a
   `Map<url, delta>`.
 
 `convex/votes.test.js` checks every path through the toggle against a full
@@ -532,7 +555,11 @@ into HTML on the server, and the live subscription seeded with that data.
 
 ## Content Lists
 
-`src/lib/server/content-modules.js` holds the eager metadata globs, and **both
+`src/lib/server/content-modules.js` holds the eager metadata globs, and
+`src/lib/server/catalogue.js` turns them, once, into every published article
+(its languages, primary first, and its metadata in each, newest first). The
+listings, the article index, series, sitemap, RSS and the like/comment URL
+guard all read the catalogue; none of them walks the globs. In the globs **both
 halves of the options matter**:
 
 ```js
@@ -554,7 +581,7 @@ import.meta.glob('/src/content/blog/en/*.md', { eager: true, import: 'metadata' 
 imported both ways cannot be split, so Rollup puts every whole post in a static
 chunk. `blog/[slug]/+page.js` did this to read `metadata.series` and every
 article page loaded every post's compiled content — 48KB gzipped, drafts
-included. The series lists are now `allPostSeries` (`server/series.js`), served in
+included. The series lists are now `seriesBySlug` (`server/series.js`), served in
 `/api/articles.json`; the universal load keeps only the lazy glob.
 
 Listing pages read `publishedPosts()` / `publishedProjects()` directly in a
@@ -570,7 +597,7 @@ but are no longer how the site's own pages get the list.
 | `createCommentSchema` | url, username (max 32), password (min 4), text (1–200), parentId? |
 | `editCommentSchema`   | text (1–200), password (min 1)                                    |
 | `voteSchema`          | voteType: `'up'`\|`'down'`                                        |
-| `likeSchema`          | url                                                               |
+| `likeSchema`          | url, liked (the desired state)                                    |
 | `replySchema`         | reply (max 1000)                                                  |
 | `banSchema`           | commentId (Convex id), reason? (max 500)                          |
 
@@ -984,6 +1011,11 @@ decides what a plugin can do:
   Math-Italic faces so they are fetched with the sheet rather than after layout.
   `swap` would be worse — fallback metrics make fractions and scripts jump.
   Wait for the fonts before screenshotting, or every glyph is blank.
+- **Headings link to themselves the way MDN's do**: `rehype-autolink-headings`
+  wraps the heading text in `<a class="heading-anchor">`, and the `#` beside it
+  is `::after` content with empty alternative text (`app.css`). It used to be a
+  `#` text node, which every copy, reader view and search snippet of a heading
+  carried, inside a link that was `aria-hidden` and unreachable by keyboard.
 - `gfm-test.md` (unpublished) exercises every one of these; flip its
   `published` locally to look.
 
@@ -1075,7 +1107,10 @@ of images at 1440@2x became 4.5MB; the Sirius screenshots went from 9.6MB to
 - **The key in the name is a hash of the source and the settings.** `/images` is
   served `immutable` for a year, so a new photo or a new quality has to be a new
   URL. `image-variants.js` is a turbo input of `build-image-cache` for the same
-  reason.
+  reason. `VARIANT_SETTINGS` (the widths and every encoder option) is what the
+  step compares to decide an image's copies are current.
+- **The three image steps share `scripts/lib/image-cache.js`**: the `.cache/`
+  paths, the raster extensions and the fingerprint file's shape.
 - **No manifest, or a candidate missing from disk, means no `srcset`** — a dev
   server that never ran the image step serves exactly what it did before.
 - **`sizes` is `auto` first** (`image-sizes.js`): every article image is lazy, so
@@ -1379,7 +1414,7 @@ Korean page, line boxes are unchanged.
 - **`:lang(ko)` sets `word-break: keep-all`.** Korean is spaced by word; CSS's
   default broke 685 lines mid-word across the posts. Scoped by `lang` because
   Chinese and Japanese have no spaces. Listing records carry `lang` (from
-  `resolvePublished`) so Korean titles on English pages get it too.
+  `listingItem` in `server/content.js`) so Korean titles on English pages get it too.
 - **Hangul carries the Latin's `prep` and `gasp`** (`match_rasterizer`).
   Windows rasterizes each file through DirectWrite, which picks grid-fitting
   and smoothing from that file's own tables; 1.3 dropped the 7-byte `prep` the
@@ -1414,9 +1449,15 @@ state that only exists for `sourceType: module` and throws otherwise.
 Everything that can be tested without an editor is in `src/lib/` and is:
 `markdown-scan` (one pass producing frontmatter, images, `src=` attributes,
 gallery fences, brace expressions and the instance `<script>`, with everything
-inside code masked), `frontmatter`, `content-file`, `naming`, `insert` and
-`image-size`. `src/providers/` and `src/commands/` are the thin editor-facing
-half.
+inside code masked), `frontmatter`, `content-file`, `naming` and `insert`.
+`src/providers/` and `src/commands/` are the thin editor-facing half.
+
+**Where the site already has the rule, the extension loads it** rather than
+copying it: `workspace.siteModule` imports a dependency-free module of the
+site from the workspace (image sizes from `src/lib/markdown/image-size.js`,
+article URLs from `src/lib/content/article-paths.js`). Opened on markdown
+outside this repository the import fails, and every caller treats that as no
+answer.
 
 - **A drop is filed by the post, not by the file.** Editing
   `blog/{en,ko}/us-camp.md` sends media to `static/images/uploads/us-camp/`;
@@ -1436,8 +1477,6 @@ half.
   workspace's `sharp` in a child process — the extension host is Electron, and
   sharp's prebuilt binaries are built against Node's ABI — then falls back to
   `sips`, then to copying with a warning.
-- **`image-size.js` reads dimensions out of the file header** rather than
-  pulling in an image library for a hover and a width warning.
 - **The built-in markdown drop/paste handler has to be turned off**, which
   `.vscode/settings.json` does: it copies media next to the document. The same
   file names this extension's edit kind in `editor.pasteAs.preferences` so a
@@ -1453,14 +1492,13 @@ half.
 
 ## Environment Variables
 
-| Variable            | Used in                                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `PUBLIC_CONVEX_URL` | Convex client — browser (root layout) and server-side HTTP client                                              |
-| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env                                           |
-| `IP_HASH_SECRET`    | HMAC for `hashIp`. Must be in `turbo.json` `build.env`                                                         |
-| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Sets `PUBLIC_CONVEX_URL` automatically                                               |
-| `HEALTH_API_KEY`    | Apple Health ingest — the Shortcut's bearer token. Convex-side only                                            |
-| `CONVEX_SITE_URL`   | Optional override. Convex HTTP actions live on the `.site` twin of `PUBLIC_CONVEX_URL`, derived automatically. |
+| Variable            | Used in                                                              |
+| ------------------- | -------------------------------------------------------------------- |
+| `PUBLIC_CONVEX_URL` | Convex client — browser (root layout) and server-side HTTP client    |
+| `ADMIN_SECRET`      | Admin auth (header + cookie + Convex bypass) — must match Convex env |
+| `IP_HASH_SECRET`    | HMAC for `hashIp`. Must be in `turbo.json` `build.env`               |
+| `CONVEX_DEPLOY_KEY` | Build-time only (Vercel). Sets `PUBLIC_CONVEX_URL` automatically     |
+| `HEALTH_API_KEY`    | Apple Health ingest — the Shortcut's bearer token. Convex-side only  |
 
 `LAST_FM_PUBLIC_API_KEY` is Convex-only — the feed cron reads it inside the
 deployment, so it never reaches SvelteKit or Vercel.
@@ -1487,5 +1525,11 @@ override what you may have learned about Convex from training data.
 
 Convex agent skills for common tasks can be installed by running
 `npx convex ai-files install`.
+
+`npm run lint` enforces Convex's own best-practice rules on `convex/*.js`
+(`@convex-dev/eslint-plugin`: explicit table names on `ctx.db` calls, argument
+validators, no `.filter()` on a db query, no prefix-duplicate indexes, no
+top-of-the-hour crons). `eslint.config.js` says which of its rules are off and
+why.
 
 <!-- convex-ai-end -->

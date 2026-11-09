@@ -1,90 +1,32 @@
 // @ts-check
-import { slugFromPath } from '#lib/content/bilingual.js';
-import { blogEnMeta, blogKoMeta, projectEnMeta, projectKoMeta } from './content-modules.js';
+import { catalogue, primaryMeta } from './catalogue.js';
 
 /** @typedef {import('#lib/types.js').Post} Post */
 /** @typedef {import('#lib/types.js').Project} Project */
-/** @typedef {Record<string, unknown>} Metadata */
-
-export const CONTENT_CACHE_CONTROL =
-	'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
+/** @typedef {import('./catalogue.js').Article} Article */
 
 /**
- * Resolve published content items from en/ko metadata glob results.
- * Korean takes precedence when both languages exist for the same slug.
+ * An article as a listing shows it: in its primary language, which `lang`
+ * names so the title can say so (Korean wraps by word, `:lang(ko)` in app.css).
+ * `hasEn` means a published English version exists.
  *
- * The glob values are metadata records, not modules — see content-modules.js.
- *
- * @param {Record<string, unknown>} enPaths
- * @param {Record<string, unknown>} koPaths
- * @returns {Metadata[]}
+ * @param {Article} article
  */
-export function resolvePublished(enPaths, koPaths) {
-	/** @type {Set<string>} */
-	const enSlugs = new Set();
-	for (const path in enPaths) {
-		// `hasEn` means "a published English twin exists", not merely that a file
-		// does — an unpublished English draft must not surface a language toggle
-		// that 404s when followed.
-		const metadata = /** @type {Metadata | undefined} */ (enPaths[path]);
-		if (metadata?.published === true) {
-			const slug = slugFromPath(path);
-			if (slug) enSlugs.add(slug);
-		}
-	}
-
-	/** @type {Record<string, Metadata>} */
-	const bySlug = {};
-	for (const [paths, lang] of /** @type {const} */ ([
-		[enPaths, 'en'],
-		[koPaths, 'ko']
-	])) {
-		for (const path in paths) {
-			const metadata = /** @type {Metadata | undefined} */ (paths[path]);
-			const slug = slugFromPath(path);
-			if (metadata && slug) {
-				// `lang` is the language the listing shows this item in, so the title
-				// can say so: Korean wraps by word (`:lang(ko)` in app.css) and is read
-				// with a Korean voice.
-				/** @type {Metadata} */
-				const item = { ...metadata, slug, lang, hasEn: enSlugs.has(slug) };
-				if (item.published === true) bySlug[slug] = item;
-			}
-		}
-	}
-
-	return Object.values(bySlug);
+export function listingItem(article) {
+	return {
+		...primaryMeta(article),
+		slug: article.slug,
+		lang: article.langs[0],
+		hasEn: article.langs.includes('en')
+	};
 }
 
-/**
- * @param {string | undefined} a
- * @param {string | undefined} b
- */
-const byDateDesc = (a, b) => {
-	// A missing/unparseable date sorts to the end rather than returning NaN,
-	// which would violate the sort contract and scramble the order.
-	const ta = new Date(a ?? '').getTime();
-	const tb = new Date(b ?? '').getTime();
-	return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta);
-};
-
-/**
- * The published post list, newest first. One definition, shared by the page
- * loads and by `/api/posts`.
- * @returns {Post[]}
- */
+/** The published post list, newest first. @returns {Post[]} */
 export function publishedPosts() {
-	return /** @type {Post[]} */ (resolvePublished(blogEnMeta, blogKoMeta)).sort((a, b) =>
-		byDateDesc(a.date, b.date)
-	);
+	return /** @type {Post[]} */ (catalogue.blog.map(listingItem));
 }
 
-/**
- * The published project list, newest first.
- * @returns {Project[]}
- */
+/** The published project list, newest first. @returns {Project[]} */
 export function publishedProjects() {
-	return /** @type {Project[]} */ (resolvePublished(projectEnMeta, projectKoMeta)).sort((a, b) =>
-		byDateDesc(a.year, b.year)
-	);
+	return /** @type {Project[]} */ (catalogue.projects.map(listingItem));
 }

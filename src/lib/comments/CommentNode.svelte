@@ -7,10 +7,16 @@
 	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import Self from './CommentNode.svelte';
 	import StrayParentGhost from './StrayParentGhost.svelte';
-	import { MAX_COMMENT_LENGTH, CHAR_THRESHOLD, MIN_PASSWORD_LENGTH } from './constants.js';
+	import { CHAR_THRESHOLD } from './constants.js';
 	import { apiFetch } from '#lib/api-client.js';
 	import { untrack } from 'svelte';
-	import { isSoftDeleted } from '#convex/lib/softDelete.js';
+	import {
+		MAX_DEPTH,
+		MAX_TEXT_LENGTH,
+		MAX_USERNAME_LENGTH,
+		MIN_PASSWORD_LENGTH,
+		isSoftDeleted
+	} from '#convex/lib/commentRules.js';
 
 	let {
 		comment,
@@ -18,7 +24,6 @@
 		setActiveForm,
 		votingIds,
 		votingAnim,
-		canVote = true,
 		voteKnown = true,
 		onVote,
 		onHaptic
@@ -26,20 +31,17 @@
 
 	let mode = $state(null); // 'edit' | 'reply' | 'delete' | null
 
-	// Edit form state
 	let editText = $state('');
 	let editPassword = $state('');
 	let editError = $state('');
 	let editSubmitting = $state(false);
 
-	// Reply form state
 	let replyText = $state('');
 	let replyUsername = $state('');
 	let replyPassword = $state('');
 	let replyError = $state('');
 	let replySubmitting = $state(false);
 
-	// Delete form state
 	let deletePassword = $state('');
 	let deleteError = $state('');
 	let deleteSubmitting = $state(false);
@@ -49,7 +51,7 @@
 	// Only reflect the visitor's vote once it's trustworthy (see CommentsSection);
 	// otherwise show neutral arrows so a stale/unknown state can't be mis-toggled.
 	const myVote = $derived(voteKnown ? comment.myVote : null);
-	const voteDisabled = $derived(isVoting || !canVote);
+	const voteDisabled = $derived(isVoting || !voteKnown);
 	// The score wears the visitor's own vote colour, so the tally itself says which
 	// way they leaned — a second, quieter cue alongside the lit-up button.
 	const scoreColor = $derived(
@@ -59,14 +61,14 @@
 				? 'text-rose-700 dark:text-rose-400'
 				: 'text-neutral-700 dark:text-neutral-300'
 	);
-	const replyCharsLeft = $derived(MAX_COMMENT_LENGTH - replyText.length);
-	const showReplyCharsLeft = $derived(replyText.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
+	const replyCharsLeft = $derived(MAX_TEXT_LENGTH - replyText.length);
+	const showReplyCharsLeft = $derived(replyText.length > MAX_TEXT_LENGTH - CHAR_THRESHOLD);
 	const replyDisabled = $derived(
 		replySubmitting ||
 			!replyText.trim() ||
 			!replyPassword ||
 			replyPassword.length < MIN_PASSWORD_LENGTH ||
-			replyText.length > MAX_COMMENT_LENGTH
+			replyText.length > MAX_TEXT_LENGTH
 	);
 
 	const submitting = $derived(editSubmitting || replySubmitting || deleteSubmitting);
@@ -115,8 +117,8 @@
 	async function saveEdit() {
 		editError = '';
 		if (!editText.trim()) return (editError = 'Comment cannot be empty.');
-		if (editText.length > MAX_COMMENT_LENGTH)
-			return (editError = `Max ${MAX_COMMENT_LENGTH} characters.`);
+		if (editText.length > MAX_TEXT_LENGTH)
+			return (editError = `Max ${MAX_TEXT_LENGTH} characters.`);
 		if (!editPassword) return (editError = 'Password is required.');
 
 		editSubmitting = true;
@@ -137,8 +139,8 @@
 		if (!replyText.trim()) return (replyError = 'Reply cannot be empty.');
 		if (replyPassword.length < MIN_PASSWORD_LENGTH)
 			return (replyError = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
-		if (replyText.length > MAX_COMMENT_LENGTH)
-			return (replyError = `Max ${MAX_COMMENT_LENGTH} characters.`);
+		if (replyText.length > MAX_TEXT_LENGTH)
+			return (replyError = `Max ${MAX_TEXT_LENGTH} characters.`);
 
 		replySubmitting = true;
 		const res = await apiFetch('/api/comments', {
@@ -193,7 +195,6 @@
 				? 'border border-dashed border-neutral-300/80 bg-transparent dark:border-neutral-700/80'
 				: 'border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900'}"
 		>
-			<!-- Header: username + vote/edit/delete -->
 			<div class="flex flex-row items-center justify-between gap-2">
 				<p
 					class="leading-none font-semibold {isDeleted
@@ -273,13 +274,12 @@
 				</div>
 			</div>
 
-			<!-- Body or edit form -->
 			{#if mode === 'edit' && !isDeleted}
 				<div class="mt-2">
 					<textarea
 						bind:value={editText}
 						rows="3"
-						maxlength={MAX_COMMENT_LENGTH}
+						maxlength={MAX_TEXT_LENGTH}
 						aria-label="Edit comment"
 						class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					></textarea>
@@ -316,7 +316,6 @@
 				<p class="mt-1 font-medium break-words">{comment.text}</p>
 			{/if}
 
-			<!-- Delete confirm -->
 			{#if mode === 'delete' && !isDeleted}
 				<div
 					class="mt-3 space-y-2 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-950/20"
@@ -353,7 +352,6 @@
 				</div>
 			{/if}
 
-			<!-- Timestamp -->
 			<p class="tabular mt-1 text-sm font-medium text-neutral-500">
 				{new Date(comment.createdAt).toLocaleString()}
 				{#if comment.updatedAt && comment.updatedAt !== comment.createdAt}
@@ -361,7 +359,6 @@
 				{/if}
 			</p>
 
-			<!-- Admin reply -->
 			{#if comment.reply}
 				<div class="mt-4 rounded-lg bg-neutral-200 p-4 dark:bg-neutral-800">
 					<p class="text-sm font-semibold text-neutral-600 dark:text-neutral-400">Admin Reply:</p>
@@ -369,7 +366,6 @@
 				</div>
 			{/if}
 
-			<!-- Reply form / reply button -->
 			{#if mode === 'reply'}
 				<div class="mt-3 space-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-700">
 					<input
@@ -377,15 +373,15 @@
 						type="text"
 						placeholder="Name (optional)"
 						aria-label="Name (optional)"
-						maxlength="32"
+						maxlength={MAX_USERNAME_LENGTH}
 						class="w-full rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 					/>
 					<div>
 						<textarea
 							bind:value={replyText}
-							placeholder="Reply… (max {MAX_COMMENT_LENGTH} characters)"
+							placeholder="Reply… (max {MAX_TEXT_LENGTH} characters)"
 							aria-label="Reply"
-							maxlength={MAX_COMMENT_LENGTH}
+							maxlength={MAX_TEXT_LENGTH}
 							rows="2"
 							class="w-full resize-none rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
 						></textarea>
@@ -422,7 +418,7 @@
 						</button>
 					</div>
 				</div>
-			{:else if comment.depth < 2 && mode === null && !isDeleted}
+			{:else if comment.depth < MAX_DEPTH && mode === null && !isDeleted}
 				<button
 					onclick={openReply}
 					class="mt-2 text-sm font-medium text-neutral-400 transition-colors duration-150 hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-200"
@@ -447,7 +443,6 @@
 						{setActiveForm}
 						{votingIds}
 						{votingAnim}
-						{canVote}
 						{voteKnown}
 						{onVote}
 						{onHaptic}

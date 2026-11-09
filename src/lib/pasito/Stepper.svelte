@@ -1,40 +1,24 @@
 <!--
 	pasito's `<Stepper />`, ported from the React component at
-	https://github.com/joshpuckett/pasito. The props and the `--pill-*` theming
-	API are the upstream ones, so the README over there still reads true.
-
-	Upstream splits this into `Stepper.tsx` + `Step.tsx`. Here the step markup is
-	inlined: Svelte scopes styles per component, and half of pasito's stylesheet
-	is `.pasito-vertical .pasito-step`-shaped descendant rules that would each
-	need a `:global()` hole punched through the boundary. One component keeps the
-	stylesheet a faithful copy and keeps the scoping honest.
+	https://github.com/joshpuckett/pasito, keeping the props and the `--pill-*`
+	theming API this site uses: horizontal only, no autoplay fill. Upstream splits
+	this into `Stepper.tsx` + `Step.tsx`; here the step markup is inlined, so its
+	styles stay scoped to the one component.
 -->
 <script>
 	import { untrack } from 'svelte';
 	import { computeStepWindow, StepAnimator } from './core.js';
 
 	let {
-		/** Total number of steps. */
 		count,
-		/** Zero-based active step index. */
+		/** Zero-based. */
 		active,
 		/** Called with the index of a clicked step. Omit for a read-only stepper. */
 		onStepClick = undefined,
-		/** @type {'horizontal' | 'vertical'} */
-		orientation = 'horizontal',
 		/** Steps visible before the track starts windowing. */
 		maxVisible = undefined,
-		/** Transition duration in ms. */
-		transitionDuration = 500,
-		/** CSS transition timing function. */
-		easing = undefined,
 		/** Extra class, for `--pill-*` overrides. */
 		class: className = '',
-		/** Show fill progress on the active step (autoplay mode). */
-		filling = false,
-		/** Duration of the fill animation in ms. */
-		fillDuration = 3000,
-		/** Accessible name for the stepper as a whole. */
 		label = 'Progress steps',
 		/**
 		 * Upstream is always a `tablist` of `tab`s. A stepper that isn't picking
@@ -43,15 +27,14 @@
 		 */
 		containerRole = 'tablist',
 		stepRole = 'tab',
-		/** Accessible name for one step. @type {(index: number, count: number) => string} */
+		/** @type {(index: number, count: number) => string} */
 		stepLabel = (index) => `Step ${index + 1}`
 	} = $props();
 
 	/** Matches `.pasito-exiting`'s transition-duration, with a frame to spare. */
 	const EXIT_DURATION = 300;
 
-	const stepWindow = $derived(computeStepWindow(count, active, maxVisible, orientation));
-	const vertical = $derived(orientation === 'vertical');
+	const stepWindow = $derived(computeStepWindow(count, active, maxVisible));
 
 	// --- animating steps -----------------------------------------------------
 	// The animator is stateful across count changes, so it can't be a $derived.
@@ -104,17 +87,9 @@
 
 <div
 	class="pasito-container {className}"
-	class:pasito-vertical={vertical}
 	role={containerRole}
 	aria-label={label}
-	style:--pill-duration="{transitionDuration}ms"
-	style:--pill-easing={easing}
-	style:width={!vertical && stepWindow.containerSize != null
-		? `${stepWindow.containerSize}px`
-		: undefined}
-	style:height={vertical && stepWindow.containerSize != null
-		? `${stepWindow.containerSize}px`
-		: undefined}
+	style:width={stepWindow.containerSize != null ? `${stepWindow.containerSize}px` : undefined}
 >
 	<div class="pasito-track" style:transform={stepWindow.transformValue}>
 		{#each steps as step (step.key)}
@@ -123,10 +98,8 @@
 				type="button"
 				class="pasito-step"
 				class:pasito-step-active={isActive}
-				class:pasito-step-filling={isActive && filling}
 				class:pasito-entering={step.phase === 'entering'}
 				class:pasito-exiting={step.phase === 'exiting'}
-				style:--pill-fill-duration={isActive && filling ? `${fillDuration}ms` : undefined}
 				role={stepRole}
 				aria-selected={stepRole === 'tab' ? isActive : undefined}
 				aria-current={stepRole === 'tab' ? undefined : isActive ? 'true' : undefined}
@@ -148,7 +121,6 @@
 		--pill-easing: cubic-bezier(0.215, 0.61, 0.355, 1);
 		--pill-bg: rgba(0, 0, 0, 0.12);
 		--pill-active-bg: rgba(0, 0, 0, 0.8);
-		--pill-fill-bg: rgba(255, 255, 255, 0.45);
 		--pill-container-bg: rgba(0, 0, 0, 0.04);
 		--pill-container-radius: 999px;
 		--pill-container-border: rgba(0, 0, 0, 0.06);
@@ -172,12 +144,6 @@
 		transition: transform var(--pill-duration) var(--pill-easing);
 	}
 
-	.pasito-vertical .pasito-track {
-		flex-direction: column;
-		margin-left: 0;
-		margin-top: calc(-1 * var(--pill-gap));
-	}
-
 	.pasito-step {
 		position: relative;
 		width: var(--pill-dot-size);
@@ -190,25 +156,17 @@
 		flex-shrink: 0;
 		overflow: hidden;
 		margin-left: var(--pill-gap);
-		margin-top: 0;
 		transform-origin: center center;
 		transition:
 			width var(--pill-duration) var(--pill-easing),
-			height var(--pill-duration) var(--pill-easing),
 			background var(--pill-duration) var(--pill-easing),
 			opacity var(--pill-duration) var(--pill-easing),
 			transform var(--pill-duration) var(--pill-easing),
-			margin-left var(--pill-duration) var(--pill-easing),
-			margin-top var(--pill-duration) var(--pill-easing);
+			margin-left var(--pill-duration) var(--pill-easing);
 	}
 
 	.pasito-step:disabled {
 		cursor: default;
-	}
-
-	.pasito-vertical .pasito-step {
-		margin-left: 0;
-		margin-top: var(--pill-gap);
 	}
 
 	.pasito-step:focus-visible {
@@ -221,56 +179,14 @@
 		background: var(--pill-active-bg);
 	}
 
-	.pasito-vertical .pasito-step-active {
-		width: var(--pill-dot-size);
-		height: var(--pill-active-width);
-	}
-
-	/* Fill progress bar */
-	.pasito-step::after {
-		content: '';
-		position: absolute;
-		top: 0;
-		left: 0;
-		bottom: 0;
-		width: 0;
-		border-radius: inherit;
-		background: var(--pill-fill-bg);
-		pointer-events: none;
-	}
-
-	.pasito-vertical .pasito-step::after {
-		right: 0;
-		bottom: auto;
-		width: auto;
-		height: 0;
-	}
-
-	.pasito-step-filling::after {
-		width: 100%;
-		transition: width var(--pill-fill-duration, 3000ms) linear;
-	}
-
-	.pasito-vertical .pasito-step-filling::after {
-		width: auto;
-		height: 100%;
-		transition: height var(--pill-fill-duration, 3000ms) linear;
-	}
-
 	/* Enter: the collapsed state a new step renders at. Once it has painted,
 	   the class comes off and the transitions above animate it open. */
 	.pasito-entering {
 		width: 0;
 		margin-left: 0;
-		margin-top: 0;
 		opacity: 0;
 		transform: scale(0);
 		transition-duration: 250ms;
-	}
-
-	.pasito-vertical .pasito-entering {
-		width: var(--pill-dot-size);
-		height: 0;
 	}
 
 	/* Exit: the same state, transitioned back into. Width and margin are both
@@ -278,23 +194,14 @@
 	.pasito-exiting {
 		width: 0;
 		margin-left: 0;
-		margin-top: 0;
 		opacity: 0;
 		transform: scale(0);
 		transition-duration: 250ms;
 	}
 
-	.pasito-vertical .pasito-exiting {
-		width: var(--pill-dot-size);
-		height: 0;
-	}
-
 	@media (prefers-reduced-motion: reduce) {
 		.pasito-step,
 		.pasito-track {
-			transition-duration: 0ms !important;
-		}
-		.pasito-step-filling::after {
 			transition-duration: 0ms !important;
 		}
 	}

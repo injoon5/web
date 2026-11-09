@@ -20,6 +20,9 @@
 
 import { toString } from 'mdast-util-to-string';
 
+/** Where the frames load from; the CSP's `frame-src` (vite.config.ts) allows exactly this. */
+export const EMBED_ORIGIN = 'https://www.youtube-nocookie.com';
+
 /** What YouTube's own embed snippet calls a frame it knows nothing else about. */
 const DEFAULT_TITLE = 'YouTube video player';
 
@@ -80,7 +83,7 @@ const escape = (s) =>
  * @param {string} title
  */
 export function youTubeIframe({ id, start }, title) {
-	const src = `https://www.youtube-nocookie.com/embed/${id}${start ? `?start=${start}` : ''}`;
+	const src = `${EMBED_ORIGIN}/embed/${id}${start ? `?start=${start}` : ''}`;
 	return (
 		`<iframe src="${src}" title="${escape(title)}" loading="lazy" allow="${ALLOW}" ` +
 		`referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`

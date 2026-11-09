@@ -1,8 +1,6 @@
 // @ts-check
 import { articleIndex } from './article-index.js';
-import { resolveLang } from '#lib/content/article-paths.js';
-
-const ARTICLE = /^\/(blog|projects)\/([^/]+)(?:\/(en))?\/?$/;
+import { parseArticlePath, resolveLang } from '#lib/content/article-paths.js';
 
 /**
  * The language of the page at `pathname`, for `<html lang>`: an article's is in
@@ -13,7 +11,7 @@ const ARTICLE = /^\/(blog|projects)\/([^/]+)(?:\/(en))?\/?$/;
  * @param {import('./article-index.js').ArticleIndex} [index]
  */
 export function pageLang(pathname, index = articleIndex) {
-	const match = ARTICLE.exec(pathname);
-	const entry = match && index[/** @type {'blog' | 'projects'} */ (match[1])][match[2]];
-	return match && entry ? resolveLang(match[3], entry.langs) : 'en';
+	const article = parseArticlePath(pathname);
+	const entry = article && index[article.kind][article.slug];
+	return article && entry ? resolveLang(article.lang, entry.langs) : 'en';
 }

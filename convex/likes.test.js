@@ -1,31 +1,21 @@
 /**
  * Likes.
  *
- * `setLike` now reports the state it just wrote instead of re-reading it, and
- * moves the denormalized counter once per call rather than once per row
- * touched. Both halves are checked against the `likes` table itself, and under
+ * `setLike` reports the state it just wrote, and moves the denormalized counter
+ * once per call rather than once per row touched. Both halves are checked against the `likes` table itself, and under
  * both read regimes: before the backfill flag is set the count is derived from
  * the rows, after it the counter row is authoritative, and the two must not be
  * allowed to disagree.
  */
 
-import { convexTest } from 'convex-test';
 import { describe, expect, it } from 'vitest';
-import rateLimiter from '@convex-dev/rate-limiter/test';
+import { setupConvex } from '../src/test/convex.js';
 import { api } from './_generated/api.js';
-import schema from './schema.js';
-import { withServerCall } from '../src/test/convex-server-call.js';
-
-const modules = import.meta.glob('./**/*.js');
 
 const URL = '/blog/test';
 const IP = 'visitor';
 
-function setup() {
-	const t = withServerCall(convexTest(schema, modules));
-	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
-	return t;
-}
+const setup = () => setupConvex();
 
 /** Mark the like-count backfill done, so reads trust the denormalized row. */
 async function completeBackfill(t) {
@@ -57,7 +47,7 @@ async function rowCount(t) {
 }
 
 describe('setLike', () => {
-	it('records a like and reports it without re-reading', async () => {
+	it('records a like and reports the new state', async () => {
 		const t = setup();
 
 		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true });
@@ -89,19 +79,6 @@ describe('setLike', () => {
 		expect(await storedCount(t)).toBe(0);
 	});
 
-	it('falls back to a toggle when no desired state is sent', async () => {
-		const t = setup();
-
-		expect(await t.mutation(api.likes.setLike, { url: URL, ipHash: IP })).toEqual({
-			count: 1,
-			liked: true
-		});
-		expect(await t.mutation(api.likes.setLike, { url: URL, ipHash: IP })).toEqual({
-			count: 0,
-			liked: false
-		});
-	});
-
 	it('counts each visitor once', async () => {
 		const t = setup();
 		await t.mutation(api.likes.setLike, { url: URL, ipHash: 'a', liked: true });
@@ -125,19 +102,6 @@ describe('setLike', () => {
 		expect(result).toEqual({ count: 1, liked: true });
 		expect(await rowCount(t)).toBe(1);
 		expect(await storedCount(t)).toBe(1);
-	});
-
-	it('serves the denormalized counter once the backfill is marked done', async () => {
-		const t = setup();
-		await completeBackfill(t);
-
-		await t.mutation(api.likes.setLike, { url: URL, ipHash: 'a', liked: true });
-		const result = await t.mutation(api.likes.setLike, { url: URL, ipHash: 'b', liked: true });
-
-		// Same answer either way — which is the point of keeping them in step.
-		expect(result.count).toBe(2);
-		expect(await rowCount(t)).toBe(2);
-		expect(await storedCount(t)).toBe(2);
 	});
 
 	it('rejects a banned IP', async () => {
@@ -168,13 +132,26 @@ describe('get', () => {
 			liked: true
 		});
 	});
+
+	it('counts the rows until the backfill is marked done, then trusts the counter', async () => {
+		const t = setup();
+		// A counter that disagrees with the rows, so the two regimes are told apart.
+		await t.run(async (ctx) => {
+			await ctx.db.insert('likes', { url: URL, ipHash: 'a' });
+			await ctx.db.insert('likes', { url: URL, ipHash: 'b' });
+			await ctx.db.insert('likeCounts', { url: URL, count: 5 });
+		});
+
+		expect((await t.query(api.likes.get, { url: URL, ipHash: IP })).count).toBe(2);
+
+		await completeBackfill(t);
+		expect((await t.query(api.likes.get, { url: URL, ipHash: IP })).count).toBe(5);
+	});
 });
 
 describe("setLike is the server's to call", () => {
 	it('refuses a call without the server credential', async () => {
-		const t = convexTest(schema, modules);
-		t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
-		process.env.ADMIN_SECRET = 'test-admin-secret';
+		const t = setupConvex({ serverCall: false });
 		await expect(
 			t.mutation(api.likes.setLike, {
 				url: URL,
@@ -187,16 +164,10 @@ describe("setLike is the server's to call", () => {
 	});
 
 	it('refuses everything when ADMIN_SECRET is not configured', async () => {
-		const t = convexTest(schema, modules);
-		t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
-		const saved = process.env.ADMIN_SECRET;
+		const t = setupConvex({ serverCall: false });
 		delete process.env.ADMIN_SECRET;
-		try {
-			await expect(
-				t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true, serverCredential: '' })
-			).rejects.toThrow(/Unauthorized/);
-		} finally {
-			process.env.ADMIN_SECRET = saved;
-		}
+		await expect(
+			t.mutation(api.likes.setLike, { url: URL, ipHash: IP, liked: true, serverCredential: '' })
+		).rejects.toThrow(/Unauthorized/);
 	});
 });

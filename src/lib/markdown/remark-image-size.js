@@ -11,7 +11,7 @@
  *
  * It also stamps `data-img-pending`, which is what puts a placeholder in that
  * box (see `app.css`), and `loading`/`decoding`. Those two were being set from
- * `lazyImagesAction` after hydration, which is several hundred milliseconds
+ * `lightboxAction` after hydration, which is several hundred milliseconds
  * after the browser has already decided what to fetch.
  *
  * The size is read once per file per build, from the header — see
@@ -25,6 +25,7 @@
 import { closeSync, existsSync, fstatSync, openSync, readFileSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { imageSize } from './image-size.js';
+import { STATIC_ROOT, resolveLocal } from './static-file.js';
 import { ARTICLE_SIZES } from './image-sizes.js';
 import { VARIANTS_MANIFEST, srcsetOf } from './image-variants.js';
 
@@ -61,22 +62,6 @@ function sizeOfFile(file) {
 }
 
 /**
- * Only root-relative URLs into the static directory. A remote image is somebody
- * else's file and cannot be measured here; `../` would climb out of `static/`.
- *
- * @param {string} url
- * @param {string} root
- */
-export function resolveLocal(url, root) {
-	if (!url || !url.startsWith('/') || url.startsWith('//')) return null;
-	const clean = url.split(/[?#]/)[0];
-	const file = path.join(root, decodeURIComponent(clean));
-	const within = path.relative(root, file);
-	if (within.startsWith('..') || path.isAbsolute(within)) return null;
-	return file;
-}
-
-/**
  * @param {string} url
  * @param {string} root
  * @returns {{ width: number, height: number } | null}
@@ -103,11 +88,10 @@ export function sizeOfLocalImage(url, root) {
  * @returns {Record<string, import('./image-variants.js').VariantEntry>}
  */
 function readVariants(file) {
-	try {
-		return JSON.parse(readFileSync(file, 'utf8'));
-	} catch {
-		return {};
-	}
+	if (!existsSync(file)) return {};
+	// A manifest that exists but does not parse is a broken image step, not a
+	// dev checkout: fail the build rather than ship it with no srcset at all.
+	return JSON.parse(readFileSync(file, 'utf8'));
 }
 
 /**
@@ -142,7 +126,7 @@ function visitImages(node, fn) {
  *   `static/`. `variants` defaults to the image step's manifest.
  */
 export function remarkImageSize(options = {}) {
-	const root = options.root ?? path.join(process.cwd(), 'static');
+	const root = options.root ?? STATIC_ROOT;
 	const variants = options.variants ?? readVariants(path.join(process.cwd(), VARIANTS_MANIFEST));
 
 	return function transformer(tree) {

@@ -58,8 +58,8 @@ async function insertMedia() {
 
 	for (const notice of result.notices) warn(notice);
 
-	// The file writes and the import splice go in first; the editor moves the
-	// cursor for us, so the snippet still lands where it was asked for.
+	// The file copies go in first; the snippet is inserted at the cursor as it
+	// stands after them.
 	await vscode.workspace.applyEdit(result.edit);
 
 	const offset = editor.document.offsetAt(editor.selection.active);

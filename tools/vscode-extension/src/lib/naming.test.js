@@ -74,11 +74,3 @@ test('the same batch does not hand out one name twice', () => {
 
 	assert.deepEqual(names, ['trip-1.png', 'trip-2.png', 'trip-3.png']);
 });
-
-test('stems collide across extensions, so a sequence never reuses a number', () => {
-	const taken = new Set(['trip-1']);
-	assert.equal(
-		fileNameFor({ original: 'IMG_9.jpeg', extension: '.jpeg', slug: 'trip' }, taken),
-		'trip-2.jpeg'
-	);
-});

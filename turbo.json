@@ -24,6 +24,7 @@
 			"inputs": [
 				".cache/source-fingerprints.json",
 				"scripts/optimize-images.mjs",
+				"scripts/lib/image-cache.js",
 				// Names and widths of the responsive copies; a change there is a re-encode.
 				"src/lib/markdown/image-variants.js"
 			],

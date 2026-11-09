@@ -1,4 +1,3 @@
-import { OG_FIXTURES } from './fixtures.js';
 import {
 	homeTemplate,
 	blogListTemplate,
@@ -20,11 +19,6 @@ const MAX_OG_TAG_LENGTH = 40;
  * @param {URLSearchParams} searchParams
  */
 export function resolveOgInput(searchParams) {
-	const fixtureId = searchParams.get('fixture');
-	if (fixtureId && OG_FIXTURES[fixtureId]) {
-		return { ...OG_FIXTURES[fixtureId] };
-	}
-
 	return {
 		template: searchParams.get('template') || 'home',
 		title: (searchParams.get('title') || '').slice(0, MAX_OG_TEXT),

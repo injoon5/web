@@ -3,7 +3,6 @@ import {
 	PAGE_METRICS,
 	dayScore,
 	formatCompact,
-	formatRelative,
 	formatValue,
 	lastFilledIndex,
 	pickAxisTicks,
@@ -271,19 +270,6 @@ describe('formatValue', () => {
 	});
 });
 
-describe('formatRelative', () => {
-	const now = Date.parse('2026-08-02T12:00:00Z');
-
-	it('reads in the largest unit that fits', () => {
-		expect(formatRelative(now - 3 * 60 * 60 * 1000, now)).toBe('3 hours ago');
-		expect(formatRelative(now - 2 * 24 * 60 * 60 * 1000, now)).toBe('2 days ago');
-	});
-
-	it('says just now inside the first minute', () => {
-		expect(formatRelative(now - 5000, now)).toBe('just now');
-	});
-});
-
 /**
  * The shapes real Apple Health data actually arrives in.
  *
@@ -424,5 +410,14 @@ describe('awkward real-world series', () => {
 		expect(dayScore(sections, 2)).toEqual({ score: null, counted: 0, of: 2 });
 		// Day 4 is past both metrics' newest readings, so there is nothing to score.
 		expect(dayScore(sections, 4).score).toBeNull();
+	});
+});
+
+describe('PAGE_METRICS', () => {
+	it('presents every metric the public query serves', () => {
+		for (const metric of PAGE_METRICS) {
+			expect(metric.label, metric.key).toBeTruthy();
+			expect(metric.goal, metric.key).toBeGreaterThan(0);
+		}
 	});
 });

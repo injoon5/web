@@ -126,6 +126,10 @@ export function sizeOf(src) {
  * @param {HTMLImageElement} img
  */
 export function trackImage(img) {
+	// A gallery inside a post is reached by both the article's action and its own.
+	if (tracked.has(img)) return;
+	tracked.add(img);
+
 	// Server-rendered on markdown images. Anything else — a hand-written
 	// component, an embed — gets them here.
 	if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
@@ -152,6 +156,9 @@ export function trackImage(img) {
 		{ once: true }
 	);
 }
+
+/** @type {WeakSet<HTMLImageElement>} */
+const tracked = new WeakSet();
 
 /** @param {HTMLImageElement} img */
 function settle(img) {

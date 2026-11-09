@@ -36,7 +36,6 @@
 	});
 
 	onMount(() => {
-		updatePill();
 		const ro = new ResizeObserver(updatePill);
 		const container = Object.values(langButtons)[0]?.parentElement;
 		if (container) ro.observe(container);

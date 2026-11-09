@@ -2,7 +2,7 @@
 	/**
 	 * Defers the comment thread until it nears the viewport.
 	 *
-	 * `CommentsSection` is a ~1.5K-line, Convex-subscribed, form-heavy subtree that
+	 * `CommentsSection` is a Convex-subscribed, form-heavy subtree that
 	 * always sits at the very foot of an article — never part of the first screen.
 	 * Mounting it only as the reader approaches keeps it, and everything it pulls
 	 * in (the comment tree, the reply forms, the vote counter), out of the

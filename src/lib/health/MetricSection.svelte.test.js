@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { render, waitFor } from '@testing-library/svelte';
+import { render, waitFor, within } from '@testing-library/svelte';
 import MetricSection from './MetricSection.svelte';
 
 // MetricChart (layerchart + d3) is loaded through a dynamic import in
@@ -21,6 +21,12 @@ const DAY = 86400000;
 const START = Date.parse('2026-07-27T00:00:00.000Z');
 
 const steps = { key: 'steps', label: 'Steps', unit: '', decimals: 0, goal: 10000 };
+
+/** The page's reading of `text`: the headline, not a y axis label in the chart. */
+const headlineReading = (container, text) =>
+	within(container)
+		.queryAllByText(text)
+		.filter((el) => !el.closest('svg'));
 
 const series = (values) => ({
 	metric: 'steps',
@@ -83,9 +89,7 @@ describe('MetricSection', () => {
 			props: { metric: steps, series: series([1000, null, 3000]), active: 1 }
 		});
 
-		// By class rather than by text: the y axis labels a zero too, and the
-		// headline is the one that has to be reading the scrubbed day.
-		expect(container.querySelector('.text-3xl')).toHaveTextContent('0');
+		expect(headlineReading(container, '0')).toHaveLength(1);
 		expect(getByText('Jul 28, 2026')).toBeInTheDocument();
 	});
 
@@ -163,11 +167,11 @@ describe('MetricSection — awkward real-world series', () => {
 
 	it('draws while a day past the newest reading is scrubbed', async () => {
 		const container = await drawn([8000, 9000, 7000, null, null], { active: 4 });
-		expect(container.querySelector('.text-3xl')).toHaveTextContent('—');
+		expect(headlineReading(container, '—')).toHaveLength(1);
 	});
 
 	it('draws while a gap day is scrubbed', async () => {
 		const container = await drawn([8000, null, 7000], { active: 1 });
-		expect(container.querySelector('.text-3xl')).toHaveTextContent('0');
+		expect(headlineReading(container, '0')).toHaveLength(1);
 	});
 });

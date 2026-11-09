@@ -72,7 +72,7 @@ class ContentCodeActionProvider {
 					actions.push(...this.#fixSlug(document, diagnostic, info));
 					break;
 				case CODE.missingImport:
-					actions.push(...this.#addImport(document, diagnostic, info));
+					actions.push(...this.#addImport(document, diagnostic));
 					break;
 				case CODE.missingMedia:
 					actions.push(...(await this.#suggestPath(document, diagnostic, info)));
@@ -199,13 +199,11 @@ class ContentCodeActionProvider {
 	/**
 	 * @param {vscode.TextDocument} document
 	 * @param {vscode.Diagnostic} diagnostic
-	 * @param {ReturnType<typeof workspace.describe>} info
 	 */
-	#addImport(document, diagnostic, info) {
+	#addImport(document, diagnostic) {
 		const name = document.getText(diagnostic.range);
 		const known = {
-			[info.config.videoComponent?.name ?? 'LazyVideo']:
-				info.config.videoComponent?.path ?? '#lib/ui/LazyVideo.svelte',
+			LazyVideo: '#lib/ui/LazyVideo.svelte',
 			Gallery: '#lib/lightbox/Gallery.svelte'
 		};
 

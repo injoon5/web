@@ -1,4 +1,6 @@
 <script>
+	import { SITE_URL } from '#lib/content/article-paths.js';
+	import { ogImageUrl } from '#lib/og/url.js';
 	import HealthDialsMount from '#lib/health/HealthDialsMount.svelte';
 	import MetricSection from '#lib/health/MetricSection.svelte';
 	import RangePicker from '#lib/health/RangePicker.svelte';
@@ -6,10 +8,8 @@
 	import {
 		DEFAULT_RANGE,
 		PAGE_METRICS,
-		RANGES,
 		dayScore,
 		formatPointLabel,
-		formatRelative,
 		formatStamp,
 		latestIndex,
 		rangeStartDate,
@@ -18,7 +18,9 @@
 
 	import { chartSettings } from '#lib/health/settings.svelte.js';
 	import { useQuery } from 'convex-svelte';
+	import { formatRelative } from '#lib/format.js';
 	import { api } from '#convex/_generated/api.js';
+	import { PUBLIC_RANGES } from '#convex/lib/health.js';
 
 	const DESCRIPTION = 'Steps, movement and energy, straight off an Apple Watch.';
 
@@ -136,10 +138,10 @@
 	<meta name="description" content={DESCRIPTION} />
 	<meta property="og:title" content="Health — Injoon Oh" />
 	<meta property="og:description" content={DESCRIPTION} />
-	<meta property="og:image" content="https://injoon5.com/api/og?template=health" />
-	<meta property="og:url" content="https://injoon5.com/health" />
+	<meta property="og:image" content={ogImageUrl('health')} />
+	<meta property="og:url" content="{SITE_URL}/health" />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://injoon5.com/api/og?template=health" />
+	<meta name="twitter:image" content={ogImageUrl('health')} />
 </svelte:head>
 
 <div class="col-span-1 justify-center pt-10 lg:col-span-8 lg:col-start-3">
@@ -217,7 +219,7 @@
 
 		{#if sections.length}
 			<div class="mt-10">
-				<RangePicker ranges={RANGES} value={days} onselect={selectRange} />
+				<RangePicker ranges={PUBLIC_RANGES} value={days} onselect={selectRange} />
 			</div>
 
 			<!-- Two columns from lg up, where each still gets ~440px — enough that a

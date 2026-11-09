@@ -1,8 +1,6 @@
 /**
- * migrationMeta — one-time backfill completion flags (not a migration runner).
- *
- * Each row: { key, complete: true }. Used so reads can skip expensive fallbacks
- * after batched backfills finish. Add a new key per backfill job.
+ * One-time backfill completion flags (not a migration runner), so reads can skip
+ * their expensive fallbacks once a batched backfill finishes. One key per job.
  */
 
 const URL_COUNTS_KEY = 'urlCounts';

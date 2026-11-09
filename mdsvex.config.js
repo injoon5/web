@@ -4,7 +4,6 @@ import rehypeSlug from 'rehype-slug';
 import remarkMath from 'remark-math';
 import remarkFootnotes from 'remark-footnotes';
 import remarkGemoji from 'remark-gemoji';
-// import enhancedImage from '@lzinga/mdsvex-enhanced-image';
 import rehypeFigure from 'rehype-figure';
 import rehypeExternalLinks from 'rehype-external-links';
 import { highlight } from './src/lib/markdown/code-highlighter.js';
@@ -43,14 +42,16 @@ const config = {
 		// parser cannot load, and changed nothing in any post.
 		remarkGemoji,
 		remarkYouTube
-		// [enhancedImage, { attributes: { loading: 'lazy', fetchpriority: 'low' } }]
 	],
 	rehypePlugins: [
 		rehypeKatexSvelte,
 		rehypeSlug,
 		rehypeFigure,
 		[rehypeExternalLinks, { target: ['_blank'], rel: ['noopener noreferrer'] }],
-		[rehypeAutolinkHeadings, { behavior: 'append', content: { type: 'text', value: '#' } }],
+		// The heading text itself is the link, as on MDN. The `#` beside it is
+		// drawn by CSS (`.heading-anchor` in app.css), so it is never part of the
+		// heading's text: not in a copy, reader mode or what a screen reader says.
+		[rehypeAutolinkHeadings, { behavior: 'wrap', properties: { className: ['heading-anchor'] } }],
 		// Last, so the autolinker never puts a `#` on the footnotes' hidden heading.
 		rehypeFootnotes
 	]

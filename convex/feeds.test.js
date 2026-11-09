@@ -5,14 +5,11 @@
  * next successful refresh.
  */
 
-import { convexTest } from 'convex-test';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setupConvex } from '../src/test/convex.js';
 import { api, internal } from './_generated/api.js';
-import schema from './schema.js';
 
-const modules = import.meta.glob('./**/*.js');
-
-const setup = () => convexTest(schema, modules);
+const setup = () => setupConvex();
 
 const lastfmResponse = (names) => ({
 	recenttracks: {

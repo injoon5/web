@@ -1,8 +1,6 @@
 /**
- * The only public surface for health data.
- *
  * Everything in `convex/health.js` is internal, so this key-checking action is
- * the single door in. It also owns all the parsing: Shortcuts sends loosely
+ * the door in (`convex/healthPublic.js` serves only what /health renders). It also owns all the parsing: Shortcuts sends loosely
  * typed dictionaries (numbers as strings, timestamps as ISO text), and the
  * mutation should receive values that are already clean.
  *
@@ -14,7 +12,7 @@
 import { httpRouter } from 'convex/server';
 import { httpAction } from './_generated/server.js';
 import { internal } from './_generated/api.js';
-import { secretsMatch } from './lib/secrets.js';
+import { secretsMatch } from './lib/crypto.js';
 import {
 	DAY_MS,
 	DEFAULT_MAX_POINTS,
@@ -22,6 +20,8 @@ import {
 	MAX_HOURS_PER_INGEST,
 	MAX_SERIES_DAYS,
 	MAX_SERIES_HOURS,
+	MAX_SAMPLES,
+	MAX_WORKOUTS,
 	dateKey,
 	dateKeyToMs,
 	hourFloor,
@@ -50,10 +50,6 @@ const DEFAULT_WORKOUT_LIMIT = 50;
 
 class BadRequest extends Error {}
 
-// ---------------------------------------------------------------------------
-// Auth + response helpers
-// ---------------------------------------------------------------------------
-
 async function authorized(request) {
 	const header = request.headers.get('authorization') ?? '';
 	const match = header.match(/^Bearer\s+(.+)$/i);
@@ -72,7 +68,6 @@ function json(body, { status = 200, cache } = {}) {
 	return new Response(JSON.stringify(body), { status, headers });
 }
 
-/** Wrap a handler with bearer auth and BadRequest -> 400 mapping. */
 function guarded(handler) {
 	return httpAction(async (ctx, request) => {
 		if (!(await authorized(request))) {
@@ -86,10 +81,6 @@ function guarded(handler) {
 		}
 	});
 }
-
-// ---------------------------------------------------------------------------
-// Parsing
-// ---------------------------------------------------------------------------
 
 /**
  * Digits grouped the way Calculate Statistics formats them: `8,421`, `1,234.5`.
@@ -235,10 +226,6 @@ function parseWorkouts(raw, defaultSource) {
 	});
 }
 
-// ---------------------------------------------------------------------------
-// Bounds
-// ---------------------------------------------------------------------------
-
 /**
  * The last day a series covers.
  *
@@ -250,10 +237,6 @@ function parseWorkouts(raw, defaultSource) {
 function windowEndDate(now) {
 	return dateKey(now + DAY_MS);
 }
-
-// ---------------------------------------------------------------------------
-// Routes
-// ---------------------------------------------------------------------------
 
 const ingest = guarded(async (ctx, request) => {
 	let body;
@@ -341,7 +324,11 @@ const series = guarded(async (ctx, request) => {
 const workoutList = guarded(async (ctx, request) => {
 	const url = new URL(request.url);
 	const days = intParam(url, 'days', { fallback: 90, min: 1, max: MAX_SERIES_DAYS });
-	const limit = intParam(url, 'limit', { fallback: DEFAULT_WORKOUT_LIMIT, min: 1, max: 200 });
+	const limit = intParam(url, 'limit', {
+		fallback: DEFAULT_WORKOUT_LIMIT,
+		min: 1,
+		max: MAX_WORKOUTS
+	});
 	const rawType = url.searchParams.get('type');
 	const type = rawType ? rawType.trim().toLowerCase() : undefined;
 
@@ -372,7 +359,7 @@ const sampleList = guarded(async (ctx, request) => {
 	const url = new URL(request.url);
 	const metric = metricName(url.searchParams.get('metric'), 'metric');
 	const hours = intParam(url, 'hours', { fallback: 24, min: 1, max: MAX_SERIES_HOURS });
-	const limit = intParam(url, 'limit', { fallback: 500, min: 1, max: 1000 });
+	const limit = intParam(url, 'limit', { fallback: 500, min: 1, max: MAX_SAMPLES });
 
 	const endMs = hourFloor(Date.now()) + HOUR_MS;
 	const rows = await ctx.runQuery(internal.health.samples, {

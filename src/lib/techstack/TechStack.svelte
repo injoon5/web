@@ -389,7 +389,6 @@
 		--ts-fade-bg: var(--color-neutral-950);
 	}
 
-	/* --- Tabs --- */
 	/* No rule under the tabs: the active tab already carries its own indicator,
 	   and a hairline spanning the full width made the strip read as the top of a
 	   table the section does not have. */
@@ -569,7 +568,6 @@
 			opacity var(--motion-fast) ease;
 	}
 
-	/* --- Animated height wrapper --- */
 	.ts-height-outer {
 		/* RING_ROOM in the script. */
 		padding: 4px;
@@ -582,7 +580,6 @@
 		position: relative;
 	}
 
-	/* --- Panel --- */
 	.ts-panel {
 		display: grid;
 		grid-template-columns: 1fr;
@@ -595,7 +592,6 @@
 		}
 	}
 
-	/* --- Items --- */
 	.ts-item {
 		display: flex;
 		flex-direction: column;

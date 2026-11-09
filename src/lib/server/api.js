@@ -1,9 +1,15 @@
+// @ts-check
 import { error } from '@sveltejs/kit';
-import { ConvexError } from 'convex/values';
+import { ERROR_KINDS } from '#convex/lib/errors.js';
 
 /**
  * Parse the request body as JSON and validate it against a Zod schema.
- * Throws a 400 SvelteKit error on parse or validation failure.
+ * Throws a 400 on parse or validation failure.
+ *
+ * @template T
+ * @param {Request} request
+ * @param {import('zod').ZodType<T>} schema
+ * @returns {Promise<T>}
  */
 export async function parseBody(request, schema) {
 	let raw;
@@ -20,111 +26,47 @@ export async function parseBody(request, schema) {
 }
 
 /**
- * Convert a thrown Convex error into a SvelteKit Response.
- * Handles structured ConvexError payloads (`{ kind, message?, retryAfter? }`)
- * and falls back to a generic 500 for anything else.
+ * The JSON response for an error thrown by a Convex call: a `ConvexError` whose
+ * `kind` is one of `ERROR_KINDS` answers with that status, anything else is a
+ * 500. The body is `{ message }`, the shape `apiFetch` reads.
+ *
+ * @param {unknown} err
+ * @returns {Response}
  */
-/**
- * Extract a structured `{ kind, message?, retryAfter? }` payload from a thrown
- * Convex error. Handles real ConvexError instances and the duck-typed
- * `{ name: 'ConvexError', data: ... }` shape Convex sometimes surfaces across
- * the HTTP boundary.
- */
-function convexErrorData(err) {
-	if (err instanceof ConvexError) return err.data ?? {};
-	if (err && typeof err === 'object' && 'data' in err && err.data && typeof err.data === 'object') {
-		return typeof err.data.kind === 'string' ? err.data : null;
-	}
-	return null;
-}
-
 export function convexErrorToResponse(err) {
-	const data = convexErrorData(err);
-	if (data) {
-		const kind = data.kind ?? 'Unknown';
-		const message = data.message ?? defaultMessage(kind);
-
-		if (kind === 'RateLimited') {
-			const retryAfter = Math.max(1, Math.ceil((data.retryAfter ?? 1000) / 1000));
-			return new Response(JSON.stringify({ message }), {
-				status: 429,
-				headers: {
-					'Content-Type': 'application/json',
-					'Retry-After': String(retryAfter)
-				}
-			});
-		}
-
-		throw error(statusForKind(kind), message);
+	/** @type {{ kind?: string, message?: string, retryAfter?: number }} */
+	const data = /** @type {any} */ (err)?.data ?? {};
+	const known = data.kind ? ERROR_KINDS[/** @type {keyof ERROR_KINDS} */ (data.kind)] : null;
+	if (!known) {
+		console.error(err);
+		return Response.json({ message: 'Internal error' }, { status: 500 });
 	}
 
-	const message = err instanceof Error ? err.message : String(err);
-	// Convex serializes thrown plain Error objects as `Server Error: <msg>`.
-	if (message.includes('Unauthorized')) throw error(401, 'Unauthorized');
-
-	throw error(500, 'Internal error');
-}
-
-function statusForKind(kind) {
-	switch (kind) {
-		case 'Banned':
-			return 403;
-		case 'Unauthorized':
-			return 401;
-		case 'Forbidden':
-			return 403;
-		case 'NotFound':
-			return 404;
-		case 'BadRequest':
-			return 400;
-		case 'RateLimited':
-			return 429;
-		default:
-			return 500;
+	const headers = new Headers();
+	if (data.kind === 'RateLimited') {
+		headers.set('Retry-After', String(Math.max(1, Math.ceil((data.retryAfter ?? 1000) / 1000))));
 	}
-}
-
-function defaultMessage(kind) {
-	switch (kind) {
-		case 'Banned':
-			return 'You have been banned';
-		case 'Unauthorized':
-			return 'Unauthorized';
-		case 'Forbidden':
-			return 'Forbidden';
-		case 'NotFound':
-			return 'Not found';
-		case 'BadRequest':
-			return 'Bad request';
-		case 'RateLimited':
-			return 'Too many requests. Please slow down.';
-		default:
-			return 'Internal error';
-	}
+	return Response.json(
+		{ message: data.message ?? known.message },
+		{ status: known.status, headers }
+	);
 }
 
 /**
- * Wraps a Convex call, returning either the resolved JSON response or
- * throwing/returning the mapped error response.
+ * Run a Convex call and answer with `build(result)`, or with the error's
+ * response if it throws.
+ *
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @param {(result: T) => Response} [build]
+ * @returns {Promise<Response>}
  */
 export async function runConvex(fn, build = (data) => Response.json(data)) {
+	let result;
 	try {
-		const result = await fn();
-		return build(result);
+		result = await fn();
 	} catch (err) {
-		const mapped = convexErrorToResponse(err);
-		if (mapped instanceof Response) return mapped;
-		throw mapped;
+		return convexErrorToResponse(err);
 	}
-}
-
-/**
- * One-liner catch handler for intermediate Convex calls in multi-step handlers
- * where the raw result is needed before building a final response.
- * Usage: `} catch (err) { return handleConvexErr(err); }`
- */
-export function handleConvexErr(err) {
-	const mapped = convexErrorToResponse(err);
-	if (mapped instanceof Response) return mapped;
-	throw mapped;
+	return build(result);
 }

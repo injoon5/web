@@ -1,15 +1,13 @@
-/** Score from denormalized counts (legacy rows without counts sort as 0 until backfill). */
+/** Legacy rows without counts sort as 0 until the backfill. */
 export function commentScore(doc) {
 	return (doc.upvotes ?? 0) - (doc.downvotes ?? 0);
 }
 
-/** Vote counts from the comment doc when denormalized fields exist. */
 export function voteCountsFromDoc(doc) {
 	if (doc.upvotes === undefined || doc.downvotes === undefined) return null;
 	return { upvotes: doc.upvotes, downvotes: doc.downvotes };
 }
 
-/** Count all votes for a comment (source of truth for denormalized fields). */
 export async function countAllVotes(ctx, commentId) {
 	const votes = await ctx.db
 		.query('commentVotes')
@@ -44,7 +42,7 @@ export async function visitorVoteMap(ctx, ipHash) {
 	return map;
 }
 
-/** All vote rows for one visitor on a comment (normally 0–1; dedupe races). */
+/** Normally 0 or 1 rows; more only after a past race, which `applyVoteChange` dedupes. */
 async function votesForVisitor(ctx, commentId, ipHash) {
 	return ctx.db
 		.query('commentVotes')
@@ -114,20 +112,4 @@ export async function applyVoteChange(ctx, comment, voteType, ipHash) {
 	});
 
 	return { ...counts, myVote };
-}
-
-/** Read denormalized vote counts from the comment doc, with live fallback. */
-export async function getVoteCounts(ctx, doc, ipHash) {
-	let myVote = null;
-	if (ipHash) {
-		const rows = await votesForVisitor(ctx, doc._id, ipHash);
-		myVote = rows[0]?.voteType ?? null;
-	}
-
-	if (doc.upvotes !== undefined && doc.downvotes !== undefined) {
-		return { upvotes: doc.upvotes, downvotes: doc.downvotes, myVote };
-	}
-
-	const { upvotes, downvotes } = await countAllVotes(ctx, doc._id);
-	return { upvotes, downvotes, myVote };
 }

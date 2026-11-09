@@ -1,6 +1,6 @@
 <script>
-	import { page } from '$app/state';
-	import { adoptIpHash, visitor } from '#lib/visitor.svelte.js';
+	import { adoptIpHash } from '#lib/visitor.svelte.js';
+	import { articleVisitor, freshFor } from '#lib/article-visitor.svelte.js';
 	import { onDestroy } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { cubicOut } from 'svelte/easing';
@@ -11,12 +11,12 @@
 	import { api } from '#convex/_generated/api.js';
 	import CommentNode from './CommentNode.svelte';
 	import { buildTree } from './build-tree.js';
+	import { COMMENTS_PAGE_SIZE, CHAR_THRESHOLD } from './constants.js';
 	import {
-		COMMENTS_PAGE_SIZE,
-		MAX_COMMENT_LENGTH,
-		CHAR_THRESHOLD,
+		MAX_TEXT_LENGTH,
+		MAX_USERNAME_LENGTH,
 		MIN_PASSWORD_LENGTH
-	} from './constants.js';
+	} from '#convex/lib/commentRules.js';
 	import { apiFetch } from '#lib/api-client.js';
 
 	const { trigger, destroy } = createWebHaptics();
@@ -26,7 +26,6 @@
 		trigger([{ duration: 15 }], { intensity: 0.4 });
 	}
 
-	// Main comment form
 	let commentText = $state('');
 	let username = $state('');
 	let password = $state('');
@@ -34,8 +33,8 @@
 	let submitting = $state(false);
 	let submitError = $state('');
 
-	// Generate a Linear-style anonymous handle for the placeholder
-	// (e.g. "stranger-7sl", "wanderer-k2x"). Stable per session.
+	// What a comment posts under when the name is left blank, and the name
+	// field's placeholder (e.g. "stranger-7sl"). Picked once per mount.
 	const handleAdjectives = [
 		'stranger',
 		'wanderer',
@@ -57,12 +56,11 @@
 	}
 	const fallbackHandle = makeHandle();
 
-	const ipHash = $derived(visitor.ipHash);
-	// The article, not one language of it: `/blog/x/en` shares `/blog/x`'s likes
-	// and comments.
-	const path = $derived(page.data.articlePath ?? page.url.pathname);
+	const article = articleVisitor();
+	const ipHash = $derived(article.ipHash);
+	const path = $derived(article.path);
 
-	// Reactive comments query — live updates across tabs, newest threads first.
+	// Threads arrive highest score first, newest first on ties.
 	// `paginationOpts` is injected by the hook; each page is whole threads, so a
 	// reply never arrives without the parent it hangs off.
 	// Skipped until the visitor's hash is known: every comment carries this
@@ -81,30 +79,22 @@
 		}
 	);
 
-	// `usePaginatedQuery` has no `isStale`. With `keepPreviousData` the previous
-	// page's results survive an args change as the *same* array reference while
-	// the new page loads, and every fresh server push hands back a new array — so
-	// a reference change is how we tell this page's list from the page we
-	// navigated away from.
-	let freshPath = $state(null);
-	let lastResults = null;
-	$effect(() => {
-		const results = query.results;
-		if (results !== lastResults) {
-			lastResults = results;
-			if (!query.isLoading) freshPath = path;
-		}
-	});
+	// `usePaginatedQuery` has no `isStale`, but the previous page's results
+	// survive an args change as the same array while the new page loads.
+	const fresh = freshFor(
+		() => path,
+		() => (query.isLoading ? null : query.results)
+	);
 	// True only when the loaded list is this page's list. Everything downstream —
 	// rendering the tree, voting, editing, deleting — hangs off this, so a
 	// client-side navigation shows a skeleton rather than the previous page's
 	// comments, and there is nothing to act on until the new list lands.
 	// (Loading another page keeps the list up — only a first-page load hides it.)
 	const listReady = $derived(
-		!!query.results && freshPath === path && query.status !== 'LoadingFirstPage'
+		!!query.results && fresh.current && query.status !== 'LoadingFirstPage'
 	);
 
-	// Cross-card form coordination — only one form open at a time
+	// Only one reply, edit or delete form is open in the whole thread.
 	let activeFormId = $state(null);
 	function setActiveForm(id) {
 		activeFormId = id;
@@ -149,7 +139,7 @@
 	}
 
 	function vote(commentId, voteType) {
-		if (!canVote) return;
+		if (!voteKnown) return;
 
 		if (votingAnimTimer) clearTimeout(votingAnimTimer);
 		votingAnim = { id: commentId, side: voteType };
@@ -166,14 +156,14 @@
 		});
 	}
 
-	const charsLeft = $derived(MAX_COMMENT_LENGTH - commentText.length);
-	const showCharsLeft = $derived(commentText.length > MAX_COMMENT_LENGTH - CHAR_THRESHOLD);
+	const charsLeft = $derived(MAX_TEXT_LENGTH - commentText.length);
+	const showCharsLeft = $derived(commentText.length > MAX_TEXT_LENGTH - CHAR_THRESHOLD);
 	const isSubmitDisabled = $derived(
 		submitting ||
 			!commentText.trim() ||
 			!password ||
 			password.length < MIN_PASSWORD_LENGTH ||
-			commentText.length > MAX_COMMENT_LENGTH
+			commentText.length > MAX_TEXT_LENGTH
 	);
 
 	const commentTree = $derived(listReady ? buildTree(query.results ?? []) : []);
@@ -188,12 +178,9 @@
 			: { duration: (d) => Math.min(520, 200 + Math.sqrt(d) * 22), easing: cubicOut }
 	);
 
-	// Trust per-visitor vote state once ipHash is loaded and this page's list is fresh.
 	const voteKnown = $derived(listReady && !!ipHash);
-	const canVote = $derived(voteKnown);
 
-	// Reset transient form state on path change
-	let currentPath = $state(page.data.articlePath ?? page.url.pathname);
+	let currentPath = $state(article.path);
 	$effect(() => {
 		if (path !== currentPath) {
 			currentPath = path;
@@ -211,7 +198,7 @@
 		submitError = '';
 		if (!commentText.trim()) return;
 		if (password.length < MIN_PASSWORD_LENGTH) return;
-		if (commentText.length > MAX_COMMENT_LENGTH) return;
+		if (commentText.length > MAX_TEXT_LENGTH) return;
 
 		submitting = true;
 		const res = await apiFetch('/api/comments', {
@@ -244,22 +231,21 @@
 <div>
 	<h3 class="mb-4 text-2xl font-semibold tracking-tight" id="comments-heading">Comments</h3>
 
-	<!-- Main comment form -->
 	<div class="mt-2 space-y-2">
 		<input
 			bind:value={username}
 			type="text"
 			placeholder={`Name (optional — defaults to ${fallbackHandle})`}
 			aria-label="Name (optional)"
-			maxlength="32"
+			maxlength={MAX_USERNAME_LENGTH}
 			class="w-full rounded-lg border border-neutral-300 bg-neutral-100 px-3 py-2 text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 		/>
 		<div>
 			<textarea
 				bind:value={commentText}
-				placeholder="Say something… (max {MAX_COMMENT_LENGTH} characters)"
+				placeholder="Say something… (max {MAX_TEXT_LENGTH} characters)"
 				aria-label="Comment"
-				maxlength={MAX_COMMENT_LENGTH}
+				maxlength={MAX_TEXT_LENGTH}
 				rows="3"
 				class="w-full resize-none rounded-lg border border-neutral-300 bg-neutral-100 p-2 text-neutral-900 focus:ring-2 focus:ring-neutral-400 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
 			></textarea>
@@ -327,7 +313,6 @@
 					{setActiveForm}
 					{votingIds}
 					{votingAnim}
-					{canVote}
 					{voteKnown}
 					onVote={vote}
 					onHaptic={haptic}

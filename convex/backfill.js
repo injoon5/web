@@ -7,8 +7,7 @@ import {
 	setUrlCountsBackfillComplete,
 	setVoteCountsBackfillComplete
 } from './lib/migration.js';
-import { applyUrlCountDeltas } from './lib/urlCounts.js';
-import { applyLikeCountDeltas } from './lib/likeCounts.js';
+import { applyCountDeltas } from './lib/counter.js';
 import { countAllVotes, voteCountsFromDoc } from './lib/votes.js';
 
 const BATCH_SIZE = 100;
@@ -98,7 +97,7 @@ export const backfillUrlCountsBatch = internalMutation({
 			if (doc.deletedAt !== null) continue;
 			deltas.set(doc.url, (deltas.get(doc.url) ?? 0) + 1);
 		}
-		await applyUrlCountDeltas(ctx, deltas);
+		await applyCountDeltas(ctx, 'commentUrlCounts', deltas);
 
 		if (!batch.isDone) {
 			await ctx.scheduler.runAfter(0, internal.backfill.backfillUrlCountsBatch, {
@@ -134,7 +133,7 @@ export const backfillLikeCountsBatch = internalMutation({
 		for (const doc of batch.page) {
 			deltas.set(doc.url, (deltas.get(doc.url) ?? 0) + 1);
 		}
-		await applyLikeCountDeltas(ctx, deltas);
+		await applyCountDeltas(ctx, 'likeCounts', deltas);
 
 		if (!batch.isDone) {
 			await ctx.scheduler.runAfter(0, internal.backfill.backfillLikeCountsBatch, {

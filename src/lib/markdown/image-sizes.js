@@ -10,8 +10,11 @@
  * 640px, then two proportional stretches beside the sidebar, and 699px from
  * 1154px up. Only browsers without `sizes="auto"` ever read it.
  */
+/** The article column's widest, in CSS px. */
+export const COLUMN_MAX = 699;
+
 export const COLUMN_SIZES =
-	'(min-width: 1154px) 699px, (min-width: 1024px) calc(66.67vw - 70px), ' +
+	`(min-width: 1154px) ${COLUMN_MAX}px, (min-width: 1024px) calc(66.67vw - 70px), ` +
 	'(min-width: 768px) calc(83.33vw - 83px), (min-width: 640px) calc(100vw - 96px), ' +
 	'calc(100vw - 32px)';
 

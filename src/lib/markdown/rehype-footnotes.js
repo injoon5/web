@@ -19,6 +19,8 @@
  * Runs last, so `rehype-autolink-headings` never puts a `#` on that heading.
  */
 
+import { postLang } from './post-lang.js';
+
 const LABEL_ID = 'footnotes-label';
 
 const COPY = {
@@ -50,12 +52,6 @@ function walk(node, fn, parent) {
 
 const text = (value) => ({ type: 'text', value });
 
-/** @param {any} file */
-function langOf(file) {
-	const where = String(file?.filename ?? file?.path ?? '');
-	return /[/\\]ko[/\\]/.test(where) ? 'ko' : 'en';
-}
-
 export function rehypeFootnotes() {
 	/** @param {any} tree @param {any} file */
 	return (tree, file) => {
@@ -76,7 +72,7 @@ export function rehypeFootnotes() {
 		});
 		if (!section) return;
 
-		const copy = COPY[langOf(file)];
+		const copy = COPY[postLang(file)];
 		const list = section.children.find((c) => c.type === 'element' && c.tagName === 'ol');
 		if (!list) return;
 		const items = list.children.filter((c) => c.type === 'element' && c.tagName === 'li');

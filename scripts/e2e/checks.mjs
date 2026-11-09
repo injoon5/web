@@ -5,10 +5,32 @@
  * write that reaches Convex without the server credential.
  */
 import { chromium } from 'playwright';
+import { SITE_URL } from '../../src/lib/content/article-paths.js';
 
-// The fake Convex has no websocket, and the image hosts may be unreachable.
-const IGNORED_CONSOLE =
-	/websocket|ws:\/\/|wss:\/\/|ERR_CONNECTION|Failed to load resource|net::ERR/i;
+// The fake Convex has no websocket.
+const WEBSOCKET = /websocket|wss?:\/\//i;
+const LOAD_FAILURE = /Failed to load resource|net::ERR_/;
+
+/**
+ * A console error the run does not count: the websocket, and a resource that
+ * failed to load from another host — the fake Convex, or an image host this
+ * machine may not reach. A same-origin image, chunk or font that fails counts.
+ * The document itself does not: the 404 checks ask for one, and judge it by
+ * `res.status()`.
+ *
+ * @param {import('playwright').ConsoleMessage} m
+ * @param {string} origin
+ * @param {string} pageUrl
+ */
+function ignoredConsole(m, origin, pageUrl) {
+	const text = m.text();
+	if (WEBSOCKET.test(text)) return true;
+	if (!LOAD_FAILURE.test(text)) return false;
+	// Chromium puts the failed resource's URL in the message's location.
+	const url = m.location().url;
+	if (!URL.canParse(url)) return false;
+	return new URL(url).origin !== origin || url === pageUrl;
+}
 
 /**
  * @param {string} origin  e.g. http://localhost:4173
@@ -37,8 +59,8 @@ export async function runChecks(origin, convex) {
 	context.on('page', (p) => {
 		p.on('pageerror', (e) => errors.push(`${p.url()} ${String(e).slice(0, 200)}`));
 		p.on('console', (m) => {
-			if (m.type() === 'error' && !IGNORED_CONSOLE.test(m.text())) {
-				errors.push(`${p.url()} ${m.text().slice(0, 200)}`);
+			if (m.type() === 'error' && !ignoredConsole(m, origin, p.url())) {
+				errors.push(`${p.url()} ${m.text().slice(0, 200)} ${m.location().url}`);
 			}
 		});
 	});
@@ -46,6 +68,22 @@ export async function runChecks(origin, convex) {
 	const onErrorPage = () =>
 		page.evaluate(() => /tripped over itself|Server error/.test(document.body.textContent ?? ''));
 	const pathOf = () => new URL(page.url()).pathname;
+	/** Whether the page reaches a URL within `timeout`, without aborting the run. */
+	const reaches = (/** @type {(u: URL) => boolean} */ match, timeout = 5000) =>
+		page.waitForURL(match, { timeout }).then(
+			() => true,
+			() => false
+		);
+	/** Whether `selector` reaches `state` within `timeout`, without aborting the run. */
+	const settles = (
+		/** @type {string} */ selector,
+		/** @type {'attached' | 'detached'} */ state = 'attached',
+		timeout = 5000
+	) =>
+		page.waitForSelector(selector, { state, timeout }).then(
+			() => true,
+			() => false
+		);
 
 	// Every URL in the sitemap renders, in the right language, with its own canonical.
 	const sitemap = await (await fetch(`${origin}/sitemap.xml`)).text();
@@ -76,7 +114,7 @@ export async function runChecks(origin, convex) {
 			res?.status() === 200 &&
 			!(await onErrorPage()) &&
 			errors.length === before &&
-			(!article || (!!info.h1 && info.canonical === `https://injoon5.com${url}`));
+			(!article || (!!info.h1 && info.canonical === `${SITE_URL}${url}`));
 		if (fine) rendered++;
 		else check(false, `GET ${url} → ${res?.status()} lang=${info.lang} h1="${info.h1 ?? ''}"`);
 	}
@@ -88,7 +126,7 @@ export async function runChecks(origin, convex) {
 	}
 
 	await page.goto(`${origin}/blog/us-camp?lang=en`, { waitUntil: 'networkidle' });
-	await page.waitForTimeout(500);
+	await reaches((u) => u.pathname === '/blog/us-camp/en');
 	check(pathOf() === '/blog/us-camp/en', `old ?lang=en lands on ${pathOf()}`);
 
 	// Every article opens by a click from the listings.
@@ -101,57 +139,72 @@ export async function runChecks(origin, convex) {
 		for (const href of links) {
 			await page.goto(origin + listing, { waitUntil: 'networkidle' });
 			await page.click(`a[href="${href}"]`);
-			await page.waitForURL((u) => u.pathname.startsWith(href));
-			await page.waitForTimeout(250);
-			if (!(await onErrorPage()) && (await page.$('article h1'))) opened++;
+			const arrived = await reaches((u) => u.pathname.startsWith(href));
+			if (arrived && (await settles('article h1')) && !(await onErrorPage())) opened++;
 		}
 		check(opened === links.length, `${listing}: ${opened}/${links.length} articles open by click`);
 	}
 
 	// The language switch, both ways; titles can be the same in both languages,
 	// so the URL and <html lang> are what is compared.
+	/** @param {string} lang */
+	const langBecomes = (lang) =>
+		page
+			.waitForFunction((l) => document.documentElement.lang === l, lang, { timeout: 5000 })
+			.then(
+				() => lang,
+				() => page.evaluate(() => document.documentElement.lang)
+			);
 	for (const url of ['/blog/us-camp', '/projects/school-watch']) {
 		await page.goto(origin + url, { waitUntil: 'networkidle' });
+		// Hydration: a click before it does nothing, and nothing in the DOM says
+		// when it is done.
 		await page.waitForTimeout(700);
 		await page
 			.getByRole('button', { name: /^(en|english)$/i })
 			.first()
 			.click();
-		await page.waitForURL((u) => u.pathname === `${url}/en`);
-		await page.waitForTimeout(700);
-		const en = await page.evaluate(() => document.documentElement.lang);
+		const toEn = await reaches((u) => u.pathname === `${url}/en`);
+		const en = await langBecomes('en');
 		await page
 			.getByRole('button', { name: /^(ko|한국어)$/i })
 			.first()
 			.click();
-		await page.waitForURL((u) => u.pathname === url);
-		await page.waitForTimeout(700);
-		const ko = await page.evaluate(() => document.documentElement.lang);
-		check(en === 'en' && ko === 'ko' && !(await onErrorPage()), `language switch on ${url}`);
+		const toKo = await reaches((u) => u.pathname === url);
+		const ko = await langBecomes('ko');
+		check(
+			toEn && toKo && en === 'en' && ko === 'ko' && !(await onErrorPage()),
+			`language switch on ${url} (lang ${en} → ${ko})`
+		);
 	}
 	await context.clearCookies();
 
 	// The English series link stays in English.
 	await page.goto(`${origin}/blog/us-camp/en`, { waitUntil: 'networkidle' });
 	await page.click('a[href="/blog/lg-ai-youth-camp/en"]');
-	await page.waitForURL((u) => u.pathname === '/blog/lg-ai-youth-camp/en');
-	check(true, 'series link from /en stays in English');
+	await reaches((u) => u.pathname === '/blog/lg-ai-youth-camp/en');
+	check(
+		pathOf() === '/blog/lg-ai-youth-camp/en',
+		`series link from /en stays in English (${pathOf()})`
+	);
 
 	// The lightbox opens and closes; the comments section mounts.
+	const dialog = '[role=dialog][aria-modal=true]';
 	await page.goto(`${origin}/blog/us-camp`, { waitUntil: 'networkidle' });
+	// Hydration, as above: the lightbox's click handler is attached by it.
 	await page.waitForTimeout(800);
 	const image = await page.$('.prose-post img:not([data-no-lightbox])');
 	await image?.scrollIntoViewIfNeeded();
 	await image?.click();
-	await page.waitForTimeout(700);
-	const opened = !!(await page.$('[role=dialog][aria-modal=true]'));
+	const opened = !!image && (await settles(dialog));
 	await page.keyboard.press('Escape');
-	await page.waitForTimeout(700);
-	const closed = !(await page.$('[role=dialog][aria-modal=true]'));
+	const closed = await settles(dialog, 'detached');
 	check(opened && closed, 'lightbox opens and closes');
 	await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-	await page.waitForTimeout(1500);
-	check(!!(await page.$('#comments textarea, #comments input')), 'comments section mounts');
+	check(
+		await settles('#comments textarea, #comments input', 'attached', 10_000),
+		'comments section mounts'
+	);
 
 	// The ISR pages carry their data in the HTML.
 	const home = await (await fetch(`${origin}/`)).text();

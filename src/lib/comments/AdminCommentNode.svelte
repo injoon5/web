@@ -97,7 +97,6 @@
 		<div
 			class="rounded-lg border border-neutral-200 bg-neutral-100 p-4 dark:border-neutral-800 dark:bg-neutral-900"
 		>
-			<!-- Header -->
 			<div class="flex items-start justify-between gap-2">
 				<p class="font-semibold">{comment.username}</p>
 				<div class="flex shrink-0 items-center gap-1.5">

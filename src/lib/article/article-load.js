@@ -2,8 +2,8 @@ import { error, redirect } from '@sveltejs/kit';
 import { browser } from '$app/env';
 import { articleIndex } from '#lib/content/article-index.js';
 import { articleBase, articlePath, resolveLang } from '#lib/content/article-paths.js';
-import { blogModules, projectModules } from '#lib/content/article-modules.js';
-import { cookieLang, loadVisitor } from '#lib/visitor.svelte.js';
+import { articleModule } from '#lib/content/article-modules.js';
+import { cookieLang } from '#lib/cookies.js';
 
 /**
  * The universal load both article routes share. No server load, ever: the pages
@@ -16,8 +16,6 @@ import { cookieLang, loadVisitor } from '#lib/visitor.svelte.js';
  * @param {import('#lib/content/article-paths.js').ArticleKind} kind
  */
 export function articleLoad(kind) {
-	const modules = kind === 'blog' ? blogModules : projectModules;
-
 	/** @param {{ params: { slug: string, lang?: string }, url: URL, fetch: typeof fetch }} event */
 	return async ({ params, url, fetch }) => {
 		const { slug } = params;
@@ -26,8 +24,6 @@ export function articleLoad(kind) {
 		const { langs } = entry;
 
 		if (browser) {
-			loadVisitor(fetch);
-
 			// A visitor who picked English, following a link inside the site to the
 			// bare URL. A direct visit was already redirected by vercel.json; this
 			// is the same rule for client-side navigation, where no request is made.
@@ -39,7 +35,7 @@ export function articleLoad(kind) {
 		}
 
 		const lang = resolveLang(params.lang, langs);
-		const mod = await modules[lang][`/src/content/${kind}/${lang}/${slug}.md`]();
+		const mod = await /** @type {() => Promise<any>} */ (articleModule(kind, lang, slug))();
 
 		return {
 			kind,

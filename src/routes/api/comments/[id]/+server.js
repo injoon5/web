@@ -1,30 +1,18 @@
-import { error } from '@sveltejs/kit';
-import { convex, serverCredential } from '#lib/server/convex.js';
+import { convex } from '#lib/server/convex.js';
 import { api } from '#convex/_generated/api.js';
-import { verifyAdminSecret } from '#lib/server/admin.js';
-import { editCommentSchema, deleteCommentSchema, parseConvexId } from '#lib/server/validation.js';
-import { requestIpHash } from '#lib/server/ip.js';
+import { visitorArgs } from '#lib/server/callers.js';
+import { editCommentSchema, deleteCommentSchema, requireConvexId } from '#lib/server/validation.js';
 import { runConvex, parseBody } from '#lib/server/api.js';
-import { ADMIN_SECRET } from '$app/env/private';
 
 /** @type {import('./$types').RequestHandler} */
 export const PATCH = async ({ params, request }) => {
-	const ipHash = requestIpHash(request);
-	const admin = verifyAdminSecret(request);
-	const commentId = parseConvexId(params.id);
-	if (!commentId) throw error(400, 'Invalid comment id');
+	const visitor = visitorArgs(request);
+	const commentId = requireConvexId(params.id);
 	const { text, password } = await parseBody(request, editCommentSchema);
 
+	// An admin's edit skips the password check in Convex (`authorizeOwner`).
 	return runConvex(
-		() =>
-			convex.action(api.commentActions.editComment, {
-				serverCredential,
-				commentId,
-				text,
-				password: admin ? '' : password,
-				ipHash,
-				adminSecret: admin ? ADMIN_SECRET : undefined
-			}),
+		() => convex.action(api.commentActions.editComment, { commentId, text, password, ...visitor }),
 		(updated) => Response.json({ comment: updated })
 	);
 };
@@ -37,18 +25,17 @@ export const PATCH = async ({ params, request }) => {
 // deliberate admin surface, DELETE /api/admin/comments/[id].
 /** @type {import('./$types').RequestHandler} */
 export const DELETE = async ({ params, request }) => {
-	const ipHash = requestIpHash(request);
-	const commentId = parseConvexId(params.id);
-	if (!commentId) throw error(400, 'Invalid comment id');
+	const { ipHash, serverCredential } = visitorArgs(request);
+	const commentId = requireConvexId(params.id);
 	const { password } = await parseBody(request, deleteCommentSchema);
 
 	return runConvex(
 		() =>
 			convex.action(api.commentActions.softDeleteComment, {
-				serverCredential,
 				commentId,
 				password,
-				ipHash
+				ipHash,
+				serverCredential
 			}),
 		() => Response.json({ success: true })
 	);

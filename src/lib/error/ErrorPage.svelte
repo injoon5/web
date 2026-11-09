@@ -32,7 +32,6 @@
 	const heading = $derived.by(() => {
 		if (status === 404) {
 			if (pathname.startsWith('/blog/')) return "Couldn't find that post";
-			if (pathname.startsWith('/projects/')) return "Couldn't find that project";
 			if (pathname.startsWith('/blog')) return "Couldn't find the blog";
 			if (pathname.startsWith('/projects')) return "Couldn't find that project";
 			if (pathname.startsWith('/now')) return "Couldn't find the /now page";

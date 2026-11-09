@@ -5,20 +5,11 @@
  * consume nothing, or calling it would itself eat the budget it is checking.
  */
 
-import { convexTest } from 'convex-test';
 import { describe, expect, it } from 'vitest';
-import rateLimiter from '@convex-dev/rate-limiter/test';
+import { TEST_ADMIN_SECRET, setupConvex } from '../src/test/convex.js';
 import { api, internal } from './_generated/api.js';
-import schema from './schema.js';
-import { withServerCall } from '../src/test/convex-server-call.js';
 
-const modules = import.meta.glob('./**/*.js');
-
-function setup() {
-	const t = withServerCall(convexTest(schema, modules));
-	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
-	return t;
-}
+const setup = () => setupConvex();
 
 const IP = 'ip-hash-1';
 
@@ -80,7 +71,6 @@ describe('checkCanCreate', () => {
 
 	it('lets an admin through a ban and an exhausted bucket', async () => {
 		const t = setup();
-		process.env.ADMIN_SECRET = 'test-admin-secret';
 		await t.run(async (ctx) => {
 			await ctx.db.insert('bannedIps', { ipHash: IP, reason: 'spam' });
 		});
@@ -89,8 +79,12 @@ describe('checkCanCreate', () => {
 		}
 
 		await expect(
-			t.mutation(api.comments.checkCanCreate, { ipHash: IP, adminSecret: 'test-admin-secret' })
+			t.mutation(api.comments.checkCanCreate, { ipHash: IP, adminSecret: TEST_ADMIN_SECRET })
 		).resolves.toBeNull();
+		// And `create` agrees: the gate passes nothing the mutation then refuses.
+		await expect(
+			t.mutation(api.comments.create, newComment({ adminSecret: TEST_ADMIN_SECRET }))
+		).resolves.toMatchObject({ text: 'hello' });
 	});
 });
 
@@ -110,10 +104,9 @@ describe('list', () => {
 		await t.mutation(api.comments.create, newComment({ text: 'kept' }));
 		const doomed = await t.mutation(api.comments.create, newComment({ text: 'gone' }));
 
-		process.env.ADMIN_SECRET = 'test-admin-secret';
 		await t.mutation(api.comments.hardDelete, {
 			commentId: doomed.id,
-			adminSecret: 'test-admin-secret'
+			adminSecret: TEST_ADMIN_SECRET
 		});
 
 		const list = await listPage(t);
@@ -144,13 +137,14 @@ describe('list', () => {
 
 	it('pages through threads ranked by score, keeping replies with their root', async () => {
 		const t = setup();
-		const lowRoot = await t.mutation(api.comments.create, newComment({ text: 'low root' }));
-		await t.mutation(api.comments.create, newComment({ text: 'low reply', parentId: lowRoot.id }));
+		// The higher-scored thread is the older one, so a newest-first order fails.
 		const highRoot = await t.mutation(api.comments.create, newComment({ text: 'high root' }));
 		await t.mutation(
 			api.comments.create,
 			newComment({ text: 'high reply', parentId: highRoot.id })
 		);
+		const lowRoot = await t.mutation(api.comments.create, newComment({ text: 'low root' }));
+		await t.mutation(api.comments.create, newComment({ text: 'low reply', parentId: lowRoot.id }));
 
 		// Seed what the score backfill writes: a ranked `score` per root plus the
 		// completion flag, so `list` reads the ranked index instead of the fallback.
@@ -180,8 +174,9 @@ describe('list', () => {
 
 	it('falls back to a bounded whole-page rank before the score backfill runs', async () => {
 		const t = setup();
-		const low = await t.mutation(api.comments.create, newComment({ text: 'low' }));
+		// Older but higher-scored, so a newest-first order fails.
 		const high = await t.mutation(api.comments.create, newComment({ text: 'high' }));
+		const low = await t.mutation(api.comments.create, newComment({ text: 'low' }));
 
 		// Legacy rows carry vote counts but no `score`, and no completion flag.
 		await t.run(async (ctx) => {

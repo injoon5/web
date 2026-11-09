@@ -22,8 +22,14 @@ import { createHash } from 'node:crypto';
 /** Widths a photo is offered at, below its own. Phones at 3x land near 1280. */
 export const VARIANT_WIDTHS = [640, 960, 1280, 1920];
 
-/** WebP quality for the copies. Part of every file's name, via `variantKey`. */
-export const VARIANT_QUALITY = 80;
+/** How the copies are encoded. Part of every file's name, via `variantKey`. */
+export const VARIANT_ENCODING = { quality: 80, effort: 5, smartSubsample: true };
+
+/**
+ * Everything that decides which copies exist and what bytes they hold: the
+ * image step re-encodes an image whose recorded settings differ from these.
+ */
+export const VARIANT_SETTINGS = JSON.stringify({ widths: VARIANT_WIDTHS, ...VARIANT_ENCODING });
 
 /** Where the script records what it wrote, relative to the project root. */
 export const VARIANTS_MANIFEST = '.cache/image-variants.json';
@@ -49,7 +55,7 @@ export function variantWidths(width) {
  */
 export function variantKey(inputHash, width) {
 	return createHash('sha256')
-		.update(`${inputHash}:${width}:webp:${VARIANT_QUALITY}`)
+		.update(`${inputHash}:${width}:webp:${JSON.stringify(VARIANT_ENCODING)}`)
 		.digest('hex')
 		.slice(0, 10);
 }

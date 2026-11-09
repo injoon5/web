@@ -8,7 +8,7 @@ import {
 	replySchema,
 	nowSchema,
 	banSchema
-} from './validation';
+} from './validation.js';
 
 describe('createCommentSchema', () => {
 	const base = {
@@ -28,13 +28,13 @@ describe('createCommentSchema', () => {
 		expect(createCommentSchema.safeParse({ ...base, text: '[deleted]' }).success).toBe(false);
 	});
 
-	it('defaults username to Anonymous when omitted', () => {
+	it('leaves an omitted username empty, for Convex to name Anonymous', () => {
 		const parsed = createCommentSchema.parse({
 			url: base.url,
 			password: base.password,
 			text: base.text
 		});
-		expect(parsed.username).toBe('Anonymous');
+		expect(parsed.username).toBe('');
 	});
 
 	it('rejects an empty url', () => {
@@ -102,8 +102,8 @@ describe('voteSchema', () => {
 });
 
 describe('likeSchema', () => {
-	it('requires a url and treats liked as optional boolean', () => {
-		expect(likeSchema.safeParse({ url: '/blog/x' }).success).toBe(true);
+	it('requires a url and the desired liked state', () => {
+		expect(likeSchema.safeParse({ url: '/blog/x' }).success).toBe(false);
 		expect(likeSchema.safeParse({ url: '/blog/x', liked: true }).success).toBe(true);
 		expect(likeSchema.safeParse({ url: '' }).success).toBe(false);
 		expect(likeSchema.safeParse({ url: '/x', liked: 'yes' }).success).toBe(false);

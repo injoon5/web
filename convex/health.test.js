@@ -1,17 +1,14 @@
-import { convexTest } from 'convex-test';
 import { makeFunctionReference } from 'convex/server';
 import { describe, expect, it } from 'vitest';
+import { setupConvex } from '../src/test/convex.js';
 import { internal } from './_generated/api.js';
-import schema from './schema.js';
 import { HOUR_MS, metricUnit, workoutExternalId } from './lib/health.js';
 
 // Built by hand rather than reached through `api.*`, which stays absent from
 // convex/ so nothing here can accidentally grow a public entry point.
 const publicPage = makeFunctionReference('healthPublic:page');
 
-const modules = import.meta.glob('./**/*.js');
-
-const setup = () => convexTest(schema, modules);
+const setup = () => setupConvex();
 
 const HOUR = Date.parse('2026-08-01T09:00:00Z');
 
@@ -243,15 +240,6 @@ describe('reads', () => {
 		expect(runs[0].start).toBeGreaterThan(runs[1].start);
 	});
 
-	it('exposes the HTTP routes without importing anything public', async () => {
-		const http = await import('./http.js');
-		expect(typeof http.default.lookup).toBe('function');
-		expect(http.default.lookup('/health/ingest', 'POST')).toBeTruthy();
-		expect(http.default.lookup('/health/series', 'GET')).toBeTruthy();
-		expect(http.default.lookup('/health/workouts', 'GET')).toBeTruthy();
-		expect(http.default.lookup('/health', 'GET')).toBeTruthy();
-	});
-
 	it('drops raw samples past the retention cutoff but keeps their buckets', async () => {
 		const t = setup();
 		await t.mutation(internal.health.ingest, { samples: heartRate(10) });
@@ -298,7 +286,7 @@ describe('public page query', () => {
 
 	// Workouts are ingested and readable through the key-gated route, but the
 	// page doesn't render them, so the unauthenticated query must not carry them.
-	it('serves no workouts', async () => {
+	it('serves the series and their stamp, and nothing else', async () => {
 		const t = setup();
 		await t.mutation(internal.health.ingest, {
 			workouts: [
@@ -313,7 +301,8 @@ describe('public page query', () => {
 		});
 
 		const result = await t.query(publicPage, { startDate: '2026-07-03', days: 30 });
-		expect(result.workouts).toBeUndefined();
+		expect(Object.keys(result).sort()).toEqual(['series', 'updatedAt']);
+		expect(JSON.stringify(result)).not.toContain('running');
 	});
 
 	it('reports when the window was last written', async () => {

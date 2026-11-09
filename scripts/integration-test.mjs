@@ -2,20 +2,10 @@
  * Integration smoke test against a live Convex deployment.
  * Usage: PUBLIC_CONVEX_URL=https://....convex.cloud node scripts/integration-test.mjs
  */
-import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { ConvexHttpClient } from 'convex/browser';
 
-function loadEnv() {
-	const text = readFileSync('.env', 'utf8');
-	for (const line of text.split('\n')) {
-		const m = /^([^#=]+)=(.*)$/.exec(line.trim());
-		if (m && process.env[m[1].trim()] === undefined) {
-			process.env[m[1].trim()] = m[2].trim();
-		}
-	}
-}
-
-loadEnv();
+if (existsSync('.env')) process.loadEnvFile('.env');
 
 const url = process.env.PUBLIC_CONVEX_URL;
 if (!url || url.includes('your-deployment')) {

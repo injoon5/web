@@ -1,7 +1,7 @@
 import { convex } from '#lib/server/convex.js';
 import { api } from '#convex/_generated/api.js';
-import { DEFAULT_RANGE } from '#lib/health/metrics.js';
-import { dateKey, shiftDateKey } from '#convex/lib/health.js';
+import { DEFAULT_RANGE, rangeStartDate } from '#lib/health/metrics.js';
+import { dateKey } from '#convex/lib/health.js';
 
 export const prerender = false;
 
@@ -33,7 +33,7 @@ function windowEndDate(now = Date.now()) {
  */
 export function load({ setHeaders }) {
 	const endDate = windowEndDate();
-	const startDate = shiftDateKey(endDate, -(DEFAULT_RANGE - 1));
+	const startDate = rangeStartDate(endDate, DEFAULT_RANGE);
 
 	// One window for everyone now the range is client state, so this is a single
 	// shared cache entry. The page is realtime after hydration, so a minute-old
@@ -46,8 +46,9 @@ export function load({ setHeaders }) {
 		endDate,
 		// A rejection here is a page with no charts, not a 500: the live
 		// subscription is about to try the same query again from the browser.
-		report: convex
-			.query(api.healthPublic.page, { startDate, days: DEFAULT_RANGE })
-			.catch(() => null)
+		report: convex.query(api.healthPublic.page, { startDate, days: DEFAULT_RANGE }).catch((err) => {
+			console.error(err);
+			return null;
+		})
 	};
 }

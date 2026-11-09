@@ -1,6 +1,48 @@
 import { defineSchema, defineTable } from 'convex/server';
 import { v } from 'convex/values';
 
+// Row shapes that functions also take as arguments, so the two cannot drift.
+
+/** One track of the Now Listening feed, as `convex/lib/feeds.js` normalizes it. */
+export const feedTrack = v.object({
+	name: v.string(),
+	artist: v.string(),
+	url: v.string(),
+	image: v.string(),
+	nowPlaying: v.boolean(),
+	playedAt: v.union(v.number(), v.null()) // null while the track is playing
+});
+
+export const feedPhoto = v.object({
+	id: v.string(),
+	title: v.string(),
+	url: v.string(),
+	image: v.string(),
+	takenAt: v.string() // the feed's own formatted, timezone-naive capture time
+});
+
+export const healthSample = v.object({
+	metric: v.string(),
+	value: v.number(),
+	time: v.number(),
+	unit: v.string(),
+	source: v.optional(v.string())
+});
+
+export const healthWorkout = v.object({
+	externalId: v.string(), // `${type}:${startMs}` — Shortcuts exposes no workout UUID
+	type: v.string(),
+	start: v.number(),
+	end: v.number(),
+	duration: v.number(), // seconds
+	distance: v.optional(v.number()),
+	activeEnergy: v.optional(v.number()),
+	avgHeartRate: v.optional(v.number()),
+	maxHeartRate: v.optional(v.number()),
+	elevation: v.optional(v.number()),
+	source: v.optional(v.string())
+});
+
 export default defineSchema({
 	comments: defineTable({
 		url: v.string(),
@@ -20,13 +62,13 @@ export default defineSchema({
 		score: v.optional(v.number())
 	})
 		// Hard delete only sets `deletedAt`, so tombstones stay in the table
-		// forever. Binding `deletedAt` too lets every public read skip them at the
-		// index instead of collecting them and filtering in JS. `by_url` alone
-		// would be a prefix of this one, and so redundant.
-		.index('by_url_deleted', ['url', 'deletedAt'])
-		// Roots only (`parentId === null`), ranked by the denormalized `score`.
+		// forever. Binding `deletedAt` lets every read skip them at the index
+		// instead of collecting them and filtering in JS; binding `parentId` too
+		// gives the public list its roots, ranked by the denormalized `score`.
 		// `_creationTime` trails every index, so `.order('desc')` breaks equal
-		// scores newest-first — the same order the old whole-page rank produced.
+		// scores newest-first. A `url` + `deletedAt` read binds only the leading
+		// fields: a separate index on those would be a prefix of this one, and so
+		// redundant.
 		.index('by_url_deleted_parent_score', ['url', 'deletedAt', 'parentId', 'score'])
 		.index('by_parent', ['parentId']),
 
@@ -67,9 +109,6 @@ export default defineSchema({
 		reason: v.union(v.string(), v.null())
 	}).index('by_ip', ['ipHash']),
 
-	// ---------------------------------------------------------------------------
-	// Admin sessions
-	//
 	// The dashboard subscribes to the admin queries over the websocket, so the
 	// browser needs a credential of its own — ADMIN_SECRET is the master key and
 	// never leaves the server. A row is the SHA-256 of the `admin_token` cookie
@@ -80,7 +119,6 @@ export default defineSchema({
 	// `expiresAt > Date.now()` check inside one would keep streaming from a
 	// cached result past the deadline. Deleting the row invalidates every query
 	// that read it, which is exactly what revocation has to do.
-	// ---------------------------------------------------------------------------
 	adminSessions: defineTable({
 		tokenHash: v.string(),
 		expiresAt: v.number()
@@ -91,49 +129,22 @@ export default defineSchema({
 		updatedAt: v.number()
 	}),
 
-	// ---------------------------------------------------------------------------
-	// Home-page feeds
-	//
-	// One row each, overwritten by the 5-minute cron. Normalized down to what the
+	// Home-page feeds: one row each, overwritten by the 5-minute cron. Normalized down to what the
 	// page renders (see convex/lib/feeds.js) — the upstream payloads carry four
 	// image sizes, EXIF and mbids the home page never touches.
-	// ---------------------------------------------------------------------------
-
 	nowPlaying: defineTable({
-		tracks: v.array(
-			v.object({
-				name: v.string(),
-				artist: v.string(),
-				url: v.string(),
-				image: v.string(),
-				nowPlaying: v.boolean(),
-				playedAt: v.union(v.number(), v.null()) // null while the track is playing
-			})
-		),
+		tracks: v.array(feedTrack),
 		updatedAt: v.number()
 	}),
 
 	photos: defineTable({
-		photos: v.array(
-			v.object({
-				id: v.string(),
-				title: v.string(),
-				url: v.string(),
-				image: v.string(),
-				takenAt: v.string() // the feed's own formatted, timezone-naive capture time
-			})
-		),
+		photos: v.array(feedPhoto),
 		updatedAt: v.number()
 	}),
 
-	// ---------------------------------------------------------------------------
-	// Apple Health
-	//
-	// Three tiers of the same data, so a read touches about as many rows as the
+	// Apple Health: three tiers of the same data, so a read touches about as many rows as the
 	// chart plots points: day rollups for multi-day charts, hour buckets for
 	// intraday, raw samples only for export/debug (pruned at 30 days).
-	// ---------------------------------------------------------------------------
-
 	// One row per (metric, date). The hourly Shortcut re-sends the whole day, so
 	// this is upserted rather than appended.
 	healthDaily: defineTable({
@@ -158,36 +169,16 @@ export default defineSchema({
 		min: v.number(),
 		max: v.number(),
 		unit: v.string()
-	})
-		.index('by_metric_hour', ['metric', 'hour'])
-		.index('by_hour', ['hour']),
+	}).index('by_metric_hour', ['metric', 'hour']),
 
-	healthSamples: defineTable({
-		metric: v.string(),
-		value: v.number(),
-		time: v.number(),
-		unit: v.string(),
-		source: v.optional(v.string())
-	})
+	healthSamples: defineTable(healthSample)
 		.index('by_metric_time', ['metric', 'time'])
 		.index('by_time', ['time']),
 
 	// Workouts are events, not a time series — a handful a day at most, always
 	// read as a list or a per-type history — so `by_start` / `by_type_start`
 	// range scans are already proportional to what renders. No rollup tier.
-	healthWorkouts: defineTable({
-		externalId: v.string(), // `${type}:${startMs}` — Shortcuts exposes no workout UUID
-		type: v.string(),
-		start: v.number(),
-		end: v.number(),
-		duration: v.number(), // seconds
-		distance: v.optional(v.number()),
-		activeEnergy: v.optional(v.number()),
-		avgHeartRate: v.optional(v.number()),
-		maxHeartRate: v.optional(v.number()),
-		elevation: v.optional(v.number()),
-		source: v.optional(v.string())
-	})
+	healthWorkouts: defineTable(healthWorkout)
 		.index('by_start', ['start'])
 		.index('by_type_start', ['type', 'start'])
 		.index('by_external', ['externalId'])

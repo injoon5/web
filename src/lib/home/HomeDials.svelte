@@ -10,7 +10,7 @@
 	 * registers a folder into the overlay `DialsHost` already mounted from the
 	 * root layout, and disappears again when the route changes.
 	 *
-	 * Both sections are images at a size, a spacing and a radius, and all three
+	 * Both sections are images at a size and a spacing, and both
 	 * are guesses until they are seen against real album art and real photos —
 	 * which is exactly what a slider is for. Nothing persists: what settles gets
 	 * copied into `HOME_DEFAULTS` by hand.
@@ -28,16 +28,11 @@
 			photoColumns: [HOME_DEFAULTS.photoColumns, 1, 6, 1],
 			photoCount: [HOME_DEFAULTS.photoCount, 1, 18, 1],
 			photoGap: [HOME_DEFAULTS.photoGap, 0, 3, 0.05]
-		},
-		// Shared by covers and photos on purpose: two radii that are nearly the
-		// same read as a mistake, so they move together.
-		shared: {
-			radius: [HOME_DEFAULTS.radius, 0, 2, 0.05]
 		}
 	});
 
 	$effect(() => {
-		Object.assign(homeSettings, dials.music, dials.photos, dials.shared);
+		Object.assign(homeSettings, dials.music, dials.photos);
 
 		// The marquee sizes its animation from scroll distance, so a speed change
 		// moves no boxes and its ResizeObserver never hears about it.

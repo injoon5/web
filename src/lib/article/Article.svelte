@@ -24,9 +24,9 @@
 	import NumberFlow from '#lib/ui/NumberFlow.svelte';
 	import LanguageSwitcher from '#lib/ui/LanguageSwitcher.svelte';
 	import StableLangStack from '#lib/ui/StableLangStack.svelte';
-	import { SITE_URL, articleBase, articlePath } from '#lib/content/article-paths.js';
+	import { SITE_URL, alternates, articleBase, articlePath } from '#lib/content/article-paths.js';
 	import { preloadArticle } from '#lib/content/preload-articles.js';
-	import { cookieLang, persistLang } from '#lib/visitor.svelte.js';
+	import { cookieLang, persistLang } from '#lib/cookies.js';
 
 	/**
 	 * @typedef {{ meta: Record<string, any>, content: any, series: any[] }} LangEntry
@@ -181,7 +181,7 @@
 	});
 
 	const current = $derived(entryFor(displayLang));
-	const readingMinutes = $derived(parseInt(current.meta.readingTime ?? '', 10));
+	const readingMinutes = $derived(current.meta.readingMinutes);
 
 	/** @type {View} */
 	const view = {
@@ -223,9 +223,10 @@
 			{#if l !== data.lang}
 				<meta property="og:locale:alternate" content={ogLocale(l)} />
 			{/if}
-			<link rel="alternate" hreflang={l} href={SITE_URL + hrefFor(l)} />
 		{/each}
-		<link rel="alternate" hreflang="x-default" href={SITE_URL + hrefFor(data.langs[0])} />
+		{#each alternates(data.kind, data.slug, data.langs) as { hreflang, path } (hreflang)}
+			<link rel="alternate" {hreflang} href={SITE_URL + path} />
+		{/each}
 	{/if}
 	{@render head?.(data.meta, url)}
 </svelte:head>
@@ -250,7 +251,7 @@
 				class="mt-1 flex flex-row items-center {bylineClass} font-medium text-neutral-600 dark:text-neutral-400"
 			>
 				{@render dateline(current.meta)}
-				{#if !isNaN(readingMinutes)}
+				{#if readingMinutes}
 					<p class="mx-1">·</p>
 					<span class="tabular inline-flex whitespace-nowrap">
 						<!-- No ghost stack behind the count: sizing it to the widest language leaves a

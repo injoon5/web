@@ -22,8 +22,6 @@ export const HOME_DEFAULTS = {
 	coverSizeLg: 12,
 	/** Space between covers, in rem. Was `mr-3`. */
 	coverGap: 1,
-	/** Corner radius shared by covers and photos, in rem. Was `rounded-xl`. */
-	radius: 0.75,
 	/**
 	 * How dark the scrim under a cover's title gets. The title is white, so this
 	 * is the contrast floor — worth being able to see moved against real art
@@ -50,7 +48,6 @@ export function homeStyle(s = homeSettings) {
 		`--cover-size:${s.coverSize}rem`,
 		`--cover-size-lg:${s.coverSizeLg}rem`,
 		`--cover-gap:${s.coverGap}rem`,
-		`--media-radius:${s.radius}rem`,
 		`--cover-scrim:${s.scrim}`,
 		`--photo-columns:${s.photoColumns}`,
 		`--photo-gap:${s.photoGap}rem`

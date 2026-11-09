@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 import mdsvexConfig from './mdsvex.config.js';
+import { EMBED_ORIGIN as YOUTUBE_EMBED_ORIGIN } from './src/lib/markdown/remark-youtube.js';
 
 function gitInfo() {
 	try {
@@ -119,7 +120,7 @@ function contentSecurityPolicy(): Config['csp'] {
 				'wss://ws-us3.pusher.com'
 			],
 			'media-src': ['self'],
-			'frame-src': ['https://www.youtube-nocookie.com', vercelLive],
+			'frame-src': [YOUTUBE_EMBED_ORIGIN, vercelLive],
 			'object-src': ['none'],
 			'base-uri': ['self'],
 			'form-action': ['self']
@@ -133,7 +134,6 @@ export default defineConfig({
 	},
 	server: {
 		fs: {
-			// Allow serving files from one level up to the project root
 			allow: ['..']
 		},
 		allowedHosts: true

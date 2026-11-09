@@ -1,4 +1,6 @@
 <script>
+	import { SITE_URL } from '#lib/content/article-paths.js';
+	import { ogImageUrl } from '#lib/og/url.js';
 	import { onMount, onDestroy } from 'svelte';
 	import { preloadArticles } from '#lib/content/preload-articles.js';
 	import { useQuery } from 'convex-svelte';
@@ -15,9 +17,11 @@
 
 	const { data } = $props();
 
-	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
-	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
-	// there's no per-frame scroll math.
+	// The hero shows the big "Injoon Oh"; once it goes behind the header the
+	// navbar's name takes over (see NavBar). Where there is a view timeline the
+	// handover's look runs on the hero's own scroll progress; this observer still
+	// decides when the navbar name is a link that can be focused and clicked, and
+	// is the whole fade where there is no view timeline.
 	let heroNameEl = $state(null);
 	let heroObserver;
 
@@ -82,7 +86,6 @@
 
 <svelte:head>
 	<title>Injoon Oh</title>
-	<meta charset="UTF-8" />
 	<meta property="og:title" content="Injoon Oh" />
 	<meta
 		name="description"
@@ -97,12 +100,12 @@
 		name="keywords"
 		content="오인준, Injoon Oh, injoon5, 블로그, blog, projects, 개발자, developer"
 	/>
-	<meta property="og:image" content="https://injoon5.com/api/og?template=home" />
+	<meta property="og:image" content={ogImageUrl('home')} />
 	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:image" content="https://injoon5.com/api/og?template=home" />
+	<meta name="twitter:image" content={ogImageUrl('home')} />
 
 	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://injoon5.com/" />
+	<meta property="og:url" content="{SITE_URL}/" />
 
 	<!-- The Now-Listening covers (Last.fm's Fastly CDN) and Photos (photos.injoon5.com)
 	     are in the HTML from the ISR render, and are lazy images; warm their origins
@@ -250,7 +253,7 @@
 				>
 					<h3
 						lang={post.lang}
-						class="font-neutral-900 dark:font-neutral-100 line-clamp-1 text-base font-medium group-hover:underline"
+						class="line-clamp-1 text-base font-medium text-neutral-900 group-hover:underline dark:text-neutral-100"
 					>
 						{post.title}
 					</h3>
@@ -389,7 +392,7 @@
 								{track.name}
 							</p>
 							<p class="truncate text-sm font-normal text-white/60 lg:text-base">
-								{track.artist === 'Lany' ? 'LANY' : track.artist}
+								{track.artist}
 							</p>
 						</div>
 					</a>
@@ -536,7 +539,6 @@
 		will-change: transform;
 		animation: now-scroll linear infinite;
 		animation-duration: 60s; /* overridden by marqueeConstantSpeed action */
-		animation-play-state: var(--marquee-play-state, running);
 	}
 	@keyframes now-scroll {
 		from {

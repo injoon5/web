@@ -11,19 +11,13 @@
 export const config = { isr: { expiration: 300 } };
 
 import { publishedPosts, publishedProjects } from '#lib/server/content.js';
-import { convex } from '#lib/server/convex.js';
+import { queryOrNull } from '#lib/server/convex.js';
 import { api } from '#convex/_generated/api.js';
-
-/** A feed, or null if Convex is slow or down: the page then loads it live. */
-async function feed(query) {
-	const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 3000));
-	return Promise.race([convex.query(query, {}).catch(() => null), timeout]);
-}
 
 export const load = async () => {
 	const [nowPlaying, photos] = await Promise.all([
-		feed(api.feeds.nowPlaying),
-		feed(api.feeds.photos)
+		queryOrNull(api.feeds.nowPlaying),
+		queryOrNull(api.feeds.photos)
 	]);
 	return {
 		posts: publishedPosts(),

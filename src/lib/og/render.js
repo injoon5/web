@@ -4,7 +4,6 @@ import { loadFonts } from './fonts.js';
 import { WIDTH, HEIGHT } from './templates.js';
 
 /**
- * Render a satori element tree to a PNG buffer.
  * @param {object} element  satori-compatible React element tree
  * @param {string} origin  Absolute origin used to fetch the OG fonts
  * @returns {Promise<Buffer>}

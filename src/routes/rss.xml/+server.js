@@ -1,68 +1,50 @@
 export const prerender = true;
 
 import { create } from 'xmlbuilder2';
-import { blogEnMeta, blogKoMeta } from '#lib/server/content-modules.js';
-import { slugFromPath } from '#lib/content/bilingual.js';
+import { SITE_URL, articleBase } from '#lib/content/article-paths.js';
+import { catalogue, primaryMeta } from '#lib/server/catalogue.js';
 
-const SITE_URL = 'https://injoon5.com';
-
-// Raw markdown sources for feed descriptions. The compiled modules above only
-// carry metadata + a Svelte component, so the description text comes from the
-// raw files (frontmatter stripped below).
-const rawEn = import.meta.glob('/src/content/blog/en/*.md', {
-	query: '?raw',
-	import: 'default',
-	eager: true
-});
-const rawKo = import.meta.glob('/src/content/blog/ko/*.md', {
-	query: '?raw',
-	import: 'default',
-	eager: true
-});
-
-// The same slug exists in both en/ and ko/, so dedupe by slug — preferring
-// Korean (the site default, iterated last) — to avoid emitting two feed items
-// that point at the same /blog/{slug} URL.
-const getPosts = () => {
-	/** @type {Record<string, any>} */
-	const bySlug = {};
-
-	for (const [metaByPath, raws] of [
-		[blogEnMeta, rawEn],
-		[blogKoMeta, rawKo]
-	]) {
-		for (const path in metaByPath) {
-			const meta = /** @type {any} */ (metaByPath[path]);
-			if (meta?.published !== true) continue;
-
-			const slug = slugFromPath(path);
-			const raw = /** @type {string} */ (raws[path]) ?? '';
-			bySlug[slug] = {
-				...meta,
-				slug,
-				content: raw.replace(/^---[\s\S]+?---/, '') // Remove frontmatter
-			};
-		}
-	}
-
-	return Object.values(bySlug).sort(
-		(first, second) => new Date(second.date).getTime() - new Date(first.date).getTime()
-	);
+// Raw markdown sources for feed descriptions. The compiled modules only carry
+// metadata + a Svelte component, so the description text comes from the raw
+// files (frontmatter stripped below).
+const raw = {
+	en: import.meta.glob('/src/content/blog/en/*.md', {
+		query: '?raw',
+		import: 'default',
+		eager: true
+	}),
+	ko: import.meta.glob('/src/content/blog/ko/*.md', {
+		query: '?raw',
+		import: 'default',
+		eager: true
+	})
 };
 
-// Strip non-text markdown elements (images, links, HTML, code) for descriptions
+/** One item per post, in its primary language, newest first. */
+const getPosts = () =>
+	catalogue.blog.map((post) => {
+		const lang = post.langs[0];
+		const source = /** @type {string} */ (
+			raw[lang][`/src/content/blog/${lang}/${post.slug}.md`] ?? ''
+		);
+		return {
+			...primaryMeta(post),
+			link: SITE_URL + articleBase('blog', post.slug),
+			content: source.replace(/^---[\s\S]+?---/, '')
+		};
+	});
+
 /** @param {string} content */
 const cleanText = (content) => {
 	return content
-		.replace(/`{3}[\s\S]*?`{3}/g, '') // Remove code blocks
-		.replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
-		.replace(/\[.*?\]\(.*?\)/g, '') // Remove links
-		.replace(/<[^>]*>/g, '') // Remove HTML tags
-		.replace(/`.*?`/g, '') // Remove inline code
+		.replace(/`{3}[\s\S]*?`{3}/g, '')
+		.replace(/!\[.*?\]\(.*?\)/g, '')
+		.replace(/\[.*?\]\(.*?\)/g, '')
+		.replace(/<[^>]*>/g, '')
+		.replace(/`.*?`/g, '')
 		.trim();
 };
 
-// Short description from content (first 300 characters, blank lines removed)
 /** @param {string} content */
 const generateDescription = (content) => {
 	const cleanedContent = cleanText(content);
@@ -102,12 +84,12 @@ export const GET = async () => {
 			.txt(post.title)
 			.up()
 			.ele('link')
-			.txt(`${SITE_URL}/blog/${post.slug}`)
+			.txt(post.link)
 			.up()
 			// Readers dedupe on guid; without one, some re-show every item when
 			// any field (a description's 300 characters) changes.
 			.ele('guid', { isPermaLink: 'true' })
-			.txt(`${SITE_URL}/blog/${post.slug}`)
+			.txt(post.link)
 			.up()
 			.ele('description')
 			.txt(generateDescription(post.content))

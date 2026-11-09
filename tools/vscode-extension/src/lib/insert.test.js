@@ -27,7 +27,6 @@ test('several images go on consecutive lines, which is what makes a gallery', ()
 	);
 
 	assert.equal(snippet, '![](/images/a.png)\n![](/images/b.png)');
-	assert.equal(snippet.includes('\n\n'), false);
 });
 
 test('a video is written as markdown, which the build turns into a measured player', () => {

@@ -9,20 +9,11 @@
  * asked about.
  */
 
-import { convexTest } from 'convex-test';
 import { describe, expect, it } from 'vitest';
-import rateLimiter from '@convex-dev/rate-limiter/test';
+import { setupConvex } from '../src/test/convex.js';
 import { api } from './_generated/api.js';
-import schema from './schema.js';
-import { withServerCall } from '../src/test/convex-server-call.js';
 
-const modules = import.meta.glob('./**/*.js');
-
-function setup() {
-	const t = withServerCall(convexTest(schema, modules));
-	t.registerComponent('rateLimiter', rateLimiter.schema, rateLimiter.modules);
-	return t;
-}
+const setup = () => setupConvex();
 
 const URL = '/blog/test';
 

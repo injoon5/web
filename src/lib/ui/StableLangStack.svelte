@@ -1,39 +1,26 @@
 <script>
-	import { blur } from 'svelte/transition';
-
-	const blurT = (node, params) => (params?.duration ? blur(node, params) : {});
+	import { swapBlur } from '#lib/ui/swap-blur.js';
 
 	/**
 	 * @type {{
 	 *   langs?: string[];
 	 *   displayLang?: string;
 	 *   text?: (lang: string) => string;
-	 *   transition?: Record<string, unknown> | null;
-	 *   as?: 'p' | 'span';
-	 *   className?: string;
+	 *   transition?: import('svelte/transition').BlurParams | null;
 	 * }}
 	 */
-	let {
-		langs = [],
-		displayLang = '',
-		text = () => '',
-		transition = null,
-		as = 'span',
-		className = ''
-	} = $props();
+	let { langs = [], displayLang = '', text = () => '', transition = null } = $props();
 </script>
 
 <!-- A span, not a div: it sits inside inline text (a byline), where a div is
      invalid HTML. `display: grid` works the same on either. -->
-<span class="grid items-center {className}">
+<span class="grid items-center">
 	{#each langs as l (`${l}-ghost`)}
-		<svelte:element this={as} style="grid-area: 1 / 1" class="invisible" aria-hidden="true">
-			{text(l)}
-		</svelte:element>
+		<span style="grid-area: 1 / 1" class="invisible" aria-hidden="true">{text(l)}</span>
 	{/each}
 	{#each [displayLang] as l (l)}
-		<svelte:element this={as} style="grid-area: 1 / 1" in:blurT={transition} out:blurT={transition}>
-			{text(l)}
-		</svelte:element>
+		<span style="grid-area: 1 / 1" in:swapBlur={transition} out:swapBlur={transition}
+			>{text(l)}</span
+		>
 	{/each}
 </span>
