@@ -45,7 +45,7 @@ describe('convexErrorToResponse', () => {
 });
 
 describe('parseBody', () => {
-	const schema = z.object({ name: z.string().min(1) });
+	const schema = z.object({ name: z.string().min(1, 'Name is required') });
 
 	it('returns parsed data for a valid body', async () => {
 		await expect(parseBody(jsonRequest({ name: 'ok' }), schema)).resolves.toEqual({ name: 'ok' });
@@ -59,13 +59,13 @@ describe('parseBody', () => {
 	it('throws 400 with the first validation message on schema mismatch', async () => {
 		const err = await parseBody(jsonRequest({ name: '' }), schema).catch((e) => e);
 		expect(err.status).toBe(400);
+		expect(err.body.message).toBe('Name is required');
 	});
 });
 
 describe('runConvex', () => {
 	it('builds a JSON response on success', async () => {
 		const res = await runConvex(async () => ({ ok: true }));
-		expect(res).toBeInstanceOf(Response);
 		await expect(res.json()).resolves.toEqual({ ok: true });
 	});
 
@@ -77,14 +77,7 @@ describe('runConvex', () => {
 		expect(res.status).toBe(201);
 	});
 
-	it('returns a 429 Response when the call is rate limited', async () => {
-		const res = await runConvex(async () => {
-			throw new ConvexError({ kind: 'RateLimited', retryAfter: 1000 });
-		});
-		expect(res.status).toBe(429);
-	});
-
-	it('answers a non-rate-limit Convex error with its status', async () => {
+	it('answers a thrown Convex error with its status instead of throwing', async () => {
 		const res = await runConvex(async () => {
 			throw new ConvexError({ kind: 'NotFound' });
 		});

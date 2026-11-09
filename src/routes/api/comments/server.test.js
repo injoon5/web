@@ -38,7 +38,6 @@ function postRequest(body = {}) {
 	});
 }
 
-/** Names of the Convex functions passed to convex.mutation(), in call order. */
 function calledMutations() {
 	return convex.mutation.mock.calls.map(([ref]) => getFunctionName(ref));
 }

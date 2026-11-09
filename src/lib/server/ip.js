@@ -130,7 +130,6 @@ export function hashIp(ip) {
 }
 
 /**
- * Convenience: extract and hash the client IP from a request in one call.
  * @param {Request} request
  * @returns {string}
  */

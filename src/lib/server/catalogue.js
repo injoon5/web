@@ -63,5 +63,4 @@ export function buildCatalogue(globs) {
 	return { blog: articlesOf('blog', globs.blog), projects: articlesOf('projects', globs.projects) };
 }
 
-/** Every published article on the site. */
 export const catalogue = buildCatalogue(/** @type {Globs} */ (metadataGlobs));

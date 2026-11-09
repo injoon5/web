@@ -12,7 +12,6 @@
 
 	let tab = $state('comments');
 
-	// Comments navigation
 	let view = $state('urls'); // 'urls' | 'comments'
 	let selectedUrl = $state(null);
 
@@ -42,7 +41,6 @@
 		activeFormId = id;
 	}
 
-	// Error toast
 	let errorMessage = $state('');
 	let errorTimer = null;
 	function showError(msg) {

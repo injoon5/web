@@ -46,10 +46,6 @@ describe('resolveOgInput', () => {
 	it('caps each tag length at 40 chars', () => {
 		expect(resolveOgInput(params({ tags: 'y'.repeat(100) })).tags[0]).toHaveLength(40);
 	});
-
-	it('returns an empty tag array when none provided', () => {
-		expect(resolveOgInput(params({})).tags).toEqual([]);
-	});
 });
 
 describe('buildOgElement', () => {

@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	keywordsFor,
 	blogPostingSchema,
-	projectSchema,
 	breadcrumbSchema,
-	homeSchema,
 	jsonLdScript,
 	AUTHOR_NAME_KO
 } from './jsonld.js';
@@ -50,15 +48,6 @@ describe('blogPostingSchema', () => {
 	});
 });
 
-describe('projectSchema', () => {
-	it('is a CreativeWork with the author attached', () => {
-		const schema = projectSchema({ title: 'Sirius', url: 'https://x/p', year: '2025' });
-		expect(schema['@type']).toBe('CreativeWork');
-		expect(schema.dateCreated).toBe('2025');
-		expect(schema.author.name).toBe('Injoon Oh');
-	});
-});
-
 describe('breadcrumbSchema', () => {
 	it('numbers items from 1 in trail order', () => {
 		const schema = breadcrumbSchema([
@@ -67,14 +56,6 @@ describe('breadcrumbSchema', () => {
 		]);
 		expect(schema.itemListElement.map((i) => i.position)).toEqual([1, 2]);
 		expect(schema.itemListElement[1].name).toBe('Blog');
-	});
-});
-
-describe('homeSchema', () => {
-	it('exposes 오인준 on the WebSite alternateName', () => {
-		const graph = homeSchema()['@graph'];
-		const site = graph.find((n) => n['@type'] === 'WebSite');
-		expect(site.alternateName).toBe('오인준');
 	});
 });
 

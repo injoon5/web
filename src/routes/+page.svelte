@@ -17,9 +17,11 @@
 
 	const { data } = $props();
 
-	// The hero shows the big "Injoon Oh"; once it scrolls out of view the navbar
-	// name fades in (see NavBar). An IntersectionObserver drives the handoff so
-	// there's no per-frame scroll math.
+	// The hero shows the big "Injoon Oh"; once it goes behind the header the
+	// navbar's name takes over (see NavBar). Where there is a view timeline the
+	// handover's look runs on the hero's own scroll progress; this observer still
+	// decides when the navbar name is a link that can be focused and clicked, and
+	// is the whole fade where there is no view timeline.
 	let heroNameEl = $state(null);
 	let heroObserver;
 

@@ -98,9 +98,9 @@
 	{@render children()}
 </div>
 
-<!-- Every public page gets the tuning panel, and production gets no trace of it:
-     `__DIALS__` is a build-time literal, so this folds away and DialKit is never
-     emitted. Page-level panels register into it as folders. -->
+<!-- The one DialKit overlay, which page-level panels register into as folders.
+     Production gets no trace of it: `__DIALS__` is a build-time literal, so this
+     folds away and DialKit is never emitted. -->
 <DialsMount />
 
 <footer class="mt-10 mb-20 w-full pt-24 tracking-tight">

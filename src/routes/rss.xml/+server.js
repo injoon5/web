@@ -34,19 +34,17 @@ const getPosts = () =>
 		};
 	});
 
-// Strip non-text markdown elements (images, links, HTML, code) for descriptions
 /** @param {string} content */
 const cleanText = (content) => {
 	return content
-		.replace(/`{3}[\s\S]*?`{3}/g, '') // Remove code blocks
-		.replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
-		.replace(/\[.*?\]\(.*?\)/g, '') // Remove links
-		.replace(/<[^>]*>/g, '') // Remove HTML tags
-		.replace(/`.*?`/g, '') // Remove inline code
+		.replace(/`{3}[\s\S]*?`{3}/g, '')
+		.replace(/!\[.*?\]\(.*?\)/g, '')
+		.replace(/\[.*?\]\(.*?\)/g, '')
+		.replace(/<[^>]*>/g, '')
+		.replace(/`.*?`/g, '')
 		.trim();
 };
 
-// Short description from content (first 300 characters, blank lines removed)
 /** @param {string} content */
 const generateDescription = (content) => {
 	const cleanedContent = cleanText(content);

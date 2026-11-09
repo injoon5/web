@@ -1,7 +1,5 @@
 /**
- * Small wrapper around fetch for the site's JSON API routes. Collapses the
- * repeated try/catch + res.json() + message-fallback pattern used by every
- * comment/like/admin call site.
+ * The only way components call the site's `/api` routes.
  *
  * @param {string} url
  * @param {{ method?: string, body?: unknown }} [options]
